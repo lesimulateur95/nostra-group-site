@@ -19,7 +19,7 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
       <DashboardHeader title="Comptabilité" description="Enregistre les recettes et dépenses de Nostra Group. Le solde se calcule automatiquement à partir des opérations saisies." />
       {params.saved && <div className="dashboard-feedback dashboard-feedback-success">L’opération a été enregistrée.</div>}
       {params.deleted && <div className="dashboard-feedback">L’opération a été supprimée.</div>}
-      {params.error && <div className="dashboard-feedback dashboard-feedback-error">Vérifie les informations saisies.</div>}
+      {params.error && <div className="dashboard-feedback dashboard-feedback-error">Vérifie la date, le type, le libellé et le montant. Les formats 50000, 50 000 et 50.000 sont acceptés.</div>}
 
       <section className="dashboard-kpi-grid">
         <article><span>Total des recettes</span><strong className="positive-number">{euros(income)}</strong></article>
@@ -31,13 +31,13 @@ export default async function AccountingPage({ searchParams }: { searchParams: P
       <section className="dashboard-two-columns">
         <article className="backoffice-panel">
           <div className="panel-heading"><span className="panel-icon">＋</span><div><h2>Nouvelle opération</h2><p>Ajoute une recette ou une dépense.</p></div></div>
-          <form action={createAccountingEntry} className="backoffice-form">
-            <label>Date<input type="date" name="entry_date" defaultValue={today} required /></label>
-            <label>Type<select name="entry_type" defaultValue="income"><option value="income">Recette</option><option value="expense">Dépense</option></select></label>
-            <label>Catégorie<input name="category" placeholder="Vente, circuit, entretien…" /></label>
-            <label>Libellé<input name="label" placeholder="Exemple : réservation circuit" required /></label>
-            <label>Montant (€)<input type="number" name="amount" min="0.01" step="0.01" required /></label>
-            <label className="form-span-2">Note<textarea name="notes" rows={4} placeholder="Information complémentaire" /></label>
+          <form action={createAccountingEntry} className="backoffice-form" autoComplete="off">
+            <label>Date<input type="date" name="operation_date" defaultValue={today} required /></label>
+            <label>Type<select name="operation_type" defaultValue="income"><option value="income">Recette</option><option value="expense">Dépense</option></select></label>
+            <label>Catégorie<input name="operation_category" placeholder="Vente, circuit, entretien…" /></label>
+            <label>Libellé<input name="operation_label" placeholder="Exemple : réservation circuit" required /></label>
+            <label>Montant (€)<input type="text" inputMode="decimal" name="operation_amount" placeholder="Exemple : 50 000" required /></label>
+            <label className="form-span-2">Note<textarea name="operation_notes" rows={4} placeholder="Information complémentaire" /></label>
             <button className="btn" type="submit">Enregistrer l’opération</button>
           </form>
         </article>

@@ -11,6 +11,9 @@ import { DEFAULT_EDITOR_CONTENT } from "@/lib/content/default-editor-content";
 import { EDITABLE_PAGE_CONFIG, getAllSitePages } from "@/lib/content/site-content";
 import { SITE_CONTENT_SETUP_SQL } from "@/lib/content/setup-sql";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function DashboardContentPage({
   searchParams,
 }: {
@@ -59,18 +62,18 @@ export default async function DashboardContentPage({
       )}
 
       <section className="dashboard-section-heading dashboard-section-heading-tight">
-        <p className="eyebrow">PAGES INTÉGRÉES</p>
-        <h2>Modifier les pages catégorie par catégorie</h2>
-        <p>Ouvre une catégorie, puis modifie uniquement la page souhaitée. Chaque formulaire possède une clé indépendante.</p>
+        <p className="eyebrow">PAGES INTÉGRÉES — VERSION V9</p>
+        <h2>Toutes les pages sont affichées et modifiables</h2>
+        <p>Il n’y a plus de catégories repliées : les {EDITABLE_PAGE_CONFIG.length} pages et sous-pages sont visibles ci-dessous, chacune avec son propre formulaire et sa propre clé.</p>
       </section>
 
       <section className="category-editor-list">
-        {[...grouped.entries()].map(([category, pages], categoryIndex) => (
-          <details className="category-editor" key={category} open={categoryIndex === 0}>
-            <summary>
+        {[...grouped.entries()].map(([category, pages]) => (
+          <section className="category-editor category-editor-expanded" key={category}>
+            <div className="category-editor-heading">
               <span>{category}</span>
-              <small>{pages.length} page(s)</small>
-            </summary>
+              <small>{pages.length} page(s) indépendantes</small>
+            </div>
             <div className="content-editor-grid dashboard-editor-list">
               {pages.map((page) => {
                 const stored = sitePages.pages.get(page.slug);
@@ -119,7 +122,7 @@ export default async function DashboardContentPage({
                 );
               })}
             </div>
-          </details>
+          </section>
         ))}
       </section>
 

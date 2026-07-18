@@ -1040,3 +1040,32 @@ select:focus { outline: 2px solid rgba(212,175,55,.32); outline-offset: 1px; }
 @media (max-width: 720px) {
   .status-choice-grid { grid-template-columns: 1fr; }
 }
+
+/* Dashboard V9 : toutes les catégories et sous-pages restent visibles. */
+.category-editor-expanded {
+  overflow: visible;
+}
+.category-editor-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(90deg, rgba(212,175,55,.10), rgba(212,175,55,.025));
+  color: #fff;
+  font-weight: 900;
+  font-size: 1.15rem;
+}
+.category-editor-heading small {
+  color: var(--gold-light);
+  font-size: .78rem;
+  font-weight: 800;
+}
+.category-editor-expanded .content-editor-grid {
+  padding: 20px;
+}
+@media (max-width: 700px) {
+  .category-editor-heading { align-items: flex-start; flex-direction: column; }
+  .category-editor-expanded .content-editor-grid { padding: 14px; }
+}

@@ -51,9 +51,17 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (user && isDashboardPage && !isManager(user)) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/accueil";
-    return NextResponse.redirect(url);
+    const { data: profile } = await supabase
+      .from("member_profiles")
+      .select("role")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    const allowed = profile?.role === "manager" || profile?.role === "administrator";
+    if (!allowed) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/accueil";
+      return NextResponse.redirect(url);
+    }
   }
 
   return response;

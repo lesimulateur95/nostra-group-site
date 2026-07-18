@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
 
 export type HashRoute = {
   hash: string;
@@ -14,8 +13,6 @@ function normalizeHash(value: string): string {
 }
 
 export function HashRouteRedirect({ routes }: { routes: HashRoute[] }) {
-  const router = useRouter();
-
   useEffect(() => {
     const redirectFromHash = () => {
       const current = normalizeHash(window.location.hash);
@@ -26,13 +23,16 @@ export function HashRouteRedirect({ routes }: { routes: HashRoute[] }) {
         return candidates.includes(current);
       });
 
-      if (route) router.replace(route.href);
+      if (route) {
+        // Navigation complète pour éliminer définitivement les anciennes URL en #fragment.
+        window.location.replace(route.href);
+      }
     };
 
     redirectFromHash();
     window.addEventListener("hashchange", redirectFromHash);
     return () => window.removeEventListener("hashchange", redirectFromHash);
-  }, [router, routes]);
+  }, [routes]);
 
   return null;
 }

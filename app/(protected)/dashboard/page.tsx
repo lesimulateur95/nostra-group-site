@@ -81,6 +81,7 @@ export default async function DashboardPage() {
         <DashboardCard href="/dashboard/stocks" icon="▦" title="Gestion des stocks" description="Ajouter les articles, modifier les quantités et surveiller les seuils d’alerte." badge={lowStock ? `${lowStock} alerte(s)` : undefined} />
         <DashboardCard href="/dashboard/comptabilite" icon="€" title="Comptabilité" description="Enregistrer les recettes, les dépenses et suivre le solde." />
         <DashboardCard href="/dashboard/evenements" icon="📅" title="Gestion des événements" description="Créer, publier, modifier ou annuler les événements Nostra Group." badge={events.length ? `${events.length} événement(s)` : undefined} />
+        <DashboardCard href="/dashboard/membres" icon="👥" title="Membres et rôles" description="Voir les comptes inscrits et attribuer les rôles Membre, Staff, Administrateur ou Gérant." />
       </section>
     </DashboardShell>
   );

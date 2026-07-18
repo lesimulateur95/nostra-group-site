@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { getRpName, isManager } from "@/lib/auth/user-profile";
+import { getRpName } from "@/lib/auth/user-profile";
+import { hasDashboardAccess } from "@/lib/auth/access";
 import { createClient } from "@/lib/supabase/server";
 
 function text(value: FormDataEntryValue | null, max = 5000): string {
@@ -15,7 +16,22 @@ function integer(value: FormDataEntryValue | null, fallback = 0): number {
 }
 
 function money(value: FormDataEntryValue | null): number {
-  const parsed = Number.parseFloat(text(value, 40).replace(",", "."));
+  const raw = text(value, 60).replace(/\s|€|\$/g, "");
+  if (!raw) return 0;
+  let normalized = raw;
+  const lastComma = raw.lastIndexOf(",");
+  const lastDot = raw.lastIndexOf(".");
+  if (lastComma >= 0 && lastDot >= 0) {
+    const decimalIndex = Math.max(lastComma, lastDot);
+    normalized = raw.slice(0, decimalIndex).replace(/[.,]/g, "") + "." + raw.slice(decimalIndex + 1).replace(/[.,]/g, "");
+  } else if (lastComma >= 0) {
+    const decimals = raw.length - lastComma - 1;
+    normalized = decimals === 3 ? raw.replace(/,/g, "") : raw.replace(/,/g, ".");
+  } else if (lastDot >= 0) {
+    const decimals = raw.length - lastDot - 1;
+    normalized = decimals === 3 ? raw.replace(/\./g, "") : raw;
+  }
+  const parsed = Number.parseFloat(normalized);
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
 }
 
@@ -27,14 +43,14 @@ async function requireManager() {
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
   if (!data.user) redirect("/");
-  if (!isManager(data.user)) redirect("/accueil");
+  if (!(await hasDashboardAccess(data.user))) redirect("/accueil");
   return { supabase, user: data.user };
 }
 
 export async function saveCircuitStatus(formData: FormData) {
-  const status = text(formData.get("status"), 30);
-  const label = text(formData.get("label"), 100);
-  const message = text(formData.get("message"), 500);
+  const status = text(formData.get("circuit_status"), 30);
+  const label = text(formData.get("circuit_label"), 100);
+  const message = text(formData.get("circuit_message"), 500);
   const allowed = new Set(["open", "closed", "maintenance", "reserved", "competition"]);
   if (!allowed.has(status) || label.length < 2 || message.length < 2) redirect("/dashboard/circuit?error=invalid");
 
@@ -96,12 +112,12 @@ export async function deleteInventoryItem(formData: FormData) {
 }
 
 export async function createAccountingEntry(formData: FormData) {
-  const entryDate = text(formData.get("entry_date"), 20);
-  const entryType = text(formData.get("entry_type"), 20);
-  const category = text(formData.get("category"), 80) || "Général";
-  const label = text(formData.get("label"), 160);
-  const amount = money(formData.get("amount"));
-  const notes = text(formData.get("notes"), 1000) || null;
+  const entryDate = text(formData.get("operation_date"), 20);
+  const entryType = text(formData.get("operation_type"), 20);
+  const category = text(formData.get("operation_category"), 80) || "Général";
+  const label = text(formData.get("operation_label"), 160);
+  const amount = money(formData.get("operation_amount"));
+  const notes = text(formData.get("operation_notes"), 1000) || null;
   if (!entryDate || !new Set(["income", "expense"]).has(entryType) || label.length < 2 || amount <= 0) {
     redirect("/dashboard/comptabilite?error=invalid");
   }
@@ -244,5 +260,6 @@ export async function updateHomologationRequest(formData: FormData) {
   revalidatePath("/dashboard/homologations");
   revalidatePath("/circuit/administration-sportive/homologation-vehicules");
   revalidatePath("/circuit/administration-sportive/homologation-ecuries");
+  revalidatePath("/profil");
   redirect("/dashboard/homologations?saved=1");
 }

@@ -56,8 +56,12 @@ export type HomologationRequest = {
 
 export async function getBackofficeConfigured(): Promise<boolean> {
   const supabase = await createClient();
-  const { error } = await supabase.from("circuit_settings").select("id").limit(1);
-  return !error;
+  const checks = await Promise.all([
+    supabase.from("circuit_settings").select("id").limit(1),
+    supabase.from("custom_circuit_pages").select("id").limit(1),
+    supabase.from("member_profiles").select("user_id").limit(1),
+  ]);
+  return checks.every((result) => !result.error);
 }
 
 export async function getCircuitSetting(): Promise<CircuitSetting> {
@@ -144,4 +148,26 @@ export async function getProfileCommerceData(userId: string) {
     loyalty: loyalty.data ?? null,
     cart: cart.data ?? [],
   };
+}
+
+export type MemberProfile = {
+  user_id: string;
+  discord_id: string | null;
+  discord_name: string | null;
+  email: string | null;
+  avatar_url: string | null;
+  rp_first_name: string | null;
+  rp_last_name: string | null;
+  role: "member" | "staff" | "administrator" | "manager";
+  created_at: string;
+  updated_at: string;
+};
+
+export async function getMemberProfiles(): Promise<MemberProfile[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("member_profiles")
+    .select("user_id,discord_id,discord_name,email,avatar_url,rp_first_name,rp_last_name,role,created_at,updated_at")
+    .order("created_at", { ascending: false });
+  return (data ?? []) as MemberProfile[];
 }

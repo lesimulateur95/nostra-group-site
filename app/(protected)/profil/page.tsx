@@ -6,10 +6,10 @@ import {
   getDiscordId,
   getDiscordName,
   getRpName,
-  getSiteRole,
   hasRpProfile,
 } from "@/lib/auth/user-profile";
-import { getProfileCommerceData } from "@/lib/backoffice/data";
+import { getOwnHomologationRequests, getProfileCommerceData } from "@/lib/backoffice/data";
+import { getUserRoleLabel } from "@/lib/auth/access";
 import { createClient } from "@/lib/supabase/server";
 
 type ProfilePageProps = {
@@ -30,8 +30,11 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
   const avatarUrl = getAvatarUrl(data.user);
   const rpName = getRpName(data.user);
   const complete = hasRpProfile(data.user);
-  const role = getSiteRole(data.user);
-  const commerce = await getProfileCommerceData(data.user.id);
+  const [role, commerce, homologations] = await Promise.all([
+    getUserRoleLabel(data.user),
+    getProfileCommerceData(data.user.id),
+    getOwnHomologationRequests(data.user.id),
+  ]);
   const cartTotal = commerce.cart.reduce((sum, item) => sum + Number(item.unit_price) * Number(item.quantity), 0);
 
   const errorMessage =
@@ -115,6 +118,32 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
               <tbody>
                 {commerce.orders.length === 0 && <tr><td colSpan={4} className="empty-table-cell">Aucune commande enregistrée.</td></tr>}
                 {commerce.orders.map((order) => <tr key={order.id}><td><strong>{order.order_number}</strong></td><td>{new Date(order.created_at).toLocaleDateString("fr-FR")}</td><td><span className="order-status">{order.status}</span></td><td>{money(order.total)}</td></tr>)}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+
+        <section className="profile-data-section">
+          <div className="profile-data-heading"><div><p className="eyebrow">NOSTRA CIRCUIT</p><h2>Mes demandes d’homologation</h2></div><span>{homologations.length}</span></div>
+          <div className="profile-table-wrap">
+            <table className="profile-data-table">
+              <thead><tr><th>Type</th><th>Dossier</th><th>Date</th><th>État</th><th>Réponse de la direction</th></tr></thead>
+              <tbody>
+                {homologations.length === 0 && <tr><td colSpan={5} className="empty-table-cell">Aucune demande d’homologation envoyée.</td></tr>}
+                {homologations.map((request) => {
+                  const title = request.request_type === "vehicle"
+                    ? String(request.payload.vehicle_name || "Véhicule")
+                    : String(request.payload.team_name || "Écurie");
+                  const statusLabels: Record<string, string> = { pending: "En attente", reviewing: "En cours d’étude", approved: "Validée", rejected: "Refusée" };
+                  return <tr key={request.id}>
+                    <td>{request.request_type === "vehicle" ? "Véhicule" : "Écurie"}</td>
+                    <td><strong>{title}</strong></td>
+                    <td>{new Date(request.created_at).toLocaleDateString("fr-FR")}</td>
+                    <td><span className={`request-status request-status-${request.status}`}>{statusLabels[request.status] ?? request.status}</span></td>
+                    <td>{request.admin_note || "Aucune réponse pour le moment"}</td>
+                  </tr>;
+                })}
               </tbody>
             </table>
           </div>

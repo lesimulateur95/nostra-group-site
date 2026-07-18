@@ -1,3 +1,6 @@
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 import { CircuitStatusBanner } from "@/components/site/circuit-status-banner";
 import { SectionLayout } from "@/components/site/section-layout";
 import { getCircuitNavigation } from "@/lib/content/circuit-navigation";

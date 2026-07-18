@@ -2,22 +2,13 @@ import { redirect } from "next/navigation";
 import { submitHomologationRequest } from "@/app/actions/backoffice";
 import { EditablePage } from "@/components/site/editable-page";
 import { getRpName } from "@/lib/auth/user-profile";
-import { getOwnHomologationRequests } from "@/lib/backoffice/data";
 import { createClient } from "@/lib/supabase/server";
-
-const statusLabels: Record<string, string> = {
-  pending: "En attente",
-  reviewing: "En cours d’étude",
-  approved: "Validée",
-  rejected: "Refusée",
-};
 
 export default async function HomologationEcuriesPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
   if (!data.user) redirect("/");
   const params = await searchParams;
-  const requests = (await getOwnHomologationRequests(data.user.id)).filter((request) => request.request_type === "team");
 
   const defaultContent = (
     <article className="circuit-document">
@@ -51,20 +42,6 @@ export default async function HomologationEcuriesPage({ searchParams }: { search
         </form>
       </section>
 
-      <section className="own-requests-section">
-        <h2>Mes demandes d’écuries</h2>
-        {requests.length === 0 && <p className="empty-state">Tu n’as encore envoyé aucune demande.</p>}
-        <div className="own-request-grid">
-          {requests.map((request) => (
-            <article className="own-request-card" key={request.id}>
-              <span className={`request-status request-status-${request.status}`}>{statusLabels[request.status] ?? request.status}</span>
-              <h3>{String(request.payload.team_name || "Écurie")}</h3>
-              <p>Envoyée le {new Date(request.created_at).toLocaleDateString("fr-FR")}</p>
-              {request.admin_note && <blockquote>{request.admin_note}</blockquote>}
-            </article>
-          ))}
-        </div>
-      </section>
     </>
   );
 }

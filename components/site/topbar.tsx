@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { signOut } from "@/app/actions/auth";
-import { getRpName, getSiteRole, isManager } from "@/lib/auth/user-profile";
+import { getUserRoleLabel, hasDashboardAccess } from "@/lib/auth/access";
+import { getRpName } from "@/lib/auth/user-profile";
 import { createClient } from "@/lib/supabase/server";
 
 export async function Topbar() {
@@ -8,8 +9,10 @@ export async function Topbar() {
   const { data } = await supabase.auth.getUser();
   const user = data.user;
   const rpName = getRpName(user);
-  const role = getSiteRole(user);
-  const manager = isManager(user);
+  const [role, dashboardAccess] = await Promise.all([
+    getUserRoleLabel(user),
+    hasDashboardAccess(user),
+  ]);
 
   return (
     <header className="topbar">
@@ -21,7 +24,7 @@ export async function Topbar() {
         {rpName && <span className="top-identity"><strong>{rpName}</strong><small>{role}</small></span>}
         <Link href="/accueil" className="top-link">Accueil</Link>
         <Link href="/profil" className="top-link">Mon profil</Link>
-        {manager && <Link href="/dashboard" className="top-link top-link-gold">Dashboard</Link>}
+        {dashboardAccess && <Link href="/dashboard" className="top-link top-link-gold">Dashboard</Link>}
         <form action={signOut}>
           <button className="logout" type="submit">Déconnexion</button>
         </form>
