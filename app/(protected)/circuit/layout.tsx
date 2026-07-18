@@ -1,3 +1,4 @@
+import { CircuitStatusBanner } from "@/components/site/circuit-status-banner";
 import { SectionLayout } from "@/components/site/section-layout";
 
 const items = [
@@ -85,6 +86,7 @@ const items = [
 export default function CircuitLayout({ children }: { children: React.ReactNode }) {
   return (
     <SectionLayout title="NOSTRA CIRCUIT" items={items}>
+      <CircuitStatusBanner />
       {children}
     </SectionLayout>
   );

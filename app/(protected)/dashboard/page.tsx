@@ -1,110 +1,87 @@
-import { redirect } from "next/navigation";
-import { restoreDefaultSitePage, saveSitePage } from "@/app/actions/site-content";
-import { Topbar } from "@/components/site/topbar";
-import { getDiscordName, getRpName, getSiteRole, isManager } from "@/lib/auth/user-profile";
-import { DEFAULT_EDITOR_CONTENT } from "@/lib/content/default-editor-content";
-import { EDITABLE_PAGE_CONFIG, getAllSitePages } from "@/lib/content/site-content";
-import { SITE_CONTENT_SETUP_SQL } from "@/lib/content/setup-sql";
+import { DashboardCard } from "@/components/dashboard/dashboard-card";
+import { DashboardShell } from "@/components/dashboard/dashboard-shell";
+import { getDiscordName, getRpName } from "@/lib/auth/user-profile";
+import {
+  getAccountingEntries,
+  getBackofficeConfigured,
+  getCircuitSetting,
+  getEvents,
+  getHomologationRequests,
+  getInventoryItems,
+} from "@/lib/backoffice/data";
+import { BACKOFFICE_SETUP_SQL } from "@/lib/backoffice/setup-sql";
 import { createClient } from "@/lib/supabase/server";
 
-export default async function DashboardPage({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
+export default async function DashboardPage() {
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
-  if (!data.user) redirect("/");
-  if (!isManager(data.user)) redirect("/accueil");
+  const configured = await getBackofficeConfigured();
 
-  const params = await searchParams;
-  const saved = typeof params.saved === "string" ? params.saved : null;
-  const restored = typeof params.restored === "string" ? params.restored : null;
-  const error = typeof params.error === "string" ? params.error : null;
-  const sitePages = await getAllSitePages();
+  const [setting, stock, accounting, events, requests] = configured
+    ? await Promise.all([
+        getCircuitSetting(),
+        getInventoryItems(),
+        getAccountingEntries(),
+        getEvents(true),
+        getHomologationRequests(),
+      ])
+    : [null, [], [], [], []];
+
+  const pending = requests.filter((request) => request.status === "pending" || request.status === "reviewing").length;
+  const lowStock = stock.filter((item) => item.quantity <= item.minimum_quantity).length;
+  const currentBalance = accounting.reduce((total, entry) => total + (entry.entry_type === "income" ? Number(entry.amount) : -Number(entry.amount)), 0);
 
   return (
-    <div className="site-shell">
-      <Topbar />
-      <main className="dashboard-main">
-        <section className="dashboard-hero">
-          <div>
-            <span className="eyebrow">DIRECTION NOSTRA GROUP</span>
-            <h1 className="page-title">Dashboard Gérant</h1>
-            <p className="lead">
-              Bienvenue {getRpName(data.user) || getDiscordName(data.user)}. Tu peux maintenant modifier réellement les pages du Nostra Circuit.
-            </p>
-          </div>
-          <span className="manager-seal">{getSiteRole(data.user)}</span>
+    <DashboardShell>
+      <section className="dashboard-hero dashboard-hero-compact">
+        <div>
+          <span className="eyebrow">DIRECTION NOSTRA GROUP</span>
+          <h1 className="page-title">Dashboard Gérant</h1>
+          <p className="lead">
+            Bienvenue {getRpName(data.user) || getDiscordName(data.user)}. Choisis un module pour gérer le site sans mélanger toutes les fonctions sur une seule page.
+          </p>
+        </div>
+        <span className="manager-seal">GÉRANT</span>
+      </section>
+
+      {!configured && (
+        <section className="dashboard-setup">
+          <span className="module-status">Activation nécessaire</span>
+          <h2>Activer les nouveaux modules</h2>
+          <p>Le dashboard a besoin de nouvelles tables Supabase pour les stocks, la comptabilité, les événements, l’état du circuit, les homologations et l’espace client.</p>
+          <details>
+            <summary>Afficher le nouveau code SQL à copier dans Supabase</summary>
+            <pre>{BACKOFFICE_SETUP_SQL}</pre>
+          </details>
+          <ol>
+            <li>Ouvre <strong>Supabase → SQL Editor → New query</strong>.</li>
+            <li>Colle tout le code et clique sur <strong>Run query</strong>.</li>
+            <li>Reviens ici et fais <strong>Ctrl + F5</strong>.</li>
+          </ol>
         </section>
+      )}
 
-        {saved && <div className="dashboard-feedback dashboard-feedback-success">La page a bien été enregistrée.</div>}
-        {restored && <div className="dashboard-feedback">Le contenu intégré par défaut a été restauré.</div>}
-        {error && <div className="dashboard-feedback dashboard-feedback-error">Impossible d’enregistrer. Vérifie que la base du dashboard est activée dans Supabase.</div>}
+      <section className="dashboard-kpi-grid">
+        <article><span>État du circuit</span><strong>{setting?.label ?? "À configurer"}</strong></article>
+        <article><span>Demandes en attente</span><strong>{pending}</strong></article>
+        <article><span>Alertes de stock</span><strong>{lowStock}</strong></article>
+        <article><span>Solde enregistré</span><strong>{currentBalance.toLocaleString("fr-FR")} €</strong></article>
+      </section>
 
-        {!sitePages.configured && (
-          <section className="dashboard-setup">
-            <div>
-              <span className="module-status">Activation nécessaire</span>
-              <h2>Activer les modifications du dashboard</h2>
-              <p>Le site reste fonctionnel, mais Supabase doit recevoir cette table une seule fois pour enregistrer tes modifications.</p>
-            </div>
-            <details>
-              <summary>Afficher le code SQL à copier dans Supabase</summary>
-              <pre>{SITE_CONTENT_SETUP_SQL}</pre>
-            </details>
-            <ol>
-              <li>Dans Supabase, ouvre <strong>SQL Editor</strong>.</li>
-              <li>Crée une nouvelle requête, colle le code ci-dessus et clique sur <strong>Run</strong>.</li>
-              <li>Actualise ensuite ce dashboard.</li>
-            </ol>
-          </section>
-        )}
+      <section className="dashboard-section-heading dashboard-section-heading-tight">
+        <p className="eyebrow">CENTRE DE GESTION</p>
+        <h2>Modules du dashboard</h2>
+        <p>Chaque icône ouvre une page dédiée. Tu reviens ensuite ici avec le bouton « Retour au dashboard ».</p>
+      </section>
 
-        <section className="dashboard-section-heading">
-          <p className="eyebrow">Gestion du contenu</p>
-          <h2>Pages du Nostra Circuit</h2>
-          <p>Chaque bouton Enregistrer publie immédiatement le nouveau texte pour tous les membres connectés.</p>
-        </section>
-
-        <section className="content-editor-grid">
-          {EDITABLE_PAGE_CONFIG.map((page) => {
-            const stored = sitePages.pages.get(page.slug);
-            const defaults = DEFAULT_EDITOR_CONTENT[page.slug];
-            return (
-              <article className="content-editor-card" key={page.slug}>
-                <div className="content-editor-head">
-                  <div>
-                    <span className="module-status module-status-live">Modifiable</span>
-                    <h3>{page.label}</h3>
-                  </div>
-                  <a href={page.route} target="_blank" rel="noreferrer">Voir la page ↗</a>
-                </div>
-
-                <form action={saveSitePage} className="content-editor-form">
-                  <input type="hidden" name="slug" value={page.slug} />
-                  <label>
-                    Titre de la page
-                    <input name="title" defaultValue={stored?.title || defaults.title} required maxLength={120} />
-                  </label>
-                  <label>
-                    Contenu publié
-                    <textarea name="content" defaultValue={stored?.content || defaults.content} required rows={14} maxLength={30000} />
-                  </label>
-                  <button className="btn content-save-button" type="submit" disabled={!sitePages.configured}>Enregistrer les modifications</button>
-                </form>
-
-                {stored && (
-                  <form action={restoreDefaultSitePage} className="restore-form">
-                    <input type="hidden" name="slug" value={page.slug} />
-                    <button type="submit" disabled={!sitePages.configured}>Restaurer le contenu intégré</button>
-                  </form>
-                )}
-              </article>
-            );
-          })}
-        </section>
-      </main>
-    </div>
+      <section className="dashboard-module-grid">
+        <DashboardCard href="/dashboard/contenu" icon="✎" title="Modification des pages" description="Modifier tous les textes publiés sur les pages du Nostra Circuit." />
+        <DashboardCard href="/dashboard/circuit" icon="🏁" title="État du circuit" description="Afficher en direct si le circuit est ouvert, fermé, réservé ou en maintenance." badge={setting?.label} />
+        <DashboardCard href="/dashboard/homologations" icon="✅" title="Homologations" description="Recevoir et traiter les demandes de véhicules et d’écuries." badge={pending ? `${pending} en attente` : undefined} />
+        <DashboardCard href="/dashboard/stocks" icon="▦" title="Gestion des stocks" description="Ajouter les articles, modifier les quantités et surveiller les seuils d’alerte." badge={lowStock ? `${lowStock} alerte(s)` : undefined} />
+        <DashboardCard href="/dashboard/comptabilite" icon="€" title="Comptabilité" description="Enregistrer les recettes, les dépenses et suivre le solde." />
+        <DashboardCard href="/dashboard/evenements" icon="📅" title="Gestion des événements" description="Créer, publier, modifier ou annuler les événements Nostra Group." badge={events.length ? `${events.length} événement(s)` : undefined} />
+      </section>
+    </DashboardShell>
   );
 }
