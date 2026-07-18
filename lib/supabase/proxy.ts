@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { hasRpProfile, isManager } from "@/lib/auth/user-profile";
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -27,6 +28,8 @@ export async function updateSession(request: NextRequest) {
   const user = data.user;
   const path = request.nextUrl.pathname;
   const isPublic = path === "/" || path.startsWith("/auth/");
+  const isProfilePage = path === "/profil" || path.startsWith("/profil/");
+  const isDashboardPage = path === "/dashboard" || path.startsWith("/dashboard/");
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();
@@ -35,6 +38,19 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (user && path === "/") {
+    const url = request.nextUrl.clone();
+    url.pathname = hasRpProfile(user) ? "/accueil" : "/profil";
+    return NextResponse.redirect(url);
+  }
+
+  if (user && !isPublic && !isProfilePage && !hasRpProfile(user)) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/profil";
+    url.searchParams.set("setup", "required");
+    return NextResponse.redirect(url);
+  }
+
+  if (user && isDashboardPage && !isManager(user)) {
     const url = request.nextUrl.clone();
     url.pathname = "/accueil";
     return NextResponse.redirect(url);
