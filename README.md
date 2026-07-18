@@ -51,3 +51,14 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=VOTRE_CLE_PUBLISHABLE
 ## Logos
 
 Les fichiers `public/universe-life.svg` et `public/nostra-group.svg` sont des versions temporaires propres. Ils peuvent être remplacés plus tard par les logos officiels en gardant les mêmes noms de fichiers.
+
+## Mise à jour Circuit + Dashboard modifiable
+
+Cette version ajoute :
+
+- le nouveau règlement général et le règlement en piste ;
+- des sous-onglets dans toute la navigation Nostra Circuit ;
+- Administration sportive avec règlement des licences, tarifs, homologation des véhicules et homologation des écuries ;
+- un Dashboard Gérant permettant de modifier le contenu des pages.
+
+Pour activer les sauvegardes du Dashboard, exécuter une seule fois le fichier `supabase/site-content.sql` dans **Supabase > SQL Editor**.

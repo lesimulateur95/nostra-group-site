@@ -1,3 +1,5 @@
+import { EditablePage } from "@/components/site/editable-page";
+
 const activities = [
   "Sessions libres",
   "Essais privés",
@@ -28,7 +30,7 @@ const facilities = [
 ];
 
 export default function CircuitPage() {
-  return (
+  const defaultContent = (
     <article className="circuit-document">
       <header className="document-hero">
         <p className="eyebrow">Présentation officielle</p>
@@ -43,7 +45,7 @@ export default function CircuitPage() {
         </p>
       </header>
 
-      <section className="document-section">
+      <section className="document-section" id="activites">
         <h2>🏎️ Nos activités</h2>
         <p>Le Nostra Circuit vous propose :</p>
         <ul className="document-list document-list-columns">
@@ -51,18 +53,16 @@ export default function CircuitPage() {
         </ul>
       </section>
 
-      <section className="document-section">
+      <section className="document-section" id="valeurs">
         <h2>🏆 Nos valeurs</h2>
         <p>Au Nostra Circuit, nous mettons un point d’honneur à promouvoir :</p>
         <ul className="document-list value-list">
           {values.map((value) => <li key={value}>✅ {value}</li>)}
         </ul>
-        <p>
-          Chaque participant est invité à respecter les règlements afin de garantir une expérience agréable pour tous.
-        </p>
+        <p>Chaque participant est invité à respecter les règlements afin de garantir une expérience agréable pour tous.</p>
       </section>
 
-      <section className="document-section">
+      <section className="document-section" id="installations">
         <h2>🚦 Nos installations</h2>
         <p>Le complexe comprend notamment :</p>
         <div className="facility-grid">
@@ -75,16 +75,14 @@ export default function CircuitPage() {
         </div>
       </section>
 
-      <section className="document-section">
+      <section className="document-section" id="reservations">
         <h2>📅 Réservations</h2>
         <p>Le circuit est accessible sur réservation.</p>
         <p>Les réservations peuvent être effectuées directement via les salons prévus à cet effet sur notre Discord.</p>
-        <p>
-          Toutes les demandes sont étudiées par notre équipe afin de garantir la meilleure organisation possible.
-        </p>
+        <p>Toutes les demandes sont étudiées par notre équipe afin de garantir la meilleure organisation possible.</p>
       </section>
 
-      <section className="document-section">
+      <section className="document-section" id="rejoindre">
         <h2>🤝 Rejoignez l’aventure</h2>
         <p>Que vous souhaitiez :</p>
         <ul className="document-list adventure-list">
@@ -101,5 +99,11 @@ export default function CircuitPage() {
         <blockquote>« Chaque virage est un défi. Chaque victoire entre dans la légende. »</blockquote>
       </footer>
     </article>
+  );
+
+  return (
+    <EditablePage slug="circuit-presentation" defaultTitle="Nostra Circuit" eyebrow="Présentation officielle">
+      {defaultContent}
+    </EditablePage>
   );
 }
