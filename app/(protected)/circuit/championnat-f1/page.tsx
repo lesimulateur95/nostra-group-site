@@ -1,17 +1,16 @@
-import { EditablePage } from "@/components/site/editable-page";
+import { CircuitCategoryOverview } from "@/components/site/circuit-category-overview";
 
 export default function ChampionnatF1Page() {
-  const defaultContent = (
-    <>
-      <p className="eyebrow">Compétition</p>
-      <h1 className="page-title">Championnat F1</h1>
-      <p className="lead">Espace officiel du championnat F1 organisé sur le Nostra Circuit.</p>
-      <div className="content-grid">
-        <article className="info-card" id="calendrier"><h3>Calendrier</h3><p>Dates et horaires des épreuves du championnat.</p></article>
-        <article className="info-card" id="participants"><h3>Pilotes & écuries</h3><p>Liste officielle des participants engagés.</p></article>
-        <article className="info-card" id="resultats"><h3>Résultats</h3><p>Résultats publiés après validation officielle.</p></article>
-      </div>
-    </>
-  );
-  return <EditablePage slug="championnat-f1" defaultTitle="Championnat F1" eyebrow="Compétition">{defaultContent}</EditablePage>;
+  return <CircuitCategoryOverview
+    categoryKey="championnat-f1"
+    slug="championnat-f1"
+    eyebrow="Compétition"
+    title="Championnat F1"
+    description="Vue d’ensemble du championnat F1 organisé sur le Nostra Circuit. Chaque rubrique possède maintenant sa propre page et son propre contenu."
+    pages={[
+      { href: "/circuit/championnat-f1/calendrier", title: "Calendrier", description: "Dates, horaires et manches officielles." },
+      { href: "/circuit/championnat-f1/participants", title: "Pilotes & écuries", description: "Participants officiellement engagés." },
+      { href: "/circuit/championnat-f1/resultats", title: "Résultats", description: "Résultats publiés après validation." },
+    ]}
+  />;
 }

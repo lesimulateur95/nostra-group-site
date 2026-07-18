@@ -1,18 +1,16 @@
-import { EditablePage } from "@/components/site/editable-page";
+import { CircuitCategoryOverview } from "@/components/site/circuit-category-overview";
 
 export default function JournalOfficielPage() {
-  const defaultContent = (
-    <>
-      <p className="eyebrow">Publications officielles</p>
-      <h1 className="page-title">Journal officiel</h1>
-      <p className="lead">Les annonces, décisions et résultats officiels du Nostra Circuit seront publiés dans cette rubrique.</p>
-      <div className="content-grid">
-        <article className="info-card" id="communiques"><h3>Communiqués</h3><p>Annonces officielles du circuit.</p></article>
-        <article className="info-card" id="decisions"><h3>Décisions</h3><p>Décisions sportives et administratives publiées.</p></article>
-        <article className="info-card" id="resultats"><h3>Résultats homologués</h3><p>Résultats validés après chaque épreuve.</p></article>
-      </div>
-    </>
-  );
-
-  return <EditablePage slug="journal-officiel" defaultTitle="Journal officiel" eyebrow="Publications officielles">{defaultContent}</EditablePage>;
+  return <CircuitCategoryOverview
+    categoryKey="journal-officiel"
+    slug="journal-officiel"
+    eyebrow="Publications officielles"
+    title="Journal officiel"
+    description="Vue d’ensemble des publications du Nostra Circuit. Les communiqués, décisions et résultats sont séparés."
+    pages={[
+      { href: "/circuit/journal-officiel/communiques", title: "Communiqués", description: "Annonces officielles de la direction." },
+      { href: "/circuit/journal-officiel/decisions", title: "Décisions", description: "Décisions sportives et administratives." },
+      { href: "/circuit/journal-officiel/resultats", title: "Résultats homologués", description: "Résultats validés après les épreuves." },
+    ]}
+  />;
 }
