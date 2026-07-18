@@ -8,6 +8,7 @@ import {
   getEvents,
   getHomologationRequests,
   getInventoryItems,
+  getReservationRequests,
 } from "@/lib/backoffice/data";
 import { BACKOFFICE_SETUP_SQL } from "@/lib/backoffice/setup-sql";
 import { createClient } from "@/lib/supabase/server";
@@ -17,17 +18,19 @@ export default async function DashboardPage() {
   const { data } = await supabase.auth.getUser();
   const configured = await getBackofficeConfigured();
 
-  const [setting, stock, accounting, events, requests] = configured
+  const [setting, stock, accounting, events, requests, reservationRequests] = configured
     ? await Promise.all([
         getCircuitSetting(),
         getInventoryItems(),
         getAccountingEntries(),
         getEvents(true),
         getHomologationRequests(),
+        getReservationRequests(),
       ])
-    : [null, [], [], [], []];
+    : [null, [], [], [], [], []];
 
   const pending = requests.filter((request) => request.status === "pending" || request.status === "reviewing").length;
+  const pendingReservations = reservationRequests.filter((request) => request.status === "pending").length;
   const lowStock = stock.filter((item) => item.quantity <= item.minimum_quantity).length;
   const currentBalance = accounting.reduce((total, entry) => total + (entry.entry_type === "income" ? Number(entry.amount) : -Number(entry.amount)), 0);
 
@@ -78,9 +81,11 @@ export default async function DashboardPage() {
         <DashboardCard href="/dashboard/contenu" icon="✎" title="Modification des pages" description="Modifier tous les textes publiés sur les pages du Nostra Circuit." />
         <DashboardCard href="/dashboard/circuit" icon="🏁" title="État du circuit" description="Afficher en direct si le circuit est ouvert, fermé, réservé ou en maintenance." badge={setting?.label} />
         <DashboardCard href="/dashboard/homologations" icon="✅" title="Homologations" description="Recevoir et traiter les demandes de véhicules et d’écuries." badge={pending ? `${pending} en attente` : undefined} />
+        <DashboardCard href="/dashboard/reservations" icon="🗓" title="Demandes de réservation" description="Valider ou refuser les dates et horaires choisis dans le calendrier du circuit." badge={pendingReservations ? `${pendingReservations} à traiter` : undefined} />
         <DashboardCard href="/dashboard/stocks" icon="▦" title="Gestion des stocks" description="Ajouter les articles, modifier les quantités et surveiller les seuils d’alerte." badge={lowStock ? `${lowStock} alerte(s)` : undefined} />
         <DashboardCard href="/dashboard/comptabilite" icon="€" title="Comptabilité" description="Enregistrer les recettes, les dépenses et suivre le solde." />
-        <DashboardCard href="/dashboard/evenements" icon="📅" title="Gestion des événements" description="Créer, publier, modifier ou annuler les événements Nostra Group." badge={events.length ? `${events.length} événement(s)` : undefined} />
+        <DashboardCard href="/dashboard/evenements" icon="📅" title="Gestion des événements" description="Créer, publier, modifier ou annuler les événements Nostra Group." badge={events.filter((event) => !event.championship || event.championship === "general").length ? `${events.filter((event) => !event.championship || event.championship === "general").length} événement(s)` : undefined} />
+        <DashboardCard href="/dashboard/championnats" icon="🏆" title="Calendriers F1 & GT3 RS" description="Programmer les manches et événements dans les calendriers de chaque championnat." />
         <DashboardCard href="/dashboard/membres" icon="👥" title="Membres et rôles" description="Voir les comptes inscrits et attribuer les rôles Membre, Staff, Administrateur ou Gérant." />
       </section>
     </DashboardShell>

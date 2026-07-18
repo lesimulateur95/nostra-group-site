@@ -160,8 +160,11 @@ export async function saveEvent(formData: FormData) {
   const endsAt = normalizeEventDate(text(formData.get("ends_at"), 40));
   const status = text(formData.get("status"), 20);
   const registrationOpen = checkbox(formData.get("registration_open"));
+  const championshipRaw = text(formData.get("championship"), 20) || "general";
+  const championship = new Set(["general", "f1", "gt3rs"]).has(championshipRaw) ? championshipRaw : "general";
+  const dashboardTarget = text(formData.get("dashboard_target"), 40) === "championnats" ? "/dashboard/championnats" : "/dashboard/evenements";
   if (title.length < 2 || !startsAt || !new Set(["draft", "published", "cancelled", "completed"]).has(status)) {
-    redirect("/dashboard/evenements?error=invalid");
+    redirect(`${dashboardTarget}?error=invalid`);
   }
 
   const { supabase, user } = await requireManager();
@@ -173,26 +176,34 @@ export async function saveEvent(formData: FormData) {
     ends_at: endsAt,
     status,
     registration_open: registrationOpen,
+    championship,
     updated_at: new Date().toISOString(),
     created_by: user.id,
   };
   const result = id > 0
     ? await supabase.from("events").update(payload).eq("id", id)
     : await supabase.from("events").insert(payload);
-  if (result.error) redirect("/dashboard/evenements?error=save");
+  if (result.error) redirect(`${dashboardTarget}?error=save`);
 
   revalidatePath("/evenements", "layout");
+  revalidatePath("/circuit/championnat-f1/calendrier");
+  revalidatePath("/circuit/championnat-gt3rs/calendrier");
   revalidatePath("/dashboard/evenements");
-  redirect("/dashboard/evenements?saved=1");
+  revalidatePath("/dashboard/championnats");
+  redirect(`${dashboardTarget}?saved=1`);
 }
 
 export async function deleteEvent(formData: FormData) {
   const id = integer(formData.get("id"), 0);
+  const dashboardTarget = text(formData.get("dashboard_target"), 40) === "championnats" ? "/dashboard/championnats" : "/dashboard/evenements";
   const { supabase } = await requireManager();
   if (id > 0) await supabase.from("events").delete().eq("id", id);
   revalidatePath("/evenements", "layout");
+  revalidatePath("/circuit/championnat-f1/calendrier");
+  revalidatePath("/circuit/championnat-gt3rs/calendrier");
   revalidatePath("/dashboard/evenements");
-  redirect("/dashboard/evenements?deleted=1");
+  revalidatePath("/dashboard/championnats");
+  redirect(`${dashboardTarget}?deleted=1`);
 }
 
 export async function submitHomologationRequest(formData: FormData) {
@@ -262,4 +273,97 @@ export async function updateHomologationRequest(formData: FormData) {
   revalidatePath("/circuit/administration-sportive/homologation-ecuries");
   revalidatePath("/profil");
   redirect("/dashboard/homologations?saved=1");
+}
+
+function validReservationDate(value: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
+function validReservationTime(value: string): boolean {
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
+}
+
+export async function submitCircuitReservation(formData: FormData) {
+  const firstName = text(formData.get("first_name"), 80);
+  const lastName = text(formData.get("last_name"), 80);
+  const reservationDate = text(formData.get("reservation_date"), 20);
+  const reservationTime = text(formData.get("reservation_time"), 10);
+  const reason = text(formData.get("reason"), 1500);
+
+  if (firstName.length < 2 || lastName.length < 2 || !validReservationDate(reservationDate) || !validReservationTime(reservationTime) || reason.length < 3) {
+    redirect("/circuit/reservations/demande?error=invalid");
+  }
+
+  const requestedAt = new Date(`${reservationDate}T${reservationTime}:00`);
+  if (Number.isNaN(requestedAt.getTime()) || requestedAt.getTime() < Date.now() - 60_000) {
+    redirect("/circuit/reservations/demande?error=past");
+  }
+
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getUser();
+  if (!data.user) redirect("/");
+
+  const { data: conflict } = await supabase
+    .from("circuit_reservation_requests")
+    .select("id")
+    .eq("reservation_date", reservationDate)
+    .eq("reservation_time", reservationTime)
+    .eq("status", "approved")
+    .maybeSingle();
+  if (conflict) redirect("/circuit/reservations/demande?error=occupied");
+
+  const { error } = await supabase.from("circuit_reservation_requests").insert({
+    user_id: data.user.id,
+    first_name: firstName,
+    last_name: lastName,
+    reservation_date: reservationDate,
+    reservation_time: reservationTime,
+    reason,
+  });
+  if (error) redirect("/circuit/reservations/demande?error=save");
+
+  revalidatePath("/circuit/reservations/demande");
+  revalidatePath("/dashboard/reservations");
+  redirect("/circuit/reservations/demande?sent=1");
+}
+
+export async function updateCircuitReservation(formData: FormData) {
+  const id = integer(formData.get("id"), 0);
+  const status = text(formData.get("status"), 20);
+  const adminNote = text(formData.get("admin_note"), 1500) || null;
+  if (id <= 0 || !new Set(["pending", "approved", "rejected", "cancelled"]).has(status)) {
+    redirect("/dashboard/reservations?error=invalid");
+  }
+
+  const { supabase } = await requireManager();
+  if (status === "approved") {
+    const { data: request } = await supabase
+      .from("circuit_reservation_requests")
+      .select("reservation_date,reservation_time")
+      .eq("id", id)
+      .maybeSingle();
+    if (request) {
+      const { data: conflict } = await supabase
+        .from("circuit_reservation_requests")
+        .select("id")
+        .eq("reservation_date", request.reservation_date)
+        .eq("reservation_time", request.reservation_time)
+        .eq("status", "approved")
+        .neq("id", id)
+        .maybeSingle();
+      if (conflict) redirect("/dashboard/reservations?error=occupied");
+    }
+  }
+
+  const { error } = await supabase
+    .from("circuit_reservation_requests")
+    .update({ status, admin_note: adminNote, updated_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) redirect("/dashboard/reservations?error=save");
+
+  revalidatePath("/dashboard/reservations");
+  revalidatePath("/circuit/reservations/demande");
+  revalidatePath("/circuit/reservations/validees");
+  revalidatePath("/profil");
+  redirect("/dashboard/reservations?saved=1");
 }

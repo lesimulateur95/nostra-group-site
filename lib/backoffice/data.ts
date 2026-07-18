@@ -40,6 +40,7 @@ export type SiteEvent = {
   ends_at: string | null;
   status: "draft" | "published" | "cancelled" | "completed";
   registration_open: boolean;
+  championship?: "general" | "f1" | "gt3rs";
 };
 
 export type HomologationRequest = {
@@ -60,6 +61,8 @@ export async function getBackofficeConfigured(): Promise<boolean> {
     supabase.from("circuit_settings").select("id").limit(1),
     supabase.from("custom_circuit_pages").select("id").limit(1),
     supabase.from("member_profiles").select("user_id").limit(1),
+    supabase.from("circuit_reservation_requests").select("id").limit(1),
+    supabase.from("events").select("championship").limit(1),
   ]);
   return checks.every((result) => !result.error);
 }
@@ -105,7 +108,7 @@ export async function getEvents(includeDrafts = false): Promise<SiteEvent[]> {
   const supabase = await createClient();
   let query = supabase
     .from("events")
-    .select("id,title,description,location,starts_at,ends_at,status,registration_open")
+    .select("id,title,description,location,starts_at,ends_at,status,registration_open,championship")
     .order("starts_at", { ascending: true });
 
   if (!includeDrafts) query = query.eq("status", "published");
@@ -170,4 +173,61 @@ export async function getMemberProfiles(): Promise<MemberProfile[]> {
     .select("user_id,discord_id,discord_name,email,avatar_url,rp_first_name,rp_last_name,role,created_at,updated_at")
     .order("created_at", { ascending: false });
   return (data ?? []) as MemberProfile[];
+}
+
+export type CircuitReservationRequest = {
+  id: number;
+  user_id: string;
+  first_name: string;
+  last_name: string;
+  reservation_date: string;
+  reservation_time: string;
+  reason: string;
+  status: "pending" | "approved" | "rejected" | "cancelled";
+  admin_note: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export async function getReservationRequests(): Promise<CircuitReservationRequest[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("circuit_reservation_requests")
+    .select("id,user_id,first_name,last_name,reservation_date,reservation_time,reason,status,admin_note,created_at,updated_at")
+    .order("reservation_date", { ascending: true })
+    .order("reservation_time", { ascending: true });
+  return (data ?? []) as CircuitReservationRequest[];
+}
+
+export async function getApprovedReservationSlots(): Promise<CircuitReservationRequest[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("circuit_reservation_requests")
+    .select("id,user_id,first_name,last_name,reservation_date,reservation_time,reason,status,admin_note,created_at,updated_at")
+    .eq("status", "approved")
+    .order("reservation_date", { ascending: true })
+    .order("reservation_time", { ascending: true });
+  return (data ?? []) as CircuitReservationRequest[];
+}
+
+export async function getOwnReservationRequests(userId: string): Promise<CircuitReservationRequest[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("circuit_reservation_requests")
+    .select("id,user_id,first_name,last_name,reservation_date,reservation_time,reason,status,admin_note,created_at,updated_at")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+  return (data ?? []) as CircuitReservationRequest[];
+}
+
+export async function getChampionshipEvents(championship: "f1" | "gt3rs", includeDrafts = false): Promise<SiteEvent[]> {
+  const supabase = await createClient();
+  let query = supabase
+    .from("events")
+    .select("id,title,description,location,starts_at,ends_at,status,registration_open,championship")
+    .eq("championship", championship)
+    .order("starts_at", { ascending: true });
+  if (!includeDrafts) query = query.eq("status", "published");
+  const { data } = await query;
+  return (data ?? []) as SiteEvent[];
 }

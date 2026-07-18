@@ -13,7 +13,7 @@ function localInput(value: string | null | undefined) {
 
 export default async function EventsDashboardPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const params = await searchParams;
-  const events = await getEvents(true);
+  const events = (await getEvents(true)).filter((event) => !event.championship || event.championship === "general");
 
   return (
     <DashboardShell>
@@ -25,6 +25,7 @@ export default async function EventsDashboardPage({ searchParams }: { searchPara
       <article className="backoffice-panel">
         <div className="panel-heading"><span className="panel-icon">＋</span><div><h2>Créer un événement</h2><p>Le statut « Publié » l’affiche immédiatement aux membres.</p></div></div>
         <form action={saveEvent} className="backoffice-form backoffice-form-wide">
+          <input type="hidden" name="championship" value="general" />
           <label>Titre<input name="title" required placeholder="Exemple : Grand Prix Nostra" /></label>
           <label>Lieu<input name="location" placeholder="Nostra Circuit" /></label>
           <label>Statut<select name="status" defaultValue="draft"><option value="draft">Brouillon</option><option value="published">Publié</option><option value="cancelled">Annulé</option><option value="completed">Terminé</option></select></label>
@@ -46,6 +47,7 @@ export default async function EventsDashboardPage({ searchParams }: { searchPara
             </div>
             <form action={saveEvent} className="backoffice-form backoffice-form-wide">
               <input type="hidden" name="id" value={event.id} />
+              <input type="hidden" name="championship" value="general" />
               <label>Titre<input name="title" defaultValue={event.title} required /></label>
               <label>Lieu<input name="location" defaultValue={event.location} /></label>
               <label>Statut<select name="status" defaultValue={event.status}><option value="draft">Brouillon</option><option value="published">Publié</option><option value="cancelled">Annulé</option><option value="completed">Terminé</option></select></label>
@@ -57,6 +59,7 @@ export default async function EventsDashboardPage({ searchParams }: { searchPara
             </form>
             <form action={deleteEvent} className="danger-form">
               <input type="hidden" name="id" value={event.id} />
+              <input type="hidden" name="championship" value="general" />
               <button type="submit">Supprimer l’événement</button>
             </form>
           </article>
