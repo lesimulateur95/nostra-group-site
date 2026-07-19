@@ -4,6 +4,7 @@ import {
   saveCustomCircuitPage,
   saveCustomSectionPage,
   setBuiltInCircuitPageVisibility,
+  setBuiltInSectionPageVisibility,
 } from "@/app/actions/admin-management";
 import { restoreDefaultSitePage, saveSitePage } from "@/app/actions/site-content";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
@@ -19,6 +20,7 @@ import { DEFAULT_EDITOR_CONTENT } from "@/lib/content/default-editor-content";
 import {
   BUILT_IN_SECTION_CATEGORIES,
   getCustomSectionPages,
+  getHiddenSectionPageKeys,
   getSectionNavigation,
   type CustomPageSection,
 } from "@/lib/content/section-navigation";
@@ -63,7 +65,9 @@ export async function SiteSectionEditor({
   const [sitePages, customPages, hiddenPageKeys, navigationItems] = await Promise.all([
     getAllSitePages(),
     section === "circuit" ? getCustomCircuitPages() : getCustomSectionPages(section as CustomPageSection),
-    section === "circuit" ? getHiddenCircuitPageKeys() : Promise.resolve(new Set<string>()),
+    section === "circuit"
+      ? getHiddenCircuitPageKeys()
+      : getHiddenSectionPageKeys(section as CustomPageSection),
     section === "circuit" ? getCircuitNavigation() : getSectionNavigation(section as CustomPageSection),
   ]);
 
@@ -144,7 +148,7 @@ export async function SiteSectionEditor({
               {pages.map((page) => {
                 const stored = sitePages.pages.get(page.slug);
                 const defaults = DEFAULT_EDITOR_CONTENT[page.slug];
-                const hidden = section === "circuit" && hiddenPageKeys.has(page.slug);
+                const hidden = hiddenPageKeys.has(page.slug);
                 return (
                   <article className={`content-editor-card ${hidden ? "content-editor-card-hidden" : ""}`} id={`page-${page.slug}`} key={page.slug}>
                     <div className="content-editor-head">
@@ -178,15 +182,14 @@ export async function SiteSectionEditor({
                           <button type="submit" disabled={!sitePages.configured}>Restaurer le contenu intégré</button>
                         </form>
                       )}
-                      {section === "circuit" && (
-                        <form action={setBuiltInCircuitPageVisibility}>
-                          <input type="hidden" name="page_key" value={page.slug} />
-                          <input type="hidden" name="hidden" value={hidden ? "false" : "true"} />
-                          <button className={hidden ? "visibility-button" : "visibility-button visibility-button-danger"} type="submit">
-                            {hidden ? "Réafficher sur le site" : "Supprimer du menu du site"}
-                          </button>
-                        </form>
-                      )}
+                      <form action={section === "circuit" ? setBuiltInCircuitPageVisibility : setBuiltInSectionPageVisibility}>
+                        {section !== "circuit" && <input type="hidden" name="section" value={section} />}
+                        <input type="hidden" name="page_key" value={page.slug} />
+                        <input type="hidden" name="hidden" value={hidden ? "false" : "true"} />
+                        <button className={hidden ? "visibility-button" : "visibility-button visibility-button-danger"} type="submit">
+                          {hidden ? "Réafficher sur le site" : "Supprimer du menu du site"}
+                        </button>
+                      </form>
                     </div>
                   </article>
                 );

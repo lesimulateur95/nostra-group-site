@@ -6,10 +6,12 @@ import { hasDashboardAccess, isRoleKey } from "@/lib/auth/access";
 import { BUILT_IN_CIRCUIT_CATEGORIES } from "@/lib/content/circuit-navigation";
 import {
   EDITABLE_PAGE_SLUGS,
+  getEditablePageSection,
   type EditableSiteSection,
 } from "@/lib/content/site-content";
 import {
   BUILT_IN_SECTION_CATEGORIES,
+  sectionHiddenPagesSlug,
   type CustomPageSection,
 } from "@/lib/content/section-navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -188,6 +190,64 @@ export async function saveNavigationOrder(formData: FormData) {
   revalidatePath(publicSection, "layout");
   revalidatePath(`/dashboard/contenu/${sectionValue}`);
   redirect(`/dashboard/contenu/${sectionValue}?order_saved=1#menu-order`);
+}
+
+
+export async function setBuiltInSectionPageVisibility(formData: FormData) {
+  const sectionValue = text(formData.get("section"), 30);
+  const pageKey = text(formData.get("page_key"), 100);
+  const hidden = text(formData.get("hidden"), 10) === "true";
+
+  if (
+    !isCustomPageSection(sectionValue) ||
+    !EDITABLE_PAGE_SLUGS.has(pageKey) ||
+    getEditablePageSection(pageKey) !== sectionValue
+  ) {
+    redirect("/dashboard/contenu?error=visibility");
+  }
+
+  const section = sectionValue;
+  const dashboardRoute = customSectionDashboardRoute(section);
+  const storageSlug = sectionHiddenPagesSlug(section);
+  const { supabase, user } = await requireDashboardAccess();
+
+  const { data: stored } = await supabase
+    .from("site_pages")
+    .select("content")
+    .eq("slug", storageSlug)
+    .maybeSingle();
+
+  let current = new Set<string>();
+  if (stored?.content) {
+    try {
+      const parsed = JSON.parse(String(stored.content));
+      if (Array.isArray(parsed)) {
+        current = new Set(parsed.filter((value): value is string => typeof value === "string"));
+      }
+    } catch {
+      current = new Set();
+    }
+  }
+
+  if (hidden) current.add(pageKey);
+  else current.delete(pageKey);
+
+  const { error } = await supabase.from("site_pages").upsert(
+    {
+      slug: storageSlug,
+      title: `Pages intégrées masquées ${section}`,
+      content: JSON.stringify([...current]),
+      updated_at: new Date().toISOString(),
+      updated_by: user.id,
+    },
+    { onConflict: "slug" },
+  );
+
+  if (error) redirect(`${dashboardRoute}?error=visibility#page-${encodeURIComponent(pageKey)}`);
+
+  revalidatePath(`/${section}`, "layout");
+  revalidatePath(dashboardRoute);
+  redirect(`${dashboardRoute}?visibility_saved=1#page-${encodeURIComponent(pageKey)}`);
 }
 
 export async function updateMemberRole(formData: FormData) {

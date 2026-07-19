@@ -9,6 +9,7 @@ export type BuiltInSectionCategory = {
   key: string;
   label: string;
   href: string;
+  editableSlug: string;
 };
 
 export const BUILT_IN_SECTION_CATEGORIES: Record<
@@ -16,19 +17,20 @@ export const BUILT_IN_SECTION_CATEGORIES: Record<
   BuiltInSectionCategory[]
 > = {
   motors: [
-    { key: "presentation", label: "Présentation", href: "/motors" },
-    { key: "catalogue", label: "Catalogue", href: "/motors/catalogue" },
-    { key: "fidelite", label: "Programme fidélité", href: "/motors/fidelite" },
-    { key: "contact", label: "Contact & commandes", href: "/motors/contact" },
+    { key: "presentation", label: "Présentation", href: "/motors", editableSlug: "motors-presentation" },
+    { key: "catalogue", label: "Catalogue", href: "/motors/catalogue", editableSlug: "motors-catalogue" },
+    { key: "fidelite", label: "Programme fidélité", href: "/motors/fidelite", editableSlug: "motors-fidelite" },
+    { key: "contact", label: "Contact & commandes", href: "/motors/contact", editableSlug: "motors-contact" },
   ],
   evenements: [
-    { key: "presentation", label: "Présentation", href: "/evenements" },
-    { key: "agenda", label: "Agenda", href: "/evenements/agenda" },
-    { key: "jeux", label: "Jeux", href: "/evenements/jeux" },
+    { key: "presentation", label: "Présentation", href: "/evenements", editableSlug: "evenements-presentation" },
+    { key: "agenda", label: "Agenda", href: "/evenements/agenda", editableSlug: "evenements-agenda" },
+    { key: "jeux", label: "Jeux", href: "/evenements/jeux", editableSlug: "evenements-jeux" },
     {
       key: "inscriptions",
       label: "Inscriptions",
       href: "/evenements/inscriptions",
+      editableSlug: "evenements-inscriptions",
     },
   ],
 };
@@ -55,6 +57,32 @@ export type CustomSectionPage = Omit<
   stored_category_key: string;
   stored_slug: string;
 };
+
+
+export function sectionHiddenPagesSlug(section: CustomPageSection): string {
+  return `__hidden_pages__:${section}`;
+}
+
+export async function getHiddenSectionPageKeys(
+  section: CustomPageSection,
+): Promise<Set<string>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("site_pages")
+    .select("content")
+    .eq("slug", sectionHiddenPagesSlug(section))
+    .maybeSingle();
+
+  if (error || !data?.content) return new Set();
+
+  try {
+    const parsed = JSON.parse(String(data.content));
+    if (!Array.isArray(parsed)) return new Set();
+    return new Set(parsed.filter((value): value is string => typeof value === "string"));
+  } catch {
+    return new Set();
+  }
+}
 
 function sectionCategoryPrefix(section: CustomPageSection): string {
   return `${section}:`;
@@ -129,9 +157,10 @@ export async function getCustomSectionPage(
 export async function getSectionNavigation(
   section: CustomPageSection,
 ): Promise<SidebarNavItem[]> {
-  const [customPages, storedOrder] = await Promise.all([
+  const [customPages, storedOrder, hiddenPageKeys] = await Promise.all([
     getCustomSectionPages(section),
     getNavigationOrder(section),
+    getHiddenSectionPageKeys(section),
   ]);
   const builtIns = BUILT_IN_SECTION_CATEGORIES[section];
   const visible = customPages.filter((page) => page.visible);
@@ -143,16 +172,25 @@ export async function getSectionNavigation(
     byCategory.set(page.category_key, current);
   }
 
-  const items: SidebarNavItem[] = builtIns.map((category) => {
+  const items: SidebarNavItem[] = [];
+
+  for (const category of builtIns) {
     const attached = byCategory.get(category.key) ?? [];
     byCategory.delete(category.key);
+    const builtInVisible = !hiddenPageKeys.has(category.editableSlug);
+
+    if (!builtInVisible && attached.length === 0) continue;
+
     if (attached.length === 0) {
-      return { key: category.key, href: category.href, label: category.label };
+      items.push({ key: category.key, href: category.href, label: category.label });
+      continue;
     }
 
     const children = sortByStoredOrder(
       [
-        { key: `builtin-${category.key}`, href: category.href, label: "Vue d’ensemble" },
+        ...(builtInVisible
+          ? [{ key: `builtin-${category.key}`, href: category.href, label: "Vue d’ensemble" }]
+          : []),
         ...attached.map((page) => ({
           key: `custom-${page.id}`,
           href: `/${section}/personnalise/${page.slug}`,
@@ -163,13 +201,13 @@ export async function getSectionNavigation(
       (child) => child.key,
     );
 
-    return {
+    items.push({
       key: category.key,
       href: children[0]?.href ?? category.href,
       label: category.label,
       children,
-    };
-  });
+    });
+  }
 
   for (const [categoryKey, pages] of byCategory.entries()) {
     const first = pages[0];
