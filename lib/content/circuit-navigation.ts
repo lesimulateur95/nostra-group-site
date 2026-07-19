@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getNavigationOrder, sortByStoredOrder } from "@/lib/content/navigation-order";
 
 export type CircuitNavPage = {
   key: string;
@@ -128,7 +129,15 @@ export async function getCustomCircuitPages(): Promise<CustomCircuitPage[]> {
     .order("sort_order")
     .order("label");
   if (error) return [];
-  return (data ?? []) as CustomCircuitPage[];
+
+  // Les pages Motors et Événements partagent encore la même table historique,
+  // mais elles sont préfixées. On les exclut strictement du Nostra Circuit.
+  return ((data ?? []) as CustomCircuitPage[]).filter((page) =>
+    !page.category_key.startsWith("motors:") &&
+    !page.category_key.startsWith("evenements:") &&
+    !page.slug.startsWith("motors-") &&
+    !page.slug.startsWith("evenements-")
+  );
 }
 
 export async function getCustomCircuitPage(slug: string): Promise<CustomCircuitPage | null> {
@@ -151,7 +160,11 @@ export async function getHiddenCircuitPageKeys(): Promise<Set<string>> {
 }
 
 export async function getCircuitNavigation(): Promise<CircuitNavCategory[]> {
-  const [customPages, hidden] = await Promise.all([getCustomCircuitPages(), getHiddenCircuitPageKeys()]);
+  const [customPages, hidden, storedOrder] = await Promise.all([
+    getCustomCircuitPages(),
+    getHiddenCircuitPageKeys(),
+    getNavigationOrder("circuit"),
+  ]);
 
   const categories = BUILT_IN_CIRCUIT_CATEGORIES.map((category) => {
     const children = category.children.filter((page) => !hidden.has(page.key));
@@ -190,9 +203,14 @@ export async function getCircuitNavigation(): Promise<CircuitNavCategory[]> {
     customGroups.set(key, existing);
   }
 
-  for (const category of categories) {
-    category.href = category.children[0]?.href ?? category.href;
-  }
+  const allCategories = [...categories, ...customGroups.values()].map((category) => {
+    const children = sortByStoredOrder(
+      category.children,
+      storedOrder.children[category.key],
+      (child) => child.key,
+    );
+    return { ...category, href: children[0]?.href ?? category.href, children };
+  });
 
-  return [...categories, ...customGroups.values()];
+  return sortByStoredOrder(allCategories, storedOrder.categories, (category) => category.key);
 }

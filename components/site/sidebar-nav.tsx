@@ -4,9 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 export type SidebarNavItem = {
+  key?: string;
   href: string;
   label: string;
-  children?: Array<{ href: string; label: string }>;
+  children?: Array<{ key?: string; href: string; label: string }>;
 };
 
 function cleanHref(href: string): string {
@@ -22,7 +23,7 @@ export function SidebarNav({ items }: { items: SidebarNavItem[] }) {
         if (!item.children?.length) {
           const active = pathname === cleanHref(item.href);
           return (
-            <Link className={`side-link${active ? " side-link-active" : ""}`} href={item.href} key={item.href}>
+            <Link className={`side-link${active ? " side-link-active" : ""}`} href={item.href} key={item.key ?? item.href}>
               {item.label}
             </Link>
           );
@@ -30,7 +31,7 @@ export function SidebarNav({ items }: { items: SidebarNavItem[] }) {
 
         const open = item.children.some((child) => pathname === cleanHref(child.href)) || pathname === cleanHref(item.href);
         return (
-          <details className="side-group" key={item.href} open={open}>
+          <details className="side-group" key={item.key ?? item.href} open={open}>
             <summary className="side-group-title">
               <span>{item.label}</span>
               <span className="side-group-chevron" aria-hidden="true">⌄</span>
@@ -39,7 +40,7 @@ export function SidebarNav({ items }: { items: SidebarNavItem[] }) {
               {item.children.map((child) => {
                 const active = pathname === cleanHref(child.href);
                 return (
-                  <Link className={`side-sublink${active ? " side-sublink-active" : ""}`} href={child.href} key={child.href}>
+                  <Link className={`side-sublink${active ? " side-sublink-active" : ""}`} href={child.href} key={child.key ?? child.href}>
                     {child.label}
                   </Link>
                 );

@@ -13,6 +13,7 @@ import {
   type CustomPageSection,
 } from "@/lib/content/section-navigation";
 import { createClient } from "@/lib/supabase/server";
+import { navigationOrderSlug, normalizeNavigationOrder } from "@/lib/content/navigation-order";
 
 function text(value: FormDataEntryValue | null, max = 5000): string {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
@@ -146,6 +147,47 @@ export async function setBuiltInCircuitPageVisibility(formData: FormData) {
   redirect(
     `/dashboard/contenu/circuit?visibility_saved=1#page-${encodeURIComponent(pageKey)}`,
   );
+}
+
+function isEditableSiteSection(value: string): value is EditableSiteSection {
+  return value === "motors" || value === "circuit" || value === "evenements";
+}
+
+export async function saveNavigationOrder(formData: FormData) {
+  const sectionValue = text(formData.get("section"), 30);
+  const rawOrder = text(formData.get("order_json"), 40000);
+  if (!isEditableSiteSection(sectionValue) || !rawOrder) {
+    redirect("/dashboard/contenu?error=navigation_order");
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(rawOrder);
+  } catch {
+    redirect(`/dashboard/contenu/${sectionValue}?error=navigation_order#menu-order`);
+  }
+
+  const order = normalizeNavigationOrder(parsed);
+  const { supabase, user } = await requireDashboardAccess();
+  const { error } = await supabase.from("site_pages").upsert(
+    {
+      slug: navigationOrderSlug(sectionValue),
+      title: `Ordre du menu ${sectionValue}`,
+      content: JSON.stringify(order),
+      updated_at: new Date().toISOString(),
+      updated_by: user.id,
+    },
+    { onConflict: "slug" },
+  );
+
+  if (error) {
+    redirect(`/dashboard/contenu/${sectionValue}?error=navigation_order#menu-order`);
+  }
+
+  const publicSection = sectionValue === "evenements" ? "/evenements" : `/${sectionValue}`;
+  revalidatePath(publicSection, "layout");
+  revalidatePath(`/dashboard/contenu/${sectionValue}`);
+  redirect(`/dashboard/contenu/${sectionValue}?order_saved=1#menu-order`);
 }
 
 export async function updateMemberRole(formData: FormData) {

@@ -1,6 +1,7 @@
 import type { SidebarNavItem } from "@/components/site/sidebar-nav";
 import { createClient } from "@/lib/supabase/server";
 import type { EditableSiteSection } from "@/lib/content/site-content";
+import { getNavigationOrder, sortByStoredOrder } from "@/lib/content/navigation-order";
 
 export type CustomPageSection = Exclude<EditableSiteSection, "circuit">;
 
@@ -128,7 +129,10 @@ export async function getCustomSectionPage(
 export async function getSectionNavigation(
   section: CustomPageSection,
 ): Promise<SidebarNavItem[]> {
-  const customPages = await getCustomSectionPages(section);
+  const [customPages, storedOrder] = await Promise.all([
+    getCustomSectionPages(section),
+    getNavigationOrder(section),
+  ]);
   const builtIns = BUILT_IN_SECTION_CATEGORIES[section];
   const visible = customPages.filter((page) => page.visible);
   const byCategory = new Map<string, CustomSectionPage[]>();
@@ -142,33 +146,50 @@ export async function getSectionNavigation(
   const items: SidebarNavItem[] = builtIns.map((category) => {
     const attached = byCategory.get(category.key) ?? [];
     byCategory.delete(category.key);
-    if (attached.length === 0)
-      return { href: category.href, label: category.label };
-    return {
-      href: category.href,
-      label: category.label,
-      children: [
-        { href: category.href, label: "Vue d’ensemble" },
+    if (attached.length === 0) {
+      return { key: category.key, href: category.href, label: category.label };
+    }
+
+    const children = sortByStoredOrder(
+      [
+        { key: `builtin-${category.key}`, href: category.href, label: "Vue d’ensemble" },
         ...attached.map((page) => ({
+          key: `custom-${page.id}`,
           href: `/${section}/personnalise/${page.slug}`,
           label: page.label,
         })),
       ],
+      storedOrder.children[category.key],
+      (child) => child.key,
+    );
+
+    return {
+      key: category.key,
+      href: children[0]?.href ?? category.href,
+      label: category.label,
+      children,
     };
   });
 
   for (const [categoryKey, pages] of byCategory.entries()) {
     const first = pages[0];
     if (!first) continue;
-    items.push({
-      href: `/${section}/personnalise/${first.slug}`,
-      label: first.category_label || categoryKey,
-      children: pages.map((page) => ({
+    const children = sortByStoredOrder(
+      pages.map((page) => ({
+        key: `custom-${page.id}`,
         href: `/${section}/personnalise/${page.slug}`,
         label: page.label,
       })),
+      storedOrder.children[categoryKey],
+      (child) => child.key,
+    );
+    items.push({
+      key: categoryKey,
+      href: children[0]?.href ?? `/${section}/personnalise/${first.slug}`,
+      label: first.category_label || categoryKey,
+      children,
     });
   }
 
-  return items;
+  return sortByStoredOrder(items, storedOrder.categories, (item) => item.key ?? item.href);
 }

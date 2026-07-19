@@ -8,8 +8,10 @@ import {
 import { restoreDefaultSitePage, saveSitePage } from "@/app/actions/site-content";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
+import { NavigationOrderEditor } from "@/components/dashboard/navigation-order-editor";
 import {
   BUILT_IN_CIRCUIT_CATEGORIES,
+  getCircuitNavigation,
   getCustomCircuitPages,
   getHiddenCircuitPageKeys,
 } from "@/lib/content/circuit-navigation";
@@ -17,6 +19,7 @@ import { DEFAULT_EDITOR_CONTENT } from "@/lib/content/default-editor-content";
 import {
   BUILT_IN_SECTION_CATEGORIES,
   getCustomSectionPages,
+  getSectionNavigation,
   type CustomPageSection,
 } from "@/lib/content/section-navigation";
 import {
@@ -57,11 +60,21 @@ export async function SiteSectionEditor({
   const error = typeof searchParams.error === "string" ? searchParams.error : null;
   const pagesForSection = getEditablePagesBySection(section);
 
-  const [sitePages, customPages, hiddenPageKeys] = await Promise.all([
+  const [sitePages, customPages, hiddenPageKeys, navigationItems] = await Promise.all([
     getAllSitePages(),
     section === "circuit" ? getCustomCircuitPages() : getCustomSectionPages(section as CustomPageSection),
     section === "circuit" ? getHiddenCircuitPageKeys() : Promise.resolve(new Set<string>()),
+    section === "circuit" ? getCircuitNavigation() : getSectionNavigation(section as CustomPageSection),
   ]);
+
+  const navigationOrderItems = navigationItems.map((item) => ({
+    key: item.key ?? item.href,
+    label: item.label,
+    children: (item.children ?? []).map((child) => ({
+      key: child.key ?? child.href,
+      label: child.label,
+    })),
+  }));
 
   const grouped = new Map<string, typeof pagesForSection>();
   for (const page of pagesForSection) {
@@ -96,6 +109,7 @@ export async function SiteSectionEditor({
       {searchParams.custom_saved && <div className="dashboard-feedback dashboard-feedback-success">La page personnalisée a été enregistrée.</div>}
       {searchParams.custom_deleted && <div className="dashboard-feedback">La page personnalisée a été supprimée.</div>}
       {searchParams.visibility_saved && <div className="dashboard-feedback dashboard-feedback-success">La visibilité de la page a été mise à jour.</div>}
+      {searchParams.order_saved && <div className="dashboard-feedback dashboard-feedback-success">Le nouvel ordre du menu a été enregistré.</div>}
       {error && <div className="dashboard-feedback dashboard-feedback-error">Une modification n’a pas pu être enregistrée. Vérifie les champs puis réessaie.</div>}
 
       {!sitePages.configured && (
@@ -107,6 +121,10 @@ export async function SiteSectionEditor({
             <pre>{SITE_CONTENT_SETUP_SQL}</pre>
           </details>
         </section>
+      )}
+
+      {sitePages.configured && (
+        <NavigationOrderEditor section={section} initialItems={navigationOrderItems} />
       )}
 
       <section className="dashboard-section-heading dashboard-section-heading-tight">
