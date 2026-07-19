@@ -20,6 +20,14 @@ export type CircuitNavCategory = {
 
 export const BUILT_IN_CIRCUIT_CATEGORIES: CircuitNavCategory[] = [
   {
+    key: "planning-en-direct",
+    label: "Planning en direct",
+    href: "/circuit/planning-en-direct",
+    children: [
+      { key: "planning-en-direct", href: "/circuit/planning-en-direct", label: "Voir le direct" },
+    ],
+  },
+  {
     key: "presentation",
     label: "Présentation",
     href: "/circuit",

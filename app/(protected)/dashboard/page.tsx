@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { DashboardCard } from "@/components/dashboard/dashboard-card";
+import { DashboardModuleGroup } from "@/components/dashboard/dashboard-module-group";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { getUserRoleKeys } from "@/lib/auth/access";
 import { getDiscordName, getRpName } from "@/lib/auth/user-profile";
@@ -73,7 +74,7 @@ export default async function DashboardPage() {
   const accessLabel = managerAccess ? "GÉRANT" : commissionerAccess ? "COMMISSAIRE" : roles.includes("commercial") ? "COMMERCIAL" : "EMPLOYÉ";
 
   return (
-    <DashboardShell>
+    <DashboardShell allowedRoles={["manager", "commissioner", "commercial", "employee"]}>
       <section className="dashboard-hero dashboard-hero-compact">
         <div>
           <span className="eyebrow">NOSTRA GROUP</span>
@@ -94,10 +95,10 @@ export default async function DashboardPage() {
 
       {managerAccess && !roleAccessConfigured && (
         <section className="dashboard-setup">
-          <span className="module-status">Activation V27 nécessaire</span>
-          <h2>Finaliser les accès par rôle et le planning public</h2>
-          <p>Ce script permet aux Employés et Commerciaux de gérer uniquement les commandes, et rend le planning en direct visible aux citoyens.</p>
-          <details><summary>Afficher le code SQL V27</summary><pre>{DASHBOARD_ACCESS_SETUP_SQL}</pre></details>
+          <span className="module-status">Activation V30 nécessaire</span>
+          <h2>Activer le planning public, le temps réel et la suppression des gains</h2>
+          <p>Ce script finalise les accès par rôle, publie le planning en direct pour les citoyens, active sa mise à jour instantanée et permet de retirer les gains de la roue sans réinitialiser le tirage quotidien.</p>
+          <details><summary>Afficher le code SQL V30</summary><pre>{DASHBOARD_ACCESS_SETUP_SQL}</pre></details>
           <ol><li>Copie le code dans une nouvelle requête Supabase.</li><li>Exécute-le avec <strong>Run without RLS</strong>.</li><li>Recharge cette page avec <strong>Ctrl + F5</strong>.</li></ol>
         </section>
       )}
@@ -120,68 +121,72 @@ export default async function DashboardPage() {
 
       <div className="dashboard-module-groups">
         {ordersAccess && (
-          <section className="dashboard-module-group">
-            <div className="dashboard-module-group-heading">
-              <span className="dashboard-module-group-icon">🚗</span>
-              <div><p className="eyebrow">CONCESSION</p><h3>Nostra Motors</h3><p>{managerAccess ? "Catalogue, commandes clients et quantités disponibles." : "Accès limité au traitement des commandes clients."}</p></div>
-            </div>
+          <DashboardModuleGroup
+            icon="🚗"
+            eyebrow="CONCESSION"
+            title="Nostra Motors"
+            description={managerAccess ? "Catalogue, commandes clients et quantités disponibles." : "Accès limité au traitement des commandes clients."}
+            defaultOpen={!managerAccess}
+          >
             <div className="dashboard-module-grid dashboard-module-grid-grouped">
               {managerAccess && <DashboardCard href="/dashboard/catalogue" icon="🚘" title="Catalogue Nostra Motors" description="Ajouter les véhicules par marque avec leurs photos, caractéristiques, prix et quantité en stock." badge={catalogVehicles.length ? `${catalogVehicles.length} véhicule(s)` : undefined} />}
               <DashboardCard href="/dashboard/commandes" icon="🧾" title="Commandes Nostra Motors" description="Recevoir les commandes des citoyens, suivre leur préparation et modifier leur statut." badge={!ordersConfigured ? "À activer" : pendingOrders ? `${pendingOrders} nouvelle(s)` : undefined} />
               {managerAccess && <DashboardCard href="/dashboard/stocks" icon="▦" title="Gestion des stocks" description="Modifier les quantités et surveiller les véhicules bientôt épuisés." badge={lowStock ? `${lowStock} alerte(s)` : undefined} />}
             </div>
-          </section>
+          </DashboardModuleGroup>
         )}
 
         {managerAccess && (
-          <section className="dashboard-module-group">
-            <div className="dashboard-module-group-heading"><span className="dashboard-module-group-icon">🏁</span><div><p className="eyebrow">SPORT AUTOMOBILE</p><h3>Nostra Circuit</h3><p>Réservations, homologations, écuries et championnats.</p></div></div>
+          <DashboardModuleGroup icon="🏁" eyebrow="SPORT AUTOMOBILE" title="Nostra Circuit" description="Réservations, homologations, écuries et championnats.">
             <div className="dashboard-module-grid dashboard-module-grid-grouped dashboard-module-grid-four">
               <DashboardCard href="/dashboard/reservations" icon="🗓" title="Demandes de réservation" description="Valider, refuser ou supprimer les créneaux demandés sur le calendrier du circuit." badge={pendingReservations ? `${pendingReservations} à traiter` : undefined} />
               <DashboardCard href="/dashboard/homologations" icon="✅" title="Homologations" description="Recevoir et traiter les demandes d’homologation de véhicules et d’écuries." badge={pending ? `${pending} en attente` : undefined} />
               <DashboardCard href="/dashboard/inscriptions-ecuries" icon="🏎️" title="Inscriptions des écuries" description="Traiter les inscriptions F1, GT3 RS et les demandes pour les deux championnats." badge={!teamRegistrationsConfigured ? "À activer" : pendingTeamRegistrations ? `${pendingTeamRegistrations} à traiter` : undefined} />
               <DashboardCard href="/dashboard/championnats" icon="🏆" title="Calendriers F1 & GT3 RS" description="Programmer les manches et événements dans le calendrier de chaque championnat." />
             </div>
-          </section>
+          </DashboardModuleGroup>
         )}
 
         {commissionerAccess && (
-          <section className="dashboard-module-group">
-            <div className="dashboard-module-group-heading"><span className="dashboard-module-group-icon">🚦</span><div><p className="eyebrow">DIRECTION DE COURSE</p><h3>Commissaires</h3><p>Modifier en temps réel le planning visible par les citoyens sur Nostra Circuit.</p></div></div>
+          <DashboardModuleGroup
+            icon="🚦"
+            eyebrow="DIRECTION DE COURSE"
+            title="Commissaires"
+            description="Modifier en temps réel le planning visible par les citoyens sur Nostra Circuit."
+            defaultOpen={!managerAccess}
+          >
             <div className="dashboard-module-grid dashboard-module-grid-grouped dashboard-module-grid-two">
-              <DashboardCard href="/dashboard/commissaires" icon="🏁" title="Planning course en direct" description="Renseigner l’ouverture des stands, les qualifications, le départ, la météo et les annonces en direct." badge={!roleAccessConfigured ? "V27 à activer" : "En direct"} />
+              <DashboardCard href="/dashboard/commissaires" icon="🏁" title="Planning course en direct" description="Renseigner l’ouverture des stands, les qualifications, le départ, la météo et les annonces en direct." badge={!roleAccessConfigured ? "V30 à activer" : "En direct"} />
               <DashboardCard href="/commissaires/incidents-circuit" icon="🚨" title="Rapports d’incident" description="Créer et consulter les rapports des incidents survenus pendant les sessions." />
             </div>
-          </section>
+          </DashboardModuleGroup>
         )}
 
         {managerAccess && (
-          <section className="dashboard-module-group">
-            <div className="dashboard-module-group-heading"><span className="dashboard-module-group-icon">🎮</span><div><p className="eyebrow">ANIMATIONS</p><h3>Jeux</h3><p>Suivre les tirages et gérer les bonus gagnés par les citoyens.</p></div></div>
+          <DashboardModuleGroup icon="🎮" eyebrow="ANIMATIONS" title="Jeux" description="Suivre les tirages et gérer les bonus gagnés par les citoyens.">
             <div className="dashboard-module-grid dashboard-module-grid-grouped dashboard-module-grid-two">
-              <DashboardCard href="/dashboard/jeux/roue" icon="🎡" title="Roue de la chance" description="Consulter l’historique des tirages et passer les gains au statut Utilisé." badge={!wheelConfigured ? "V29 à activer" : unusedWheelGains ? `${unusedWheelGains} gain(s) à utiliser` : undefined} />
+              <DashboardCard href="/dashboard/jeux/roue" icon="🎡" title="Roue de la chance" description="Consulter l’historique, modifier le statut ou retirer un gain du profil du citoyen." badge={!wheelConfigured ? "V29 à activer" : unusedWheelGains ? `${unusedWheelGains} gain(s) à utiliser` : undefined} />
             </div>
-          </section>
+          </DashboardModuleGroup>
         )}
 
         {managerAccess && (
-          <>
-            <section className="dashboard-module-group">
-              <div className="dashboard-module-group-heading"><span className="dashboard-module-group-icon">⚙️</span><div><p className="eyebrow">DIRECTION</p><h3>Gestion générale</h3><p>État des activités, finances et événements du groupe.</p></div></div>
-              <div className="dashboard-module-grid dashboard-module-grid-grouped">
-                <DashboardCard href="/dashboard/circuit" icon="◉" title="État des activités" description="Gérer au même endroit l’état du Nostra Circuit et de Nostra Motors." badge={motorsStatusConfigured ? `${setting?.label ?? "Circuit"} / ${motorsSetting?.label ?? "Motors"}` : "Motors à activer"} />
-                <DashboardCard href="/dashboard/comptabilite" icon="€" title="Comptabilité" description="Enregistrer les recettes, les dépenses et suivre le solde du groupe." />
-                <DashboardCard href="/dashboard/evenements" icon="📅" title="Gestion des événements" description="Créer, publier, modifier ou annuler les événements Nostra Group." badge={generalEventsCount ? `${generalEventsCount} événement(s)` : undefined} />
-              </div>
-            </section>
-            <section className="dashboard-module-group">
-              <div className="dashboard-module-group-heading"><span className="dashboard-module-group-icon">🛠️</span><div><p className="eyebrow">ADMINISTRATION</p><h3>Site et membres</h3><p>Modifier les pages du site et gérer les permissions des comptes.</p></div></div>
-              <div className="dashboard-module-grid dashboard-module-grid-grouped dashboard-module-grid-two">
-                <DashboardCard href="/dashboard/contenu" icon="✎" title="Modification des pages" description="Choisir entre Nostra Motors, Nostra Circuit et Jeux & Événements, puis modifier leurs pages séparément." />
-                <DashboardCard href="/dashboard/membres" icon="👥" title="Membres et rôles" description="Attribuer les rôles Citoyen, Employé, Commercial, Commissaire ou Gérant, avec plusieurs rôles possibles." />
-              </div>
-            </section>
-          </>
+          <DashboardModuleGroup icon="⚙️" eyebrow="DIRECTION" title="Gestion générale" description="État des activités, finances et événements du groupe.">
+            <div className="dashboard-module-grid dashboard-module-grid-grouped">
+              <DashboardCard href="/dashboard/circuit" icon="◉" title="État des activités" description="Gérer au même endroit l’état du Nostra Circuit et de Nostra Motors." badge={motorsStatusConfigured ? `${setting?.label ?? "Circuit"} / ${motorsSetting?.label ?? "Motors"}` : "Motors à activer"} />
+              <DashboardCard href="/dashboard/comptabilite" icon="€" title="Comptabilité" description="Enregistrer les recettes, les dépenses et suivre le solde du groupe." />
+              <DashboardCard href="/dashboard/evenements" icon="📅" title="Gestion des événements" description="Créer, publier, modifier ou annuler les événements Nostra Group." badge={generalEventsCount ? `${generalEventsCount} événement(s)` : undefined} />
+            </div>
+          </DashboardModuleGroup>
+        )}
+
+        {managerAccess && (
+          <DashboardModuleGroup icon="🛠️" eyebrow="ADMINISTRATION" title="Site et membres" description="Modifier les pages du site et gérer les permissions des comptes.">
+            <div className="dashboard-module-grid dashboard-module-grid-grouped dashboard-module-grid-two">
+              <DashboardCard href="/dashboard/contenu" icon="✎" title="Modification des pages" description="Choisir entre Nostra Motors, Nostra Circuit et Jeux & Événements, puis modifier leurs pages séparément." />
+              <DashboardCard href="/dashboard/membres" icon="👥" title="Membres et rôles" description="Attribuer les rôles Citoyen, Employé, Commercial, Commissaire ou Gérant, avec plusieurs rôles possibles." />
+            </div>
+          </DashboardModuleGroup>
         )}
       </div>
     </DashboardShell>

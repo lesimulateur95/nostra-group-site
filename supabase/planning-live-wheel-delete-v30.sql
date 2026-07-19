@@ -1,4 +1,3 @@
-export const DASHBOARD_ACCESS_SETUP_SQL = String.raw`
 -- NOSTRA GROUP V30 — PLANNING LIVE, ACCÈS DASHBOARD ET SUPPRESSION DES GAINS
 -- Réexécutable et sans suppression des données existantes.
 
@@ -75,4 +74,3 @@ with check (public.nostra_games_is_manager());
 grant select, update on public.game_wheel_spins to authenticated;
 
 notify pgrst, 'reload schema';
-`;

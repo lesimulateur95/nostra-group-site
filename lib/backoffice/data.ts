@@ -533,11 +533,12 @@ export async function getCommissionerIncidentReports(): Promise<CommissionerInci
 
 export async function getDashboardRoleAccessConfigured(): Promise<boolean> {
   const supabase = await createClient();
-  const [{ error: orderAccessError }, { error: planningAccessError }] = await Promise.all([
+  const [{ error: orderAccessError }, { error: planningAccessError }, { error: wheelDeleteError }] = await Promise.all([
     supabase.rpc("nostra_can_manage_orders"),
     supabase.from("commissioner_race_briefing").select("public_visible").limit(1),
+    supabase.from("game_wheel_spins").select("deleted_at").limit(1),
   ]);
-  return !orderAccessError && !planningAccessError;
+  return !orderAccessError && !planningAccessError && !wheelDeleteError;
 }
 
 export type WheelSpin = {
@@ -553,6 +554,7 @@ export type WheelSpin = {
   used_at: string | null;
   used_by: string | null;
   updated_at: string;
+  deleted_at?: string | null;
 };
 
 export async function getWheelModuleConfigured(): Promise<boolean> {
@@ -565,7 +567,8 @@ export async function getWheelSpins(): Promise<WheelSpin[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("game_wheel_spins")
-    .select("id,user_id,player_name,slot_index,prize_key,prize_label,prize_type,redemption_status,awarded_at,used_at,used_by,updated_at")
+    .select("id,user_id,player_name,slot_index,prize_key,prize_label,prize_type,redemption_status,awarded_at,used_at,used_by,updated_at,deleted_at")
+    .is("deleted_at", null)
     .order("awarded_at", { ascending: false })
     .limit(500);
   if (error) return [];
@@ -576,8 +579,9 @@ export async function getOwnWheelSpins(userId: string): Promise<WheelSpin[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("game_wheel_spins")
-    .select("id,user_id,player_name,slot_index,prize_key,prize_label,prize_type,redemption_status,awarded_at,used_at,used_by,updated_at")
+    .select("id,user_id,player_name,slot_index,prize_key,prize_label,prize_type,redemption_status,awarded_at,used_at,used_by,updated_at,deleted_at")
     .eq("user_id", userId)
+    .is("deleted_at", null)
     .order("awarded_at", { ascending: false })
     .limit(200);
   if (error) return [];

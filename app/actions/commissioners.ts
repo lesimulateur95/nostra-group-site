@@ -19,6 +19,8 @@ async function requireCommissionerAccess() {
 }
 
 export async function saveCommissionerRaceBriefing(formData: FormData) {
+  const requestedReturnPath = text(formData.get("return_to"), 120);
+  const returnPath = requestedReturnPath === "/dashboard/commissaires" ? requestedReturnPath : "/commissaires/briefing-avant-course";
   const eventTitle = text(formData.get("event_title"), 160);
   const eventDate = text(formData.get("event_date"), 20) || null;
   const standsOpening = text(formData.get("stands_opening"), 20);
@@ -46,15 +48,18 @@ export async function saveCommissionerRaceBriefing(formData: FormData) {
       commissioners,
       race_direction: raceDirection,
       live_announcement: liveAnnouncement,
+      public_visible: true,
       updated_by: user.id,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "id" },
   );
 
-  if (error) redirect("/commissaires/briefing-avant-course?error=save");
+  if (error) redirect(`${returnPath}?error=save`);
   revalidatePath("/commissaires/briefing-avant-course");
-  redirect("/commissaires/briefing-avant-course?saved=1");
+  revalidatePath("/dashboard/commissaires");
+  revalidatePath("/circuit/planning-en-direct");
+  redirect(`${returnPath}?saved=1`);
 }
 
 export async function createCommissionerIncidentReport(formData: FormData) {
