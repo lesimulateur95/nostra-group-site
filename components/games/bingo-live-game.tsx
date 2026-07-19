@@ -64,7 +64,7 @@ export function BingoLiveGame({
   function handleDraw() {
     if (isPending) return;
     setMessage(null);
-    timer.current = setInterval(() => setAnimationNumber(Math.floor(Math.random() * 99) + 1), 70);
+    timer.current = setInterval(() => setAnimationNumber(Math.floor(Math.random() * 75) + 1), 70);
 
     startTransition(async () => {
       const result = await drawBingoNumber();
@@ -76,7 +76,7 @@ export function BingoLiveGame({
         setMessage(result.error === "complete"
           ? "Le carton plein a déjà été remporté. Réinitialise ou clear le Bingo depuis le Dashboard."
           : result.error === "empty"
-            ? "Les 99 numéros ont déjà été tirés."
+            ? "Les 75 numéros ont déjà été tirés."
             : result.error === "manager"
               ? "Seul le Gérant peut sortir un numéro."
               : result.error === "setup"
@@ -102,7 +102,7 @@ export function BingoLiveGame({
     <div className="bingo-live-shell">
       <section className="bingo-live-stage">
         <div className={`bingo-drum ${isPending ? "is-spinning" : ""}`}>
-          <div className="bingo-drum-ring">{Array.from({ length: 18 }, (_, index) => <i key={index} style={{ "--ball-index": index } as React.CSSProperties}>{(index * 7 + 1) % 99 || 99}</i>)}</div>
+          <div className="bingo-drum-ring">{Array.from({ length: 18 }, (_, index) => <i key={index} style={{ "--ball-index": index } as React.CSSProperties}>{(index * 7 + 1) % 75 || 75}</i>)}</div>
           <div className="bingo-current-ball"><small>NUMÉRO</small><strong>{currentNumber ?? "—"}</strong></div>
         </div>
         <div className="bingo-stage-meta">

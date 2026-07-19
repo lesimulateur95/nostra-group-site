@@ -707,10 +707,23 @@ export async function getOwnTombolaCart(userId: string): Promise<TombolaCartItem
 
 export async function getOwnTombolaTickets(userId: string): Promise<TombolaTicket[]> {
   const supabase = await createClient();
+
+  // Le profil n'affiche que les tickets de l'édition active.
+  // Lors d'un reset, l'ancienne édition est archivée : ses numéros disparaissent donc immédiatement du profil.
+  const { data: activeRound, error: roundError } = await supabase
+    .from("tombola_rounds")
+    .select("id")
+    .is("archived_at", null)
+    .limit(1)
+    .maybeSingle();
+
+  if (roundError || !activeRound) return [];
+
   const { data, error } = await supabase
     .from("tombola_tickets")
     .select("id,round_id,purchase_id,user_id,customer_name,ticket_number,created_at,tombola_purchases(order_number),tombola_rounds(title)")
     .eq("user_id", userId)
+    .eq("round_id", Number(activeRound.id))
     .order("created_at", { ascending: false });
 
   if (error) return [];

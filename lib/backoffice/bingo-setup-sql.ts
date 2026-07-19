@@ -1,5 +1,5 @@
-export const BINGO_SETUP_SQL = String.raw`-- NOSTRA GROUP V32 — BINGO COMPLET
--- Grilles de 24 numéros + case centrale Nostra Motors, panier, achat,
+export const BINGO_SETUP_SQL = String.raw`-- NOSTRA GROUP V32.1 — BINGO 75 BOULES
+-- Cartons classiques B-I-N-G-O de 24 numéros + case centrale Nostra Motors, panier, achat,
 -- tirage en direct, détection automatique des lignes et carton plein,
 -- clear des numéros et réinitialisation complète.
 -- Script réexécutable : les données existantes sont conservées.
@@ -108,7 +108,7 @@ create table if not exists public.bingo_draws (
   draw_order integer not null,
   drawn_by uuid references auth.users(id) on delete set null,
   drawn_at timestamptz not null default now(),
-  constraint bingo_draw_ball_check check (ball_number between 1 and 99),
+  constraint bingo_draw_ball_check check (ball_number between 1 and 75),
   constraint bingo_draw_order_check check (draw_order > 0),
   unique (round_id, ball_number),
   unique (round_id, draw_order)
@@ -138,17 +138,61 @@ security definer
 set search_path = public
 as $$
 declare
-  v_values integer[] := array[]::integer[];
-  v_value integer;
+  v_b integer[];
+  v_i integer[];
+  v_n integer[];
+  v_g integer[];
+  v_o integer[];
 begin
-  while cardinality(v_values) < 24 loop
-    v_value := floor(random() * 99)::integer + 1;
-    if not (v_value = any(v_values)) then
-      v_values := array_append(v_values, v_value);
-    end if;
-  end loop;
+  -- Carton Bingo classique 75 boules :
+  -- B = 1-15, I = 16-30, N = 31-45, G = 46-60, O = 61-75.
+  select array_agg(candidate order by candidate) into v_b
+  from (
+    select candidate
+    from generate_series(1, 15) as candidates(candidate)
+    order by random()
+    limit 5
+  ) picked;
 
-  return v_values[1:12] || array[0]::integer[] || v_values[13:24];
+  select array_agg(candidate order by candidate) into v_i
+  from (
+    select candidate
+    from generate_series(16, 30) as candidates(candidate)
+    order by random()
+    limit 5
+  ) picked;
+
+  select array_agg(candidate order by candidate) into v_n
+  from (
+    select candidate
+    from generate_series(31, 45) as candidates(candidate)
+    order by random()
+    limit 4
+  ) picked;
+
+  select array_agg(candidate order by candidate) into v_g
+  from (
+    select candidate
+    from generate_series(46, 60) as candidates(candidate)
+    order by random()
+    limit 5
+  ) picked;
+
+  select array_agg(candidate order by candidate) into v_o
+  from (
+    select candidate
+    from generate_series(61, 75) as candidates(candidate)
+    order by random()
+    limit 5
+  ) picked;
+
+  return array[
+    v_b[1], v_i[1], v_n[1], v_g[1], v_o[1],
+    v_b[2], v_i[2], v_n[2], v_g[2], v_o[2],
+    v_b[3], v_i[3], 0,      v_g[3], v_o[3],
+    v_b[4], v_i[4], v_n[3], v_g[4], v_o[4],
+    v_b[5], v_i[5], v_n[4], v_g[5], v_o[5]
+  ];
 end;
 $$;
 
@@ -479,7 +523,7 @@ begin
   end if;
 
   select candidate into v_ball
-  from generate_series(1, 99) as candidates(candidate)
+  from generate_series(1, 75) as candidates(candidate)
   where not exists (
     select 1 from public.bingo_draws draw
     where draw.round_id = v_round.id

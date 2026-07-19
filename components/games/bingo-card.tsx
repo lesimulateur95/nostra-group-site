@@ -19,7 +19,7 @@ export function BingoCard({
   showOwner?: boolean;
 }) {
   const called = useMemo(() => new Set(calledNumbers), [calledNumbers]);
-  const storageKey = `nostra-bingo-marks-${card.round_id}-${card.id}`;
+  const storageKey = `nostra-bingo-marks-${card.round_id}-${card.id}-${card.numbers.join("-")}`;
   const [marked, setMarked] = useState<Set<number>>(new Set());
 
   useEffect(() => {
@@ -53,6 +53,9 @@ export function BingoCard({
         {showOwner && <small>{card.customer_name}</small>}
         <b>{markedCount}/24</b>
       </header>
+      <div className="bingo-card-letters" aria-hidden="true">
+        {Array.from("BINGO").map((letter) => <strong key={letter}>{letter}</strong>)}
+      </div>
       <div className="bingo-card-grid">
         {card.numbers.map((value, index) => {
           const center = value === 0;

@@ -167,7 +167,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
           )}
           {bingoCart && (
             <form action={checkoutBingoCart} className="profile-order-form profile-bingo-checkout">
-              <p className="commerce-hint">La commande Bingo génère immédiatement {bingoCart.quantity} grille(s) numérotée(s), avec 24 numéros uniques entre 1 et 99.</p>
+              <p className="commerce-hint">La commande Bingo génère immédiatement {bingoCart.quantity} carton(s) au format classique B-I-N-G-O, avec 24 numéros et la case centrale Nostra Motors.</p>
               <button className="btn" type="submit">Commander mes grilles Bingo</button>
             </form>
           )}

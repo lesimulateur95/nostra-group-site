@@ -3014,6 +3014,10 @@ select:focus { outline: 2px solid rgba(212,175,55,.32); outline-offset: 1px; }
 .bingo-card > header strong { color: var(--gold-light); }
 .bingo-card > header small { color: #ddd; overflow-wrap: anywhere; text-align: center; }
 .bingo-card > header b { color: var(--muted); font-size: .75rem; }
+.bingo-card-letters { display: grid; grid-template-columns: repeat(5, 1fr); border: 2px solid #9e7d20; border-bottom: 0; border-radius: 12px 12px 0 0; overflow: hidden; background: linear-gradient(145deg, #d4af37, #8b6814); }
+.bingo-card-letters strong { display: grid; place-items: center; min-height: 34px; border-right: 1px solid rgba(10,10,10,.4); color: #080808; font-size: 1rem; font-weight: 1000; letter-spacing: .08em; }
+.bingo-card-letters strong:last-child { border-right: 0; }
+.bingo-card-letters + .bingo-card-grid { border-radius: 0 0 12px 12px; }
 .bingo-card-grid { display: grid; grid-template-columns: repeat(5, 1fr); border: 2px solid #9e7d20; border-radius: 12px; overflow: hidden; }
 .bingo-cell { aspect-ratio: 1; min-width: 0; display: grid; place-items: center; border: 1px solid rgba(10,10,10,.55); background: #f1ead7; color: #111; font-size: clamp(.8rem, 2vw, 1.15rem); font-weight: 950; cursor: default; transition: background .16s ease, transform .16s ease; }
 .bingo-cell:not(:disabled) { cursor: pointer; }
