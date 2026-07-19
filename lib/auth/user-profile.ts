@@ -2,7 +2,7 @@ import type { User } from "@supabase/supabase-js";
 
 export const MANAGER_DISCORD_IDS = new Set(["331843410962939908"]);
 
-export type SiteRole = "Gérant" | "Membre";
+export type SiteRole = "Gérant" | "Citoyen";
 
 function asNumericDiscordId(value: unknown): string | null {
   if (typeof value !== "string") return null;
@@ -47,7 +47,7 @@ export function getDiscordId(user: User | null | undefined): string | null {
 
 export function getSiteRole(user: User | null | undefined): SiteRole {
   const discordId = getDiscordId(user);
-  return discordId && MANAGER_DISCORD_IDS.has(discordId) ? "Gérant" : "Membre";
+  return discordId && MANAGER_DISCORD_IDS.has(discordId) ? "Gérant" : "Citoyen";
 }
 
 export function isManager(user: User | null | undefined): boolean {

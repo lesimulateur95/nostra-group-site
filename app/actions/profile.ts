@@ -46,6 +46,7 @@ export async function saveRpProfile(formData: FormData) {
     rp_first_name: firstName,
     rp_last_name: lastName,
     role: getDiscordId(userData.user) === "331843410962939908" ? "manager" : undefined,
+    roles: getDiscordId(userData.user) === "331843410962939908" ? ["manager"] : undefined,
     updated_at: new Date().toISOString(),
   }, { onConflict: "user_id" });
 

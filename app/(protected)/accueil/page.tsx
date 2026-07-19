@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Topbar } from "@/components/site/topbar";
-import { getUserRoleKey } from "@/lib/auth/access";
+import { getUserRoleKeys } from "@/lib/auth/access";
 import { createClient } from "@/lib/supabase/server";
 
 const publicPortals = [
@@ -28,14 +28,14 @@ const commissionerPortal = {
   href: "/commissaires",
   kicker: "ACCÈS RÉSERVÉ",
   title: "ESPACE COMMISSAIRES",
-  description: "Règlement, briefing avant course et suivi des incidents du Nostra Circuit.",
+  description: "Règlement, planning de course en direct et rapports d’incident du Nostra Circuit.",
 };
 
 export default async function HomePage() {
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
-  const role = await getUserRoleKey(data.user);
-  const portals = role === "manager" || role === "commissioner"
+  const roles = await getUserRoleKeys(data.user);
+  const portals = roles.includes("manager") || roles.includes("commissioner")
     ? [...publicPortals, commissionerPortal]
     : publicPortals;
 

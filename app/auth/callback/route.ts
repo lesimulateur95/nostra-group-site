@@ -29,6 +29,7 @@ export async function GET(request: Request) {
         rp_first_name: typeof metadata.rp_first_name === "string" ? metadata.rp_first_name : null,
         rp_last_name: typeof metadata.rp_last_name === "string" ? metadata.rp_last_name : null,
         role: getDiscordId(user) === "331843410962939908" ? "manager" : undefined,
+        roles: getDiscordId(user) === "331843410962939908" ? ["manager"] : undefined,
         updated_at: new Date().toISOString(),
       }, { onConflict: "user_id" });
     }

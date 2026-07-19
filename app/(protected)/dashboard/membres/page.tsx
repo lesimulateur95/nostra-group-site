@@ -1,7 +1,7 @@
 import { updateMemberRole } from "@/app/actions/admin-management";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
-import { normalizeRoleKey, ROLE_LABELS } from "@/lib/auth/access";
+import { normalizeRoleKeys, ROLE_LABELS } from "@/lib/auth/access";
 import { getMemberProfiles } from "@/lib/backoffice/data";
 import { ROLES_COMMISSIONERS_SETUP_SQL } from "@/lib/backoffice/roles-commissioners-setup-sql";
 
@@ -11,14 +11,14 @@ export default async function MembersDashboardPage({ searchParams }: { searchPar
 
   return (
     <DashboardShell>
-      <DashboardHeader title="Gestion des membres et rôles" description="Attribue un rôle aux personnes qui ont créé leur compte sur le site." />
+      <DashboardHeader title="Gestion des membres et rôles" description="Attribue un ou plusieurs rôles à chaque personne inscrite sur le site." />
 
       <section className="dashboard-setup role-migration-setup">
         <span className="module-status">À exécuter une seule fois</span>
-        <h2>Activer les nouveaux rôles</h2>
-        <p>Ce script remplace Staff et Administrateur par Employé, puis active les rôles Employé, Commercial et Commissaire. Le compte Gérant principal reste protégé.</p>
+        <h2>Activer les rôles multiples et les outils Commissaires</h2>
+        <p>Ce script remplace Membre par Citoyen, permet de cumuler plusieurs rôles et active le planning de course ainsi que les rapports d’incident.</p>
         <details>
-          <summary>Afficher le code SQL à copier dans Supabase</summary>
+          <summary>Afficher le code SQL V26 à copier dans Supabase</summary>
           <pre>{ROLES_COMMISSIONERS_SETUP_SQL}</pre>
         </details>
         <ol>
@@ -28,15 +28,15 @@ export default async function MembersDashboardPage({ searchParams }: { searchPar
         </ol>
       </section>
 
-      {params.saved && <div className="dashboard-feedback dashboard-feedback-success">Le rôle a été enregistré.</div>}
-      {params.error && <div className="dashboard-feedback dashboard-feedback-error">Impossible de modifier ce rôle. Vérifie que le nouveau code SQL a bien été exécuté dans Supabase.</div>}
+      {params.saved && <div className="dashboard-feedback dashboard-feedback-success">Les rôles ont été enregistrés.</div>}
+      {params.error && <div className="dashboard-feedback dashboard-feedback-error">Impossible de modifier les rôles. Vérifie que le code SQL V26 a bien été exécuté dans Supabase.</div>}
 
       <section className="member-admin-grid">
-        {members.length === 0 && <div className="backoffice-panel empty-state">Aucun membre synchronisé. Les nouveaux comptes apparaîtront ici après leur prochaine connexion.</div>}
+        {members.length === 0 && <div className="backoffice-panel empty-state">Aucun citoyen synchronisé. Les nouveaux comptes apparaîtront ici après leur prochaine connexion.</div>}
         {members.map((member) => {
           const rpName = [member.rp_first_name, member.rp_last_name].filter(Boolean).join(" ") || "Identité RP à compléter";
           const protectedManager = member.discord_id === "331843410962939908";
-          const selectedRole = protectedManager ? "manager" : normalizeRoleKey(member.role);
+          const selectedRoles = normalizeRoleKeys(member.roles, member.role);
 
           return (
             <article className="backoffice-panel member-admin-card" key={member.user_id}>
@@ -51,14 +51,30 @@ export default async function MembersDashboardPage({ searchParams }: { searchPar
                 <div><dt>Discord ID</dt><dd>{member.discord_id || "Non détecté"}</dd></div>
                 <div><dt>Inscription</dt><dd>{new Date(member.created_at).toLocaleDateString("fr-FR")}</dd></div>
               </dl>
-              <form action={updateMemberRole} className="member-role-form">
+              <form action={updateMemberRole} className="member-role-form member-multi-role-form">
                 <input type="hidden" name="user_id" value={member.user_id} />
-                <label>Rôle
-                  <select name="role" defaultValue={selectedRole} disabled={protectedManager}>
-                    {Object.entries(ROLE_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
-                  </select>
-                </label>
-                {protectedManager ? <span className="manager-protected-note">Compte Gérant principal protégé</span> : <button className="btn" type="submit">Enregistrer le rôle</button>}
+                <fieldset>
+                  <legend>Rôles attribués</legend>
+                  <div className="member-role-checkbox-grid">
+                    {Object.entries(ROLE_LABELS).map(([key, label]) => {
+                      const lockedManager = protectedManager && key === "manager";
+                      return (
+                        <label className="member-role-checkbox" key={key}>
+                          <input
+                            type="checkbox"
+                            name="roles"
+                            value={key}
+                            defaultChecked={selectedRoles.includes(key as keyof typeof ROLE_LABELS) || lockedManager}
+                            disabled={lockedManager}
+                          />
+                          <span>{label}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </fieldset>
+                {protectedManager && <span className="manager-protected-note">Le rôle Gérant du compte principal est protégé. Les autres rôles peuvent être ajoutés.</span>}
+                <button className="btn" type="submit">Enregistrer les rôles</button>
               </form>
             </article>
           );

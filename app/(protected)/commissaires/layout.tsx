@@ -5,8 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 
 const commissionerNavigation = [
   { href: "/commissaires/reglement", label: "Règlement des commissaires" },
-  { href: "/commissaires/briefing-avant-course", label: "Briefing avant chaque course" },
-  { href: "/commissaires/incidents-circuit", label: "Incidents circuit" },
+  { href: "/commissaires/briefing-avant-course", label: "Planning course en direct" },
+  { href: "/commissaires/incidents-circuit", label: "Rapports d’incident" },
 ];
 
 export default async function CommissionersLayout({ children }: { children: React.ReactNode }) {

@@ -156,7 +156,7 @@ export default async function DashboardPage() {
           </div>
           <div className="dashboard-module-grid dashboard-module-grid-grouped dashboard-module-grid-two">
             <DashboardCard href="/dashboard/contenu" icon="✎" title="Modification des pages" description="Choisir entre Nostra Motors, Nostra Circuit et Jeux & Événements, puis modifier leurs pages séparément." />
-            <DashboardCard href="/dashboard/membres" icon="👥" title="Membres et rôles" description="Voir les comptes inscrits et attribuer les rôles Membre, Employé, Commercial, Commissaire ou Gérant." />
+            <DashboardCard href="/dashboard/membres" icon="👥" title="Membres et rôles" description="Voir les comptes inscrits et attribuer les rôles Citoyen, Employé, Commercial, Commissaire ou Gérant, avec plusieurs rôles possibles." />
           </div>
         </section>
       </div>

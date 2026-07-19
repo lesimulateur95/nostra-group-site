@@ -252,8 +252,12 @@ export async function setBuiltInSectionPageVisibility(formData: FormData) {
 
 export async function updateMemberRole(formData: FormData) {
   const userId = text(formData.get("user_id"), 80);
-  const role = text(formData.get("role"), 30);
-  if (!userId || !isRoleKey(role)) redirect("/dashboard/membres?error=invalid");
+  const requestedRoles = formData
+    .getAll("roles")
+    .map((value) => text(value, 30))
+    .filter(isRoleKey);
+
+  if (!userId) redirect("/dashboard/membres?error=invalid");
 
   const { supabase } = await requireDashboardAccess();
   const { data: profile } = await supabase
@@ -261,16 +265,25 @@ export async function updateMemberRole(formData: FormData) {
     .select("discord_id")
     .eq("user_id", userId)
     .maybeSingle();
-  const finalRole =
-    profile?.discord_id === "331843410962939908" ? "manager" : role;
+
+  const roles = [...new Set(requestedRoles.length ? requestedRoles : ["citizen"])] as Array<"citizen" | "employee" | "commercial" | "commissioner" | "manager">;
+  if (profile?.discord_id === "331843410962939908" && !roles.includes("manager")) {
+    roles.push("manager");
+  }
+
+  const priority = ["manager", "commissioner", "commercial", "employee", "citizen"] as const;
+  const primaryRole = priority.find((role) => roles.includes(role)) ?? "citizen";
+
   const { error } = await supabase
     .from("member_profiles")
-    .update({ role: finalRole, updated_at: new Date().toISOString() })
+    .update({ role: primaryRole, roles, updated_at: new Date().toISOString() })
     .eq("user_id", userId);
   if (error) redirect("/dashboard/membres?error=save");
 
   revalidatePath("/dashboard/membres");
   revalidatePath("/profil");
+  revalidatePath("/accueil");
+  revalidatePath("/commissaires", "layout");
   redirect("/dashboard/membres?saved=1");
 }
 

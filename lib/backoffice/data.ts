@@ -326,7 +326,8 @@ export type MemberProfile = {
   avatar_url: string | null;
   rp_first_name: string | null;
   rp_last_name: string | null;
-  role: "member" | "employee" | "commercial" | "commissioner" | "manager" | "staff" | "administrator";
+  role: "citizen" | "member" | "employee" | "commercial" | "commissioner" | "manager" | "staff" | "administrator";
+  roles: string[] | null;
   created_at: string;
   updated_at: string;
 };
@@ -335,7 +336,7 @@ export async function getMemberProfiles(): Promise<MemberProfile[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("member_profiles")
-    .select("user_id,discord_id,discord_name,email,avatar_url,rp_first_name,rp_last_name,role,created_at,updated_at")
+    .select("user_id,discord_id,discord_name,email,avatar_url,rp_first_name,rp_last_name,role,roles,created_at,updated_at")
     .order("created_at", { ascending: false });
   return (data ?? []) as MemberProfile[];
 }
@@ -452,4 +453,68 @@ export async function getOwnTeamRegistrationRequests(userId: string): Promise<Te
     .order("created_at", { ascending: false });
   if (error) return [];
   return (data ?? []) as TeamRegistrationRequest[];
+}
+
+
+export type CommissionerRaceBriefing = {
+  id: number;
+  event_title: string;
+  event_date: string | null;
+  stands_opening: string;
+  qualifications_time: string;
+  race_start: string;
+  vehicle: string;
+  lap_count: string;
+  weather: string;
+  commissioners: string;
+  race_direction: string;
+  live_announcement: string;
+  updated_by: string | null;
+  updated_at: string;
+};
+
+export type CommissionerIncidentReport = {
+  id: number;
+  created_by: string;
+  author_name: string;
+  incident_date: string;
+  incident_time: string;
+  session_name: string;
+  circuit_zone: string;
+  people_involved: string;
+  factual_description: string;
+  intervention: string;
+  witnesses: string | null;
+  race_direction_decision: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export async function getCommissionerModuleConfigured(): Promise<boolean> {
+  const supabase = await createClient();
+  const [{ error: briefingError }, { error: reportsError }] = await Promise.all([
+    supabase.from("commissioner_race_briefing").select("id").limit(1),
+    supabase.from("commissioner_incident_reports").select("id").limit(1),
+  ]);
+  return !briefingError && !reportsError;
+}
+
+export async function getCommissionerRaceBriefing(): Promise<CommissionerRaceBriefing | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("commissioner_race_briefing")
+    .select("id,event_title,event_date,stands_opening,qualifications_time,race_start,vehicle,lap_count,weather,commissioners,race_direction,live_announcement,updated_by,updated_at")
+    .eq("id", 1)
+    .maybeSingle();
+  return (data as CommissionerRaceBriefing | null) ?? null;
+}
+
+export async function getCommissionerIncidentReports(): Promise<CommissionerIncidentReport[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("commissioner_incident_reports")
+    .select("id,created_by,author_name,incident_date,incident_time,session_name,circuit_zone,people_involved,factual_description,intervention,witnesses,race_direction_decision,created_at,updated_at")
+    .order("incident_date", { ascending: false })
+    .order("incident_time", { ascending: false });
+  return (data ?? []) as CommissionerIncidentReport[];
 }

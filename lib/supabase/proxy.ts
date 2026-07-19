@@ -2,6 +2,13 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { hasRpProfile, isManager } from "@/lib/auth/user-profile";
 
+function normalizeRoles(roles: unknown, role: unknown): string[] {
+  const values = Array.isArray(roles) ? roles.filter((value): value is string => typeof value === "string") : [];
+  if (values.length > 0) return values.map((value) => value === "member" ? "citizen" : value);
+  if (typeof role === "string") return [role === "member" ? "citizen" : role];
+  return ["citizen"];
+}
+
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
 
@@ -51,27 +58,21 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (user && isDashboardPage && !isManager(user)) {
+  if (user && (isDashboardPage || isCommissionerPage) && !isManager(user)) {
     const { data: profile } = await supabase
       .from("member_profiles")
-      .select("role")
+      .select("roles,role")
       .eq("user_id", user.id)
       .maybeSingle();
-    const allowed = profile?.role === "manager";
-    if (!allowed) {
+    const roles = normalizeRoles(profile?.roles, profile?.role);
+
+    if (isDashboardPage && !roles.includes("manager")) {
       const url = request.nextUrl.clone();
       url.pathname = "/accueil";
       return NextResponse.redirect(url);
     }
-  }
 
-  if (user && isCommissionerPage && !isManager(user)) {
-    const { data: profile } = await supabase
-      .from("member_profiles")
-      .select("role")
-      .eq("user_id", user.id)
-      .maybeSingle();
-    if (profile?.role !== "commissioner") {
+    if (isCommissionerPage && !roles.includes("manager") && !roles.includes("commissioner")) {
       const url = request.nextUrl.clone();
       url.pathname = "/accueil";
       return NextResponse.redirect(url);

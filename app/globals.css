@@ -1807,3 +1807,148 @@ select:focus { outline: 2px solid rgba(212,175,55,.32); outline-offset: 1px; }
   .commissioner-signal-list li { grid-template-columns: 1fr; gap: 5px; }
   .briefing-planning-list { grid-template-columns: 1fr; }
 }
+
+/* V26 — rôles multiples et espace commissaires interactif */
+.member-multi-role-form fieldset {
+  border: 1px solid rgba(212, 175, 55, .25);
+  border-radius: 14px;
+  padding: 14px;
+  min-width: 0;
+}
+.member-multi-role-form legend {
+  padding: 0 8px;
+  color: var(--gold-light);
+  font-weight: 800;
+}
+.member-role-checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.member-role-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 10px;
+  background: rgba(255,255,255,.025);
+  color: #f3f3f3;
+  cursor: pointer;
+}
+.member-role-checkbox input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--gold);
+}
+.member-role-checkbox:has(input:checked) {
+  border-color: rgba(212,175,55,.55);
+  background: rgba(212,175,55,.08);
+}
+.commissioner-live-panel {
+  border: 1px solid rgba(212,175,55,.32);
+  background: linear-gradient(145deg, rgba(212,175,55,.055), rgba(0,0,0,.18));
+}
+.commissioner-section-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+.commissioner-section-heading h2 { margin: 3px 0 0; }
+.commissioner-section-heading small { color: #aaa; text-align: right; }
+.commissioner-form { display: grid; gap: 18px; }
+.commissioner-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 15px;
+}
+.commissioner-field {
+  display: grid;
+  gap: 7px;
+  color: #d7d7d7;
+  font-weight: 700;
+}
+.commissioner-field-wide { grid-column: 1 / -1; }
+.commissioner-field input,
+.commissioner-field textarea,
+.commissioner-field select {
+  width: 100%;
+  color: #f7f7f7;
+  background: #080808;
+  border: 1px solid rgba(212,175,55,.28);
+  border-radius: 11px;
+  padding: 12px 13px;
+  font: inherit;
+  resize: vertical;
+}
+.commissioner-field input:focus,
+.commissioner-field textarea:focus,
+.commissioner-field select:focus {
+  outline: 2px solid rgba(212,175,55,.28);
+  border-color: var(--gold);
+}
+.commissioner-field input:disabled,
+.commissioner-field textarea:disabled { opacity: .48; cursor: not-allowed; }
+.commissioner-live-message-field textarea {
+  border-color: rgba(212,175,55,.6);
+  color: var(--gold-light);
+  font-weight: 800;
+}
+.commissioner-count-badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 42px;
+  height: 42px;
+  padding: 0 12px;
+  border-radius: 999px;
+  color: #080808;
+  background: var(--gold-light);
+  font-weight: 900;
+}
+.commissioner-report-list { display: grid; gap: 12px; }
+.commissioner-report-card {
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 13px;
+  background: rgba(255,255,255,.025);
+  overflow: hidden;
+}
+.commissioner-report-card summary {
+  list-style: none;
+  cursor: pointer;
+  display: grid;
+  gap: 5px;
+  padding: 15px 17px;
+}
+.commissioner-report-card summary::-webkit-details-marker { display: none; }
+.commissioner-report-card summary strong { color: var(--gold-light); }
+.commissioner-report-card summary small { color: #aaa; }
+.commissioner-report-body {
+  padding: 0 17px 17px;
+  border-top: 1px solid rgba(255,255,255,.08);
+}
+.commissioner-report-body dl { display: grid; gap: 13px; }
+.commissioner-report-body dl div { display: grid; gap: 4px; }
+.commissioner-report-body dt { color: var(--gold-light); font-weight: 850; }
+.commissioner-report-body dd { margin: 0; color: #dedede; white-space: pre-wrap; }
+.danger-link-button {
+  margin-top: 16px;
+  border: 1px solid rgba(255,84,84,.45);
+  background: rgba(255,84,84,.08);
+  color: #ff8d8d;
+  border-radius: 9px;
+  padding: 10px 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.danger-link-button:hover { background: rgba(255,84,84,.15); }
+
+@media (max-width: 760px) {
+  .member-role-checkbox-grid,
+  .commissioner-form-grid { grid-template-columns: 1fr; }
+  .commissioner-field-wide { grid-column: auto; }
+  .commissioner-section-heading { flex-direction: column; }
+  .commissioner-section-heading small { text-align: left; }
+}

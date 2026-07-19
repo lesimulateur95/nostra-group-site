@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { signOut } from "@/app/actions/auth";
-import { getUserRoleKey, ROLE_LABELS } from "@/lib/auth/access";
+import { getUserRoleKeys, ROLE_LABELS } from "@/lib/auth/access";
 import { getRpName } from "@/lib/auth/user-profile";
 import { createClient } from "@/lib/supabase/server";
 
@@ -9,10 +9,10 @@ export async function Topbar() {
   const { data } = await supabase.auth.getUser();
   const user = data.user;
   const rpName = getRpName(user);
-  const roleKey = await getUserRoleKey(user);
-  const role = ROLE_LABELS[roleKey];
-  const dashboardAccess = roleKey === "manager";
-  const commissionerAccess = roleKey === "manager" || roleKey === "commissioner";
+  const roleKeys = await getUserRoleKeys(user);
+  const role = roleKeys.map((key) => ROLE_LABELS[key]).join(" · ");
+  const dashboardAccess = roleKeys.includes("manager");
+  const commissionerAccess = dashboardAccess || roleKeys.includes("commissioner");
 
   return (
     <header className="topbar">
