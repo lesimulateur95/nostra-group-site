@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { Topbar } from "@/components/site/topbar";
+import { getUserRoleKey } from "@/lib/auth/access";
+import { createClient } from "@/lib/supabase/server";
 
-const portals = [
+const publicPortals = [
   {
     href: "/motors",
     kicker: "AUTOMOBILE",
@@ -22,7 +24,21 @@ const portals = [
   },
 ];
 
-export default function HomePage() {
+const commissionerPortal = {
+  href: "/commissaires",
+  kicker: "ACCÈS RÉSERVÉ",
+  title: "ESPACE COMMISSAIRES",
+  description: "Règlement, briefing avant course et suivi des incidents du Nostra Circuit.",
+};
+
+export default async function HomePage() {
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getUser();
+  const role = await getUserRoleKey(data.user);
+  const portals = role === "manager" || role === "commissioner"
+    ? [...publicPortals, commissionerPortal]
+    : publicPortals;
+
   return (
     <div className="site-shell">
       <Topbar />

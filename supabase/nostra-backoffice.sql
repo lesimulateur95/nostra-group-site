@@ -9,7 +9,7 @@ create table if not exists public.member_profiles (
   avatar_url text,
   rp_first_name text,
   rp_last_name text,
-  role text not null default 'member' check (role in ('member','staff','administrator','manager')),
+  role text not null default 'member' check (role in ('member','employee','commercial','commissioner','manager')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -51,7 +51,7 @@ stable
 security definer
 set search_path = public
 as $$
-  select public.nostra_role() in ('administrator','manager');
+  select public.nostra_role() = 'manager';
 $$;
 
 create or replace function public.is_nostra_manager()

@@ -30,6 +30,7 @@ export async function updateSession(request: NextRequest) {
   const isPublic = path === "/" || path.startsWith("/auth/");
   const isProfilePage = path === "/profil" || path.startsWith("/profil/");
   const isDashboardPage = path === "/dashboard" || path.startsWith("/dashboard/");
+  const isCommissionerPage = path === "/commissaires" || path.startsWith("/commissaires/");
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();
@@ -56,8 +57,21 @@ export async function updateSession(request: NextRequest) {
       .select("role")
       .eq("user_id", user.id)
       .maybeSingle();
-    const allowed = profile?.role === "manager" || profile?.role === "administrator";
+    const allowed = profile?.role === "manager";
     if (!allowed) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/accueil";
+      return NextResponse.redirect(url);
+    }
+  }
+
+  if (user && isCommissionerPage && !isManager(user)) {
+    const { data: profile } = await supabase
+      .from("member_profiles")
+      .select("role")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (profile?.role !== "commissioner") {
       const url = request.nextUrl.clone();
       url.pathname = "/accueil";
       return NextResponse.redirect(url);

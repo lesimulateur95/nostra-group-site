@@ -326,7 +326,7 @@ export type MemberProfile = {
   avatar_url: string | null;
   rp_first_name: string | null;
   rp_last_name: string | null;
-  role: "member" | "staff" | "administrator" | "manager";
+  role: "member" | "employee" | "commercial" | "commissioner" | "manager" | "staff" | "administrator";
   created_at: string;
   updated_at: string;
 };

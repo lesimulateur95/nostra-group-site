@@ -4,15 +4,27 @@ import { createClient } from "@/lib/supabase/server";
 
 export const ROLE_LABELS = {
   member: "Membre",
-  staff: "Staff",
-  administrator: "Administrateur",
+  employee: "Employé",
+  commercial: "Commercial",
+  commissioner: "Commissaire",
   manager: "Gérant",
 } as const;
 
 export type RoleKey = keyof typeof ROLE_LABELS;
 
+const LEGACY_ROLE_MAP: Record<string, RoleKey> = {
+  staff: "employee",
+  administrator: "employee",
+};
+
 export function isRoleKey(value: string): value is RoleKey {
   return Object.prototype.hasOwnProperty.call(ROLE_LABELS, value);
+}
+
+export function normalizeRoleKey(value: unknown): RoleKey {
+  if (typeof value !== "string") return "member";
+  if (isRoleKey(value)) return value;
+  return LEGACY_ROLE_MAP[value] ?? "member";
 }
 
 export async function getUserRoleKey(user: User | null | undefined): Promise<RoleKey> {
@@ -27,7 +39,7 @@ export async function getUserRoleKey(user: User | null | undefined): Promise<Rol
       .select("role")
       .eq("user_id", user.id)
       .maybeSingle();
-    if (!error && data && typeof data.role === "string" && isRoleKey(data.role)) return data.role;
+    if (!error && data) return normalizeRoleKey(data.role);
   } catch {
     // La table peut ne pas encore être installée lors du premier déploiement.
   }
@@ -40,6 +52,10 @@ export async function getUserRoleLabel(user: User | null | undefined): Promise<s
 }
 
 export async function hasDashboardAccess(user: User | null | undefined): Promise<boolean> {
+  return (await getUserRoleKey(user)) === "manager";
+}
+
+export async function hasCommissionerAccess(user: User | null | undefined): Promise<boolean> {
   const role = await getUserRoleKey(user);
-  return role === "manager" || role === "administrator";
+  return role === "manager" || role === "commissioner";
 }

@@ -1764,3 +1764,46 @@ select:focus { outline: 2px solid rgba(212,175,55,.32); outline-offset: 1px; }
     grid-template-columns: 1fr;
   }
 }
+
+/* V25 — Espace réservé aux commissaires */
+.portal-card[href="/commissaires"] {
+  border-color: rgba(212,175,55,.42);
+  background:
+    radial-gradient(circle at 88% 8%, rgba(212,175,55,.2), transparent 18rem),
+    linear-gradient(145deg, rgba(212,175,55,.075), rgba(255,255,255,.018));
+}
+.commissioner-document .document-hero {
+  border-color: rgba(212,175,55,.34);
+}
+.commissioner-signal-list li {
+  display: grid;
+  grid-template-columns: minmax(150px, .42fr) 1fr;
+  gap: 15px;
+  align-items: center;
+}
+.commissioner-signal-list li strong { color: var(--gold-light); }
+.commissioner-signal-list li span { color: #d3d3d3; }
+.briefing-template-card { border-color: rgba(212,175,55,.35); }
+.briefing-planning-list {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.briefing-planning-list div {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 15px 16px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 13px;
+  background: rgba(255,255,255,.025);
+}
+.briefing-planning-list dt { color: #bdbdbd; }
+.briefing-planning-list dd { margin: 0; color: var(--gold-light); font-weight: 850; text-align: right; }
+.role-migration-setup { margin-bottom: 24px; }
+
+@media (max-width: 720px) {
+  .commissioner-signal-list li { grid-template-columns: 1fr; gap: 5px; }
+  .briefing-planning-list { grid-template-columns: 1fr; }
+}

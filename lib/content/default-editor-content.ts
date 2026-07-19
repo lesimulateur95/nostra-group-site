@@ -191,13 +191,13 @@ ARTICLE 8 — RESPECT
 Respect obligatoire des commissaires, organisateurs, pilotes et spectateurs.
 
 ARTICLE 9 — VÉHICULES
-Les véhicules doivent être en bon état. Le staff peut refuser tout véhicule dangereux.
+Les véhicules doivent être en bon état. L’équipe peut refuser tout véhicule dangereux.
 
 ARTICLE 10 — MÉDIAS
 Photos et vidéos autorisées. Toute utilisation visant à nuire pourra être sanctionnée.
 
 ARTICLE 11 — RECORDS
-Records validés uniquement pendant une session officielle, avec un véhicule autorisé, sans assistance extérieure et après validation du staff.
+Records validés uniquement pendant une session officielle, avec un véhicule autorisé, sans assistance extérieure et après validation de l’équipe.
 
 ARTICLE 12 — SANCTIONS
 🟡 Avertissement
