@@ -1,12 +1,15 @@
 import { SectionLayout } from "@/components/site/section-layout";
+import { getSectionNavigation } from "@/lib/content/section-navigation";
 
-const items = [
-  { href: "/evenements", label: "Présentation" },
-  { href: "/evenements/agenda", label: "Agenda" },
-  { href: "/evenements/jeux", label: "Jeux" },
-  { href: "/evenements/inscriptions", label: "Inscriptions" },
-];
-
-export default function EventsLayout({ children }: { children: React.ReactNode }) {
-  return <SectionLayout title="ÉVÉNEMENTS & JEUX" items={items}>{children}</SectionLayout>;
+export default async function EventsLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const items = await getSectionNavigation("evenements");
+  return (
+    <SectionLayout title="ÉVÉNEMENTS & JEUX" items={items}>
+      {children}
+    </SectionLayout>
+  );
 }

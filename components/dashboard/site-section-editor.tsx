@@ -1,6 +1,8 @@
 import {
   deleteCustomCircuitPage,
+  deleteCustomSectionPage,
   saveCustomCircuitPage,
+  saveCustomSectionPage,
   setBuiltInCircuitPageVisibility,
 } from "@/app/actions/admin-management";
 import { restoreDefaultSitePage, saveSitePage } from "@/app/actions/site-content";
@@ -13,6 +15,11 @@ import {
 } from "@/lib/content/circuit-navigation";
 import { DEFAULT_EDITOR_CONTENT } from "@/lib/content/default-editor-content";
 import {
+  BUILT_IN_SECTION_CATEGORIES,
+  getCustomSectionPages,
+  type CustomPageSection,
+} from "@/lib/content/section-navigation";
+import {
   getAllSitePages,
   getEditablePagesBySection,
   type EditableSiteSection,
@@ -22,7 +29,7 @@ import { SITE_CONTENT_SETUP_SQL } from "@/lib/content/setup-sql";
 const SECTION_COPY: Record<EditableSiteSection, { title: string; description: string; eyebrow: string }> = {
   motors: {
     title: "Modifier Nostra Motors",
-    description: "Modifie séparément la présentation, le catalogue, le programme de fidélité et la page de contact.",
+    description: "Modifie les pages existantes et crée librement de nouvelles pages ou rubriques Nostra Motors.",
     eyebrow: "GESTION NOSTRA MOTORS",
   },
   circuit: {
@@ -32,7 +39,7 @@ const SECTION_COPY: Record<EditableSiteSection, { title: string; description: st
   },
   evenements: {
     title: "Modifier Jeux & Événements",
-    description: "Modifie séparément la présentation, l’agenda, les jeux et les inscriptions.",
+    description: "Modifie les pages existantes et crée librement de nouvelles pages ou rubriques Jeux & Événements.",
     eyebrow: "GESTION ÉVÉNEMENTS & JEUX",
   },
 };
@@ -52,7 +59,7 @@ export async function SiteSectionEditor({
 
   const [sitePages, customPages, hiddenPageKeys] = await Promise.all([
     getAllSitePages(),
-    section === "circuit" ? getCustomCircuitPages() : Promise.resolve([]),
+    section === "circuit" ? getCustomCircuitPages() : getCustomSectionPages(section as CustomPageSection),
     section === "circuit" ? getHiddenCircuitPageKeys() : Promise.resolve(new Set<string>()),
   ]);
 
@@ -62,6 +69,17 @@ export async function SiteSectionEditor({
     current.push(page);
     grouped.set(page.category, current);
   }
+
+  const customSaveAction = section === "circuit" ? saveCustomCircuitPage : saveCustomSectionPage;
+  const customDeleteAction = section === "circuit" ? deleteCustomCircuitPage : deleteCustomSectionPage;
+  const availableCategories = section === "circuit"
+    ? BUILT_IN_CIRCUIT_CATEGORIES
+    : BUILT_IN_SECTION_CATEGORIES[section as CustomPageSection];
+  const sectionDisplayName = section === "circuit"
+    ? "Nostra Circuit"
+    : section === "motors"
+      ? "Nostra Motors"
+      : "Jeux & Événements";
 
   return (
     <DashboardShell>
@@ -92,7 +110,7 @@ export async function SiteSectionEditor({
       )}
 
       <section className="dashboard-section-heading dashboard-section-heading-tight">
-        <p className="eyebrow">PAGES DE CETTE CATÉGORIE</p>
+        <p className="eyebrow">PAGES INTÉGRÉES</p>
         <h2>{pagesForSection.length} page(s) modifiables séparément</h2>
         <p>Chaque formulaire correspond à une seule page. Enregistrer ici ne modifiera aucune autre page.</p>
       </section>
@@ -160,63 +178,75 @@ export async function SiteSectionEditor({
         ))}
       </section>
 
-      {section === "circuit" && (
-        <>
-          <section className="dashboard-section-heading" id="custom-pages">
-            <p className="eyebrow">PAGES PERSONNALISÉES DU CIRCUIT</p>
-            <h2>Ajouter ou supprimer une page sans refaire le code</h2>
-            <p>Tu peux rattacher une nouvelle page à une catégorie existante ou créer une nouvelle catégorie dans le menu du circuit.</p>
-          </section>
+      <section className="dashboard-section-heading" id="custom-pages">
+        <p className="eyebrow">PAGES PERSONNALISÉES</p>
+        <h2>Ajouter ou supprimer une page sans repasser par moi</h2>
+        <p>Choisis une rubrique existante ou crée une nouvelle rubrique. La nouvelle page apparaîtra automatiquement dans le menu de {sectionDisplayName}.</p>
+      </section>
 
-          <article className="backoffice-panel custom-page-create-panel">
-            <div className="panel-heading"><span className="panel-icon">＋</span><div><h2>Créer une nouvelle page Circuit</h2><p>Elle apparaîtra dans le menu du Nostra Circuit après enregistrement.</p></div></div>
-            <form action={saveCustomCircuitPage} className="backoffice-form backoffice-form-wide" autoComplete="off">
-              <label>Catégorie existante
-                <select name="category_key" defaultValue="presentation">
-                  {BUILT_IN_CIRCUIT_CATEGORIES.map((category) => <option key={category.key} value={category.key}>{category.label}</option>)}
-                  <option value="pages-personnalisees">Nouvelle catégorie personnalisée</option>
-                </select>
-              </label>
-              <label>Nom de la nouvelle catégorie<input name="category_label" placeholder="Seulement si catégorie personnalisée" /></label>
-              <label>Ordre d’affichage<input type="number" name="sort_order" defaultValue="100" min="0" /></label>
-              <label>Nom dans le menu<input name="label" required placeholder="Exemple : Records du circuit" /></label>
-              <label>Titre de la page<input name="title" required placeholder="Exemple : Records officiels" /></label>
-              <label>Adresse courte facultative<input name="slug" placeholder="records-officiels" /></label>
-              <label className="form-span-3">Contenu<textarea name="content" required rows={10} placeholder="Écris ici le contenu de la nouvelle page." /></label>
-              <label className="checkbox-label"><input type="checkbox" name="visible" defaultChecked /> Page visible dans le menu</label>
-              <button className="btn" type="submit">Créer la page</button>
-            </form>
-          </article>
+      <article className="backoffice-panel custom-page-create-panel">
+        <div className="panel-heading">
+          <span className="panel-icon">＋</span>
+          <div>
+            <h2>Créer une nouvelle page {sectionDisplayName}</h2>
+            <p>Tu pourras ensuite la modifier, la masquer ou la supprimer depuis cette même page.</p>
+          </div>
+        </div>
+        <form action={customSaveAction} className="backoffice-form backoffice-form-wide" autoComplete="off">
+          {section !== "circuit" && <input type="hidden" name="section" value={section} />}
+          <label>Catégorie existante
+            <select name="category_key" defaultValue="presentation">
+              {availableCategories.map((category) => <option key={category.key} value={category.key}>{category.label}</option>)}
+              <option value="pages-personnalisees">Nouvelle catégorie personnalisée</option>
+            </select>
+          </label>
+          <label>Nom de la nouvelle catégorie<input name="category_label" placeholder="Seulement si catégorie personnalisée" /></label>
+          <label>Ordre d’affichage<input type="number" name="sort_order" defaultValue="100" min="0" /></label>
+          <label>Nom dans le menu<input name="label" required placeholder="Exemple : Nouveautés" /></label>
+          <label>Titre de la page<input name="title" required placeholder="Exemple : Nos dernières nouveautés" /></label>
+          <label>Adresse courte facultative<input name="slug" placeholder="nouveautes" /></label>
+          <label className="form-span-3">Contenu<textarea name="content" required rows={10} placeholder="Écris ici le contenu de la nouvelle page." /></label>
+          <label className="checkbox-label"><input type="checkbox" name="visible" defaultChecked /> Page visible dans le menu</label>
+          <button className="btn" type="submit">Créer la page</button>
+        </form>
+      </article>
 
-          <section className="custom-page-admin-list">
-            {customPages.length === 0 && <div className="backoffice-panel empty-state">Aucune page personnalisée créée.</div>}
-            {customPages.map((page) => (
-              <article className="backoffice-panel" key={page.id}>
-                <div className="content-editor-head">
-                  <div><span className="module-status module-status-live">Page personnalisée</span><h3>{page.category_label} — {page.label}</h3><small className="page-unique-key">/circuit/personnalise/{page.slug}</small></div>
-                  <a href={`/circuit/personnalise/${page.slug}`} target="_blank" rel="noreferrer">Voir la page ↗</a>
+      <section className="custom-page-admin-list">
+        {customPages.length === 0 && <div className="backoffice-panel empty-state">Aucune page personnalisée créée dans cette partie du site.</div>}
+        {customPages.map((page) => {
+          const publicHref = section === "circuit" ? `/circuit/personnalise/${page.slug}` : `/${section}/personnalise/${page.slug}`;
+          return (
+            <article className="backoffice-panel" key={page.id}>
+              <div className="content-editor-head">
+                <div>
+                  <span className="module-status module-status-live">Page personnalisée</span>
+                  <h3>{page.category_label} — {page.label}</h3>
+                  <small className="page-unique-key">{publicHref}</small>
                 </div>
-                <form action={saveCustomCircuitPage} className="backoffice-form backoffice-form-wide" autoComplete="off">
-                  <input type="hidden" name="id" value={page.id} />
-                  <label>Clé de catégorie<input name="category_key" defaultValue={page.category_key} required /></label>
-                  <label>Nom de catégorie<input name="category_label" defaultValue={page.category_label} required /></label>
-                  <label>Ordre<input type="number" name="sort_order" defaultValue={page.sort_order} min="0" /></label>
-                  <label>Nom dans le menu<input name="label" defaultValue={page.label} required /></label>
-                  <label>Titre<input name="title" defaultValue={page.title} required /></label>
-                  <label>Adresse<input name="slug" defaultValue={page.slug} required /></label>
-                  <label className="form-span-3">Contenu<textarea name="content" defaultValue={page.content} required rows={10} /></label>
-                  <label className="checkbox-label"><input type="checkbox" name="visible" defaultChecked={page.visible} /> Visible</label>
-                  <button className="btn" type="submit">Enregistrer cette page</button>
-                </form>
-                <form action={deleteCustomCircuitPage} className="danger-form">
-                  <input type="hidden" name="id" value={page.id} />
-                  <button type="submit">Supprimer définitivement cette page personnalisée</button>
-                </form>
-              </article>
-            ))}
-          </section>
-        </>
-      )}
+                <a href={publicHref} target="_blank" rel="noreferrer">Voir la page ↗</a>
+              </div>
+              <form action={customSaveAction} className="backoffice-form backoffice-form-wide" autoComplete="off">
+                <input type="hidden" name="id" value={page.id} />
+                {section !== "circuit" && <input type="hidden" name="section" value={section} />}
+                <label>Clé de catégorie<input name="category_key" defaultValue={page.category_key} required /></label>
+                <label>Nom de catégorie<input name="category_label" defaultValue={page.category_label} required /></label>
+                <label>Ordre<input type="number" name="sort_order" defaultValue={page.sort_order} min="0" /></label>
+                <label>Nom dans le menu<input name="label" defaultValue={page.label} required /></label>
+                <label>Titre<input name="title" defaultValue={page.title} required /></label>
+                <label>Adresse<input name="slug" defaultValue={page.slug} required /></label>
+                <label className="form-span-3">Contenu<textarea name="content" defaultValue={page.content} required rows={10} /></label>
+                <label className="checkbox-label"><input type="checkbox" name="visible" defaultChecked={page.visible} /> Visible</label>
+                <button className="btn" type="submit">Enregistrer cette page</button>
+              </form>
+              <form action={customDeleteAction} className="danger-form">
+                <input type="hidden" name="id" value={page.id} />
+                {section !== "circuit" && <input type="hidden" name="section" value={section} />}
+                <button type="submit">Supprimer définitivement cette page personnalisée</button>
+              </form>
+            </article>
+          );
+        })}
+      </section>
     </DashboardShell>
   );
 }

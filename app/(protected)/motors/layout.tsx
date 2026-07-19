@@ -1,12 +1,15 @@
 import { SectionLayout } from "@/components/site/section-layout";
+import { getSectionNavigation } from "@/lib/content/section-navigation";
 
-const items = [
-  { href: "/motors", label: "Présentation" },
-  { href: "/motors/catalogue", label: "Catalogue" },
-  { href: "/motors/fidelite", label: "Programme fidélité" },
-  { href: "/motors/contact", label: "Contact & commandes" },
-];
-
-export default function MotorsLayout({ children }: { children: React.ReactNode }) {
-  return <SectionLayout title="NOSTRA MOTORS" items={items}>{children}</SectionLayout>;
+export default async function MotorsLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const items = await getSectionNavigation("motors");
+  return (
+    <SectionLayout title="NOSTRA MOTORS" items={items}>
+      {children}
+    </SectionLayout>
+  );
 }
