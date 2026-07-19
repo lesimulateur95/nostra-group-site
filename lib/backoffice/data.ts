@@ -565,25 +565,30 @@ export async function getWheelModuleConfigured(): Promise<boolean> {
 
 export async function getWheelSpins(): Promise<WheelSpin[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("game_wheel_spins")
-    .select("id,user_id,player_name,slot_index,prize_key,prize_label,prize_type,redemption_status,awarded_at,used_at,used_by,updated_at,deleted_at")
-    .is("deleted_at", null)
-    .order("awarded_at", { ascending: false })
-    .limit(500);
-  if (error) return [];
+
+  // Lecture sécurisée via une fonction SQL dédiée.
+  // Cela évite que les règles RLS renvoient silencieusement une liste vide au Dashboard.
+  const { data, error } = await supabase.rpc("get_nostra_wheel_spins_for_dashboard");
+
+  if (error) {
+    console.error("Impossible de charger les tirages de la roue dans le Dashboard :", error);
+    return [];
+  }
+
   return (data ?? []) as WheelSpin[];
 }
 
-export async function getOwnWheelSpins(userId: string): Promise<WheelSpin[]> {
+export async function getOwnWheelSpins(_userId: string): Promise<WheelSpin[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("game_wheel_spins")
-    .select("id,user_id,player_name,slot_index,prize_key,prize_label,prize_type,redemption_status,awarded_at,used_at,used_by,updated_at,deleted_at")
-    .eq("user_id", userId)
-    .is("deleted_at", null)
-    .order("awarded_at", { ascending: false })
-    .limit(200);
-  if (error) return [];
+
+  // L'identité est vérifiée directement dans Supabase avec auth.uid().
+  // Le paramètre reçu de la page ne peut donc jamais servir à lire les gains d'un autre citoyen.
+  const { data, error } = await supabase.rpc("get_my_nostra_wheel_spins");
+
+  if (error) {
+    console.error("Impossible de charger l'historique personnel de la roue :", error);
+    return [];
+  }
+
   return (data ?? []) as WheelSpin[];
 }
