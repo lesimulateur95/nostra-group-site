@@ -1,7 +1,11 @@
 import { updateCircuitReservation } from "@/app/actions/backoffice";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
-import { getReservationRequests } from "@/lib/backoffice/data";
+import { getReservationModuleConfigured, getReservationRequests } from "@/lib/backoffice/data";
+import { RESERVATION_SETUP_SQL } from "@/lib/backoffice/reservation-setup-sql";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 const statusLabels: Record<string, string> = {
   pending: "En attente",
@@ -12,13 +16,30 @@ const statusLabels: Record<string, string> = {
 
 export default async function ReservationDashboardPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const params = await searchParams;
-  const requests = await getReservationRequests();
+  const configured = await getReservationModuleConfigured();
+  const requests = configured ? await getReservationRequests() : [];
   const pending = requests.filter((request) => request.status === "pending");
   const processed = requests.filter((request) => request.status !== "pending");
 
   return (
     <DashboardShell>
       <DashboardHeader title="Demandes de réservation" description="Valide ou refuse les créneaux choisis directement dans le calendrier du Nostra Circuit." />
+      {!configured && (
+        <section className="dashboard-setup">
+          <span className="module-status">Activation nécessaire</span>
+          <h2>Activer les demandes de réservation</h2>
+          <p>La table Supabase des réservations n’existe pas encore ou ses autorisations ne sont pas installées. Tant que cette étape n’est pas faite, aucune demande ne peut arriver ici.</p>
+          <details open>
+            <summary>Afficher le code SQL à copier dans Supabase</summary>
+            <pre>{RESERVATION_SETUP_SQL}</pre>
+          </details>
+          <ol>
+            <li>Copie tout le code ci-dessus.</li>
+            <li>Ouvre <strong>Supabase → SQL Editor → New query</strong>.</li>
+            <li>Colle le code, clique sur <strong>Run query</strong>, puis reviens ici et fais <strong>Ctrl + F5</strong>.</li>
+          </ol>
+        </section>
+      )}
       {params.saved && <div className="dashboard-feedback dashboard-feedback-success">La décision a été enregistrée.</div>}
       {params.error === "occupied" && <div className="dashboard-feedback dashboard-feedback-error">Un autre créneau validé existe déjà à cette date et cette heure.</div>}
       {params.error && params.error !== "occupied" && <div className="dashboard-feedback dashboard-feedback-error">Impossible de traiter cette demande.</div>}

@@ -20,8 +20,11 @@ function keyFromDate(date: Date) {
 }
 
 export function ChampionshipCalendar({ events, title }: { events: CalendarEvent[]; title: string }) {
-  const firstEvent = events.find((event) => new Date(event.starts_at).getTime() >= Date.now());
-  const initial = firstEvent ? new Date(firstEvent.starts_at) : new Date();
+  const [initial] = useState(() => {
+    const now = new Date();
+    const firstEvent = events.find((event) => new Date(event.starts_at).getTime() >= now.getTime());
+    return firstEvent ? new Date(firstEvent.starts_at) : now;
+  });
   const [viewDate, setViewDate] = useState(new Date(initial.getFullYear(), initial.getMonth(), 1));
   const [selectedDay, setSelectedDay] = useState(keyFromDate(initial));
   const year = viewDate.getFullYear();

@@ -39,6 +39,30 @@ function checkbox(value: FormDataEntryValue | null): boolean {
   return value === "on" || value === "true" || value === "1";
 }
 
+function isMissingDatabaseObject(error: { code?: string | null; message?: string | null } | null | undefined): boolean {
+  if (!error) return false;
+  const code = error.code ?? "";
+  const message = (error.message ?? "").toLowerCase();
+  return code === "PGRST205" || code === "42P01" || message.includes("circuit_reservation_requests") || message.includes("schema cache");
+}
+
+function currentParisDateAndTime(): { date: string; time: string } {
+  const parts = new Intl.DateTimeFormat("fr-FR", {
+    timeZone: "Europe/Paris",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date());
+  const value = (type: Intl.DateTimeFormatPartTypes) => parts.find((part) => part.type === type)?.value ?? "";
+  return {
+    date: `${value("year")}-${value("month")}-${value("day")}`,
+    time: `${value("hour")}:${value("minute")}`,
+  };
+}
+
 async function requireManager() {
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
@@ -294,8 +318,8 @@ export async function submitCircuitReservation(formData: FormData) {
     redirect("/circuit/reservations/demande?error=invalid");
   }
 
-  const requestedAt = new Date(`${reservationDate}T${reservationTime}:00`);
-  if (Number.isNaN(requestedAt.getTime()) || requestedAt.getTime() < Date.now() - 60_000) {
+  const parisNow = currentParisDateAndTime();
+  if (reservationDate < parisNow.date || (reservationDate === parisNow.date && reservationTime <= parisNow.time)) {
     redirect("/circuit/reservations/demande?error=past");
   }
 
@@ -303,13 +327,15 @@ export async function submitCircuitReservation(formData: FormData) {
   const { data } = await supabase.auth.getUser();
   if (!data.user) redirect("/");
 
-  const { data: conflict } = await supabase
+  const { data: conflict, error: conflictError } = await supabase
     .from("circuit_reservation_requests")
     .select("id")
     .eq("reservation_date", reservationDate)
     .eq("reservation_time", reservationTime)
     .eq("status", "approved")
     .maybeSingle();
+  if (isMissingDatabaseObject(conflictError)) redirect("/circuit/reservations/demande?error=setup");
+  if (conflictError) redirect("/circuit/reservations/demande?error=save");
   if (conflict) redirect("/circuit/reservations/demande?error=occupied");
 
   const { error } = await supabase.from("circuit_reservation_requests").insert({
@@ -320,6 +346,7 @@ export async function submitCircuitReservation(formData: FormData) {
     reservation_time: reservationTime,
     reason,
   });
+  if (isMissingDatabaseObject(error)) redirect("/circuit/reservations/demande?error=setup");
   if (error) redirect("/circuit/reservations/demande?error=save");
 
   revalidatePath("/circuit/reservations/demande");

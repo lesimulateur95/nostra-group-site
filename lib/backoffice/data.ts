@@ -175,6 +175,15 @@ export async function getMemberProfiles(): Promise<MemberProfile[]> {
   return (data ?? []) as MemberProfile[];
 }
 
+export async function getReservationModuleConfigured(): Promise<boolean> {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("circuit_reservation_requests")
+    .select("id")
+    .limit(1);
+  return !error;
+}
+
 export type CircuitReservationRequest = {
   id: number;
   user_id: string;

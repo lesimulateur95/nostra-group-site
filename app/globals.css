@@ -1268,3 +1268,48 @@ select:focus { outline: 2px solid rgba(212,175,55,.32); outline-offset: 1px; }
   .booking-selection-summary { grid-template-columns: auto 1fr; }
   .reservation-review-head { flex-direction: column; }
 }
+
+/* V11 — réservation : statuts lisibles et créneaux passés bloqués */
+.reservation-calendar-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+  margin: -4px 0 16px;
+  color: var(--muted);
+  font-size: .78rem;
+  font-weight: 750;
+}
+.reservation-calendar-legend span { display: inline-flex; align-items: center; gap: 7px; }
+.legend-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+.legend-dot-available { background: #55d98a; box-shadow: 0 0 10px rgba(85,217,138,.35); }
+.legend-dot-reserved { background: #ff6b6b; box-shadow: 0 0 10px rgba(255,107,107,.35); }
+.legend-dot-past { background: #666; }
+.calendar-day-meta { display: grid; gap: 2px; }
+.calendar-day-has-reservations {
+  border-color: rgba(255,107,107,.34);
+  background: linear-gradient(145deg, rgba(255,90,90,.055), #0d0d0d 70%);
+}
+.calendar-day .calendar-day-reserved-count { color: #ff9898; font-weight: 850; }
+.time-panel-help { color: var(--muted); line-height: 1.5; font-size: .9rem; }
+.time-slot-grid button strong { font-size: 1rem; }
+.time-slot-grid button small { display: block; font-size: .64rem; letter-spacing: .03em; }
+.time-slot-grid .time-slot-available small { color: #72e5a0; }
+.time-slot-grid .time-slot-reserved {
+  opacity: 1;
+  border-color: rgba(255,107,107,.42);
+  background: rgba(120,25,25,.16);
+  color: #ffd7d7;
+}
+.time-slot-grid .time-slot-reserved small { color: #ff9898; }
+.time-slot-grid .time-slot-past {
+  opacity: .45;
+  border-color: rgba(255,255,255,.08);
+  color: #aaa;
+}
+.time-slot-grid .time-slot-unselected { opacity: .38; }
+.time-slot-grid button:disabled.time-slot-reserved,
+.time-slot-grid button:disabled.time-slot-past { cursor: not-allowed; }
+.booking-selection-summary { grid-template-columns: auto 1fr auto 1fr auto 1fr; }
+@media (max-width: 720px) {
+  .booking-selection-summary { grid-template-columns: auto 1fr; }
+}

@@ -1,4 +1,4 @@
-export const BACKOFFICE_SETUP_SQL = String.raw`-- NOSTRA GROUP — Dashboard V10
+export const BACKOFFICE_SETUP_SQL = String.raw`-- NOSTRA GROUP — Dashboard V11
 -- Script réexécutable : il conserve les données déjà présentes.
 
 create table if not exists public.member_profiles (
@@ -331,7 +331,7 @@ before update on public.member_profiles
 for each row execute function public.protect_nostra_member_role();
 
 
--- V10 — Réservations du circuit et calendriers des championnats
+-- V11 — Réservations du circuit et calendriers des championnats
 alter table public.events add column if not exists championship text not null default 'general';
 update public.events set championship = 'general' where championship is null or championship = '';
 
