@@ -73,7 +73,7 @@ export default async function DashboardPage() {
   const accessLabel = managerAccess ? "GÉRANT" : commissionerAccess ? "COMMISSAIRE" : roles.includes("commercial") ? "COMMERCIAL" : "EMPLOYÉ";
 
   return (
-    <DashboardShell allowedRoles={["manager", "commissioner", "commercial", "employee"]}>
+    <DashboardShell>
       <section className="dashboard-hero dashboard-hero-compact">
         <div>
           <span className="eyebrow">NOSTRA GROUP</span>
