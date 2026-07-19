@@ -126,19 +126,34 @@ export async function updateWheelGainStatus(formData: FormData) {
 
 export async function deleteWheelGain(formData: FormData) {
   const id = integer(formData.get("id"));
-  if (id <= 0) redirect("/dashboard/jeux/roue?error=invalid");
+  const confirmation = text(formData.get("delete_confirmation"), 40);
+
+  // La suppression ne peut partir que depuis le bouton de confirmation du Dashboard.
+  // Un tirage de roue, une actualisation ou un autre formulaire ne possède jamais ce code.
+  if (id <= 0 || confirmation !== "SUPPRIMER_CE_GAIN") {
+    redirect("/dashboard/jeux/roue?error=invalid");
+  }
 
   const { supabase, user } = await requireManager();
   const now = new Date().toISOString();
+
   const { error } = await supabase
     .from("game_wheel_spins")
-    .update({ deleted_at: now, used_by: user.id, updated_at: now })
+    .update({
+      deleted_at: now,
+      used_by: user.id,
+      updated_at: now,
+    })
     .eq("id", id)
     .is("deleted_at", null);
 
-  if (error) redirect(`/dashboard/jeux/roue?error=${isSetupError(error) ? "setup" : "delete"}`);
+  if (error) {
+    redirect(`/dashboard/jeux/roue?error=${isSetupError(error) ? "setup" : "delete"}`);
+  }
+
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/jeux/roue");
+  revalidatePath("/profil");
   revalidatePath("/profil/jeux");
   redirect("/dashboard/jeux/roue?deleted=1");
 }

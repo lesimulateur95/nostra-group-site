@@ -42,7 +42,17 @@ export default async function WheelDashboardPage({ searchParams }: { searchParam
               <div className="wheel-dashboard-status"><span>Statut</span><strong className={`wheel-gain-status wheel-gain-status-${spin.redemption_status}`}>{statusLabels[spin.redemption_status] ?? spin.redemption_status}</strong></div>
               <div className="wheel-dashboard-actions">
                 {spin.prize_type === "bonus" ? <form action={updateWheelGainStatus} className="wheel-status-form"><input type="hidden" name="id" value={spin.id} /><select name="status" defaultValue={spin.redemption_status === "used" ? "used" : "unused"}><option value="unused">Pas encore utilisé</option><option value="used">Utilisé</option></select><button className="btn" type="submit">Enregistrer</button></form> : <span className="wheel-loss-static">Aucune utilisation</span>}
-                <form action={deleteWheelGain}><input type="hidden" name="id" value={spin.id} /><button className="danger-link-button wheel-delete-button" type="submit">Supprimer ce gain</button></form>
+                <details className="wheel-delete-confirmation">
+                  <summary className="danger-link-button wheel-delete-button">Supprimer ce gain</summary>
+                  <form action={deleteWheelGain} className="wheel-delete-confirmation-form">
+                    <input type="hidden" name="id" value={spin.id} />
+                    <input type="hidden" name="delete_confirmation" value="SUPPRIMER_CE_GAIN" />
+                    <p>Confirmer la suppression de ce gain ?</p>
+                    <button className="danger-link-button wheel-delete-button" type="submit">
+                      Oui, supprimer définitivement
+                    </button>
+                  </form>
+                </details>
               </div>
             </article>)}
           </div>
