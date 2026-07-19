@@ -1540,3 +1540,16 @@ select:focus { outline: 2px solid rgba(212,175,55,.32); outline-offset: 1px; }
   .navigation-sort-category-title small { grid-column: 2; }
   .navigation-sort-children { padding-left: 14px; }
 }
+
+/* V18 — États Nostra Circuit + Nostra Motors */
+.activity-status-separator { margin-top: 48px; }
+.circuit-status-appointment { border-color: rgba(87,183,255,.4); background: rgba(87,183,255,.055); }
+.circuit-status-appointment .circuit-status-dot { background: #57b7ff; color: #57b7ff; }
+.circuit-status-inventory { border-color: rgba(244,166,53,.4); background: rgba(244,166,53,.055); }
+.circuit-status-inventory .circuit-status-dot { background: #f4a635; color: #f4a635; }
+.circuit-status-event { border-color: rgba(179,116,255,.4); background: rgba(179,116,255,.055); }
+.circuit-status-event .circuit-status-dot { background: #b374ff; color: #b374ff; }
+.status-choice-fieldset:disabled,
+.backoffice-form input:disabled,
+.backoffice-form textarea:disabled,
+.backoffice-form button:disabled { opacity: .48; cursor: not-allowed; }

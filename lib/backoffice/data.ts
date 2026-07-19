@@ -1,12 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
 
-export type CircuitSetting = {
+export type ActivitySetting = {
   id: number;
   status: string;
   label: string;
   message: string;
   updated_at?: string | null;
 };
+
+export type CircuitSetting = ActivitySetting;
+export type MotorsSetting = ActivitySetting;
 
 export type InventoryItem = {
   id: number;
@@ -102,6 +105,28 @@ export async function getCircuitSetting(): Promise<CircuitSetting> {
     status: "unknown",
     label: "État indisponible",
     message: "L’état du circuit n’a pas encore été configuré.",
+  };
+}
+
+export async function getMotorsStatusConfigured(): Promise<boolean> {
+  const supabase = await createClient();
+  const { error } = await supabase.from("motors_settings").select("id").limit(1);
+  return !error;
+}
+
+export async function getMotorsSetting(): Promise<MotorsSetting> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("motors_settings")
+    .select("id,status,label,message,updated_at")
+    .eq("id", 1)
+    .maybeSingle();
+
+  return data ?? {
+    id: 1,
+    status: "unknown",
+    label: "État indisponible",
+    message: "L’état de Nostra Motors n’a pas encore été configuré.",
   };
 }
 

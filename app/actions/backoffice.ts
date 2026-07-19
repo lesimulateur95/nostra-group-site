@@ -94,6 +94,30 @@ export async function saveCircuitStatus(formData: FormData) {
   redirect("/dashboard/circuit?saved=1");
 }
 
+export async function saveMotorsStatus(formData: FormData) {
+  const status = text(formData.get("motors_status"), 30);
+  const label = text(formData.get("motors_label"), 100);
+  const message = text(formData.get("motors_message"), 500);
+  const allowed = new Set(["open", "closed", "appointment", "inventory", "event"]);
+  if (!allowed.has(status) || label.length < 2 || message.length < 2) redirect("/dashboard/circuit?motors_error=invalid");
+
+  const { supabase, user } = await requireManager();
+  const { error } = await supabase.from("motors_settings").upsert({
+    id: 1,
+    status,
+    label,
+    message,
+    updated_at: new Date().toISOString(),
+    updated_by: user.id,
+  });
+  if (error) redirect("/dashboard/circuit?motors_error=save");
+
+  revalidatePath("/motors", "layout");
+  revalidatePath("/dashboard/circuit");
+  revalidatePath("/dashboard");
+  redirect("/dashboard/circuit?motors_saved=1");
+}
+
 export async function saveInventoryItem(formData: FormData) {
   const id = integer(formData.get("id"), 0);
   const name = text(formData.get("name"), 120);
