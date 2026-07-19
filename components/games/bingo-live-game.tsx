@@ -87,7 +87,7 @@ export function BingoLiveGame({
 
       setAnimationNumber(result.ballNumber);
       if (result.winners?.length) {
-        setMessage(result.winners.map((winner) => `BINGO — grille BG-${String(winner.card_number).padStart(5, "0")} · ${winner.customer_name}`).join(" · "));
+        setMessage(result.winners.map((winner) => `BINGO — grille BG-${String(winner.card_number).padStart(5, "0")} · ${winner.customer_name}${winner.reward_text ? ` · Cadeau : ${winner.reward_text}` : ""}`).join(" · "));
       } else {
         setMessage(`Numéro ${result.ballNumber} enregistré.`);
       }
@@ -117,7 +117,7 @@ export function BingoLiveGame({
       {currentPhaseWinners.length > 0 && (
         <section className="bingo-winner-alerts" aria-live="polite">
           {currentPhaseWinners.slice(0, 6).map((winner) => (
-            <article key={winner.id}><span>🏆 BINGO</span><strong>Grille BG-{String(winner.card_number).padStart(5, "0")}</strong><small>{winner.customer_name} · {phaseLabels[winner.phase] ?? winner.phase}</small></article>
+            <article key={winner.id}><span>🏆 BINGO</span><strong>Grille BG-{String(winner.card_number).padStart(5, "0")}</strong><small>{winner.customer_name} · {phaseLabels[winner.phase] ?? winner.phase}{winner.reward_text ? ` · ${winner.reward_text}` : ""}</small></article>
           ))}
         </section>
       )}

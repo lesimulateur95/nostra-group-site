@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { BingoLiveGame } from "@/components/games/bingo-live-game";
+import { BingoRewardsPanel } from "@/components/games/bingo-rewards-panel";
 import { getUserRoleKeys } from "@/lib/auth/access";
 import {
   getActiveBingoRound,
   getBingoDraws,
   getBingoModuleConfigured,
+  getBingoRewards,
   getBingoWinners,
   getOwnBingoCards,
 } from "@/lib/backoffice/data";
@@ -27,13 +29,14 @@ export default async function BingoPage() {
   const manager = roles.includes("manager");
   const configured = await getBingoModuleConfigured();
   const round = configured ? await getActiveBingoRound() : null;
-  const [draws, winners, cards] = round
+  const [draws, winners, cards, rewards] = round
     ? await Promise.all([
         getBingoDraws(round.id),
         getBingoWinners(round.id),
         getOwnBingoCards(data.user.id),
+        getBingoRewards(round.id),
       ])
-    : [[], [], []];
+    : [[], [], [], null];
 
   return (
     <article className="bingo-page">
@@ -54,7 +57,10 @@ export default async function BingoPage() {
             <div><span>État</span><strong>{round.status === "open" ? "Inscriptions ouvertes" : round.status === "playing" ? "Partie en cours" : round.status === "completed" ? "Terminée" : "Inscriptions fermées"}</strong></div>
             {round.status === "open" && <Link className="btn" href="/evenements/bingo/inscription">Acheter des grilles</Link>}
           </section>
-          <BingoLiveGame roundId={round.id} phase={round.phase} status={round.status} initialDraws={draws} initialWinners={winners} cards={cards} manager={manager} />
+          <div className="bingo-public-game-layout">
+            <BingoLiveGame roundId={round.id} phase={round.phase} status={round.status} initialDraws={draws} initialWinners={winners} cards={cards} manager={manager} />
+            {rewards && <BingoRewardsPanel roundId={round.id} activePhase={round.phase} rewards={rewards} />}
+          </div>
         </>
       )}
     </article>

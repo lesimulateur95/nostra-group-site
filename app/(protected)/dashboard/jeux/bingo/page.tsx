@@ -1,4 +1,4 @@
-import { clearBingoDraws, resetBingo, setBingoPhase, updateBingoSettings } from "@/app/actions/bingo";
+import { clearBingoDraws, resetBingo, setBingoPhase, updateBingoRewards, updateBingoSettings, validateBingoWinnerReward } from "@/app/actions/bingo";
 import { BingoLiveGame } from "@/components/games/bingo-live-game";
 import { BingoCard } from "@/components/games/bingo-card";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
@@ -9,9 +9,12 @@ import {
   getBingoDraws,
   getBingoModuleConfigured,
   getBingoPurchases,
+  getBingoRewards,
+  getBingoRewardsConfigured,
   getBingoWinners,
 } from "@/lib/backoffice/data";
 import { BINGO_SETUP_SQL } from "@/lib/backoffice/bingo-setup-sql";
+import { BINGO_REWARDS_SETUP_SQL } from "@/lib/backoffice/bingo-rewards-setup-sql";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -31,19 +34,21 @@ function money(value: number) {
 export default async function BingoDashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ saved?: string; phase?: string; cleared?: string; reset?: string; error?: string }>;
+  searchParams: Promise<{ saved?: string; phase?: string; cleared?: string; reset?: string; rewards?: string; reward_validated?: string; error?: string }>;
 }) {
   const params = await searchParams;
   const configured = await getBingoModuleConfigured();
   const round = configured ? await getActiveBingoRound() : null;
-  const [cards, purchases, draws, winners] = round
+  const rewardsConfigured = configured ? await getBingoRewardsConfigured() : false;
+  const [cards, purchases, draws, winners, rewards] = round
     ? await Promise.all([
         getBingoCards(round.id),
         getBingoPurchases(round.id),
         getBingoDraws(round.id),
         getBingoWinners(round.id),
+        getBingoRewards(round.id),
       ])
-    : [[], [], [], []];
+    : [[], [], [], [], null];
 
   const participants = new Set(cards.map((card) => card.user_id)).size;
   const revenue = purchases.reduce((total, purchase) => total + Number(purchase.total), 0);
@@ -77,6 +82,8 @@ export default async function BingoDashboardPage({
       {params.phase && <div className="dashboard-feedback dashboard-feedback-success">L’objectif de la partie a été modifié.</div>}
       {params.cleared && <div className="dashboard-feedback dashboard-feedback-success">Les numéros sortis ont été effacés. Les citoyens conservent leurs grilles.</div>}
       {params.reset && <div className="dashboard-feedback dashboard-feedback-success">Le Bingo a été entièrement réinitialisé. Les anciennes grilles ne sont plus actives.</div>}
+      {params.rewards && <div className="dashboard-feedback dashboard-feedback-success">Le tableau des récompenses est enregistré.</div>}
+      {params.reward_validated && <div className="dashboard-feedback dashboard-feedback-success">Le cadeau du gagnant est validé comme remis.</div>}
       {errorMessage && <div className="dashboard-feedback dashboard-feedback-error">{errorMessage}</div>}
 
       {configured && round && (
@@ -88,6 +95,29 @@ export default async function BingoDashboardPage({
             <article><span>Numéros sortis</span><strong>{draws.length}/99</strong></article>
             <article><span>Bingo pour {phaseLabels[round.phase]}</span><strong>{activeWinners.length}</strong></article>
           </section>
+
+          {!rewardsConfigured && (
+            <section className="dashboard-setup bingo-rewards-setup">
+              <span className="module-status">Activation V32.3 nécessaire</span>
+              <h2>Activer les récompenses du Bingo</h2>
+              <p>Exécute ce code une seule fois dans Supabase pour afficher le tableau public et valider les cadeaux gagnés.</p>
+              <details><summary>Afficher le code SQL V32.3</summary><pre>{BINGO_REWARDS_SETUP_SQL}</pre></details>
+            </section>
+          )}
+
+          {rewards && (
+            <section className="backoffice-panel bingo-rewards-editor-panel">
+              <div className="panel-heading"><span className="panel-icon">🎁</span><div><h2>Récompenses de la partie</h2><p>Ces cadeaux apparaissent dans le tableau situé à droite de la page publique du Bingo.</p></div></div>
+              <form action={updateBingoRewards} className="bingo-rewards-editor">
+                <label><span>1 ligne</span><input name="one_line" defaultValue={rewards.one_line} placeholder="Exemple : 20 000 €" maxLength={240} /></label>
+                <label><span>2 lignes</span><input name="two_lines" defaultValue={rewards.two_lines} placeholder="Cadeau à gagner" maxLength={240} /></label>
+                <label><span>3 lignes</span><input name="three_lines" defaultValue={rewards.three_lines} placeholder="Cadeau à gagner" maxLength={240} /></label>
+                <label><span>4 lignes</span><input name="four_lines" defaultValue={rewards.four_lines} placeholder="Cadeau à gagner" maxLength={240} /></label>
+                <label><span>Carton plein</span><input name="full_card" defaultValue={rewards.full_card} placeholder="Gros lot du carton plein" maxLength={240} /></label>
+                <button className="btn" type="submit" disabled={!rewardsConfigured}>Enregistrer les cadeaux</button>
+              </form>
+            </section>
+          )}
 
           <section className="bingo-dashboard-controls">
             <article className="backoffice-panel">
@@ -119,7 +149,24 @@ export default async function BingoDashboardPage({
             <div className="panel-heading"><span className="panel-icon">🏆</span><div><h2>Bingo détectés automatiquement</h2><p>Le numéro de grille et le nom du propriétaire sont publiés sur la page publique.</p></div></div>
             <div className="bingo-dashboard-winners">
               {winners.length === 0 && <p className="empty-state">Aucun Bingo détecté pour le moment.</p>}
-              {winners.map((winner) => <article key={winner.id}><span>{phaseLabels[winner.phase] ?? winner.phase}</span><strong>BG-{String(winner.card_number).padStart(5, "0")}</strong><small>{winner.customer_name}{winner.trigger_ball ? ` · déclenché par le n° ${winner.trigger_ball}` : ""}</small></article>)}
+              {winners.map((winner) => (
+                <article className={winner.reward_status === "validated" ? "is-reward-validated" : ""} key={winner.id}>
+                  <span>{phaseLabels[winner.phase] ?? winner.phase}</span>
+                  <strong>BG-{String(winner.card_number).padStart(5, "0")}</strong>
+                  <small>{winner.customer_name}{winner.trigger_ball ? ` · déclenché par le n° ${winner.trigger_ball}` : ""}</small>
+                  <div className="bingo-dashboard-winner-reward">
+                    <b>{winner.reward_text || "Aucun cadeau renseigné"}</b>
+                    {winner.reward_status === "validated" ? (
+                      <em>✓ Cadeau validé comme remis</em>
+                    ) : (
+                      <form action={validateBingoWinnerReward}>
+                        <input type="hidden" name="winner_id" value={winner.id} />
+                        <button className="btn" type="submit">Valider le cadeau remis</button>
+                      </form>
+                    )}
+                  </div>
+                </article>
+              ))}
             </div>
           </section>
 

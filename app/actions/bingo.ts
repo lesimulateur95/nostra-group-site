@@ -10,7 +10,7 @@ export type BingoDrawResponse = {
   error?: "setup" | "auth" | "manager" | "complete" | "empty" | "save";
   ballNumber?: number;
   drawOrder?: number;
-  winners?: Array<{ card_number: number; customer_name: string; phase: string }>;
+  winners?: Array<{ card_number: number; customer_name: string; phase: string; reward_text: string }>;
 };
 
 function text(value: FormDataEntryValue | null, max = 120): string {
@@ -165,6 +165,7 @@ export async function drawBingoNumber(): Promise<BingoDrawResponse> {
       card_number: Number(item.card_number) || 0,
       customer_name: String(item.customer_name ?? "Citoyen"),
       phase: String(item.phase ?? "one_line"),
+      reward_text: String(item.reward_text ?? ""),
     }];
   });
 
@@ -198,3 +199,39 @@ export async function resetBingo(formData: FormData) {
   revalidateBingo();
   redirect("/dashboard/jeux/bingo?reset=1");
 }
+
+export async function updateBingoRewards(formData: FormData) {
+  const oneLine = text(formData.get("one_line"), 240);
+  const twoLines = text(formData.get("two_lines"), 240);
+  const threeLines = text(formData.get("three_lines"), 240);
+  const fourLines = text(formData.get("four_lines"), 240);
+  const fullCard = text(formData.get("full_card"), 240);
+
+  const { supabase } = await requireManager();
+  const { error } = await supabase.rpc("update_bingo_rewards", {
+    p_one_line: oneLine,
+    p_two_lines: twoLines,
+    p_three_lines: threeLines,
+    p_four_lines: fourLines,
+    p_full_card: fullCard,
+  });
+
+  if (error) redirect(`/dashboard/jeux/bingo?error=${errorCode(error)}`);
+  revalidateBingo();
+  redirect("/dashboard/jeux/bingo?rewards=1");
+}
+
+export async function validateBingoWinnerReward(formData: FormData) {
+  const winnerId = integer(formData.get("winner_id"));
+  if (winnerId <= 0) redirect("/dashboard/jeux/bingo?error=invalid");
+
+  const { supabase } = await requireManager();
+  const { error } = await supabase.rpc("validate_bingo_winner_reward", {
+    p_winner_id: winnerId,
+  });
+
+  if (error) redirect(`/dashboard/jeux/bingo?error=${errorCode(error)}`);
+  revalidateBingo();
+  redirect("/dashboard/jeux/bingo?reward_validated=1");
+}
+

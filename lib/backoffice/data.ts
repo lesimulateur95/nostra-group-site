@@ -856,14 +856,29 @@ export type BingoDraw = {
   drawn_at: string;
 };
 
+export type BingoRewardPhase = "one_line" | "two_lines" | "three_lines" | "four_lines" | "full_card";
+
+export type BingoRewards = {
+  round_id: number;
+  one_line: string;
+  two_lines: string;
+  three_lines: string;
+  four_lines: string;
+  full_card: string;
+  updated_at: string | null;
+};
+
 export type BingoWinner = {
   id: number;
   round_id: number;
   card_id: number;
-  phase: "one_line" | "two_lines" | "three_lines" | "four_lines" | "full_card";
+  phase: BingoRewardPhase;
   card_number: number;
   customer_name: string;
   trigger_ball: number | null;
+  reward_text: string;
+  reward_status: "pending" | "validated";
+  reward_validated_at: string | null;
   achieved_at: string;
 };
 
@@ -876,6 +891,44 @@ export async function getBingoModuleConfigured(): Promise<boolean> {
     supabase.from("bingo_winners").select("id").limit(1),
   ]);
   return checks.every((result) => !result.error);
+}
+
+export async function getBingoRewardsConfigured(): Promise<boolean> {
+  const supabase = await createClient();
+  const { error } = await supabase.from("bingo_rewards").select("round_id").limit(1);
+  return !error;
+}
+
+export async function getBingoRewards(roundId: number): Promise<BingoRewards> {
+  const fallback: BingoRewards = {
+    round_id: roundId,
+    one_line: "",
+    two_lines: "",
+    three_lines: "",
+    four_lines: "",
+    full_card: "",
+    updated_at: null,
+  };
+
+  if (!roundId) return fallback;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("bingo_rewards")
+    .select("round_id,one_line,two_lines,three_lines,four_lines,full_card,updated_at")
+    .eq("round_id", roundId)
+    .maybeSingle();
+
+  if (error || !data) return fallback;
+  return {
+    round_id: Number(data.round_id),
+    one_line: String(data.one_line ?? ""),
+    two_lines: String(data.two_lines ?? ""),
+    three_lines: String(data.three_lines ?? ""),
+    four_lines: String(data.four_lines ?? ""),
+    full_card: String(data.full_card ?? ""),
+    updated_at: data.updated_at ? String(data.updated_at) : null,
+  };
 }
 
 export async function getActiveBingoRound(): Promise<BingoRound | null> {
@@ -969,11 +1022,37 @@ export async function getBingoDraws(roundId: number): Promise<BingoDraw[]> {
 export async function getBingoWinners(roundId: number): Promise<BingoWinner[]> {
   if (!roundId) return [];
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const current = await supabase
+    .from("bingo_winners")
+    .select("id,round_id,card_id,phase,card_number,customer_name,trigger_ball,reward_text,reward_status,reward_validated_at,achieved_at")
+    .eq("round_id", roundId)
+    .order("achieved_at", { ascending: false });
+
+  if (!current.error) {
+    return (current.data ?? []).map((row) => ({
+      ...row,
+      card_number: Number(row.card_number),
+      trigger_ball: row.trigger_ball === null ? null : Number(row.trigger_ball),
+      reward_text: String(row.reward_text ?? ""),
+      reward_status: row.reward_status === "validated" ? "validated" : "pending",
+      reward_validated_at: row.reward_validated_at ? String(row.reward_validated_at) : null,
+    })) as BingoWinner[];
+  }
+
+  // Compatibilité pendant les quelques secondes précédant l’activation SQL V32.3.
+  const legacy = await supabase
     .from("bingo_winners")
     .select("id,round_id,card_id,phase,card_number,customer_name,trigger_ball,achieved_at")
     .eq("round_id", roundId)
     .order("achieved_at", { ascending: false });
-  if (error) return [];
-  return (data ?? []).map((row) => ({ ...row, card_number: Number(row.card_number), trigger_ball: row.trigger_ball === null ? null : Number(row.trigger_ball) })) as BingoWinner[];
+
+  if (legacy.error) return [];
+  return (legacy.data ?? []).map((row) => ({
+    ...row,
+    card_number: Number(row.card_number),
+    trigger_ball: row.trigger_ball === null ? null : Number(row.trigger_ball),
+    reward_text: "",
+    reward_status: "pending",
+    reward_validated_at: null,
+  })) as BingoWinner[];
 }
