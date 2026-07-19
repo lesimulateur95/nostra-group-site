@@ -20,7 +20,6 @@ export const BUILT_IN_SECTION_CATEGORIES: Record<
     { key: "presentation", label: "Présentation", href: "/motors", editableSlug: "motors-presentation" },
     { key: "catalogue", label: "Catalogue", href: "/motors/catalogue", editableSlug: "motors-catalogue" },
     { key: "fidelite", label: "Programme fidélité", href: "/motors/fidelite", editableSlug: "motors-fidelite" },
-    { key: "contact", label: "Contact & commandes", href: "/motors/contact", editableSlug: "motors-contact" },
   ],
   evenements: [
     { key: "presentation", label: "Présentation", href: "/evenements", editableSlug: "evenements-presentation" },

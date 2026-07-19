@@ -25,9 +25,6 @@ BLACK SIGNATURE — accès après 20 achats
 • 10 % de remise
 • Commande prioritaire
 • Statut de client privilégié` },
-  "motors-contact": { title: "Contact & commandes", content: `Retrouvez ici les informations officielles pour contacter Nostra Motors, demander un devis ou effectuer une commande.
-
-Tu peux modifier ce texte depuis le Dashboard Gérant.` },
   "evenements-presentation": { title: "Événements & Jeux", content: `Retrouvez ici les animations de Nostra Group : rassemblements, jeux communautaires, soirées spéciales et inscriptions.
 
 • Événements automobiles

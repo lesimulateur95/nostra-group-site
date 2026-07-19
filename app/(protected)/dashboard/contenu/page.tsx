@@ -21,7 +21,7 @@ export default function DashboardContentHubPage() {
           href="/dashboard/contenu/motors"
           icon="NM"
           title="Modification Nostra Motors"
-          description="Présentation, catalogue, fidélité, contact et commandes."
+          description="Présentation, catalogue et programme de fidélité."
         />
         <DashboardCard
           href="/dashboard/contenu/circuit"
