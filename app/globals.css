@@ -2331,3 +2331,114 @@ select:focus { outline: 2px solid rgba(212,175,55,.32); outline-offset: 1px; }
   }
   .accounting-ledger-row form { grid-column: 3; grid-row: 1 / span 2; }
 }
+
+/* V29 — Jeux, roue de la chance et historique des gains */
+.games-presentation-page { display: grid; gap: 24px; }
+.games-presentation-hero { max-width: 900px; }
+.games-presentation-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.game-presentation-card {
+  min-width: 0; min-height: 430px; padding: 26px; display: flex; flex-direction: column; gap: 17px;
+  border: 1px solid rgba(212,175,55,.22); border-radius: 22px;
+  background: linear-gradient(145deg, rgba(20,20,20,.98), rgba(7,7,7,.98));
+  box-shadow: 0 18px 45px rgba(0,0,0,.22);
+}
+.game-presentation-card-featured { border-color: rgba(212,175,55,.52); box-shadow: 0 18px 55px rgba(212,175,55,.08); }
+.game-presentation-icon { width: 58px; height: 58px; display: grid; place-items: center; border: 1px solid rgba(212,175,55,.32); border-radius: 17px; background: rgba(212,175,55,.07); font-size: 1.7rem; }
+.game-presentation-card h2 { margin: 4px 0 0; color: #fff; font-size: 1.55rem; }
+.game-presentation-card p { margin: 0; color: #c4c4c4; line-height: 1.7; }
+.game-presentation-card ul { margin: 0; padding-left: 20px; display: grid; gap: 10px; color: #a9a9a9; line-height: 1.55; }
+.game-presentation-link { margin-top: auto; justify-content: center; }
+.games-duo-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+
+.wheel-intro-document { margin-bottom: 20px; }
+.wheel-game-shell { display: grid; grid-template-columns: minmax(420px, 1.2fr) minmax(290px, .8fr); gap: 28px; align-items: center; padding: 28px; border: 1px solid rgba(212,175,55,.24); border-radius: 24px; background: radial-gradient(circle at 20% 10%, rgba(212,175,55,.1), transparent 36%), #080808; }
+.wheel-stage { position: relative; min-height: 590px; display: grid; place-items: center; padding-bottom: 86px; overflow: hidden; }
+.wheel-rotor { width: min(520px, 94%); aspect-ratio: 1; transition: transform 4.5s cubic-bezier(.12,.72,.08,1); filter: drop-shadow(0 28px 40px rgba(0,0,0,.52)); }
+.wheel-svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.wheel-outer-ring { fill: #090909; stroke: #d4af37; stroke-width: 8; }
+.wheel-segment { stroke: rgba(255,255,255,.15); stroke-width: 1.1; }
+.wheel-segment-label { font-size: 7px; font-weight: 950; letter-spacing: .3px; pointer-events: none; }
+.wheel-center-disc { fill: #050505; stroke: #e3c25b; stroke-width: 5; }
+.wheel-center-title { fill: #f0d470; font-size: 18px; font-weight: 950; letter-spacing: 2px; }
+.wheel-center-subtitle { fill: #fff; font-size: 10px; font-weight: 900; letter-spacing: 2.8px; }
+.wheel-pointer { position: absolute; z-index: 5; top: 4px; left: 50%; width: 48px; height: 64px; transform: translateX(-50%); filter: drop-shadow(0 8px 8px rgba(0,0,0,.5)); }
+.wheel-pointer::before { content: ""; position: absolute; inset: 0; clip-path: polygon(50% 100%, 5% 10%, 95% 10%); background: linear-gradient(#ffe68c, #b88616); }
+.wheel-pointer span { position: absolute; left: 50%; top: 10px; width: 14px; height: 14px; border-radius: 50%; background: #111; transform: translateX(-50%); }
+.wheel-spin-button { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); min-width: 230px; padding: 16px 24px; border: 1px solid #e1bd4e; border-radius: 999px; color: #111; background: linear-gradient(135deg,#f0d16c,#b98918); font-weight: 950; letter-spacing: .08em; cursor: pointer; box-shadow: 0 14px 34px rgba(212,175,55,.2); }
+.wheel-spin-button:disabled { opacity: .48; cursor: not-allowed; }
+.wheel-result-panel { min-height: 310px; padding: 24px; display: grid; align-content: center; gap: 18px; border: 1px solid rgba(255,255,255,.09); border-radius: 20px; background: rgba(255,255,255,.025); }
+.wheel-result-empty { min-height: 190px; display: grid; place-content: center; gap: 10px; text-align: center; color: #888; }
+.wheel-result-empty strong { color: #f2f2f2; font-size: 1.25rem; }
+.wheel-result-error { color: #e3aaaa; }
+.wheel-result-card { padding: 24px; display: grid; grid-template-columns: 52px 1fr; gap: 16px; align-items: start; border-radius: 18px; }
+.wheel-result-card > span { width: 52px; height: 52px; display: grid; place-items: center; border-radius: 50%; font-size: 1.35rem; }
+.wheel-result-card small { display: block; margin-bottom: 8px; font-weight: 950; letter-spacing: .12em; }
+.wheel-result-card strong { display: block; color: #fff; font-size: 1.4rem; }
+.wheel-result-card p { margin: 12px 0 0; color: #c4c4c4; line-height: 1.6; }
+.wheel-result-win { border: 1px solid rgba(212,175,55,.4); background: rgba(212,175,55,.08); }
+.wheel-result-win > span { color: #16120a; background: #d4af37; }
+.wheel-result-loss { border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.035); }
+.wheel-result-loss > span { color: #fff; background: #292929; }
+.wheel-information-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 22px; }
+.wheel-prize-list, .wheel-recent-list { display: grid; gap: 9px; margin-top: 18px; }
+.wheel-prize-list > div, .wheel-recent-list > div { padding: 12px 14px; display: flex; justify-content: space-between; gap: 14px; align-items: center; border: 1px solid rgba(255,255,255,.075); border-radius: 12px; background: rgba(255,255,255,.02); }
+.wheel-prize-list span, .wheel-recent-list span { color: #b5b5b5; }
+.wheel-prize-list strong { color: #e7c75f; white-space: nowrap; }
+.wheel-recent-list > div { display: grid; grid-template-columns: auto 1fr auto; }
+.wheel-recent-list strong { color: #eee; }
+.wheel-recent-list small { padding: 5px 8px; border-radius: 999px; color: #d8bd63; background: rgba(212,175,55,.08); }
+.wheel-history-loss { opacity: .72; }
+.wheel-profile-link { display: inline-block; margin-top: 17px; }
+
+.wheel-dashboard-kpis { margin-bottom: 20px; }
+.wheel-dashboard-list { display: grid; gap: 12px; margin-top: 20px; }
+.wheel-dashboard-row { padding: 16px; display: grid; grid-template-columns: minmax(190px,1.15fr) minmax(180px,1.1fr) minmax(130px,.7fr) minmax(210px,1fr); gap: 14px; align-items: center; border: 1px solid rgba(212,175,55,.15); border-radius: 16px; background: rgba(255,255,255,.018); }
+.wheel-dashboard-row-loss { opacity: .72; border-color: rgba(255,255,255,.08); }
+.wheel-dashboard-player { min-width: 0; display: flex; align-items: center; gap: 12px; }
+.wheel-dashboard-player > span { width: 39px; height: 39px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 12px; color: #16120a; background: #d4af37; }
+.wheel-dashboard-row-loss .wheel-dashboard-player > span { color: #fff; background: #292929; }
+.wheel-dashboard-player div, .wheel-dashboard-prize, .wheel-dashboard-status { min-width: 0; display: grid; gap: 4px; }
+.wheel-dashboard-player strong, .wheel-dashboard-prize strong { color: #f0f0f0; overflow-wrap: anywhere; }
+.wheel-dashboard-player small, .wheel-dashboard-prize span, .wheel-dashboard-status > span { color: #858585; font-size: .72rem; text-transform: uppercase; }
+.wheel-status-form { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+.wheel-status-form select { min-width: 0; padding: 11px; border: 1px solid rgba(212,175,55,.3); border-radius: 10px; color: #e7c75f; background: #090909; }
+.wheel-status-form .btn { padding-inline: 14px; }
+.wheel-gain-status { width: max-content; max-width: 100%; padding: 6px 9px; border-radius: 999px; font-size: .72rem; text-transform: uppercase; }
+.wheel-gain-status-unused { color: #f0d572; background: rgba(212,175,55,.1); border: 1px solid rgba(212,175,55,.28); }
+.wheel-gain-status-used { color: #90e0a7; background: rgba(78,190,111,.09); border: 1px solid rgba(78,190,111,.24); }
+.wheel-gain-status-lost { color: #aaa; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.1); }
+.wheel-loss-static { color: #777; font-size: .8rem; text-align: center; }
+
+.profile-games-kpis { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 14px; margin: 22px 0; }
+.profile-games-kpis article { padding: 20px; display: grid; gap: 7px; border: 1px solid rgba(212,175,55,.16); border-radius: 16px; background: #0c0c0c; }
+.profile-games-kpis span { color: #8c8c8c; font-size: .76rem; text-transform: uppercase; font-weight: 850; }
+.profile-games-kpis strong { color: #f1d16b; font-size: 1.6rem; }
+.profile-game-list { display: grid; gap: 10px; margin-top: 18px; }
+.profile-game-row { padding: 15px; display: grid; grid-template-columns: 42px minmax(0,1fr) auto; gap: 13px; align-items: center; border: 1px solid rgba(212,175,55,.15); border-radius: 14px; background: rgba(255,255,255,.018); }
+.profile-game-icon { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 12px; color: #111; background: #d4af37; }
+.profile-game-row-lost { opacity: .7; border-color: rgba(255,255,255,.08); }
+.profile-game-row-lost .profile-game-icon { color: #fff; background: #292929; }
+.profile-game-row > div { min-width: 0; display: grid; gap: 5px; }
+.profile-game-row small { color: #858585; }
+.profile-game-row strong { color: #eee; overflow-wrap: anywhere; }
+
+@media (max-width: 1120px) {
+  .games-presentation-grid { grid-template-columns: 1fr; }
+  .game-presentation-card { min-height: 0; }
+  .wheel-game-shell { grid-template-columns: 1fr; }
+  .wheel-result-panel { min-height: 0; }
+  .wheel-dashboard-row { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 760px) {
+  .games-duo-grid, .wheel-information-grid, .profile-games-kpis { grid-template-columns: 1fr; }
+  .wheel-game-shell { padding: 14px; }
+  .wheel-stage { min-height: 460px; padding-bottom: 74px; }
+  .wheel-rotor { width: 100%; }
+  .wheel-segment-label { font-size: 6px; }
+  .wheel-spin-button { min-width: 200px; padding: 14px 18px; font-size: .78rem; }
+  .wheel-dashboard-row { grid-template-columns: 1fr; }
+  .wheel-status-form { grid-template-columns: 1fr; }
+  .wheel-recent-list > div { grid-template-columns: 1fr; align-items: start; }
+  .profile-game-row { grid-template-columns: 42px 1fr; }
+  .profile-game-row .wheel-gain-status { grid-column: 2; }
+}

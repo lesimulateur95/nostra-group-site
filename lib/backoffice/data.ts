@@ -469,6 +469,7 @@ export type CommissionerRaceBriefing = {
   commissioners: string;
   race_direction: string;
   live_announcement: string;
+  public_visible?: boolean;
   updated_by: string | null;
   updated_at: string;
 };
@@ -513,7 +514,7 @@ export async function getCommissionerRaceBriefing(): Promise<CommissionerRaceBri
   const supabase = await createClient();
   const { data } = await supabase
     .from("commissioner_race_briefing")
-    .select("id,event_title,event_date,stands_opening,qualifications_time,race_start,vehicle,lap_count,weather,commissioners,race_direction,live_announcement,updated_by,updated_at")
+    .select("id,event_title,event_date,stands_opening,qualifications_time,race_start,vehicle,lap_count,weather,commissioners,race_direction,live_announcement,public_visible,updated_by,updated_at")
     .eq("id", 1)
     .maybeSingle();
   return (data as CommissionerRaceBriefing | null) ?? null;
@@ -527,4 +528,58 @@ export async function getCommissionerIncidentReports(): Promise<CommissionerInci
     .order("incident_date", { ascending: false })
     .order("incident_time", { ascending: false });
   return (data ?? []) as CommissionerIncidentReport[];
+}
+
+
+export async function getDashboardRoleAccessConfigured(): Promise<boolean> {
+  const supabase = await createClient();
+  const [{ error: orderAccessError }, { error: planningAccessError }] = await Promise.all([
+    supabase.rpc("nostra_can_manage_orders"),
+    supabase.from("commissioner_race_briefing").select("public_visible").limit(1),
+  ]);
+  return !orderAccessError && !planningAccessError;
+}
+
+export type WheelSpin = {
+  id: number;
+  user_id: string;
+  player_name: string;
+  slot_index: number;
+  prize_key: string;
+  prize_label: string;
+  prize_type: "bonus" | "loss";
+  redemption_status: "unused" | "used" | "lost";
+  awarded_at: string;
+  used_at: string | null;
+  used_by: string | null;
+  updated_at: string;
+};
+
+export async function getWheelModuleConfigured(): Promise<boolean> {
+  const supabase = await createClient();
+  const { error } = await supabase.from("game_wheel_spins").select("id").limit(1);
+  return !error;
+}
+
+export async function getWheelSpins(): Promise<WheelSpin[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("game_wheel_spins")
+    .select("id,user_id,player_name,slot_index,prize_key,prize_label,prize_type,redemption_status,awarded_at,used_at,used_by,updated_at")
+    .order("awarded_at", { ascending: false })
+    .limit(500);
+  if (error) return [];
+  return (data ?? []) as WheelSpin[];
+}
+
+export async function getOwnWheelSpins(userId: string): Promise<WheelSpin[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("game_wheel_spins")
+    .select("id,user_id,player_name,slot_index,prize_key,prize_label,prize_type,redemption_status,awarded_at,used_at,used_by,updated_at")
+    .eq("user_id", userId)
+    .order("awarded_at", { ascending: false })
+    .limit(200);
+  if (error) return [];
+  return (data ?? []) as WheelSpin[];
 }

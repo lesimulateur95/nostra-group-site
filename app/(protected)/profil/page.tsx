@@ -9,7 +9,7 @@ import {
   getRpName,
   hasRpProfile,
 } from "@/lib/auth/user-profile";
-import { getOwnHomologationRequests, getOwnTeamRegistrationRequests, getProfileCommerceData } from "@/lib/backoffice/data";
+import { getOwnHomologationRequests, getOwnTeamRegistrationRequests, getOwnWheelSpins, getProfileCommerceData } from "@/lib/backoffice/data";
 import { getUserRoleLabel } from "@/lib/auth/access";
 import { createClient } from "@/lib/supabase/server";
 
@@ -31,11 +31,12 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
   const avatarUrl = getAvatarUrl(data.user);
   const rpName = getRpName(data.user);
   const complete = hasRpProfile(data.user);
-  const [role, commerce, homologations, teamRegistrations] = await Promise.all([
+  const [role, commerce, homologations, teamRegistrations, wheelSpins] = await Promise.all([
     getUserRoleLabel(data.user),
     getProfileCommerceData(data.user.id),
     getOwnHomologationRequests(data.user.id),
     getOwnTeamRegistrationRequests(data.user.id),
+    getOwnWheelSpins(data.user.id),
   ]);
   const cartTotal = commerce.cart.reduce((sum, item) => sum + Number(item.unit_price) * Number(item.quantity), 0);
 
@@ -89,7 +90,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
         </section>
       </div>
 
-      <ProfileNavigation orders={commerce.orders.length} homologations={homologations.length} teams={teamRegistrations.length} documents={commerce.invoices.length} />
+      <ProfileNavigation orders={commerce.orders.length} homologations={homologations.length} teams={teamRegistrations.length} documents={commerce.invoices.length} games={wheelSpins.length} />
 
       {!commerce.configured && <div className="dashboard-feedback">Les rubriques commerciales seront disponibles dès que le script SQL du Dashboard aura été exécuté.</div>}
       {params.order_sent && <div className="dashboard-feedback dashboard-feedback-success">Commande <strong>{params.order_sent}</strong> envoyée à Nostra Motors. Le stock a été réservé automatiquement.</div>}

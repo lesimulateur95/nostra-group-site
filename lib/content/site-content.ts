@@ -47,9 +47,10 @@ export const EDITABLE_PAGE_CONFIG = [
   { slug: "classement-ecuries", label: "Classements — Écuries", route: "/circuit/classement/ecuries", category: "Classements", section: "circuit" },
   { slug: "classement-gt3rs", label: "Classements — GT3 RS", route: "/circuit/classement/gt3rs", category: "Classements", section: "circuit" },
 
-  { slug: "evenements-presentation", label: "Événements & Jeux — Présentation", route: "/evenements", category: "Présentation", section: "evenements" },
+  { slug: "evenements-presentation-jeux", label: "Événements & Jeux — Présentation", route: "/evenements", category: "Présentation", section: "evenements" },
   { slug: "evenements-agenda", label: "Événements & Jeux — Agenda", route: "/evenements/agenda", category: "Agenda", section: "evenements" },
-  { slug: "evenements-jeux", label: "Événements & Jeux — Jeux", route: "/evenements/jeux", category: "Jeux", section: "evenements" },
+  { slug: "evenements-jeux", label: "Événements & Jeux — Bingo & Tombola", route: "/evenements/jeux", category: "Bingo & Tombola", section: "evenements" },
+  { slug: "evenements-roue", label: "Événements & Jeux — Roue de la chance", route: "/evenements/roue-de-la-chance", category: "Roue de la chance", section: "evenements" },
   { slug: "evenements-inscriptions", label: "Événements & Jeux — Inscriptions", route: "/evenements/inscriptions", category: "Inscriptions", section: "evenements" },
 ] as const;
 

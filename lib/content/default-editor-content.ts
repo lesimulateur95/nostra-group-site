@@ -25,22 +25,29 @@ BLACK SIGNATURE — accès après 20 achats
 • 10 % de remise
 • Commande prioritaire
 • Statut de client privilégié` },
-  "evenements-presentation": { title: "Événements & Jeux", content: `Retrouvez ici les animations de Nostra Group : rassemblements, jeux communautaires, soirées spéciales et inscriptions.
+  "evenements-presentation-jeux": { title: "Jeux Nostra Group", content: `Nostra Group propose trois animations principales : le Bingo, la Tombola et la Roue de la chance.
 
-• Événements automobiles
-• Jeux communautaires
-• Inscriptions centralisées` },
+BINGO
+Le Bingo est une animation collective organisée autour de cartons numérotés. Les numéros sont annoncés au fur et à mesure et les participants complètent leur carton jusqu’à l’objectif annoncé. Les règles précises, le nombre de cartons autorisés, le lot et l’horaire sont communiqués dans l’annonce officielle de chaque partie.
+
+TOMBOLA
+La Tombola permet d’acheter un ou plusieurs tickets pour participer à un tirage au sort. Chaque ticket correspond à une chance de gagner le lot annoncé. Les dates d’ouverture, de fermeture, le prix du ticket et le résultat du tirage sont publiés au moment de l’animation.
+
+ROUE DE LA CHANCE
+La Roue de la chance contient 23 cases avec des gains et des cases Perdu. Chaque tirage est enregistré automatiquement au nom du citoyen. Les bonus gagnés apparaissent dans Mon profil → Jeux et restent disponibles jusqu’à leur utilisation par l’équipe Nostra Group.
+
+Les annonces d’événements seront publiées séparément au moment de leur organisation.` },
   "evenements-agenda": { title: "Agenda", content: `Les événements publiés depuis le Dashboard Gérant apparaissent automatiquement sous cette présentation.
 
 Tu peux modifier ce texte d’introduction sans supprimer le calendrier des événements.` },
-  "evenements-jeux": { title: "Jeux", content: `Retrouvez les animations organisées par Nostra Group :
+  "evenements-jeux": { title: "Bingo & Tombola", content: `BINGO
+Les parties de Bingo sont annoncées avec leur date, leur horaire, les conditions de participation et le lot. Les participants suivent les numéros annoncés jusqu’à remplir l’objectif défini pour la partie.
 
-• Bingo
-• Tombola
-• Défis spéciaux
-• Jeux communautaires
+TOMBOLA
+La Tombola fonctionne avec des tickets numérotés. Chaque ticket acheté donne une chance au tirage. Le lot, le prix du ticket, la date de clôture et le gagnant sont annoncés officiellement par Nostra Group.` },
+  "evenements-roue": { title: "Roue de la chance", content: `Tourne la roue pour tenter de gagner un bonus Nostra Group. Le résultat est enregistré automatiquement dans ton espace personnel.
 
-Les détails peuvent être modifiés depuis le Dashboard Gérant.` },
+Les gains non utilisés restent visibles dans Mon profil → Jeux. Une fois un gain consommé, le Gérant le passe au statut Utilisé depuis le Dashboard.` },
   "evenements-inscriptions": { title: "Inscriptions", content: `Retrouvez ici les informations utiles pour participer aux événements et jeux de Nostra Group.
 
 Les conditions et modalités d’inscription peuvent être modifiées depuis le Dashboard Gérant.` },

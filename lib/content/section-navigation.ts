@@ -22,9 +22,10 @@ export const BUILT_IN_SECTION_CATEGORIES: Record<
     { key: "fidelite", label: "Programme fidélité", href: "/motors/fidelite", editableSlug: "motors-fidelite" },
   ],
   evenements: [
-    { key: "presentation", label: "Présentation", href: "/evenements", editableSlug: "evenements-presentation" },
+    { key: "presentation", label: "Présentation", href: "/evenements", editableSlug: "evenements-presentation-jeux" },
     { key: "agenda", label: "Agenda", href: "/evenements/agenda", editableSlug: "evenements-agenda" },
-    { key: "jeux", label: "Jeux", href: "/evenements/jeux", editableSlug: "evenements-jeux" },
+    { key: "jeux", label: "Bingo & Tombola", href: "/evenements/jeux", editableSlug: "evenements-jeux" },
+    { key: "roue", label: "Roue de la chance", href: "/evenements/roue-de-la-chance", editableSlug: "evenements-roue" },
     {
       key: "inscriptions",
       label: "Inscriptions",
