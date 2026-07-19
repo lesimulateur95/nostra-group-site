@@ -490,6 +490,16 @@ export type CommissionerIncidentReport = {
   updated_at: string;
 };
 
+export async function getRolesCommissionersConfigured(): Promise<boolean> {
+  const supabase = await createClient();
+  const [{ error: profilesError }, { error: briefingError }, { error: reportsError }] = await Promise.all([
+    supabase.from("member_profiles").select("user_id,role,roles").limit(1),
+    supabase.from("commissioner_race_briefing").select("id").limit(1),
+    supabase.from("commissioner_incident_reports").select("id").limit(1),
+  ]);
+  return !profilesError && !briefingError && !reportsError;
+}
+
 export async function getCommissionerModuleConfigured(): Promise<boolean> {
   const supabase = await createClient();
   const [{ error: briefingError }, { error: reportsError }] = await Promise.all([

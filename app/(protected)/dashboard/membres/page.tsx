@@ -2,31 +2,37 @@ import { updateMemberRole } from "@/app/actions/admin-management";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { normalizeRoleKeys, ROLE_LABELS } from "@/lib/auth/access";
-import { getMemberProfiles } from "@/lib/backoffice/data";
+import { getMemberProfiles, getRolesCommissionersConfigured } from "@/lib/backoffice/data";
 import { ROLES_COMMISSIONERS_SETUP_SQL } from "@/lib/backoffice/roles-commissioners-setup-sql";
 
 export default async function MembersDashboardPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const params = await searchParams;
-  const members = await getMemberProfiles();
+  const [members, rolesConfigured] = await Promise.all([getMemberProfiles(), getRolesCommissionersConfigured()]);
 
   return (
     <DashboardShell>
       <DashboardHeader title="Gestion des membres et rôles" description="Attribue un ou plusieurs rôles à chaque personne inscrite sur le site." />
 
-      <section className="dashboard-setup role-migration-setup">
-        <span className="module-status">À exécuter une seule fois</span>
-        <h2>Activer les rôles multiples et les outils Commissaires</h2>
-        <p>Ce script remplace Membre par Citoyen, permet de cumuler plusieurs rôles et active le planning de course ainsi que les rapports d’incident.</p>
-        <details>
-          <summary>Afficher le code SQL V26 à copier dans Supabase</summary>
-          <pre>{ROLES_COMMISSIONERS_SETUP_SQL}</pre>
-        </details>
-        <ol>
-          <li>Copie tout le code.</li>
-          <li>Ouvre <strong>Supabase → SQL Editor → New query</strong>.</li>
-          <li>Colle le code, clique sur <strong>Run query</strong>, puis recharge cette page avec <strong>Ctrl + F5</strong>.</li>
-        </ol>
-      </section>
+      {!rolesConfigured && (
+        <section className="dashboard-setup role-migration-setup">
+          <span className="module-status">À exécuter une seule fois</span>
+          <h2>Activer les rôles multiples et les outils Commissaires</h2>
+          <p>Le SQL corrigé supprime d’abord l’ancien blocage de rôle, puis convertit les comptes en Citoyens et active les outils Commissaires.</p>
+          <details>
+            <summary>Afficher le code SQL V26.1 corrigé à copier dans Supabase</summary>
+            <pre>{ROLES_COMMISSIONERS_SETUP_SQL}</pre>
+          </details>
+          <ol>
+            <li>Copie tout le code corrigé.</li>
+            <li>Ouvre <strong>Supabase → SQL Editor → New query</strong>.</li>
+            <li>Colle le code, clique sur <strong>Run without RLS</strong>, puis recharge cette page avec <strong>Ctrl + F5</strong>.</li>
+          </ol>
+        </section>
+      )}
+
+      {rolesConfigured && (
+        <div className="dashboard-feedback dashboard-feedback-success">Les rôles multiples et les outils Commissaires sont activés. Aucun SQL supplémentaire n’est nécessaire.</div>
+      )}
 
       {params.saved && <div className="dashboard-feedback dashboard-feedback-success">Les rôles ont été enregistrés.</div>}
       {params.error && <div className="dashboard-feedback dashboard-feedback-error">Impossible de modifier les rôles. Vérifie que le code SQL V26 a bien été exécuté dans Supabase.</div>}

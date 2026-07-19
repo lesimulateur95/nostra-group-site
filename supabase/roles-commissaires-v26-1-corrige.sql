@@ -1,4 +1,4 @@
-export const ROLES_COMMISSIONERS_SETUP_SQL = String.raw`-- NOSTRA GROUP V26.1 — Correctif rôles multiples + planning commissaires + rapports d'incident
+-- NOSTRA GROUP V26.1 — Correctif rôles multiples + planning commissaires + rapports d'incident
 -- Script réexécutable : il conserve les comptes et les données existantes.
 -- Correctif important : l'ancien déclencheur de rôle est supprimé AVANT la migration.
 
@@ -292,4 +292,3 @@ create policy "commissioners delete incident reports" on public.commissioner_inc
 for delete to authenticated using (
   created_by = auth.uid() or public.nostra_has_role('manager')
 );
-`;
