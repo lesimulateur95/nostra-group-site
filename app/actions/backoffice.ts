@@ -456,3 +456,107 @@ export async function deleteCircuitReservation(formData: FormData) {
   revalidatePath("/profil");
   redirect("/dashboard/reservations?deleted=1");
 }
+
+function isMissingTeamRegistrationObject(error: { code?: string | null; message?: string | null } | null | undefined): boolean {
+  if (!error) return false;
+  const message = (error.message ?? "").toLowerCase();
+  return error.code === "PGRST205" || error.code === "42P01" || message.includes("team_registration_requests") || message.includes("schema cache");
+}
+
+function yesNoChoice(value: FormDataEntryValue | null): boolean | null {
+  const choice = text(value, 10).toLowerCase();
+  if (choice === "yes") return true;
+  if (choice === "no") return false;
+  return null;
+}
+
+export async function submitTeamRegistration(formData: FormData) {
+  const registrationType = text(formData.get("registration_type"), 20);
+  const allowedTypes = new Set(["f1", "gt3rs", "both"]);
+  const applicantName = text(formData.get("applicant_name"), 120);
+  const teamName = text(formData.get("team_name"), 120);
+  const teamDirector = text(formData.get("team_director"), 120);
+  const requestedNumberF1 = text(formData.get("requested_number_f1"), 30) || null;
+  const requestedNumberGt3rs = text(formData.get("requested_number_gt3rs"), 30) || null;
+  const hasF1License = yesNoChoice(formData.get("has_f1_license"));
+  const hasGt3rsLicense = yesNoChoice(formData.get("has_gt3rs_license"));
+  const notes = text(formData.get("notes"), 2500) || null;
+  const returnPath = "/circuit/administration-sportive/creation-ecurie";
+
+  if (!allowedTypes.has(registrationType) || applicantName.length < 2 || teamName.length < 2 || teamDirector.length < 2) {
+    redirect(`${returnPath}?error=invalid`);
+  }
+  if ((registrationType === "f1" || registrationType === "both") && (!requestedNumberF1 || hasF1License === null)) {
+    redirect(`${returnPath}?error=invalid`);
+  }
+  if ((registrationType === "gt3rs" || registrationType === "both") && (!requestedNumberGt3rs || hasGt3rsLicense === null)) {
+    redirect(`${returnPath}?error=invalid`);
+  }
+
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getUser();
+  if (!data.user) redirect("/");
+
+  const { error } = await supabase.from("team_registration_requests").insert({
+    user_id: data.user.id,
+    registration_type: registrationType,
+    applicant_name: applicantName,
+    team_name: teamName,
+    team_director: teamDirector,
+    requested_number_f1: registrationType === "gt3rs" ? null : requestedNumberF1,
+    requested_number_gt3rs: registrationType === "f1" ? null : requestedNumberGt3rs,
+    has_f1_license: registrationType === "gt3rs" ? false : Boolean(hasF1License),
+    has_gt3rs_license: registrationType === "f1" ? false : Boolean(hasGt3rsLicense),
+    notes,
+  });
+
+  if (isMissingTeamRegistrationObject(error)) redirect(`${returnPath}?error=setup`);
+  if (error) redirect(`${returnPath}?error=save`);
+
+  revalidatePath(returnPath);
+  revalidatePath("/dashboard/inscriptions-ecuries");
+  revalidatePath("/dashboard");
+  redirect(`${returnPath}?sent=${registrationType}`);
+}
+
+export async function updateTeamRegistration(formData: FormData) {
+  const id = integer(formData.get("id"), 0);
+  const status = text(formData.get("status"), 20);
+  const adminNote = text(formData.get("admin_note"), 2500) || null;
+  if (id <= 0 || !new Set(["pending", "reviewing", "approved", "rejected"]).has(status)) {
+    redirect("/dashboard/inscriptions-ecuries?error=invalid");
+  }
+
+  const { supabase } = await requireManager();
+  const { error } = await supabase
+    .from("team_registration_requests")
+    .update({ status, admin_note: adminNote, updated_at: new Date().toISOString() })
+    .eq("id", id);
+
+  if (isMissingTeamRegistrationObject(error)) redirect("/dashboard/inscriptions-ecuries?error=setup");
+  if (error) redirect("/dashboard/inscriptions-ecuries?error=save");
+
+  revalidatePath("/dashboard/inscriptions-ecuries");
+  revalidatePath("/dashboard");
+  revalidatePath("/profil");
+  redirect("/dashboard/inscriptions-ecuries?saved=1");
+}
+
+export async function deleteTeamRegistration(formData: FormData) {
+  const id = integer(formData.get("id"), 0);
+  if (id <= 0) redirect("/dashboard/inscriptions-ecuries?error=invalid");
+
+  const { supabase } = await requireManager();
+  const { error } = await supabase
+    .from("team_registration_requests")
+    .delete()
+    .eq("id", id);
+
+  if (isMissingTeamRegistrationObject(error)) redirect("/dashboard/inscriptions-ecuries?error=setup");
+  if (error) redirect("/dashboard/inscriptions-ecuries?error=delete");
+
+  revalidatePath("/dashboard/inscriptions-ecuries");
+  revalidatePath("/dashboard");
+  revalidatePath("/profil");
+  redirect("/dashboard/inscriptions-ecuries?deleted=1");
+}

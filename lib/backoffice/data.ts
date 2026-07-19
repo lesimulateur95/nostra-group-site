@@ -39,6 +39,7 @@ export type CatalogVehicle = {
   description: string;
   images: CatalogVehicleImage[];
   published: boolean;
+  stock_quantity: number;
   sort_order: number;
   created_at?: string | null;
   updated_at?: string | null;
@@ -69,6 +70,7 @@ export type SiteEvent = {
 
 
 export type OrderItemSnapshot = {
+  vehicle_id: number | null;
   name: string;
   quantity: number;
   unit_price: number;
@@ -85,6 +87,7 @@ export type CustomerOrder = {
   items: OrderItemSnapshot[];
   customer_note: string | null;
   admin_note: string | null;
+  stock_deducted: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -168,20 +171,48 @@ export async function getCatalogModuleConfigured(): Promise<boolean> {
   return !error;
 }
 
+export async function getStockCommerceConfigured(): Promise<boolean> {
+  const supabase = await createClient();
+  const checks = await Promise.all([
+    supabase.from("catalog_vehicles").select("id,stock_quantity").limit(1),
+    supabase.from("cart_items").select("id,vehicle_id").limit(1),
+    supabase.from("orders").select("id,stock_deducted").limit(1),
+  ]);
+  return checks.every((result) => !result.error);
+}
+
 export async function getCatalogVehicles(includeUnpublished = false): Promise<CatalogVehicle[]> {
   const supabase = await createClient();
   let query = supabase
     .from("catalog_vehicles")
-    .select("id,brand,model,trunk_capacity,top_speed,power,price,description,images,published,sort_order,created_at,updated_at")
+    .select("id,brand,model,trunk_capacity,top_speed,power,price,description,images,published,stock_quantity,sort_order,created_at,updated_at")
     .order("brand")
     .order("sort_order")
     .order("model");
 
   if (!includeUnpublished) query = query.eq("published", true);
   const { data, error } = await query;
-  if (error) return [];
-  return (data ?? []).map((row) => ({
+  if (!error) {
+    return (data ?? []).map((row) => ({
+      ...row,
+      stock_quantity: Math.max(0, Number(row.stock_quantity) || 0),
+      images: Array.isArray(row.images) ? row.images : [],
+    })) as CatalogVehicle[];
+  }
+
+  // Compatibilité temporaire avant l'exécution du script V22.
+  let legacyQuery = supabase
+    .from("catalog_vehicles")
+    .select("id,brand,model,trunk_capacity,top_speed,power,price,description,images,published,sort_order,created_at,updated_at")
+    .order("brand")
+    .order("sort_order")
+    .order("model");
+  if (!includeUnpublished) legacyQuery = legacyQuery.eq("published", true);
+  const legacy = await legacyQuery;
+  if (legacy.error) return [];
+  return (legacy.data ?? []).map((row) => ({
     ...row,
+    stock_quantity: 0,
     images: Array.isArray(row.images) ? row.images : [],
   })) as CatalogVehicle[];
 }
@@ -214,7 +245,7 @@ export async function getOrderModuleConfigured(): Promise<boolean> {
   const supabase = await createClient();
   const { error } = await supabase
     .from("orders")
-    .select("id,customer_name,items,customer_note,admin_note,updated_at")
+    .select("id,customer_name,items,customer_note,admin_note,stock_deducted,updated_at")
     .limit(1);
   return !error;
 }
@@ -226,6 +257,7 @@ function normalizeOrderItems(value: unknown): OrderItemSnapshot[] {
     const candidate = item as Record<string, unknown>;
     if (typeof candidate.name !== "string") return [];
     return [{
+      vehicle_id: Number.isFinite(Number(candidate.vehicle_id)) ? Number(candidate.vehicle_id) : null,
       name: candidate.name,
       quantity: Math.max(1, Number(candidate.quantity) || 1),
       unit_price: Math.max(0, Number(candidate.unit_price) || 0),
@@ -238,7 +270,7 @@ export async function getOrders(): Promise<CustomerOrder[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("orders")
-    .select("id,user_id,order_number,customer_name,status,total,items,customer_note,admin_note,created_at,updated_at")
+    .select("id,user_id,order_number,customer_name,status,total,items,customer_note,admin_note,stock_deducted,created_at,updated_at")
     .order("created_at", { ascending: false });
   if (error) return [];
   return (data ?? []).map((order) => ({
@@ -270,10 +302,10 @@ export async function getOwnHomologationRequests(userId: string): Promise<Homolo
 export async function getProfileCommerceData(userId: string) {
   const supabase = await createClient();
   const [orders, invoices, loyalty, cart] = await Promise.all([
-    supabase.from("orders").select("id,order_number,status,total,created_at,customer_name,items,customer_note,admin_note,updated_at").eq("user_id", userId).order("created_at", { ascending: false }),
+    supabase.from("orders").select("id,order_number,status,total,created_at,customer_name,items,customer_note,admin_note,stock_deducted,updated_at").eq("user_id", userId).order("created_at", { ascending: false }),
     supabase.from("invoices").select("id,invoice_number,status,amount,issued_at,download_url").eq("user_id", userId).order("issued_at", { ascending: false }),
     supabase.from("loyalty_profiles").select("tier,purchases_count,discount_percent,updated_at").eq("user_id", userId).maybeSingle(),
-    supabase.from("cart_items").select("id,item_name,quantity,unit_price,image_url,created_at").eq("user_id", userId).order("created_at", { ascending: false }),
+    supabase.from("cart_items").select("id,vehicle_id,item_name,quantity,unit_price,image_url,created_at").eq("user_id", userId).order("created_at", { ascending: false }),
   ]);
 
   return {
@@ -372,4 +404,52 @@ export async function getChampionshipEvents(championship: "f1" | "gt3rs", includ
   if (!includeDrafts) query = query.eq("status", "published");
   const { data } = await query;
   return (data ?? []) as SiteEvent[];
+}
+
+export type TeamRegistrationRequest = {
+  id: number;
+  user_id: string;
+  registration_type: "f1" | "gt3rs" | "both";
+  applicant_name: string;
+  team_name: string;
+  team_director: string;
+  requested_number_f1: string | null;
+  requested_number_gt3rs: string | null;
+  has_f1_license: boolean;
+  has_gt3rs_license: boolean;
+  notes: string | null;
+  status: "pending" | "reviewing" | "approved" | "rejected";
+  admin_note: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export async function getTeamRegistrationModuleConfigured(): Promise<boolean> {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("team_registration_requests")
+    .select("id")
+    .limit(1);
+  return !error;
+}
+
+export async function getTeamRegistrationRequests(): Promise<TeamRegistrationRequest[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("team_registration_requests")
+    .select("id,user_id,registration_type,applicant_name,team_name,team_director,requested_number_f1,requested_number_gt3rs,has_f1_license,has_gt3rs_license,notes,status,admin_note,created_at,updated_at")
+    .order("created_at", { ascending: false });
+  if (error) return [];
+  return (data ?? []) as TeamRegistrationRequest[];
+}
+
+export async function getOwnTeamRegistrationRequests(userId: string): Promise<TeamRegistrationRequest[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("team_registration_requests")
+    .select("id,user_id,registration_type,applicant_name,team_name,team_director,requested_number_f1,requested_number_gt3rs,has_f1_license,has_gt3rs_license,notes,status,admin_note,created_at,updated_at")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+  if (error) return [];
+  return (data ?? []) as TeamRegistrationRequest[];
 }

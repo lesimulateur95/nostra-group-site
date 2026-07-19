@@ -36,6 +36,7 @@ export const BUILT_IN_CIRCUIT_CATEGORIES: CircuitNavCategory[] = [
     href: "/circuit/administration-sportive",
     children: [
       { key: "administration-sportive", href: "/circuit/administration-sportive", label: "Vue d’ensemble", editableSlug: "administration-sportive" },
+      { key: "creation-ecurie", href: "/circuit/administration-sportive/creation-ecurie", label: "Création d’écurie", editableSlug: "creation-ecurie" },
       { key: "licence-reglement", href: "/circuit/administration-sportive/reglement-licences", label: "Règlement licences pilotes", editableSlug: "licence-reglement" },
       { key: "licence-tarifs", href: "/circuit/administration-sportive/tarifs-licences", label: "Tarifs licences pilotes", editableSlug: "licence-tarifs" },
       { key: "homologation-vehicules", href: "/circuit/administration-sportive/homologation-vehicules", label: "Homologation véhicules", editableSlug: "homologation-vehicules" },

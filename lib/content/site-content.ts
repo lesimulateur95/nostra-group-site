@@ -13,6 +13,7 @@ export const EDITABLE_PAGE_CONFIG = [
   { slug: "circuit-installations", label: "Présentation — Nos installations", route: "/circuit/presentation/installations", category: "Présentation", section: "circuit" },
 
   { slug: "administration-sportive", label: "Administration sportive — Vue d’ensemble", route: "/circuit/administration-sportive", category: "Administration sportive", section: "circuit" },
+  { slug: "creation-ecurie", label: "Administration sportive — Création d’écurie", route: "/circuit/administration-sportive/creation-ecurie", category: "Administration sportive", section: "circuit" },
   { slug: "licence-reglement", label: "Règlement des licences pilotes", route: "/circuit/administration-sportive/reglement-licences", category: "Administration sportive", section: "circuit" },
   { slug: "licence-tarifs", label: "Tarifs des licences pilotes", route: "/circuit/administration-sportive/tarifs-licences", category: "Administration sportive", section: "circuit" },
   { slug: "homologation-vehicules", label: "Homologation des véhicules", route: "/circuit/administration-sportive/homologation-vehicules", category: "Administration sportive", section: "circuit" },

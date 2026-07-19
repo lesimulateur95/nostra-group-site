@@ -79,9 +79,12 @@ Chaque participant est invité à respecter les règlements afin de garantir une
 👥 Une zone d’accueil
 📋 Une direction de course
 🏆 Un système de championnat officiel` },
-  "administration-sportive": { title: "Administration sportive", content: `Retrouvez dans cette rubrique les règlements, les licences pilotes et les procédures d’homologation officielles du Nostra Circuit.
+  "administration-sportive": { title: "Administration sportive", content: `Retrouvez dans cette rubrique les règlements, les licences pilotes, la création d’écuries et les procédures d’homologation officielles du Nostra Circuit.
 
 Chaque sous-page possède son propre contenu et peut être modifiée séparément depuis le Dashboard Gérant.` },
+  "creation-ecurie": { title: "Création et inscription d’une écurie", content: `Choisis le championnat Formule 1, le championnat GT3 RS ou les deux championnats en une seule demande.
+
+Chaque dossier est étudié par l’organisation avant validation. Les formulaires officiels restent disponibles sous cette présentation.` },
   "licence-reglement": { title: "Règlement des licences pilotes", content: `🏁 RÈGLEMENT DES LICENCES PILOTES — NOSTRA CIRCUIT
 
 Toute personne souhaitant participer aux activités officielles du Nostra Circuit doit être titulaire d’une licence pilote valide.

@@ -2,7 +2,7 @@ import { deleteOrder, updateOrder } from "@/app/actions/orders";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { getOrderModuleConfigured, getOrders } from "@/lib/backoffice/data";
-import { ORDERS_SETUP_SQL } from "@/lib/backoffice/orders-setup-sql";
+import { STOCK_ORDERS_SETUP_SQL } from "@/lib/backoffice/stock-orders-setup-sql";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -29,14 +29,14 @@ export default async function OrdersDashboardPage({ searchParams }: { searchPara
 
   return (
     <DashboardShell>
-      <DashboardHeader title="Commandes Nostra Motors" description="Toutes les commandes passées depuis le panier des citoyens arrivent ici automatiquement." />
+      <DashboardHeader title="Commandes Nostra Motors" description="Les commandes retirent automatiquement les véhicules du stock. Une annulation ou une suppression remet la quantité réservée." />
 
       {!configured && (
         <section className="dashboard-setup">
           <span className="module-status">Activation nécessaire</span>
-          <h2>Activer les commandes du catalogue</h2>
-          <p>Ajoute les informations détaillées des commandes et autorise les citoyens à valider leur panier.</p>
-          <details open><summary>Afficher le code SQL à copier dans Supabase</summary><pre>{ORDERS_SETUP_SQL}</pre></details>
+          <h2>Activer la liaison stock, panier et commandes V22</h2>
+          <p>Le script vérifie le stock lors de la commande, retire les quantités et les remet automatiquement si la commande est annulée ou supprimée.</p>
+          <details open><summary>Afficher le code SQL V22 à copier dans Supabase</summary><pre>{STOCK_ORDERS_SETUP_SQL}</pre></details>
           <ol>
             <li>Copie tout le code ci-dessus.</li>
             <li>Ouvre <strong>Supabase → SQL Editor → New query</strong>.</li>
@@ -47,7 +47,7 @@ export default async function OrdersDashboardPage({ searchParams }: { searchPara
 
       {params.saved && <div className="dashboard-feedback dashboard-feedback-success">Le statut de la commande a été mis à jour.</div>}
       {params.deleted && <div className="dashboard-feedback">La commande a été supprimée définitivement.</div>}
-      {params.error && <div className="dashboard-feedback dashboard-feedback-error">Impossible de traiter cette commande.</div>}
+      {params.error && <div className="dashboard-feedback dashboard-feedback-error">{params.error === "stock" ? "Impossible de réactiver cette commande : le stock disponible est insuffisant." : params.error === "setup" ? "Active d’abord le module V22 avec le code SQL affiché ci-dessus." : "Impossible de traiter cette commande."}</div>}
 
       {configured && (
         <>
@@ -78,7 +78,10 @@ function OrderCard({ order }: { order: Awaited<ReturnType<typeof getOrders>>[num
     <article className="backoffice-panel order-admin-card">
       <div className="order-admin-head">
         <div>
-          <span className={`request-status order-status-${order.status}`}>{statusLabels[order.status] ?? order.status}</span>
+          <div className="order-admin-statuses">
+            <span className={`request-status order-status-${order.status}`}>{statusLabels[order.status] ?? order.status}</span>
+            <span className={`order-stock-pill${order.stock_deducted ? "" : " order-stock-pill-restored"}`}>{order.stock_deducted ? "Stock réservé" : "Stock remis"}</span>
+          </div>
           <h2>{order.order_number}</h2>
           <p><strong>{order.customer_name || "Client Nostra Motors"}</strong> · {new Date(order.created_at).toLocaleString("fr-FR")}</p>
         </div>

@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import { addCatalogVehicleToCart } from "@/app/actions/catalogue";
-import { getCatalogModuleConfigured, getCatalogVehicles } from "@/lib/backoffice/data";
+import { getCatalogModuleConfigured, getCatalogVehicles, getStockCommerceConfigured } from "@/lib/backoffice/data";
 import { getSitePage } from "@/lib/content/site-content";
 
 function formatPrice(value: number): string {
@@ -21,10 +21,11 @@ type CataloguePageProps = {
 
 export default async function CataloguePage({ searchParams }: CataloguePageProps) {
   const params = await searchParams;
-  const [configured, vehicles, customPage] = await Promise.all([
+  const [configured, vehicles, customPage, stockConfigured] = await Promise.all([
     getCatalogModuleConfigured(),
     getCatalogVehicles(),
     getSitePage("motors-catalogue"),
+    getStockCommerceConfigured(),
   ]);
 
   const grouped = new Map<string, typeof vehicles>();
@@ -54,7 +55,11 @@ export default async function CataloguePage({ searchParams }: CataloguePageProps
 
       {params.cart_error && (
         <div className="catalogue-feedback catalogue-feedback-error">
-          Impossible d’ajouter ce véhicule au panier. Vérifie que ton espace client est bien activé, puis réessaie.
+          {params.cart_error === "stock"
+            ? "Ce véhicule n’est plus disponible dans cette quantité."
+            : params.cart_error === "setup"
+              ? "La liaison entre le catalogue et le stock doit encore être activée par la direction."
+              : "Impossible d’ajouter ce véhicule au panier. Réessaie dans un instant."}
         </div>
       )}
 
@@ -120,9 +125,16 @@ export default async function CataloguePage({ searchParams }: CataloguePageProps
                           <div className="catalogue-price"><dt>Prix</dt><dd>{formatPrice(vehicle.price)}</dd></div>
                         </dl>
 
+                        <div className={`catalogue-stock-status${vehicle.stock_quantity <= 0 ? " catalogue-stock-status-empty" : ""}`}>
+                          <span>{vehicle.stock_quantity > 0 ? "Disponible" : "Rupture de stock"}</span>
+                          <strong>{stockConfigured ? `${vehicle.stock_quantity} en stock` : "Stock en cours d’activation"}</strong>
+                        </div>
+
                         <form action={addCatalogVehicleToCart} className="catalogue-cart-form">
                           <input type="hidden" name="vehicle_id" value={vehicle.id} />
-                          <button className="btn catalogue-cart-button" type="submit">Ajouter au panier</button>
+                          <button className="btn catalogue-cart-button" type="submit" disabled={!stockConfigured || vehicle.stock_quantity <= 0}>
+                            {vehicle.stock_quantity > 0 && stockConfigured ? "Ajouter au panier" : "Indisponible"}
+                          </button>
                         </form>
                       </div>
                     </article>

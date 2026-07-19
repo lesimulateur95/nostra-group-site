@@ -52,6 +52,12 @@ function validStoredImages(value: unknown): CatalogVehicleImage[] {
   });
 }
 
+function missingStockSetup(error: { code?: string | null; message?: string | null } | null | undefined): boolean {
+  if (!error) return false;
+  const message = (error.message ?? "").toLowerCase();
+  return error.code === "PGRST204" || error.code === "42703" || message.includes("stock_quantity") || message.includes("vehicle_id");
+}
+
 async function requireManager() {
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
@@ -75,6 +81,7 @@ export async function saveCatalogVehicle(formData: FormData) {
   const topSpeed = text(formData.get("top_speed"), 100);
   const power = text(formData.get("power"), 100);
   const price = money(formData.get("price"));
+  const stockQuantity = Math.max(0, integer(formData.get("stock_quantity"), 0));
   const description = text(formData.get("description"), 4000);
   const sortOrder = Math.max(0, integer(formData.get("sort_order"), 0));
   const published = checkbox(formData.get("published"));
@@ -138,6 +145,7 @@ export async function saveCatalogVehicle(formData: FormData) {
     top_speed: topSpeed,
     power,
     price,
+    stock_quantity: stockQuantity,
     description,
     images: [...keptImages, ...uploadedImages],
     published,
@@ -152,16 +160,38 @@ export async function saveCatalogVehicle(formData: FormData) {
 
   if (result.error) {
     await removeUploadedFiles(supabase, uploadedImages.map((image) => image.path));
-    redirect("/dashboard/catalogue?error=save");
+    redirect(`/dashboard/catalogue?error=${missingStockSetup(result.error) ? "stock-setup" : "save"}`);
   }
 
   await removeUploadedFiles(supabase, [...removePaths]);
   revalidatePath("/motors/catalogue");
   revalidatePath("/dashboard/catalogue");
+  revalidatePath("/dashboard/stocks");
   revalidatePath("/dashboard");
   redirect("/dashboard/catalogue?saved=1");
 }
 
+export async function updateCatalogVehicleStock(formData: FormData) {
+  const id = integer(formData.get("id"), 0);
+  const stockQuantity = Math.max(0, integer(formData.get("stock_quantity"), 0));
+  if (id <= 0) redirect("/dashboard/stocks?error=invalid");
+
+  const { supabase, user } = await requireManager();
+  const { error } = await supabase
+    .from("catalog_vehicles")
+    .update({
+      stock_quantity: stockQuantity,
+      updated_at: new Date().toISOString(),
+      updated_by: user.id,
+    })
+    .eq("id", id);
+
+  if (error) redirect(`/dashboard/stocks?error=${missingStockSetup(error) ? "stock-setup" : "save"}`);
+  revalidatePath("/motors/catalogue");
+  revalidatePath("/dashboard/catalogue");
+  revalidatePath("/dashboard/stocks");
+  redirect("/dashboard/stocks?vehicle_saved=1");
+}
 
 export async function addCatalogVehicleToCart(formData: FormData) {
   const vehicleId = integer(formData.get("vehicle_id"), 0);
@@ -173,12 +203,14 @@ export async function addCatalogVehicleToCart(formData: FormData) {
 
   const { data: vehicle, error: vehicleError } = await supabase
     .from("catalog_vehicles")
-    .select("id,brand,model,price,images,published")
+    .select("id,brand,model,price,images,published,stock_quantity")
     .eq("id", vehicleId)
     .eq("published", true)
     .maybeSingle();
 
+  if (missingStockSetup(vehicleError)) redirect("/motors/catalogue?cart_error=setup");
   if (vehicleError || !vehicle) redirect("/motors/catalogue?cart_error=not-found");
+  if (Number(vehicle.stock_quantity) <= 0) redirect("/motors/catalogue?cart_error=stock");
 
   const itemName = `${String(vehicle.brand).trim()} ${String(vehicle.model).trim()}`.trim();
   const images = validStoredImages(vehicle.images);
@@ -188,26 +220,37 @@ export async function addCatalogVehicleToCart(formData: FormData) {
     .from("cart_items")
     .select("id,quantity")
     .eq("user_id", authData.user.id)
-    .eq("item_name", itemName)
+    .eq("vehicle_id", vehicleId)
     .limit(1)
     .maybeSingle();
 
+  if (missingStockSetup(existingError)) redirect("/motors/catalogue?cart_error=setup");
   if (existingError) redirect("/motors/catalogue?cart_error=unavailable");
+
+  const nextQuantity = existing ? Number(existing.quantity) + 1 : 1;
+  if (nextQuantity > Number(vehicle.stock_quantity)) redirect("/motors/catalogue?cart_error=stock");
 
   const result = existing
     ? await supabase
         .from("cart_items")
-        .update({ quantity: Number(existing.quantity) + 1 })
+        .update({
+          quantity: nextQuantity,
+          item_name: itemName,
+          unit_price: Number(vehicle.price) || 0,
+          image_url: imageUrl,
+        })
         .eq("id", existing.id)
         .eq("user_id", authData.user.id)
     : await supabase.from("cart_items").insert({
         user_id: authData.user.id,
+        vehicle_id: vehicleId,
         item_name: itemName,
         quantity: 1,
         unit_price: Number(vehicle.price) || 0,
         image_url: imageUrl,
       });
 
+  if (missingStockSetup(result.error)) redirect("/motors/catalogue?cart_error=setup");
   if (result.error) redirect("/motors/catalogue?cart_error=save");
 
   revalidatePath("/motors/catalogue");
@@ -222,17 +265,24 @@ export async function deleteCatalogVehicle(formData: FormData) {
   const { supabase } = await requireManager();
   const { data } = await supabase
     .from("catalog_vehicles")
-    .select("images")
+    .select("brand,model,images")
     .eq("id", id)
     .maybeSingle();
   const images = validStoredImages(data?.images);
+  const itemName = data ? `${String(data.brand).trim()} ${String(data.model).trim()}`.trim() : "";
+
+  // Nettoyage explicite pour les anciens paniers, en complément de la cascade SQL V22.
+  await supabase.from("cart_items").delete().eq("vehicle_id", id);
+  if (itemName) await supabase.from("cart_items").delete().eq("item_name", itemName);
 
   const { error } = await supabase.from("catalog_vehicles").delete().eq("id", id);
   if (error) redirect("/dashboard/catalogue?error=delete");
 
   await removeUploadedFiles(supabase, images.map((image) => image.path));
   revalidatePath("/motors/catalogue");
+  revalidatePath("/profil");
   revalidatePath("/dashboard/catalogue");
+  revalidatePath("/dashboard/stocks");
   revalidatePath("/dashboard");
   redirect("/dashboard/catalogue?deleted=1");
 }

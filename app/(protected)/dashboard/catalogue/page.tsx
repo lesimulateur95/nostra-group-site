@@ -2,8 +2,9 @@
 import { deleteCatalogVehicle, saveCatalogVehicle } from "@/app/actions/catalogue";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
-import { getCatalogModuleConfigured, getCatalogVehicles } from "@/lib/backoffice/data";
+import { getCatalogModuleConfigured, getCatalogVehicles, getStockCommerceConfigured } from "@/lib/backoffice/data";
 import { BACKOFFICE_SETUP_SQL } from "@/lib/backoffice/setup-sql";
+import { STOCK_ORDERS_SETUP_SQL } from "@/lib/backoffice/stock-orders-setup-sql";
 
 function errorMessage(code: string | undefined): string {
   if (code === "invalid") return "Vérifie la marque, le modèle et le prix.";
@@ -13,6 +14,7 @@ function errorMessage(code: string | undefined): string {
   if (code === "upload") return "Impossible d’envoyer une ou plusieurs photos.";
   if (code === "delete") return "Impossible de supprimer ce véhicule.";
   if (code === "not-found") return "Ce véhicule n’existe plus.";
+  if (code === "stock-setup") return "Active d’abord la liaison stock, panier et commandes avec le script SQL V22 affiché ci-dessous.";
   return "Impossible d’enregistrer ce véhicule.";
 }
 
@@ -23,6 +25,7 @@ export default async function DashboardCataloguePage({
 }) {
   const params = await searchParams;
   const configured = await getCatalogModuleConfigured();
+  const stockConfigured = configured ? await getStockCommerceConfigured() : false;
   const vehicles = configured ? await getCatalogVehicles(true) : [];
   const brands = [...new Set(vehicles.map((vehicle) => vehicle.brand))].sort((a, b) => a.localeCompare(b, "fr"));
 
@@ -34,7 +37,7 @@ export default async function DashboardCataloguePage({
       />
 
       {params.saved && <div className="dashboard-feedback dashboard-feedback-success">Le véhicule a été enregistré dans le catalogue.</div>}
-      {params.deleted && <div className="dashboard-feedback">Le véhicule et ses photos ont été supprimés.</div>}
+      {params.deleted && <div className="dashboard-feedback">Le véhicule, ses photos et toutes ses lignes présentes dans les paniers ont été supprimés.</div>}
       {params.error && <div className="dashboard-feedback dashboard-feedback-error">{errorMessage(params.error)}</div>}
 
       {!configured ? (
@@ -52,13 +55,28 @@ export default async function DashboardCataloguePage({
             <li>Reviens ici et fais <strong>Ctrl + F5</strong>.</li>
           </ol>
         </section>
+      ) : !stockConfigured ? (
+        <section className="dashboard-setup">
+          <span className="module-status">Activation V22 nécessaire</span>
+          <h2>Relier le catalogue, les stocks, les paniers et les commandes</h2>
+          <p>Ce script ajoute la quantité disponible, retire le stock lors d’une commande, le remet lors d’une annulation et nettoie les paniers lors de la suppression d’un véhicule.</p>
+          <details open>
+            <summary>Afficher le code SQL V22 à copier dans Supabase</summary>
+            <pre>{STOCK_ORDERS_SETUP_SQL}</pre>
+          </details>
+          <ol>
+            <li>Ouvre <strong>Supabase → SQL Editor → New query</strong>.</li>
+            <li>Colle tout le code et clique sur <strong>Run query</strong>.</li>
+            <li>Reviens ici et fais <strong>Ctrl + F5</strong>.</li>
+          </ol>
+        </section>
       ) : (
         <>
           <section className="dashboard-kpi-grid">
             <article><span>Véhicules</span><strong>{vehicles.length}</strong></article>
             <article><span>Marques</span><strong>{brands.length}</strong></article>
             <article><span>Publiés</span><strong>{vehicles.filter((vehicle) => vehicle.published).length}</strong></article>
-            <article><span>Photos</span><strong>{vehicles.reduce((total, vehicle) => total + vehicle.images.length, 0)}</strong></article>
+            <article><span>Stock total</span><strong>{vehicles.reduce((total, vehicle) => total + vehicle.stock_quantity, 0)}</strong></article>
           </section>
 
           <article className="backoffice-panel catalog-admin-create">
@@ -70,6 +88,7 @@ export default async function DashboardCataloguePage({
               <label>Marque<input name="brand" required list="catalog-brands" placeholder="Exemple : Ferrari" /></label>
               <label>Modèle<input name="model" required placeholder="Exemple : 488 Pista" /></label>
               <label>Prix (€)<input name="price" inputMode="decimal" required placeholder="Exemple : 580000" /></label>
+              <label>Quantité en stock<input type="number" name="stock_quantity" min="0" defaultValue="0" required /></label>
               <label>Coffre<input name="trunk_capacity" placeholder="Exemple : 230 L" /></label>
               <label>Vitesse maximale<input name="top_speed" placeholder="Exemple : 340 km/h" /></label>
               <label>Puissance<input name="power" placeholder="Exemple : 720 ch" /></label>
@@ -91,9 +110,14 @@ export default async function DashboardCataloguePage({
                     <span>{vehicle.brand}</span>
                     <h2>{vehicle.model}</h2>
                   </div>
-                  <span className={`catalog-publish-pill${vehicle.published ? "" : " catalog-publish-pill-hidden"}`}>
-                    {vehicle.published ? "Publié" : "Masqué"}
-                  </span>
+                  <div className="catalog-admin-badges">
+                    <span className={`catalog-stock-pill${vehicle.stock_quantity <= 0 ? " catalog-stock-pill-empty" : ""}`}>
+                      Stock : {vehicle.stock_quantity}
+                    </span>
+                    <span className={`catalog-publish-pill${vehicle.published ? "" : " catalog-publish-pill-hidden"}`}>
+                      {vehicle.published ? "Publié" : "Masqué"}
+                    </span>
+                  </div>
                 </div>
 
                 {vehicle.images.length > 0 && (
@@ -112,6 +136,7 @@ export default async function DashboardCataloguePage({
                   <label>Marque<input name="brand" required defaultValue={vehicle.brand} list="catalog-brands" /></label>
                   <label>Modèle<input name="model" required defaultValue={vehicle.model} /></label>
                   <label>Prix (€)<input name="price" inputMode="decimal" required defaultValue={Number(vehicle.price)} /></label>
+                  <label>Quantité en stock<input type="number" name="stock_quantity" min="0" required defaultValue={vehicle.stock_quantity} /></label>
                   <label>Coffre<input name="trunk_capacity" defaultValue={vehicle.trunk_capacity} /></label>
                   <label>Vitesse maximale<input name="top_speed" defaultValue={vehicle.top_speed} /></label>
                   <label>Puissance<input name="power" defaultValue={vehicle.power} /></label>

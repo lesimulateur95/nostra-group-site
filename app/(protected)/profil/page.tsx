@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { saveRpProfile } from "@/app/actions/profile";
-import { placeCartOrder } from "@/app/actions/orders";
+import { placeCartOrder, removeCartItem } from "@/app/actions/orders";
 import { Topbar } from "@/components/site/topbar";
 import {
   getAvatarUrl,
@@ -9,12 +9,12 @@ import {
   getRpName,
   hasRpProfile,
 } from "@/lib/auth/user-profile";
-import { getOwnHomologationRequests, getProfileCommerceData } from "@/lib/backoffice/data";
+import { getOwnHomologationRequests, getOwnTeamRegistrationRequests, getProfileCommerceData } from "@/lib/backoffice/data";
 import { getUserRoleLabel } from "@/lib/auth/access";
 import { createClient } from "@/lib/supabase/server";
 
 type ProfilePageProps = {
-  searchParams: Promise<{ error?: string; order_sent?: string; order_error?: string }>;
+  searchParams: Promise<{ error?: string; order_sent?: string; order_error?: string; cart_removed?: string; cart_error?: string }>;
 };
 
 function money(value: number | string) {
@@ -31,10 +31,11 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
   const avatarUrl = getAvatarUrl(data.user);
   const rpName = getRpName(data.user);
   const complete = hasRpProfile(data.user);
-  const [role, commerce, homologations] = await Promise.all([
+  const [role, commerce, homologations, teamRegistrations] = await Promise.all([
     getUserRoleLabel(data.user),
     getProfileCommerceData(data.user.id),
     getOwnHomologationRequests(data.user.id),
+    getOwnTeamRegistrationRequests(data.user.id),
   ]);
   const cartTotal = commerce.cart.reduce((sum, item) => sum + Number(item.unit_price) * Number(item.quantity), 0);
 
@@ -42,10 +43,16 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
     params.order_error === "empty"
       ? "Ton panier est vide."
       : params.order_error === "setup"
-        ? "Le module des commandes doit être activé depuis Dashboard → Commandes Nostra Motors."
-        : params.order_error
-          ? "La commande n’a pas pu être envoyée. Réessaie dans un instant."
-          : null;
+        ? "La liaison stock, panier et commandes doit être activée depuis le Dashboard."
+        : params.order_error === "stock"
+          ? "La quantité demandée n’est plus disponible. Retire l’article concerné ou réduis ton panier."
+          : params.order_error === "unavailable"
+            ? "Un véhicule de ton panier n’est plus publié dans le catalogue."
+            : params.order_error === "cart-refresh"
+              ? "Ton panier contient une ancienne ligne qui n’est plus liée au catalogue. Retire-la puis ajoute de nouveau le véhicule."
+              : params.order_error
+                ? "La commande n’a pas pu être envoyée. Réessaie dans un instant."
+                : null;
 
   const errorMessage =
     params.error === "invalid_name"
@@ -100,7 +107,9 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
           <div className="dashboard-feedback">Les rubriques commerciales seront disponibles dès que le nouveau script SQL du Dashboard aura été exécuté.</div>
         )}
 
-        {params.order_sent && <div className="dashboard-feedback dashboard-feedback-success">Commande <strong>{params.order_sent}</strong> envoyée à Nostra Motors. Tu peux suivre son statut dans « Mes commandes ».</div>}
+        {params.order_sent && <div className="dashboard-feedback dashboard-feedback-success">Commande <strong>{params.order_sent}</strong> envoyée à Nostra Motors. Le stock a été réservé automatiquement.</div>}
+        {params.cart_removed && <div className="dashboard-feedback dashboard-feedback-success">L’article a été retiré de ton panier.</div>}
+        {params.cart_error && <div className="dashboard-feedback dashboard-feedback-error">Impossible de retirer cet article du panier.</div>}
         {orderErrorMessage && <div className="dashboard-feedback dashboard-feedback-error">{orderErrorMessage}</div>}
 
         <section className="profile-commerce-grid">
@@ -117,7 +126,16 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
             <div className="profile-commerce-head"><span>🛒</span><div><p>MON PANIER</p><h2>{commerce.cart.length} article(s)</h2></div></div>
             <div className="profile-mini-list">
               {commerce.cart.length === 0 && <p className="empty-state">Ton panier est vide.</p>}
-              {commerce.cart.map((item) => <div key={item.id}><span>{item.quantity} × {item.item_name}</span><strong>{money(Number(item.unit_price) * Number(item.quantity))}</strong></div>)}
+              {commerce.cart.map((item) => (
+                <div className="profile-cart-row" key={item.id}>
+                  <span>{item.quantity} × {item.item_name}</span>
+                  <strong>{money(Number(item.unit_price) * Number(item.quantity))}</strong>
+                  <form action={removeCartItem}>
+                    <input type="hidden" name="id" value={item.id} />
+                    <button type="submit" aria-label={`Retirer ${item.item_name} du panier`}>Supprimer</button>
+                  </form>
+                </div>
+              ))}
             </div>
             <footer><span>Total</span><strong>{money(cartTotal)}</strong></footer>
             {commerce.cart.length > 0 && (
@@ -165,6 +183,29 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
                   return <tr key={request.id}>
                     <td>{request.request_type === "vehicle" ? "Véhicule" : "Écurie"}</td>
                     <td><strong>{title}</strong></td>
+                    <td>{new Date(request.created_at).toLocaleDateString("fr-FR")}</td>
+                    <td><span className={`request-status request-status-${request.status}`}>{statusLabels[request.status] ?? request.status}</span></td>
+                    <td>{request.admin_note || "Aucune réponse pour le moment"}</td>
+                  </tr>;
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className="profile-data-section">
+          <div className="profile-data-heading"><div><p className="eyebrow">NOSTRA CIRCUIT</p><h2>Mes inscriptions d’écurie</h2></div><span>{teamRegistrations.length}</span></div>
+          <div className="profile-table-wrap">
+            <table className="profile-data-table">
+              <thead><tr><th>Écurie</th><th>Championnat</th><th>Date</th><th>État</th><th>Réponse de la direction</th></tr></thead>
+              <tbody>
+                {teamRegistrations.length === 0 && <tr><td colSpan={5} className="empty-table-cell">Aucune inscription d’écurie envoyée.</td></tr>}
+                {teamRegistrations.map((request) => {
+                  const championshipLabels: Record<string, string> = { f1: "F1", gt3rs: "GT3 RS", both: "F1 + GT3 RS" };
+                  const statusLabels: Record<string, string> = { pending: "En attente", reviewing: "En cours d’étude", approved: "Validée", rejected: "Refusée" };
+                  return <tr key={request.id}>
+                    <td><strong>{request.team_name}</strong><small className="order-client-note">Directeur : {request.team_director}</small></td>
+                    <td>{championshipLabels[request.registration_type] ?? request.registration_type}</td>
                     <td>{new Date(request.created_at).toLocaleDateString("fr-FR")}</td>
                     <td><span className={`request-status request-status-${request.status}`}>{statusLabels[request.status] ?? request.status}</span></td>
                     <td>{request.admin_note || "Aucune réponse pour le moment"}</td>

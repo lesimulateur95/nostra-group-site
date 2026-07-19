@@ -1601,3 +1601,96 @@ select:focus { outline: 2px solid rgba(212,175,55,.32); outline-offset: 1px; }
   .order-admin-total { font-size: 1.2rem; }
   .order-items-list > div { align-items: flex-start; flex-direction: column; gap: 6px; }
 }
+
+/* V22 — liaison catalogue, stock, panier et commandes */
+.catalogue-stock-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 18px;
+  padding: 12px 14px;
+  border: 1px solid rgba(84,196,124,.3);
+  border-radius: 13px;
+  background: rgba(84,196,124,.06);
+}
+.catalogue-stock-status span { color: #a9edbf; font-size: .78rem; font-weight: 900; text-transform: uppercase; letter-spacing: .06em; }
+.catalogue-stock-status strong { color: #fff; }
+.catalogue-stock-status-empty { border-color: rgba(226,93,93,.32); background: rgba(226,93,93,.06); }
+.catalogue-stock-status-empty span { color: #ffb3b3; }
+.catalog-admin-badges { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.catalog-stock-pill {
+  padding: 7px 10px;
+  border: 1px solid rgba(84,196,124,.35);
+  border-radius: 999px;
+  color: #a9edbf;
+  background: rgba(84,196,124,.07);
+  font-size: .72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+.catalog-stock-pill-empty { border-color: rgba(226,93,93,.36); color: #ffb3b3; background: rgba(226,93,93,.08); }
+.vehicle-stock-section { margin-top: 30px; }
+.vehicle-stock-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 18px; margin-top: 20px; }
+.vehicle-stock-card { padding: 22px; border: 1px solid rgba(84,196,124,.24); border-radius: 20px; background: rgba(10,16,12,.84); }
+.vehicle-stock-card-empty { border-color: rgba(226,93,93,.28); background: rgba(22,9,9,.78); }
+.vehicle-stock-card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.vehicle-stock-card-head span:first-child { color: var(--gold-light); font-size: .74rem; font-weight: 850; text-transform: uppercase; letter-spacing: .09em; }
+.vehicle-stock-card-head h3 { margin: 6px 0 0; }
+.vehicle-stock-card > p { color: var(--muted); line-height: 1.5; }
+.vehicle-stock-form { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: end; gap: 12px; margin-top: 18px; }
+.vehicle-stock-form label { display: grid; gap: 8px; color: #e7e7e7; font-weight: 800; }
+.vehicle-stock-form input { width: 100%; padding: 12px 13px; border: 1px solid rgba(212,175,55,.3); border-radius: 11px; background: #070707; color: #fff; }
+.stock-secondary-heading { margin-top: 48px; }
+.profile-cart-row { display: grid !important; grid-template-columns: minmax(0,1fr) auto auto; align-items: center; gap: 12px; }
+.profile-cart-row form { margin: 0; }
+.profile-cart-row button { padding: 7px 10px; border: 1px solid rgba(226,93,93,.34); border-radius: 9px; color: #ffb3b3; background: rgba(226,93,93,.07); font-weight: 800; cursor: pointer; }
+.profile-cart-row button:hover { border-color: rgba(226,93,93,.7); background: rgba(226,93,93,.13); }
+.order-admin-statuses { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.order-stock-pill { display: inline-flex; padding: 5px 8px; border-radius: 999px; background: rgba(84,196,124,.14); color: #a9edbf; font-size: .76rem; font-weight: 850; }
+.order-stock-pill-restored { background: rgba(66,153,225,.14); color: #9bd2ff; }
+
+/* V23 — création et inscriptions des écuries */
+.team-registration-section { display: grid; gap: 20px; margin-top: 28px; }
+.team-registration-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 22px; align-items: start; }
+.team-registration-card {
+  overflow: hidden;
+  border: 1px solid rgba(212,175,55,.28);
+  border-radius: 24px;
+  background: linear-gradient(150deg, rgba(212,175,55,.07), rgba(10,10,10,.96) 34%);
+}
+.team-registration-card:last-child { grid-column: 1 / -1; }
+.team-registration-card > header { padding: 24px 26px 0; }
+.team-registration-card > header h2 { margin: 7px 0 10px; font-size: clamp(1.35rem,2.5vw,2rem); }
+.team-registration-card > header > p:last-child { margin: 0; color: var(--muted); line-height: 1.6; }
+.team-registration-form { padding: 24px 26px 26px; }
+.team-license-choice {
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 9px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 13px;
+  background: rgba(255,255,255,.02);
+}
+.team-license-choice legend { padding: 0 6px; color: #e9e9e9; font-weight: 800; font-size: .9rem; }
+.team-license-choice label { display: flex; align-items: center; gap: 8px; min-height: 42px; padding: 9px 11px; border: 1px solid rgba(212,175,55,.2); border-radius: 10px; background: #080808; cursor: pointer; }
+.team-license-choice input { width: auto !important; accent-color: var(--gold); }
+.team-registration-notice { padding: 15px 16px; border-left: 3px solid var(--gold); border-radius: 0 12px 12px 0; background: rgba(212,175,55,.06); color: #e8ddc0; line-height: 1.55; }
+.team-registration-notice p { margin: 0; }
+.team-registration-notice p + p { margin-top: 8px; }
+.team-registration-admin-list { display: grid; gap: 18px; margin-top: 22px; }
+.team-registration-admin-card { display: grid; gap: 19px; }
+.team-registration-data-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
+
+@media (max-width: 900px) {
+  .vehicle-stock-grid, .team-registration-grid { grid-template-columns: 1fr; }
+  .team-registration-card:last-child { grid-column: auto; }
+  .team-registration-data-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+@media (max-width: 620px) {
+  .vehicle-stock-form, .profile-cart-row, .team-registration-data-grid { grid-template-columns: 1fr; }
+  .vehicle-stock-form .btn, .team-registration-form .btn { width: 100%; }
+  .team-registration-card > header, .team-registration-form { padding-left: 18px; padding-right: 18px; }
+}

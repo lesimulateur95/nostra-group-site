@@ -14,6 +14,8 @@ import {
   getOrderModuleConfigured,
   getOrders,
   getReservationRequests,
+  getTeamRegistrationModuleConfigured,
+  getTeamRegistrationRequests,
 } from "@/lib/backoffice/data";
 import { BACKOFFICE_SETUP_SQL } from "@/lib/backoffice/setup-sql";
 import { createClient } from "@/lib/supabase/server";
@@ -23,6 +25,7 @@ export default async function DashboardPage() {
   const { data } = await supabase.auth.getUser();
   const configured = await getBackofficeConfigured();
   const ordersConfigured = await getOrderModuleConfigured();
+  const teamRegistrationsConfigured = await getTeamRegistrationModuleConfigured();
 
   const [setting, motorsSetting, motorsStatusConfigured, stock, accounting, events, requests, reservationRequests, catalogVehicles] = configured
     ? await Promise.all([
@@ -39,7 +42,9 @@ export default async function DashboardPage() {
     : [null, null, false, [], [], [], [], [], []];
 
   const orders = ordersConfigured ? await getOrders() : [];
+  const teamRegistrations = teamRegistrationsConfigured ? await getTeamRegistrationRequests() : [];
   const pendingOrders = orders.filter((order) => order.status === "pending").length;
+  const pendingTeamRegistrations = teamRegistrations.filter((request) => request.status === "pending" || request.status === "reviewing").length;
 
   const pending = requests.filter((request) => request.status === "pending" || request.status === "reviewing").length;
   const pendingReservations = reservationRequests.filter((request) => request.status === "pending").length;
@@ -96,6 +101,7 @@ export default async function DashboardPage() {
         <DashboardCard href="/dashboard/commandes" icon="🧾" title="Commandes Nostra Motors" description="Recevoir les paniers validés par les citoyens, suivre la préparation et mettre à jour leur statut." badge={!ordersConfigured ? "À activer" : pendingOrders ? `${pendingOrders} nouvelle(s)` : undefined} />
         <DashboardCard href="/dashboard/circuit" icon="◉" title="État des activités" description="Gérer au même endroit l’état du Nostra Circuit et de Nostra Motors." badge={motorsStatusConfigured ? `${setting?.label ?? "Circuit"} / ${motorsSetting?.label ?? "Motors"}` : "Motors à activer"} />
         <DashboardCard href="/dashboard/homologations" icon="✅" title="Homologations" description="Recevoir et traiter les demandes de véhicules et d’écuries." badge={pending ? `${pending} en attente` : undefined} />
+        <DashboardCard href="/dashboard/inscriptions-ecuries" icon="🏎️" title="Inscriptions des écuries" description="Traiter les inscriptions F1, GT3 RS et les demandes pour les deux championnats." badge={!teamRegistrationsConfigured ? "À activer" : pendingTeamRegistrations ? `${pendingTeamRegistrations} à traiter` : undefined} />
         <DashboardCard href="/dashboard/reservations" icon="🗓" title="Demandes de réservation" description="Valider ou refuser les dates et horaires choisis dans le calendrier du circuit." badge={pendingReservations ? `${pendingReservations} à traiter` : undefined} />
         <DashboardCard href="/dashboard/stocks" icon="▦" title="Gestion des stocks" description="Ajouter les articles, modifier les quantités et surveiller les seuils d’alerte." badge={lowStock ? `${lowStock} alerte(s)` : undefined} />
         <DashboardCard href="/dashboard/comptabilite" icon="€" title="Comptabilité" description="Enregistrer les recettes, les dépenses et suivre le solde." />
