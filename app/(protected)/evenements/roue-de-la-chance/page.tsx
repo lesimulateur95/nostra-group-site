@@ -9,13 +9,31 @@ import { createClient } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+
+function parisDayKey(value: string | Date): string {
+  const parts = new Intl.DateTimeFormat("fr-FR", {
+    timeZone: "Europe/Paris",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date(value));
+
+  const year = parts.find((part) => part.type === "year")?.value ?? "";
+  const month = parts.find((part) => part.type === "month")?.value ?? "";
+  const day = parts.find((part) => part.type === "day")?.value ?? "";
+  return `${year}-${month}-${day}`;
+}
+
 export default async function WheelPage() {
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
   if (!data.user) redirect("/");
 
   const configured = await getWheelModuleConfigured();
-  const recent = configured ? (await getOwnWheelSpins(data.user.id)).slice(0, 5) : [];
+  const allOwnSpins = configured ? await getOwnWheelSpins(data.user.id) : [];
+  const recent = allOwnSpins.slice(0, 5);
+  const todayInFrance = parisDayKey(new Date());
+  const alreadySpunToday = allOwnSpins.some((spin) => parisDayKey(spin.awarded_at) === todayInFrance);
 
   const intro = (
     <article className="circuit-document wheel-intro-document">
@@ -30,7 +48,7 @@ export default async function WheelPage() {
   return (
     <>
       <EditablePage slug="evenements-roue" eyebrow="Événements & Jeux" defaultTitle="Roue de la chance">{intro}</EditablePage>
-      <WheelGame configured={configured} />
+      <WheelGame configured={configured} alreadySpunToday={alreadySpunToday} />
 
       <section className="wheel-information-grid">
         <article className="backoffice-panel wheel-prize-panel">

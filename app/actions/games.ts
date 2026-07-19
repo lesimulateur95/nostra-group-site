@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export type SpinWheelResponse = {
   ok: boolean;
-  error?: "setup" | "save" | "auth";
+  error?: "setup" | "save" | "auth" | "daily_limit";
   spin?: {
     id: number;
     slot_index: number;
@@ -27,8 +27,17 @@ function text(value: FormDataEntryValue | null, max = 50): string {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
 }
 
-function isSetupError(error: { code?: string | null; message?: string | null } | null | undefined): boolean {
-  const value = `${error?.code ?? ""} ${error?.message ?? ""}`.toLowerCase();
+function errorText(error: { code?: string | null; message?: string | null; details?: string | null; hint?: string | null } | null | undefined): string {
+  return `${error?.code ?? ""} ${error?.message ?? ""} ${error?.details ?? ""} ${error?.hint ?? ""}`.toLowerCase();
+}
+
+function isDailyLimitError(error: { code?: string | null; message?: string | null; details?: string | null; hint?: string | null } | null | undefined): boolean {
+  const value = errorText(error);
+  return value.includes("daily_spin_limit") || value.includes("game_wheel_spins_one_per_day_idx");
+}
+
+function isSetupError(error: { code?: string | null; message?: string | null; details?: string | null; hint?: string | null } | null | undefined): boolean {
+  const value = errorText(error);
   return value.includes("pgrst202") || value.includes("pgrst205") || value.includes("42p01") || value.includes("spin_nostra_wheel") || value.includes("game_wheel_spins");
 }
 
@@ -38,7 +47,10 @@ export async function spinWheel(): Promise<SpinWheelResponse> {
   if (!data.user) return { ok: false, error: "auth" };
 
   const { data: result, error } = await supabase.rpc("spin_nostra_wheel");
-  if (error) return { ok: false, error: isSetupError(error) ? "setup" : "save" };
+  if (error) {
+    if (isDailyLimitError(error)) return { ok: false, error: "daily_limit" };
+    return { ok: false, error: isSetupError(error) ? "setup" : "save" };
+  }
   if (!result || typeof result !== "object") return { ok: false, error: "save" };
 
   const candidate = result as Record<string, unknown>;
