@@ -38,7 +38,7 @@ export default async function BingoRegistrationPage({
       <header className="document-hero bingo-hero">
         <p className="eyebrow">BINGO NOSTRA GROUP</p>
         <h1 className="page-title">Acheter mes grilles</h1>
-        <p className="lead">Choisis le nombre de grilles. Chaque carton respecte le format Bingo classique : B de 1 à 15, I de 16 à 30, N de 31 à 45, G de 46 à 60 et O de 61 à 75, avec la case centrale Nostra Motors.</p>
+        <p className="lead">Choisis le nombre de grilles. Chaque carton utilise les numéros de 1 à 99 : B de 1 à 20, I de 21 à 40, N de 41 à 60, G de 61 à 80 et O de 81 à 99, avec la case centrale Nostra Motors.</p>
       </header>
 
       {!configured && <div className="dashboard-feedback">Le Bingo n’est pas encore activé par le Gérant.</div>}

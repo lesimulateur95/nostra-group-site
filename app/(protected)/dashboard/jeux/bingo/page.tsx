@@ -85,7 +85,7 @@ export default async function BingoDashboardPage({
             <article><span>Grilles vendues</span><strong>{cards.length}</strong></article>
             <article><span>Participants</span><strong>{participants}</strong></article>
             <article><span>Recette totale</span><strong>{money(revenue)}</strong></article>
-            <article><span>Numéros sortis</span><strong>{draws.length}/75</strong></article>
+            <article><span>Numéros sortis</span><strong>{draws.length}/99</strong></article>
             <article><span>Bingo pour {phaseLabels[round.phase]}</span><strong>{activeWinners.length}</strong></article>
           </section>
 
