@@ -1553,3 +1553,20 @@ select:focus { outline: 2px solid rgba(212,175,55,.32); outline-offset: 1px; }
 .backoffice-form input:disabled,
 .backoffice-form textarea:disabled,
 .backoffice-form button:disabled { opacity: .48; cursor: not-allowed; }
+
+/* V20 — panier catalogue et suppression des homologations */
+.catalogue-feedback {
+  margin: 18px 0 24px;
+  padding: 14px 16px;
+  border: 1px solid rgba(214, 178, 91, .28);
+  border-radius: 12px;
+  background: rgba(8, 8, 8, .86);
+  color: #f2dfaa;
+}
+.catalogue-feedback a { color: #e6bd61; font-weight: 800; text-decoration: underline; }
+.catalogue-feedback-success { border-color: rgba(92, 202, 126, .38); }
+.catalogue-feedback-error { border-color: rgba(225, 99, 99, .42); color: #ffc2c2; }
+.catalogue-cart-form { margin-top: 18px; }
+.catalogue-cart-button { width: 100%; justify-content: center; }
+.homologation-delete-form { margin-top: 18px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,.08); }
+.homologation-delete-form button { color: #ff9d9d; font-weight: 800; }

@@ -1,4 +1,4 @@
-import { updateHomologationRequest } from "@/app/actions/backoffice";
+import { deleteHomologationRequest, updateHomologationRequest } from "@/app/actions/backoffice";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { getHomologationRequests } from "@/lib/backoffice/data";
@@ -25,6 +25,7 @@ export default async function HomologationsDashboardPage({ searchParams }: { sea
     <DashboardShell>
       <DashboardHeader title="Demandes d’homologation" description="Les formulaires envoyés depuis les pages Véhicules et Écuries arrivent ici automatiquement." />
       {params.saved && <div className="dashboard-feedback dashboard-feedback-success">La demande a été mise à jour.</div>}
+      {params.deleted && <div className="dashboard-feedback dashboard-feedback-success">La demande a été supprimée définitivement.</div>}
       {params.error && <div className="dashboard-feedback dashboard-feedback-error">Impossible de traiter cette demande.</div>}
 
       <section className="homologation-admin-list">
@@ -51,6 +52,11 @@ export default async function HomologationsDashboardPage({ searchParams }: { sea
               <label>Décision<select name="status" defaultValue={request.status}><option value="pending">En attente</option><option value="reviewing">En cours d’étude</option><option value="approved">Validée</option><option value="rejected">Refusée</option></select></label>
               <label className="form-span-2">Note visible par le demandeur<textarea name="admin_note" rows={4} defaultValue={request.admin_note ?? ""} /></label>
               <button className="btn" type="submit">Enregistrer la décision</button>
+            </form>
+
+            <form action={deleteHomologationRequest} className="danger-form homologation-delete-form">
+              <input type="hidden" name="id" value={request.id} />
+              <button type="submit">Supprimer définitivement cette demande</button>
             </form>
           </article>
         ))}

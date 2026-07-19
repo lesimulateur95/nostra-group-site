@@ -323,6 +323,26 @@ export async function updateHomologationRequest(formData: FormData) {
   redirect("/dashboard/homologations?saved=1");
 }
 
+
+export async function deleteHomologationRequest(formData: FormData) {
+  const id = integer(formData.get("id"), 0);
+  if (id <= 0) redirect("/dashboard/homologations?error=invalid");
+
+  const { supabase } = await requireManager();
+  const { error } = await supabase
+    .from("homologation_requests")
+    .delete()
+    .eq("id", id);
+
+  if (error) redirect("/dashboard/homologations?error=delete");
+
+  revalidatePath("/dashboard/homologations");
+  revalidatePath("/circuit/administration-sportive/homologation-vehicules");
+  revalidatePath("/circuit/administration-sportive/homologation-ecuries");
+  revalidatePath("/profil");
+  redirect("/dashboard/homologations?deleted=1");
+}
+
 function validReservationDate(value: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(value);
 }

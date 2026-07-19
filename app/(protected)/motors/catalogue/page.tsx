@@ -1,4 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
+import { addCatalogVehicleToCart } from "@/app/actions/catalogue";
 import { getCatalogModuleConfigured, getCatalogVehicles } from "@/lib/backoffice/data";
 import { getSitePage } from "@/lib/content/site-content";
 
@@ -14,7 +15,12 @@ function brandAnchor(brand: string): string {
   return `marque-${brand.toLocaleLowerCase("fr").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
 }
 
-export default async function CataloguePage() {
+type CataloguePageProps = {
+  searchParams: Promise<{ cart_added?: string; cart_error?: string }>;
+};
+
+export default async function CataloguePage({ searchParams }: CataloguePageProps) {
+  const params = await searchParams;
   const [configured, vehicles, customPage] = await Promise.all([
     getCatalogModuleConfigured(),
     getCatalogVehicles(),
@@ -38,6 +44,18 @@ export default async function CataloguePage() {
 
       {customPage?.content?.trim() && (
         <section className="catalogue-intro editable-document-copy">{customPage.content}</section>
+      )}
+
+      {params.cart_added && (
+        <div className="catalogue-feedback catalogue-feedback-success">
+          Le véhicule a bien été ajouté à ton panier. <a href="/profil">Voir mon panier</a>
+        </div>
+      )}
+
+      {params.cart_error && (
+        <div className="catalogue-feedback catalogue-feedback-error">
+          Impossible d’ajouter ce véhicule au panier. Vérifie que ton espace client est bien activé, puis réessaie.
+        </div>
       )}
 
       {!configured && (
@@ -101,6 +119,11 @@ export default async function CataloguePage() {
                           <div><dt>Puissance</dt><dd>{vehicle.power || "Non renseignée"}</dd></div>
                           <div className="catalogue-price"><dt>Prix</dt><dd>{formatPrice(vehicle.price)}</dd></div>
                         </dl>
+
+                        <form action={addCatalogVehicleToCart} className="catalogue-cart-form">
+                          <input type="hidden" name="vehicle_id" value={vehicle.id} />
+                          <button className="btn catalogue-cart-button" type="submit">Ajouter au panier</button>
+                        </form>
                       </div>
                     </article>
                   ))}

@@ -162,6 +162,59 @@ export async function saveCatalogVehicle(formData: FormData) {
   redirect("/dashboard/catalogue?saved=1");
 }
 
+
+export async function addCatalogVehicleToCart(formData: FormData) {
+  const vehicleId = integer(formData.get("vehicle_id"), 0);
+  if (vehicleId <= 0) redirect("/motors/catalogue?cart_error=invalid");
+
+  const supabase = await createClient();
+  const { data: authData } = await supabase.auth.getUser();
+  if (!authData.user) redirect("/");
+
+  const { data: vehicle, error: vehicleError } = await supabase
+    .from("catalog_vehicles")
+    .select("id,brand,model,price,images,published")
+    .eq("id", vehicleId)
+    .eq("published", true)
+    .maybeSingle();
+
+  if (vehicleError || !vehicle) redirect("/motors/catalogue?cart_error=not-found");
+
+  const itemName = `${String(vehicle.brand).trim()} ${String(vehicle.model).trim()}`.trim();
+  const images = validStoredImages(vehicle.images);
+  const imageUrl = images[0]?.url ?? null;
+
+  const { data: existing, error: existingError } = await supabase
+    .from("cart_items")
+    .select("id,quantity")
+    .eq("user_id", authData.user.id)
+    .eq("item_name", itemName)
+    .limit(1)
+    .maybeSingle();
+
+  if (existingError) redirect("/motors/catalogue?cart_error=unavailable");
+
+  const result = existing
+    ? await supabase
+        .from("cart_items")
+        .update({ quantity: Number(existing.quantity) + 1 })
+        .eq("id", existing.id)
+        .eq("user_id", authData.user.id)
+    : await supabase.from("cart_items").insert({
+        user_id: authData.user.id,
+        item_name: itemName,
+        quantity: 1,
+        unit_price: Number(vehicle.price) || 0,
+        image_url: imageUrl,
+      });
+
+  if (result.error) redirect("/motors/catalogue?cart_error=save");
+
+  revalidatePath("/motors/catalogue");
+  revalidatePath("/profil");
+  redirect("/motors/catalogue?cart_added=1");
+}
+
 export async function deleteCatalogVehicle(formData: FormData) {
   const id = integer(formData.get("id"), 0);
   if (id <= 0) redirect("/dashboard/catalogue?error=invalid");
