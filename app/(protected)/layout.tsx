@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { AutoRefresh } from "@/components/site/auto-refresh";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
@@ -7,5 +8,10 @@ export default async function ProtectedLayout({ children }: { children: React.Re
 
   if (!data.user) redirect("/");
 
-  return children;
+  return (
+    <>
+      <AutoRefresh />
+      {children}
+    </>
+  );
 }
