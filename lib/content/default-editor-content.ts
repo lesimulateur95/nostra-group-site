@@ -1,6 +1,52 @@
 import type { EditablePageSlug } from "@/lib/content/site-content";
 
 export const DEFAULT_EDITOR_CONTENT: Record<EditablePageSlug, { title: string; content: string }> = {
+  "motors-presentation": { title: "Nostra Motors", content: `Née d’un petit concessionnaire, Nostra Motors s’est développée pour devenir une référence du luxe et des véhicules exclusifs sur Saint-Martin V2.
+
+• Véhicules exclusifs : une sélection de modèles rares, sportifs et prestigieux.
+• Service personnalisé : accompagnement, commande et suivi dans un espace dédié.
+• Avantages clients : un programme de fidélité à plusieurs niveaux pour récompenser les achats.
+
+L’exclusivité prend la route.` },
+  "motors-catalogue": { title: "Catalogue Nostra Motors", content: `Le catalogue officiel présente les véhicules disponibles, leurs caractéristiques, leurs tarifs et leur disponibilité.
+
+Le contenu peut être modifié depuis le Dashboard Gérant.` },
+  "motors-fidelite": { title: "Fidélité Nostra", content: `SILVER — accès après 5 achats
+• 2 % de remise
+• Peinture au choix offerte
+
+GOLD — accès après 15 achats
+• Avantages Silver
+• 5 % de remise
+• Invitation aux événements Nostra Motors
+
+BLACK SIGNATURE — accès après 20 achats
+• Avantages Silver et Gold
+• 10 % de remise
+• Commande prioritaire
+• Statut de client privilégié` },
+  "motors-contact": { title: "Contact & commandes", content: `Retrouvez ici les informations officielles pour contacter Nostra Motors, demander un devis ou effectuer une commande.
+
+Tu peux modifier ce texte depuis le Dashboard Gérant.` },
+  "evenements-presentation": { title: "Événements & Jeux", content: `Retrouvez ici les animations de Nostra Group : rassemblements, jeux communautaires, soirées spéciales et inscriptions.
+
+• Événements automobiles
+• Jeux communautaires
+• Inscriptions centralisées` },
+  "evenements-agenda": { title: "Agenda", content: `Les événements publiés depuis le Dashboard Gérant apparaissent automatiquement sous cette présentation.
+
+Tu peux modifier ce texte d’introduction sans supprimer le calendrier des événements.` },
+  "evenements-jeux": { title: "Jeux", content: `Retrouvez les animations organisées par Nostra Group :
+
+• Bingo
+• Tombola
+• Défis spéciaux
+• Jeux communautaires
+
+Les détails peuvent être modifiés depuis le Dashboard Gérant.` },
+  "evenements-inscriptions": { title: "Inscriptions", content: `Retrouvez ici les informations utiles pour participer aux événements et jeux de Nostra Group.
+
+Les conditions et modalités d’inscription peuvent être modifiées depuis le Dashboard Gérant.` },
   "circuit-presentation": { title: "Nostra Circuit", content: `Bienvenue au NOSTRA CIRCUIT, un complexe automobile dédié à la passion de la conduite, de la compétition et du sport automobile.
 
 Notre objectif est de proposer un environnement professionnel où chaque pilote, débutant ou expérimenté, pourra évoluer dans des conditions optimales.

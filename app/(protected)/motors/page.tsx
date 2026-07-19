@@ -1,5 +1,7 @@
+import { EditablePage } from "@/components/site/editable-page";
+
 export default function MotorsPage() {
-  return (
+  const fallback = (
     <>
       <p className="eyebrow">L’exclusivité prend la route</p>
       <h1 className="page-title">Nostra Motors</h1>
@@ -11,4 +13,6 @@ export default function MotorsPage() {
       </div>
     </>
   );
+
+  return <EditablePage slug="motors-presentation" eyebrow="Nostra Motors" defaultTitle="Nostra Motors">{fallback}</EditablePage>;
 }

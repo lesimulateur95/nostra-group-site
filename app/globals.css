@@ -1313,3 +1313,41 @@ select:focus { outline: 2px solid rgba(212,175,55,.32); outline-offset: 1px; }
 @media (max-width: 720px) {
   .booking-selection-summary { grid-template-columns: auto 1fr; }
 }
+
+/* V13 — choix clair des trois grandes zones de modification */
+.dashboard-content-choice-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  max-width: 1250px;
+}
+.dashboard-editor-switcher {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0 0 30px;
+  padding: 10px;
+  border: 1px solid rgba(212,175,55,.22);
+  border-radius: 18px;
+  background: rgba(10,10,10,.82);
+}
+.dashboard-editor-switcher a {
+  min-height: 58px;
+  display: grid;
+  place-items: center;
+  padding: 12px 16px;
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 13px;
+  color: #d5d5d5;
+  font-weight: 850;
+  text-align: center;
+  background: rgba(255,255,255,.025);
+}
+.dashboard-editor-switcher a:hover,
+.dashboard-editor-switcher a.is-active {
+  color: #090909;
+  border-color: var(--gold-light);
+  background: linear-gradient(135deg, var(--gold-light), var(--gold));
+}
+@media (max-width: 820px) {
+  .dashboard-content-choice-grid,
+  .dashboard-editor-switcher { grid-template-columns: 1fr; }
+}

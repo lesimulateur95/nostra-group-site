@@ -1,12 +1,18 @@
+import { EditablePage } from "@/components/site/editable-page";
 import { getEvents } from "@/lib/backoffice/data";
 
 export default async function AgendaPage() {
   const events = await getEvents(false);
-  return (
+  const fallback = (
     <>
       <p className="eyebrow">Programmation</p>
       <h1 className="page-title">Agenda</h1>
       <p className="lead">Les événements publiés depuis le Dashboard Gérant apparaissent automatiquement ici.</p>
+    </>
+  );
+  return (
+    <>
+      <EditablePage slug="evenements-agenda" eyebrow="Événements & Jeux" defaultTitle="Agenda">{fallback}</EditablePage>
       <section className="agenda-list">
         {events.length === 0 && <article className="info-card empty-state">Aucun événement publié pour le moment.</article>}
         {events.map((event) => (

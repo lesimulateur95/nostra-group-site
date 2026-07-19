@@ -78,7 +78,7 @@ export default async function DashboardPage() {
       </section>
 
       <section className="dashboard-module-grid">
-        <DashboardCard href="/dashboard/contenu" icon="✎" title="Modification des pages" description="Modifier tous les textes publiés sur les pages du Nostra Circuit." />
+        <DashboardCard href="/dashboard/contenu" icon="✎" title="Modification des pages" description="Choisir entre Nostra Motors, Nostra Circuit et Jeux & Événements, puis modifier leurs pages séparément." />
         <DashboardCard href="/dashboard/circuit" icon="🏁" title="État du circuit" description="Afficher en direct si le circuit est ouvert, fermé, réservé ou en maintenance." badge={setting?.label} />
         <DashboardCard href="/dashboard/homologations" icon="✅" title="Homologations" description="Recevoir et traiter les demandes de véhicules et d’écuries." badge={pending ? `${pending} en attente` : undefined} />
         <DashboardCard href="/dashboard/reservations" icon="🗓" title="Demandes de réservation" description="Valider ou refuser les dates et horaires choisis dans le calendrier du circuit." badge={pendingReservations ? `${pendingReservations} à traiter` : undefined} />

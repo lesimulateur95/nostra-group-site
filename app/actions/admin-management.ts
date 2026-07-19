@@ -47,7 +47,7 @@ export async function saveCustomCircuitPage(formData: FormData) {
   const visible = formData.get("visible") === "on";
 
   if (label.length < 2 || title.length < 2 || content.length < 2 || slug.length < 2) {
-    redirect("/dashboard/contenu?error=custom_invalid#custom-pages");
+    redirect("/dashboard/contenu/circuit?error=custom_invalid#custom-pages");
   }
 
   const builtCategory = BUILT_IN_CIRCUIT_CATEGORIES.find((category) => category.key === categoryKeyInput);
@@ -72,11 +72,11 @@ export async function saveCustomCircuitPage(formData: FormData) {
     ? await supabase.from("custom_circuit_pages").update(payload).eq("id", id)
     : await supabase.from("custom_circuit_pages").insert({ ...payload, created_by: user.id });
 
-  if (result.error) redirect("/dashboard/contenu?error=custom_save#custom-pages");
+  if (result.error) redirect("/dashboard/contenu/circuit?error=custom_save#custom-pages");
   revalidatePath("/circuit", "layout");
   revalidatePath(`/circuit/personnalise/${slug}`);
-  revalidatePath("/dashboard/contenu");
-  redirect("/dashboard/contenu?custom_saved=1#custom-pages");
+  revalidatePath("/dashboard/contenu/circuit");
+  redirect("/dashboard/contenu/circuit?custom_saved=1#custom-pages");
 }
 
 export async function deleteCustomCircuitPage(formData: FormData) {
@@ -88,14 +88,14 @@ export async function deleteCustomCircuitPage(formData: FormData) {
     if (data?.slug) revalidatePath(`/circuit/personnalise/${data.slug}`);
   }
   revalidatePath("/circuit", "layout");
-  revalidatePath("/dashboard/contenu");
-  redirect("/dashboard/contenu?custom_deleted=1#custom-pages");
+  revalidatePath("/dashboard/contenu/circuit");
+  redirect("/dashboard/contenu/circuit?custom_deleted=1#custom-pages");
 }
 
 export async function setBuiltInCircuitPageVisibility(formData: FormData) {
   const pageKey = text(formData.get("page_key"), 100);
   const hidden = text(formData.get("hidden"), 10) === "true";
-  if (!EDITABLE_PAGE_SLUGS.has(pageKey)) redirect("/dashboard/contenu?error=visibility");
+  if (!EDITABLE_PAGE_SLUGS.has(pageKey)) redirect("/dashboard/contenu/circuit?error=visibility");
 
   const { supabase, user } = await requireDashboardAccess();
   if (hidden) {
@@ -104,15 +104,15 @@ export async function setBuiltInCircuitPageVisibility(formData: FormData) {
       hidden_at: new Date().toISOString(),
       hidden_by: user.id,
     }, { onConflict: "page_key" });
-    if (error) redirect("/dashboard/contenu?error=visibility");
+    if (error) redirect("/dashboard/contenu/circuit?error=visibility");
   } else {
     const { error } = await supabase.from("hidden_circuit_pages").delete().eq("page_key", pageKey);
-    if (error) redirect("/dashboard/contenu?error=visibility");
+    if (error) redirect("/dashboard/contenu/circuit?error=visibility");
   }
 
   revalidatePath("/circuit", "layout");
-  revalidatePath("/dashboard/contenu");
-  redirect(`/dashboard/contenu?visibility_saved=1#page-${encodeURIComponent(pageKey)}`);
+  revalidatePath("/dashboard/contenu/circuit");
+  redirect(`/dashboard/contenu/circuit?visibility_saved=1#page-${encodeURIComponent(pageKey)}`);
 }
 
 export async function updateMemberRole(formData: FormData) {

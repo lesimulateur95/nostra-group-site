@@ -1,5 +1,7 @@
+import { EditablePage } from "@/components/site/editable-page";
+
 export default function FidelitePage() {
-  return (
+  const fallback = (
     <>
       <p className="eyebrow">Programme clients</p>
       <h1 className="page-title">Fidélité Nostra</h1>
@@ -10,4 +12,5 @@ export default function FidelitePage() {
       </div>
     </>
   );
+  return <EditablePage slug="motors-fidelite" eyebrow="Nostra Motors" defaultTitle="Fidélité Nostra">{fallback}</EditablePage>;
 }
