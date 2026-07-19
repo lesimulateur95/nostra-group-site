@@ -2494,3 +2494,470 @@ select:focus { outline: 2px solid rgba(212,175,55,.32); outline-offset: 1px; }
   .live-planning-grid { grid-template-columns: 1fr; }
   .live-planning-header, .live-planning-announcement, .live-planning-details article, .live-planning-footer { padding-left: 18px; padding-right: 18px; }
 }
+
+/* =========================================================
+   V31 — Tombola Nostra Group
+   ========================================================= */
+.tombola-page {
+  display: grid;
+  gap: 24px;
+}
+
+.tombola-hero {
+  max-width: 1120px;
+}
+
+.tombola-overview-grid,
+.tombola-dashboard-controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.tombola-info-card,
+.tombola-rules-card,
+.tombola-registration-card,
+.tombola-podium-section {
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 24px;
+  background: linear-gradient(145deg, rgba(26, 23, 13, 0.92), rgba(8, 8, 8, 0.96));
+  padding: 28px;
+}
+
+.tombola-info-card h2,
+.tombola-rules-card h2,
+.tombola-registration-card h2,
+.tombola-podium-section h2 {
+  margin: 6px 0 18px;
+  font-size: clamp(1.5rem, 3vw, 2.25rem);
+}
+
+.tombola-info-card dl {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 24px;
+}
+
+.tombola-info-card dl div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 11px 0;
+}
+
+.tombola-info-card dt,
+.tombola-info-card dd {
+  margin: 0;
+}
+
+.tombola-info-card dd {
+  color: #e1bb3d;
+  font-weight: 800;
+}
+
+.tombola-rules-card ol {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding-left: 22px;
+  color: rgba(255, 255, 255, 0.78);
+  line-height: 1.65;
+}
+
+.tombola-registration-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 22px;
+}
+
+.tombola-status {
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  border-radius: 999px;
+  padding: 8px 13px;
+  color: #e4bd3a;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tombola-status-closed,
+.tombola-status-drawn {
+  border-color: rgba(255, 110, 110, 0.4);
+  color: #ff8a8a;
+}
+
+.tombola-registration-form,
+.tombola-settings-form,
+.tombola-draw-form {
+  display: grid;
+  gap: 18px;
+}
+
+.tombola-form-grid,
+.tombola-settings-form {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.tombola-registration-form label,
+.tombola-settings-form label,
+.tombola-draw-form label {
+  display: grid;
+  gap: 8px;
+}
+
+.tombola-registration-form label > span,
+.tombola-settings-form label > span,
+.tombola-draw-form label > span {
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.tombola-registration-form input,
+.tombola-settings-form input,
+.tombola-settings-form select,
+.tombola-draw-form input {
+  width: 100%;
+  min-height: 52px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 14px;
+  background: #111;
+  color: #fff;
+  padding: 0 15px;
+}
+
+.tombola-price-preview {
+  display: grid;
+  align-content: center;
+  gap: 7px;
+  min-height: 82px;
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  border-radius: 16px;
+  background: rgba(212, 175, 55, 0.06);
+  padding: 14px 18px;
+}
+
+.tombola-price-preview span {
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.tombola-price-preview strong {
+  color: #e4bd3a;
+  font-size: 1.35rem;
+}
+
+.tombola-cart-preview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 18px;
+}
+
+.tombola-cart-preview div {
+  display: grid;
+  gap: 3px;
+}
+
+.tombola-cart-preview small {
+  color: rgba(255, 255, 255, 0.58);
+}
+
+.tombola-cart-preview strong {
+  color: #e4bd3a;
+  font-size: 1.55rem;
+}
+
+.tombola-podium-section {
+  overflow: hidden;
+}
+
+.tombola-empty-podium {
+  display: grid;
+  place-items: center;
+  gap: 9px;
+  min-height: 230px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.tombola-empty-podium > span {
+  font-size: 3rem;
+}
+
+.tombola-empty-podium strong {
+  color: #fff;
+  font-size: 1.2rem;
+}
+
+.tombola-empty-podium p {
+  margin: 0;
+}
+
+.tombola-podium {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: end;
+  gap: 14px;
+  max-width: 900px;
+  margin: 26px auto 0;
+}
+
+.tombola-podium-place {
+  position: relative;
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  min-height: 190px;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 22px 22px 8px 8px;
+  background: linear-gradient(180deg, rgba(212, 175, 55, 0.12), rgba(10, 10, 10, 0.98));
+  padding: 22px 16px 54px;
+  text-align: center;
+}
+
+.tombola-podium-place-1 {
+  min-height: 250px;
+  border-color: rgba(255, 210, 71, 0.65);
+  box-shadow: 0 0 34px rgba(212, 175, 55, 0.13);
+}
+
+.tombola-podium-place-2 {
+  min-height: 215px;
+}
+
+.tombola-podium-place-3 {
+  min-height: 185px;
+}
+
+.tombola-podium-place b {
+  position: absolute;
+  inset: auto 0 0;
+  display: grid;
+  place-items: center;
+  min-height: 45px;
+  background: rgba(212, 175, 55, 0.12);
+  color: #e4bd3a;
+  font-size: 1.5rem;
+}
+
+.tombola-podium-place strong {
+  font-size: 1.05rem;
+}
+
+.tombola-podium-place small {
+  color: #e4bd3a;
+  font-weight: 800;
+}
+
+.tombola-medal {
+  font-size: 2.25rem;
+}
+
+.tombola-extra-winners,
+.tombola-dashboard-winners {
+  display: grid;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.tombola-extra-winners article,
+.tombola-dashboard-winners article {
+  display: grid;
+  grid-template-columns: 64px 1fr auto;
+  align-items: center;
+  gap: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.025);
+  padding: 13px 16px;
+}
+
+.tombola-extra-winners span,
+.tombola-dashboard-winners span {
+  color: #e4bd3a;
+  font-weight: 900;
+}
+
+.tombola-extra-winners small,
+.tombola-dashboard-winners small {
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.tombola-dashboard-controls {
+  margin: 22px 0;
+}
+
+.tombola-settings-form .btn,
+.tombola-draw-form .btn {
+  align-self: end;
+}
+
+.tombola-draw-form {
+  grid-template-columns: minmax(180px, 1fr) auto;
+  align-items: end;
+}
+
+.tombola-reset-confirmation {
+  margin-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 16px;
+}
+
+.tombola-reset-confirmation summary {
+  cursor: pointer;
+  width: fit-content;
+}
+
+.tombola-reset-confirmation form {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+  border: 1px solid rgba(255, 100, 100, 0.2);
+  border-radius: 14px;
+  background: rgba(100, 0, 0, 0.1);
+  padding: 15px;
+}
+
+.tombola-reset-confirmation p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.tombola-ticket-table {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.tombola-ticket-table article {
+  display: grid;
+  gap: 5px;
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  border-radius: 14px;
+  background: rgba(212, 175, 55, 0.035);
+  padding: 14px;
+}
+
+.tombola-ticket-table strong {
+  color: #e4bd3a;
+  font-size: 1.05rem;
+}
+
+.tombola-ticket-table span {
+  font-weight: 800;
+}
+
+.tombola-ticket-table small {
+  color: rgba(255, 255, 255, 0.56);
+}
+
+.profile-inline-link {
+  color: #e4bd3a;
+  text-decoration: none;
+  font-weight: 800;
+}
+
+.profile-tombola-orders {
+  display: grid;
+  gap: 14px;
+}
+
+.profile-tombola-order {
+  border: 1px solid rgba(212, 175, 55, 0.22);
+  border-radius: 18px;
+  background: rgba(212, 175, 55, 0.035);
+  padding: 17px;
+}
+
+.profile-tombola-order header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.profile-tombola-order header div {
+  display: grid;
+  gap: 3px;
+}
+
+.profile-tombola-order header small {
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.profile-tombola-order header > span {
+  color: #e4bd3a;
+  font-weight: 900;
+}
+
+.profile-ticket-numbers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.profile-ticket-numbers strong {
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 999px;
+  background: rgba(212, 175, 55, 0.08);
+  color: #e4bd3a;
+  padding: 7px 11px;
+  font-size: 0.86rem;
+}
+
+@media (max-width: 900px) {
+  .tombola-overview-grid,
+  .tombola-dashboard-controls,
+  .tombola-form-grid,
+  .tombola-settings-form {
+    grid-template-columns: 1fr;
+  }
+
+  .tombola-draw-form {
+    grid-template-columns: 1fr;
+  }
+
+  .tombola-podium {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .tombola-podium-place,
+  .tombola-podium-place-1,
+  .tombola-podium-place-2,
+  .tombola-podium-place-3 {
+    min-height: 165px;
+  }
+
+  .tombola-podium-place-1 { order: -1; }
+}
+
+@media (max-width: 620px) {
+  .tombola-cart-preview,
+  .tombola-registration-heading,
+  .profile-tombola-order header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .tombola-extra-winners article,
+  .tombola-dashboard-winners article {
+    grid-template-columns: 46px 1fr;
+  }
+
+  .tombola-extra-winners small,
+  .tombola-dashboard-winners small {
+    grid-column: 2;
+  }
+}

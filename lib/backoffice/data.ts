@@ -592,3 +592,198 @@ export async function getOwnWheelSpins(_userId: string): Promise<WheelSpin[]> {
 
   return (data ?? []) as WheelSpin[];
 }
+
+export type TombolaRound = {
+  id: number;
+  title: string;
+  ticket_price: number;
+  status: "open" | "closed" | "drawn" | "archived";
+  archived_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type TombolaCartItem = {
+  id: number;
+  user_id: string;
+  round_id: number;
+  customer_name: string;
+  quantity: number;
+  unit_price: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type TombolaPurchase = {
+  id: number;
+  round_id: number;
+  user_id: string;
+  order_number: string;
+  customer_name: string;
+  quantity: number;
+  unit_price: number;
+  total: number;
+  created_at: string;
+};
+
+export type TombolaTicket = {
+  id: number;
+  round_id: number;
+  purchase_id: number;
+  user_id: string;
+  customer_name: string;
+  ticket_number: number;
+  created_at: string;
+  order_number?: string | null;
+  round_title?: string | null;
+};
+
+export type TombolaWinner = {
+  id: number;
+  round_id: number;
+  ticket_id: number;
+  position: number;
+  ticket_number: number;
+  customer_name: string;
+  drawn_at: string;
+};
+
+export async function getTombolaModuleConfigured(): Promise<boolean> {
+  const supabase = await createClient();
+  const checks = await Promise.all([
+    supabase.from("tombola_rounds").select("id").limit(1),
+    supabase.from("tombola_tickets").select("id").limit(1),
+    supabase.from("tombola_winners").select("id").limit(1),
+  ]);
+  return checks.every((result) => !result.error);
+}
+
+export async function getActiveTombolaRound(): Promise<TombolaRound | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("tombola_rounds")
+    .select("id,title,ticket_price,status,archived_at,created_at,updated_at")
+    .is("archived_at", null)
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return {
+    ...data,
+    ticket_price: Number(data.ticket_price) || 0,
+  } as TombolaRound;
+}
+
+export async function getTombolaWinners(roundId: number): Promise<TombolaWinner[]> {
+  if (!roundId) return [];
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("tombola_winners")
+    .select("id,round_id,ticket_id,position,ticket_number,customer_name,drawn_at")
+    .eq("round_id", roundId)
+    .order("position", { ascending: true });
+
+  if (error) return [];
+  return (data ?? []) as TombolaWinner[];
+}
+
+export async function getOwnTombolaCart(userId: string): Promise<TombolaCartItem | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("tombola_cart_items")
+    .select("id,user_id,round_id,customer_name,quantity,unit_price,created_at,updated_at")
+    .eq("user_id", userId)
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return {
+    ...data,
+    quantity: Number(data.quantity) || 0,
+    unit_price: Number(data.unit_price) || 0,
+  } as TombolaCartItem;
+}
+
+export async function getOwnTombolaTickets(userId: string): Promise<TombolaTicket[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("tombola_tickets")
+    .select("id,round_id,purchase_id,user_id,customer_name,ticket_number,created_at,tombola_purchases(order_number),tombola_rounds(title)")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (error) return [];
+
+  return (data ?? []).map((row) => {
+    const purchase = Array.isArray(row.tombola_purchases)
+      ? row.tombola_purchases[0]
+      : row.tombola_purchases;
+    const round = Array.isArray(row.tombola_rounds)
+      ? row.tombola_rounds[0]
+      : row.tombola_rounds;
+
+    return {
+      id: Number(row.id),
+      round_id: Number(row.round_id),
+      purchase_id: Number(row.purchase_id),
+      user_id: String(row.user_id),
+      customer_name: String(row.customer_name),
+      ticket_number: Number(row.ticket_number),
+      created_at: String(row.created_at),
+      order_number: purchase && typeof purchase === "object" && "order_number" in purchase
+        ? String(purchase.order_number)
+        : null,
+      round_title: round && typeof round === "object" && "title" in round
+        ? String(round.title)
+        : null,
+    } satisfies TombolaTicket;
+  });
+}
+
+export async function getTombolaTickets(roundId: number): Promise<TombolaTicket[]> {
+  if (!roundId) return [];
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("tombola_tickets")
+    .select("id,round_id,purchase_id,user_id,customer_name,ticket_number,created_at,tombola_purchases(order_number)")
+    .eq("round_id", roundId)
+    .order("ticket_number", { ascending: true });
+
+  if (error) return [];
+  return (data ?? []).map((row) => {
+    const purchase = Array.isArray(row.tombola_purchases)
+      ? row.tombola_purchases[0]
+      : row.tombola_purchases;
+    return {
+      id: Number(row.id),
+      round_id: Number(row.round_id),
+      purchase_id: Number(row.purchase_id),
+      user_id: String(row.user_id),
+      customer_name: String(row.customer_name),
+      ticket_number: Number(row.ticket_number),
+      created_at: String(row.created_at),
+      order_number: purchase && typeof purchase === "object" && "order_number" in purchase
+        ? String(purchase.order_number)
+        : null,
+    } satisfies TombolaTicket;
+  });
+}
+
+export async function getTombolaPurchases(roundId: number): Promise<TombolaPurchase[]> {
+  if (!roundId) return [];
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("tombola_purchases")
+    .select("id,round_id,user_id,order_number,customer_name,quantity,unit_price,total,created_at")
+    .eq("round_id", roundId)
+    .order("created_at", { ascending: false });
+
+  if (error) return [];
+  return (data ?? []).map((row) => ({
+    ...row,
+    quantity: Number(row.quantity) || 0,
+    unit_price: Number(row.unit_price) || 0,
+    total: Number(row.total) || 0,
+  })) as TombolaPurchase[];
+}

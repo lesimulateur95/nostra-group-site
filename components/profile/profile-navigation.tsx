@@ -13,7 +13,7 @@ const cards = [
   { href: "/profil/homologations", icon: "✅", label: "Mes homologations", description: "Consulter l’état des demandes de véhicules et d’écuries.", countKey: "homologations" },
   { href: "/profil/ecuries", icon: "🏎️", label: "Mes écuries", description: "Retrouver les écuries inscrites en F1, GT3 RS ou dans les deux championnats.", countKey: "teams" },
   { href: "/profil/documents", icon: "📁", label: "Documents & factures", description: "Ouvrir les factures et documents disponibles dans ton espace personnel.", countKey: "documents" },
-  { href: "/profil/jeux", icon: "🎡", label: "Jeux", description: "Retrouver les bonus, les résultats Perdu et leur statut d’utilisation.", countKey: "games" },
+  { href: "/profil/jeux", icon: "🎡", label: "Jeux", description: "Retrouver les bonus de la roue, les tickets de tombola et leurs numéros.", countKey: "games" },
 ] as const;
 
 export function ProfileNavigation({ orders, homologations, teams, documents, games }: ProfileNavigationProps) {

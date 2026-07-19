@@ -20,6 +20,9 @@ import {
   getReservationRequests,
   getTeamRegistrationModuleConfigured,
   getTeamRegistrationRequests,
+  getTombolaModuleConfigured,
+  getActiveTombolaRound,
+  getTombolaTickets,
   getWheelModuleConfigured,
   getWheelSpins,
 } from "@/lib/backoffice/data";
@@ -38,12 +41,13 @@ export default async function DashboardPage() {
   const ordersAccess = managerAccess || roles.includes("employee") || roles.includes("commercial");
   if (!managerAccess && !commissionerAccess && !ordersAccess) redirect("/accueil");
 
-  const [configured, ordersConfigured, teamRegistrationsConfigured, roleAccessConfigured, wheelConfigured] = await Promise.all([
+  const [configured, ordersConfigured, teamRegistrationsConfigured, roleAccessConfigured, wheelConfigured, tombolaConfigured] = await Promise.all([
     managerAccess ? getBackofficeConfigured() : Promise.resolve(false),
     ordersAccess ? getOrderModuleConfigured() : Promise.resolve(false),
     managerAccess ? getTeamRegistrationModuleConfigured() : Promise.resolve(false),
     getDashboardRoleAccessConfigured(),
     managerAccess ? getWheelModuleConfigured() : Promise.resolve(false),
+    managerAccess ? getTombolaModuleConfigured() : Promise.resolve(false),
   ]);
 
   const [setting, motorsSetting, motorsStatusConfigured, stock, accounting, events, requests, reservationRequests, catalogVehicles] = managerAccess && configured
@@ -63,6 +67,8 @@ export default async function DashboardPage() {
   const orders = ordersConfigured ? await getOrders() : [];
   const teamRegistrations = managerAccess && teamRegistrationsConfigured ? await getTeamRegistrationRequests() : [];
   const wheelSpins = managerAccess && wheelConfigured ? await getWheelSpins() : [];
+  const tombolaRound = managerAccess && tombolaConfigured ? await getActiveTombolaRound() : null;
+  const tombolaTickets = managerAccess && tombolaRound ? await getTombolaTickets(tombolaRound.id) : [];
   const unusedWheelGains = wheelSpins.filter((spin) => spin.redemption_status === "unused").length;
   const pendingOrders = orders.filter((order) => order.status === "pending").length;
   const pendingTeamRegistrations = teamRegistrations.filter((request) => request.status === "pending" || request.status === "reviewing").length;
@@ -166,6 +172,7 @@ export default async function DashboardPage() {
           <DashboardModuleGroup icon="🎮" eyebrow="ANIMATIONS" title="Jeux" description="Suivre les tirages et gérer les bonus gagnés par les citoyens.">
             <div className="dashboard-module-grid dashboard-module-grid-grouped dashboard-module-grid-two">
               <DashboardCard href="/dashboard/jeux/roue" icon="🎡" title="Roue de la chance" description="Consulter l’historique, modifier le statut ou retirer un gain du profil du citoyen." badge={!wheelConfigured ? "V29 à activer" : unusedWheelGains ? `${unusedWheelGains} gain(s) à utiliser` : undefined} />
+              <DashboardCard href="/dashboard/jeux/tombola" icon="🎟️" title="Tombola" description="Configurer le prix, consulter les tickets, lancer le tirage et réinitialiser la tombola." badge={!tombolaConfigured ? "V31 à activer" : tombolaTickets.length ? `${tombolaTickets.length} ticket(s)` : undefined} />
             </div>
           </DashboardModuleGroup>
         )}
