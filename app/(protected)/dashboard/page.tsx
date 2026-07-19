@@ -5,6 +5,7 @@ import {
   getAccountingEntries,
   getBackofficeConfigured,
   getCircuitSetting,
+  getCatalogVehicles,
   getEvents,
   getHomologationRequests,
   getInventoryItems,
@@ -18,7 +19,7 @@ export default async function DashboardPage() {
   const { data } = await supabase.auth.getUser();
   const configured = await getBackofficeConfigured();
 
-  const [setting, stock, accounting, events, requests, reservationRequests] = configured
+  const [setting, stock, accounting, events, requests, reservationRequests, catalogVehicles] = configured
     ? await Promise.all([
         getCircuitSetting(),
         getInventoryItems(),
@@ -26,8 +27,9 @@ export default async function DashboardPage() {
         getEvents(true),
         getHomologationRequests(),
         getReservationRequests(),
+        getCatalogVehicles(true),
       ])
-    : [null, [], [], [], [], []];
+    : [null, [], [], [], [], [], []];
 
   const pending = requests.filter((request) => request.status === "pending" || request.status === "reviewing").length;
   const pendingReservations = reservationRequests.filter((request) => request.status === "pending").length;
@@ -79,6 +81,7 @@ export default async function DashboardPage() {
 
       <section className="dashboard-module-grid">
         <DashboardCard href="/dashboard/contenu" icon="✎" title="Modification des pages" description="Choisir entre Nostra Motors, Nostra Circuit et Jeux & Événements, puis modifier leurs pages séparément." />
+        <DashboardCard href="/dashboard/catalogue" icon="🚗" title="Catalogue Nostra Motors" description="Ajouter les véhicules par marque avec leurs photos, coffre, vitesse, puissance et prix." badge={catalogVehicles.length ? `${catalogVehicles.length} véhicule(s)` : undefined} />
         <DashboardCard href="/dashboard/circuit" icon="🏁" title="État du circuit" description="Afficher en direct si le circuit est ouvert, fermé, réservé ou en maintenance." badge={setting?.label} />
         <DashboardCard href="/dashboard/homologations" icon="✅" title="Homologations" description="Recevoir et traiter les demandes de véhicules et d’écuries." badge={pending ? `${pending} en attente` : undefined} />
         <DashboardCard href="/dashboard/reservations" icon="🗓" title="Demandes de réservation" description="Valider ou refuser les dates et horaires choisis dans le calendrier du circuit." badge={pendingReservations ? `${pendingReservations} à traiter` : undefined} />

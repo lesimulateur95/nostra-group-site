@@ -20,6 +20,27 @@ export type InventoryItem = {
   updated_at?: string | null;
 };
 
+export type CatalogVehicleImage = {
+  url: string;
+  path: string;
+};
+
+export type CatalogVehicle = {
+  id: number;
+  brand: string;
+  model: string;
+  trunk_capacity: string;
+  top_speed: string;
+  power: string;
+  price: number;
+  description: string;
+  images: CatalogVehicleImage[];
+  published: boolean;
+  sort_order: number;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
 export type AccountingEntry = {
   id: number;
   entry_date: string;
@@ -63,6 +84,7 @@ export async function getBackofficeConfigured(): Promise<boolean> {
     supabase.from("member_profiles").select("user_id").limit(1),
     supabase.from("circuit_reservation_requests").select("id").limit(1),
     supabase.from("events").select("championship").limit(1),
+    supabase.from("catalog_vehicles").select("id").limit(1),
   ]);
   return checks.every((result) => !result.error);
 }
@@ -91,6 +113,30 @@ export async function getInventoryItems(): Promise<InventoryItem[]> {
     .order("category")
     .order("name");
   return (data ?? []) as InventoryItem[];
+}
+
+export async function getCatalogModuleConfigured(): Promise<boolean> {
+  const supabase = await createClient();
+  const { error } = await supabase.from("catalog_vehicles").select("id").limit(1);
+  return !error;
+}
+
+export async function getCatalogVehicles(includeUnpublished = false): Promise<CatalogVehicle[]> {
+  const supabase = await createClient();
+  let query = supabase
+    .from("catalog_vehicles")
+    .select("id,brand,model,trunk_capacity,top_speed,power,price,description,images,published,sort_order,created_at,updated_at")
+    .order("brand")
+    .order("sort_order")
+    .order("model");
+
+  if (!includeUnpublished) query = query.eq("published", true);
+  const { data, error } = await query;
+  if (error) return [];
+  return (data ?? []).map((row) => ({
+    ...row,
+    images: Array.isArray(row.images) ? row.images : [],
+  })) as CatalogVehicle[];
 }
 
 export async function getAccountingEntries(): Promise<AccountingEntry[]> {
