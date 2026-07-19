@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { saveRpProfile } from "@/app/actions/profile";
 import { placeCartOrder, removeCartItem } from "@/app/actions/orders";
-import { Topbar } from "@/components/site/topbar";
+import { ProfileNavigation } from "@/components/profile/profile-navigation";
 import {
   getAvatarUrl,
   getDiscordId,
@@ -40,195 +40,95 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
   const cartTotal = commerce.cart.reduce((sum, item) => sum + Number(item.unit_price) * Number(item.quantity), 0);
 
   const orderErrorMessage =
-    params.order_error === "empty"
-      ? "Ton panier est vide."
-      : params.order_error === "setup"
-        ? "La liaison stock, panier et commandes doit être activée depuis le Dashboard."
-        : params.order_error === "stock"
-          ? "La quantité demandée n’est plus disponible. Retire l’article concerné ou réduis ton panier."
-          : params.order_error === "unavailable"
-            ? "Un véhicule de ton panier n’est plus publié dans le catalogue."
-            : params.order_error === "cart-refresh"
-              ? "Ton panier contient une ancienne ligne qui n’est plus liée au catalogue. Retire-la puis ajoute de nouveau le véhicule."
-              : params.order_error
-                ? "La commande n’a pas pu être envoyée. Réessaie dans un instant."
-                : null;
+    params.order_error === "empty" ? "Ton panier est vide."
+      : params.order_error === "setup" ? "La liaison stock, panier et commandes doit être activée depuis le Dashboard."
+        : params.order_error === "stock" ? "La quantité demandée n’est plus disponible. Retire l’article concerné ou réduis ton panier."
+          : params.order_error === "unavailable" ? "Un véhicule de ton panier n’est plus publié dans le catalogue."
+            : params.order_error === "cart-refresh" ? "Ton panier contient une ancienne ligne qui n’est plus liée au catalogue. Retire-la puis ajoute de nouveau le véhicule."
+              : params.order_error ? "La commande n’a pas pu être envoyée. Réessaie dans un instant." : null;
 
   const errorMessage =
-    params.error === "invalid_name"
-      ? "Entre un prénom et un nom RP valides, entre 2 et 32 caractères."
-      : params.error === "save_failed"
-        ? "Le profil n’a pas pu être sauvegardé. Réessaie dans un instant."
-        : null;
+    params.error === "invalid_name" ? "Entre un prénom et un nom RP valides, entre 2 et 32 caractères."
+      : params.error === "save_failed" ? "Le profil n’a pas pu être sauvegardé. Réessaie dans un instant." : null;
 
   return (
-    <div className="site-shell">
-      <Topbar />
-      <main className="profile-main">
-        <section className="profile-heading">
-          <span className="eyebrow">ESPACE PERSONNEL</span>
-          <h1 className="page-title">Mon profil</h1>
-          <p className="lead">Ton identité RP, tes commandes, ta fidélité, ton panier et tes factures sont regroupés dans ton espace personnel.</p>
+    <>
+      <section className="profile-heading">
+        <span className="eyebrow">ESPACE PERSONNEL</span>
+        <h1 className="page-title">Mon profil</h1>
+        <p className="lead">Ton identité, ton panier et tous tes dossiers sont maintenant rangés dans des pages séparées.</p>
+      </section>
+
+      <div className="profile-layout">
+        <aside className="profile-card profile-summary">
+          {avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img className="profile-avatar" src={avatarUrl} alt="Avatar Discord" />
+          ) : <div className="profile-avatar profile-avatar-fallback">NG</div>}
+          <div><span className="profile-label">Nom RP</span><strong className="profile-name">{rpName || "À compléter"}</strong></div>
+          <dl className="profile-details">
+            <div><dt>Compte Discord</dt><dd>{getDiscordName(data.user)}</dd></div>
+            <div><dt>Rôle</dt><dd><span className="role-badge">{role}</span></dd></div>
+            <div><dt>Identifiant Discord</dt><dd>{getDiscordId(data.user) ?? "Non détecté"}</dd></div>
+            <div><dt>E-mail</dt><dd>{data.user.email ?? "Non communiqué"}</dd></div>
+          </dl>
+        </aside>
+
+        <section className="profile-card profile-form-card">
+          <div className="profile-form-title">
+            <div><span className="eyebrow">IDENTITÉ RP</span><h2>{complete ? "Modifier mon identité" : "Créer mon identité RP"}</h2></div>
+            {!complete && <span className="required-badge">Obligatoire</span>}
+          </div>
+          <p className="profile-help">Discord sert uniquement à sécuriser la connexion. Le site utilise ton prénom et ton nom RP.</p>
+          {errorMessage && <p className="form-error">{errorMessage}</p>}
+          <form action={saveRpProfile} className="profile-form">
+            <label><span>Prénom RP</span><input name="rp_first_name" required minLength={2} maxLength={32} defaultValue={typeof metadata.rp_first_name === "string" ? metadata.rp_first_name : ""} placeholder="Exemple : Liam" autoComplete="off" /></label>
+            <label><span>Nom RP</span><input name="rp_last_name" required minLength={2} maxLength={32} defaultValue={typeof metadata.rp_last_name === "string" ? metadata.rp_last_name : ""} placeholder="Exemple : Nostra" autoComplete="off" /></label>
+            <button className="btn profile-submit" type="submit">{complete ? "Enregistrer les modifications" : "Valider mon profil"}</button>
+          </form>
         </section>
+      </div>
 
-        <div className="profile-layout">
-          <aside className="profile-card profile-summary">
-            {avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img className="profile-avatar" src={avatarUrl} alt="Avatar Discord" />
-            ) : (
-              <div className="profile-avatar profile-avatar-fallback">NG</div>
-            )}
-            <div><span className="profile-label">Nom RP</span><strong className="profile-name">{rpName || "À compléter"}</strong></div>
-            <dl className="profile-details">
-              <div><dt>Compte Discord</dt><dd>{getDiscordName(data.user)}</dd></div>
-              <div><dt>Rôle</dt><dd><span className="role-badge">{role}</span></dd></div>
-              <div><dt>Identifiant Discord</dt><dd>{getDiscordId(data.user) ?? "Non détecté"}</dd></div>
-              <div><dt>E-mail</dt><dd>{data.user.email ?? "Non communiqué"}</dd></div>
-            </dl>
-          </aside>
+      <ProfileNavigation orders={commerce.orders.length} homologations={homologations.length} teams={teamRegistrations.length} documents={commerce.invoices.length} />
 
-          <section className="profile-card profile-form-card">
-            <div className="profile-form-title">
-              <div><span className="eyebrow">IDENTITÉ RP</span><h2>{complete ? "Modifier mon identité" : "Créer mon identité RP"}</h2></div>
-              {!complete && <span className="required-badge">Obligatoire</span>}
-            </div>
-            <p className="profile-help">Discord sert uniquement à sécuriser la connexion. Le site utilise ton prénom et ton nom RP.</p>
-            {errorMessage && <p className="form-error">{errorMessage}</p>}
-            <form action={saveRpProfile} className="profile-form">
-              <label><span>Prénom RP</span><input name="rp_first_name" required minLength={2} maxLength={32} defaultValue={typeof metadata.rp_first_name === "string" ? metadata.rp_first_name : ""} placeholder="Exemple : Liam" autoComplete="off" /></label>
-              <label><span>Nom RP</span><input name="rp_last_name" required minLength={2} maxLength={32} defaultValue={typeof metadata.rp_last_name === "string" ? metadata.rp_last_name : ""} placeholder="Exemple : Nostra" autoComplete="off" /></label>
-              <button className="btn profile-submit" type="submit">{complete ? "Enregistrer les modifications" : "Valider mon profil"}</button>
+      {!commerce.configured && <div className="dashboard-feedback">Les rubriques commerciales seront disponibles dès que le script SQL du Dashboard aura été exécuté.</div>}
+      {params.order_sent && <div className="dashboard-feedback dashboard-feedback-success">Commande <strong>{params.order_sent}</strong> envoyée à Nostra Motors. Le stock a été réservé automatiquement.</div>}
+      {params.cart_removed && <div className="dashboard-feedback dashboard-feedback-success">L’article a été retiré de ton panier.</div>}
+      {params.cart_error && <div className="dashboard-feedback dashboard-feedback-error">Impossible de retirer cet article du panier.</div>}
+      {orderErrorMessage && <div className="dashboard-feedback dashboard-feedback-error">{orderErrorMessage}</div>}
+
+      <section className="profile-commerce-grid">
+        <article className="profile-commerce-card loyalty-card">
+          <div className="profile-commerce-head"><span>◆</span><div><p>STATUT DE FIDÉLITÉ</p><h2>{commerce.loyalty?.tier ?? "Aucun statut"}</h2></div></div>
+          <dl>
+            <div><dt>Achats comptabilisés</dt><dd>{commerce.loyalty?.purchases_count ?? 0}</dd></div>
+            <div><dt>Remise actuelle</dt><dd>{Number(commerce.loyalty?.discount_percent ?? 0)} %</dd></div>
+          </dl>
+          <p className="commerce-hint">Silver après 5 achats · Gold après 15 · Black Signature après 20.</p>
+        </article>
+
+        <article className="profile-commerce-card">
+          <div className="profile-commerce-head"><span>🛒</span><div><p>MON PANIER</p><h2>{commerce.cart.length} article(s)</h2></div></div>
+          <div className="profile-mini-list">
+            {commerce.cart.length === 0 && <p className="empty-state">Ton panier est vide.</p>}
+            {commerce.cart.map((item) => (
+              <div className="profile-cart-row" key={item.id}>
+                <span>{item.quantity} × {item.item_name}</span>
+                <strong>{money(Number(item.unit_price) * Number(item.quantity))}</strong>
+                <form action={removeCartItem}><input type="hidden" name="id" value={item.id} /><button type="submit" aria-label={`Retirer ${item.item_name} du panier`}>Supprimer</button></form>
+              </div>
+            ))}
+          </div>
+          <footer><span>Total</span><strong>{money(cartTotal)}</strong></footer>
+          {commerce.cart.length > 0 && (
+            <form action={placeCartOrder} className="profile-order-form">
+              <label><span>Message pour Nostra Motors <small>(facultatif)</small></span><textarea name="customer_note" rows={3} maxLength={1500} placeholder="Exemple : couleur souhaitée, disponibilité pour la livraison…" /></label>
+              <button className="btn" type="submit" disabled={!commerce.ordersConfigured}>Passer la commande</button>
+              {!commerce.ordersConfigured && <p>Active d’abord le module depuis <strong>Dashboard → Commandes Nostra Motors</strong>.</p>}
             </form>
-          </section>
-        </div>
-
-        {!commerce.configured && (
-          <div className="dashboard-feedback">Les rubriques commerciales seront disponibles dès que le nouveau script SQL du Dashboard aura été exécuté.</div>
-        )}
-
-        {params.order_sent && <div className="dashboard-feedback dashboard-feedback-success">Commande <strong>{params.order_sent}</strong> envoyée à Nostra Motors. Le stock a été réservé automatiquement.</div>}
-        {params.cart_removed && <div className="dashboard-feedback dashboard-feedback-success">L’article a été retiré de ton panier.</div>}
-        {params.cart_error && <div className="dashboard-feedback dashboard-feedback-error">Impossible de retirer cet article du panier.</div>}
-        {orderErrorMessage && <div className="dashboard-feedback dashboard-feedback-error">{orderErrorMessage}</div>}
-
-        <section className="profile-commerce-grid">
-          <article className="profile-commerce-card loyalty-card">
-            <div className="profile-commerce-head"><span>◆</span><div><p>STATUT DE FIDÉLITÉ</p><h2>{commerce.loyalty?.tier ?? "Aucun statut"}</h2></div></div>
-            <dl>
-              <div><dt>Achats comptabilisés</dt><dd>{commerce.loyalty?.purchases_count ?? 0}</dd></div>
-              <div><dt>Remise actuelle</dt><dd>{Number(commerce.loyalty?.discount_percent ?? 0)} %</dd></div>
-            </dl>
-            <p className="commerce-hint">Silver après 5 achats · Gold après 15 · Black Signature après 20.</p>
-          </article>
-
-          <article className="profile-commerce-card">
-            <div className="profile-commerce-head"><span>🛒</span><div><p>MON PANIER</p><h2>{commerce.cart.length} article(s)</h2></div></div>
-            <div className="profile-mini-list">
-              {commerce.cart.length === 0 && <p className="empty-state">Ton panier est vide.</p>}
-              {commerce.cart.map((item) => (
-                <div className="profile-cart-row" key={item.id}>
-                  <span>{item.quantity} × {item.item_name}</span>
-                  <strong>{money(Number(item.unit_price) * Number(item.quantity))}</strong>
-                  <form action={removeCartItem}>
-                    <input type="hidden" name="id" value={item.id} />
-                    <button type="submit" aria-label={`Retirer ${item.item_name} du panier`}>Supprimer</button>
-                  </form>
-                </div>
-              ))}
-            </div>
-            <footer><span>Total</span><strong>{money(cartTotal)}</strong></footer>
-            {commerce.cart.length > 0 && (
-              <form action={placeCartOrder} className="profile-order-form">
-                <label>
-                  <span>Message pour Nostra Motors <small>(facultatif)</small></span>
-                  <textarea name="customer_note" rows={3} maxLength={1500} placeholder="Exemple : couleur souhaitée, disponibilité pour la livraison…" />
-                </label>
-                <button className="btn" type="submit" disabled={!commerce.ordersConfigured}>Passer la commande</button>
-                {!commerce.ordersConfigured && <p>Active d’abord le module depuis <strong>Dashboard → Commandes Nostra Motors</strong>.</p>}
-              </form>
-            )}
-          </article>
-        </section>
-
-        <section className="profile-data-section">
-          <div className="profile-data-heading"><div><p className="eyebrow">ESPACE CLIENT</p><h2>Mes commandes</h2></div><span>{commerce.orders.length}</span></div>
-          <div className="profile-table-wrap">
-            <table className="profile-data-table">
-              <thead><tr><th>Numéro</th><th>Date</th><th>Statut</th><th>Total</th></tr></thead>
-              <tbody>
-                {commerce.orders.length === 0 && <tr><td colSpan={4} className="empty-table-cell">Aucune commande enregistrée.</td></tr>}
-                {commerce.orders.map((order) => {
-                  const labels: Record<string, string> = { pending: "Envoyée", confirmed: "Confirmée", preparing: "En préparation", ready: "Prête", completed: "Terminée", cancelled: "Annulée" };
-                  return <tr key={order.id}><td><strong>{order.order_number}</strong>{order.admin_note && <small className="order-client-note">{order.admin_note}</small>}</td><td>{new Date(order.created_at).toLocaleDateString("fr-FR")}</td><td><span className={`order-status order-status-${order.status}`}>{labels[order.status] ?? order.status}</span></td><td>{money(order.total)}</td></tr>;
-                })}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-
-        <section className="profile-data-section">
-          <div className="profile-data-heading"><div><p className="eyebrow">NOSTRA CIRCUIT</p><h2>Mes demandes d’homologation</h2></div><span>{homologations.length}</span></div>
-          <div className="profile-table-wrap">
-            <table className="profile-data-table">
-              <thead><tr><th>Type</th><th>Dossier</th><th>Date</th><th>État</th><th>Réponse de la direction</th></tr></thead>
-              <tbody>
-                {homologations.length === 0 && <tr><td colSpan={5} className="empty-table-cell">Aucune demande d’homologation envoyée.</td></tr>}
-                {homologations.map((request) => {
-                  const title = request.request_type === "vehicle"
-                    ? String(request.payload.vehicle_name || "Véhicule")
-                    : String(request.payload.team_name || "Écurie");
-                  const statusLabels: Record<string, string> = { pending: "En attente", reviewing: "En cours d’étude", approved: "Validée", rejected: "Refusée" };
-                  return <tr key={request.id}>
-                    <td>{request.request_type === "vehicle" ? "Véhicule" : "Écurie"}</td>
-                    <td><strong>{title}</strong></td>
-                    <td>{new Date(request.created_at).toLocaleDateString("fr-FR")}</td>
-                    <td><span className={`request-status request-status-${request.status}`}>{statusLabels[request.status] ?? request.status}</span></td>
-                    <td>{request.admin_note || "Aucune réponse pour le moment"}</td>
-                  </tr>;
-                })}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <section className="profile-data-section">
-          <div className="profile-data-heading"><div><p className="eyebrow">NOSTRA CIRCUIT</p><h2>Mes inscriptions d’écurie</h2></div><span>{teamRegistrations.length}</span></div>
-          <div className="profile-table-wrap">
-            <table className="profile-data-table">
-              <thead><tr><th>Écurie</th><th>Championnat</th><th>Date</th><th>État</th><th>Réponse de la direction</th></tr></thead>
-              <tbody>
-                {teamRegistrations.length === 0 && <tr><td colSpan={5} className="empty-table-cell">Aucune inscription d’écurie envoyée.</td></tr>}
-                {teamRegistrations.map((request) => {
-                  const championshipLabels: Record<string, string> = { f1: "F1", gt3rs: "GT3 RS", both: "F1 + GT3 RS" };
-                  const statusLabels: Record<string, string> = { pending: "En attente", reviewing: "En cours d’étude", approved: "Validée", rejected: "Refusée" };
-                  return <tr key={request.id}>
-                    <td><strong>{request.team_name}</strong><small className="order-client-note">Directeur : {request.team_director}</small></td>
-                    <td>{championshipLabels[request.registration_type] ?? request.registration_type}</td>
-                    <td>{new Date(request.created_at).toLocaleDateString("fr-FR")}</td>
-                    <td><span className={`request-status request-status-${request.status}`}>{statusLabels[request.status] ?? request.status}</span></td>
-                    <td>{request.admin_note || "Aucune réponse pour le moment"}</td>
-                  </tr>;
-                })}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <section className="profile-data-section">
-          <div className="profile-data-heading"><div><p className="eyebrow">DOCUMENTS</p><h2>Mes factures</h2></div><span>{commerce.invoices.length}</span></div>
-          <div className="profile-table-wrap">
-            <table className="profile-data-table">
-              <thead><tr><th>Facture</th><th>Date</th><th>Statut</th><th>Montant</th><th>Document</th></tr></thead>
-              <tbody>
-                {commerce.invoices.length === 0 && <tr><td colSpan={5} className="empty-table-cell">Aucune facture disponible.</td></tr>}
-                {commerce.invoices.map((invoice) => <tr key={invoice.id}><td><strong>{invoice.invoice_number}</strong></td><td>{new Date(invoice.issued_at).toLocaleDateString("fr-FR")}</td><td>{invoice.status}</td><td>{money(invoice.amount)}</td><td>{invoice.download_url ? <a href={invoice.download_url} target="_blank" rel="noreferrer">Ouvrir ↗</a> : "À venir"}</td></tr>)}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      </main>
-    </div>
+          )}
+        </article>
+      </section>
+    </>
   );
 }
