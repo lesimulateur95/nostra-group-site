@@ -787,3 +787,180 @@ export async function getTombolaPurchases(roundId: number): Promise<TombolaPurch
     total: Number(row.total) || 0,
   })) as TombolaPurchase[];
 }
+
+
+export type BingoRound = {
+  id: number;
+  title: string;
+  card_price: number;
+  status: "open" | "closed" | "playing" | "completed" | "archived";
+  phase: "one_line" | "two_lines" | "three_lines" | "four_lines" | "full_card";
+  archived_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type BingoCartItem = {
+  id: number;
+  user_id: string;
+  round_id: number;
+  customer_name: string;
+  quantity: number;
+  unit_price: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type BingoPurchase = {
+  id: number;
+  round_id: number;
+  user_id: string;
+  order_number: string;
+  customer_name: string;
+  quantity: number;
+  unit_price: number;
+  total: number;
+  created_at: string;
+};
+
+export type BingoCard = {
+  id: number;
+  round_id: number;
+  purchase_id: number;
+  user_id: string;
+  customer_name: string;
+  card_number: number;
+  numbers: number[];
+  created_at: string;
+};
+
+export type BingoDraw = {
+  id: number;
+  round_id: number;
+  ball_number: number;
+  draw_order: number;
+  drawn_by: string | null;
+  drawn_at: string;
+};
+
+export type BingoWinner = {
+  id: number;
+  round_id: number;
+  card_id: number;
+  phase: "one_line" | "two_lines" | "three_lines" | "four_lines" | "full_card";
+  card_number: number;
+  customer_name: string;
+  trigger_ball: number | null;
+  achieved_at: string;
+};
+
+export async function getBingoModuleConfigured(): Promise<boolean> {
+  const supabase = await createClient();
+  const checks = await Promise.all([
+    supabase.from("bingo_rounds").select("id").limit(1),
+    supabase.from("bingo_cards").select("id").limit(1),
+    supabase.from("bingo_draws").select("id").limit(1),
+    supabase.from("bingo_winners").select("id").limit(1),
+  ]);
+  return checks.every((result) => !result.error);
+}
+
+export async function getActiveBingoRound(): Promise<BingoRound | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("bingo_rounds")
+    .select("id,title,card_price,status,phase,archived_at,created_at,updated_at")
+    .is("archived_at", null)
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return { ...data, card_price: Number(data.card_price) || 0 } as BingoRound;
+}
+
+export async function getOwnBingoCart(userId: string): Promise<BingoCartItem | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("bingo_cart_items")
+    .select("id,user_id,round_id,customer_name,quantity,unit_price,created_at,updated_at")
+    .eq("user_id", userId)
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return { ...data, quantity: Number(data.quantity) || 0, unit_price: Number(data.unit_price) || 0 } as BingoCartItem;
+}
+
+export async function getOwnBingoCards(userId: string): Promise<BingoCard[]> {
+  const round = await getActiveBingoRound();
+  if (!round) return [];
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("bingo_cards")
+    .select("id,round_id,purchase_id,user_id,customer_name,card_number,numbers,created_at")
+    .eq("user_id", userId)
+    .eq("round_id", round.id)
+    .order("card_number", { ascending: true });
+
+  if (error) return [];
+  return (data ?? []).map((row) => ({
+    id: Number(row.id),
+    round_id: Number(row.round_id),
+    purchase_id: Number(row.purchase_id),
+    user_id: String(row.user_id),
+    customer_name: String(row.customer_name),
+    card_number: Number(row.card_number),
+    numbers: Array.isArray(row.numbers) ? row.numbers.map(Number) : [],
+    created_at: String(row.created_at),
+  } satisfies BingoCard));
+}
+
+export async function getBingoCards(roundId: number): Promise<BingoCard[]> {
+  if (!roundId) return [];
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("bingo_cards")
+    .select("id,round_id,purchase_id,user_id,customer_name,card_number,numbers,created_at")
+    .eq("round_id", roundId)
+    .order("card_number", { ascending: true });
+  if (error) return [];
+  return (data ?? []).map((row) => ({ ...row, card_number: Number(row.card_number), numbers: Array.isArray(row.numbers) ? row.numbers.map(Number) : [] })) as BingoCard[];
+}
+
+export async function getBingoPurchases(roundId: number): Promise<BingoPurchase[]> {
+  if (!roundId) return [];
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("bingo_purchases")
+    .select("id,round_id,user_id,order_number,customer_name,quantity,unit_price,total,created_at")
+    .eq("round_id", roundId)
+    .order("created_at", { ascending: false });
+  if (error) return [];
+  return (data ?? []).map((row) => ({ ...row, quantity: Number(row.quantity), unit_price: Number(row.unit_price), total: Number(row.total) })) as BingoPurchase[];
+}
+
+export async function getBingoDraws(roundId: number): Promise<BingoDraw[]> {
+  if (!roundId) return [];
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("bingo_draws")
+    .select("id,round_id,ball_number,draw_order,drawn_by,drawn_at")
+    .eq("round_id", roundId)
+    .order("draw_order", { ascending: false });
+  if (error) return [];
+  return (data ?? []).map((row) => ({ ...row, ball_number: Number(row.ball_number), draw_order: Number(row.draw_order) })) as BingoDraw[];
+}
+
+export async function getBingoWinners(roundId: number): Promise<BingoWinner[]> {
+  if (!roundId) return [];
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("bingo_winners")
+    .select("id,round_id,card_id,phase,card_number,customer_name,trigger_ball,achieved_at")
+    .eq("round_id", roundId)
+    .order("achieved_at", { ascending: false });
+  if (error) return [];
+  return (data ?? []).map((row) => ({ ...row, card_number: Number(row.card_number), trigger_ball: row.trigger_ball === null ? null : Number(row.trigger_ball) })) as BingoWinner[];
+}

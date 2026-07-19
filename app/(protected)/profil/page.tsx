@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { saveRpProfile } from "@/app/actions/profile";
 import { placeCartOrder, removeCartItem } from "@/app/actions/orders";
 import { checkoutTombolaCart, removeTombolaCart } from "@/app/actions/tombola";
+import { checkoutBingoCart, removeBingoCart } from "@/app/actions/bingo";
 import { ProfileNavigation } from "@/components/profile/profile-navigation";
 import {
   getAvatarUrl,
@@ -11,12 +12,12 @@ import {
   getRpName,
   hasRpProfile,
 } from "@/lib/auth/user-profile";
-import { getOwnHomologationRequests, getOwnTeamRegistrationRequests, getOwnTombolaCart, getOwnTombolaTickets, getOwnWheelSpins, getProfileCommerceData } from "@/lib/backoffice/data";
+import { getOwnBingoCards, getOwnBingoCart, getOwnHomologationRequests, getOwnTeamRegistrationRequests, getOwnTombolaCart, getOwnTombolaTickets, getOwnWheelSpins, getProfileCommerceData } from "@/lib/backoffice/data";
 import { getUserRoleLabel } from "@/lib/auth/access";
 import { createClient } from "@/lib/supabase/server";
 
 type ProfilePageProps = {
-  searchParams: Promise<{ error?: string; order_sent?: string; order_error?: string; cart_removed?: string; cart_error?: string; tombola_added?: string; tombola_removed?: string; tombola_cart_error?: string; tombola_order_error?: string }>;
+  searchParams: Promise<{ error?: string; order_sent?: string; order_error?: string; cart_removed?: string; cart_error?: string; tombola_added?: string; tombola_removed?: string; tombola_cart_error?: string; tombola_order_error?: string; bingo_added?: string; bingo_removed?: string; bingo_cart_error?: string; bingo_order_error?: string }>;
 };
 
 function money(value: number | string) {
@@ -33,7 +34,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
   const avatarUrl = getAvatarUrl(data.user);
   const rpName = getRpName(data.user);
   const complete = hasRpProfile(data.user);
-  const [role, commerce, homologations, teamRegistrations, wheelSpins, tombolaCart, tombolaTickets] = await Promise.all([
+  const [role, commerce, homologations, teamRegistrations, wheelSpins, tombolaCart, tombolaTickets, bingoCart, bingoCards] = await Promise.all([
     getUserRoleLabel(data.user),
     getProfileCommerceData(data.user.id),
     getOwnHomologationRequests(data.user.id),
@@ -41,9 +42,12 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
     getOwnWheelSpins(data.user.id),
     getOwnTombolaCart(data.user.id),
     getOwnTombolaTickets(data.user.id),
+    getOwnBingoCart(data.user.id),
+    getOwnBingoCards(data.user.id),
   ]);
   const cartTotal = commerce.cart.reduce((sum, item) => sum + Number(item.unit_price) * Number(item.quantity), 0);
   const tombolaCartTotal = tombolaCart ? Number(tombolaCart.unit_price) * Number(tombolaCart.quantity) : 0;
+  const bingoCartTotal = bingoCart ? Number(bingoCart.unit_price) * Number(bingoCart.quantity) : 0;
 
   const orderErrorMessage =
     params.order_error === "empty" ? "Ton panier est vide."
@@ -95,7 +99,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
         </section>
       </div>
 
-      <ProfileNavigation orders={commerce.orders.length} homologations={homologations.length} teams={teamRegistrations.length} documents={commerce.invoices.length} games={wheelSpins.length + tombolaTickets.length} />
+      <ProfileNavigation orders={commerce.orders.length} homologations={homologations.length} teams={teamRegistrations.length} documents={commerce.invoices.length} games={wheelSpins.length + tombolaTickets.length + bingoCards.length} />
 
       {!commerce.configured && <div className="dashboard-feedback">Les rubriques commerciales seront disponibles dès que le script SQL du Dashboard aura été exécuté.</div>}
       {params.order_sent && <div className="dashboard-feedback dashboard-feedback-success">Commande <strong>{params.order_sent}</strong> envoyée à Nostra Motors. Le stock a été réservé automatiquement.</div>}
@@ -105,6 +109,10 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
       {params.tombola_removed && <div className="dashboard-feedback dashboard-feedback-success">Les tickets de tombola ont été retirés de ton panier.</div>}
       {params.tombola_cart_error && <div className="dashboard-feedback dashboard-feedback-error">Impossible de modifier le panier de la tombola.</div>}
       {params.tombola_order_error && <div className="dashboard-feedback dashboard-feedback-error">La commande de tickets n’a pas pu être validée. Vérifie que la tombola est encore ouverte.</div>}
+      {params.bingo_added && <div className="dashboard-feedback dashboard-feedback-success">Les grilles de Bingo ont été ajoutées à ton panier.</div>}
+      {params.bingo_removed && <div className="dashboard-feedback dashboard-feedback-success">Les grilles de Bingo ont été retirées de ton panier.</div>}
+      {params.bingo_cart_error && <div className="dashboard-feedback dashboard-feedback-error">Impossible de modifier le panier du Bingo.</div>}
+      {params.bingo_order_error && <div className="dashboard-feedback dashboard-feedback-error">La commande de grilles n’a pas pu être validée. Vérifie que les ventes sont encore ouvertes.</div>}
       {orderErrorMessage && <div className="dashboard-feedback dashboard-feedback-error">{orderErrorMessage}</div>}
 
       <section className="profile-commerce-grid">
@@ -118,9 +126,9 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
         </article>
 
         <article className="profile-commerce-card">
-          <div className="profile-commerce-head"><span>🛒</span><div><p>MON PANIER</p><h2>{commerce.cart.length + (tombolaCart ? 1 : 0)} article(s)</h2></div></div>
+          <div className="profile-commerce-head"><span>🛒</span><div><p>MON PANIER</p><h2>{commerce.cart.length + (tombolaCart ? 1 : 0) + (bingoCart ? 1 : 0)} article(s)</h2></div></div>
           <div className="profile-mini-list">
-            {commerce.cart.length === 0 && !tombolaCart && <p className="empty-state">Ton panier est vide.</p>}
+            {commerce.cart.length === 0 && !tombolaCart && !bingoCart && <p className="empty-state">Ton panier est vide.</p>}
             {commerce.cart.map((item) => (
               <div className="profile-cart-row" key={item.id}>
                 <span>{item.quantity} × {item.item_name}</span>
@@ -135,8 +143,15 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
                 <form action={removeTombolaCart}><button type="submit">Supprimer</button></form>
               </div>
             )}
+            {bingoCart && (
+              <div className="profile-cart-row profile-cart-row-bingo">
+                <span>{bingoCart.quantity} × Grille Bingo</span>
+                <strong>{money(bingoCartTotal)}</strong>
+                <form action={removeBingoCart}><button type="submit">Supprimer</button></form>
+              </div>
+            )}
           </div>
-          <footer><span>Total du panier</span><strong>{money(cartTotal + tombolaCartTotal)}</strong></footer>
+          <footer><span>Total du panier</span><strong>{money(cartTotal + tombolaCartTotal + bingoCartTotal)}</strong></footer>
           {commerce.cart.length > 0 && (
             <form action={placeCartOrder} className="profile-order-form">
               <label><span>Message pour Nostra Motors <small>(facultatif)</small></span><textarea name="customer_note" rows={3} maxLength={1500} placeholder="Exemple : couleur souhaitée, disponibilité pour la livraison…" /></label>
@@ -148,6 +163,12 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
             <form action={checkoutTombolaCart} className="profile-order-form profile-tombola-checkout">
               <p className="commerce-hint">La commande Tombola distribue immédiatement {tombolaCart.quantity} numéro(s) aléatoire(s) et unique(s). Tu les retrouveras dans Profil → Jeux.</p>
               <button className="btn" type="submit">Commander mes tickets Tombola</button>
+            </form>
+          )}
+          {bingoCart && (
+            <form action={checkoutBingoCart} className="profile-order-form profile-bingo-checkout">
+              <p className="commerce-hint">La commande Bingo génère immédiatement {bingoCart.quantity} grille(s) numérotée(s), avec 24 numéros uniques entre 1 et 99.</p>
+              <button className="btn" type="submit">Commander mes grilles Bingo</button>
             </form>
           )}
         </article>

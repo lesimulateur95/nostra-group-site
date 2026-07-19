@@ -1,9 +1,14 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ProfileSectionHeader } from "@/components/profile/profile-section-header";
+import { BingoCard } from "@/components/games/bingo-card";
 import {
+  getOwnBingoCards,
   getOwnTombolaTickets,
   getOwnWheelSpins,
+  getBingoDraws,
+  getBingoModuleConfigured,
+  getActiveBingoRound,
   getTombolaModuleConfigured,
   getWheelModuleConfigured,
 } from "@/lib/backoffice/data";
@@ -25,20 +30,24 @@ function ticket(value: number) {
 export default async function ProfileGamesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tombola_order?: string }>;
+  searchParams: Promise<{ tombola_order?: string; bingo_order?: string }>;
 }) {
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
   if (!data.user) redirect("/");
 
   const params = await searchParams;
-  const [wheelConfigured, tombolaConfigured] = await Promise.all([
+  const [wheelConfigured, tombolaConfigured, bingoConfigured] = await Promise.all([
     getWheelModuleConfigured(),
     getTombolaModuleConfigured(),
+    getBingoModuleConfigured(),
   ]);
-  const [spins, tombolaTickets] = await Promise.all([
+  const bingoRound = bingoConfigured ? await getActiveBingoRound() : null;
+  const [spins, tombolaTickets, bingoCards, bingoDraws] = await Promise.all([
     wheelConfigured ? getOwnWheelSpins(data.user.id) : Promise.resolve([]),
     tombolaConfigured ? getOwnTombolaTickets(data.user.id) : Promise.resolve([]),
+    bingoConfigured ? getOwnBingoCards(data.user.id) : Promise.resolve([]),
+    bingoRound ? getBingoDraws(bingoRound.id) : Promise.resolve([]),
   ]);
 
   const available = spins.filter((spin) => spin.redemption_status === "unused").length;
@@ -54,7 +63,9 @@ export default async function ProfileGamesPage({
 
   return (
     <>
-      <ProfileSectionHeader eyebrow="JEUX NOSTRA GROUP" title="Mes jeux & tickets" description="Retrouve tes bonus de la Roue de la chance, tes commandes de tombola et tous les numéros qui t’ont été attribués." />
+      <ProfileSectionHeader eyebrow="JEUX NOSTRA GROUP" title="Mes jeux" description="Retrouve tes bonus de la roue, tes tickets de tombola et toutes tes grilles de Bingo." />
+
+      {params.bingo_order && <div className="dashboard-feedback dashboard-feedback-success">Commande <strong>{params.bingo_order}</strong> validée : tes grilles Bingo sont prêtes.</div>}
 
       {params.tombola_order && (
         <div className="dashboard-feedback dashboard-feedback-success">
@@ -62,13 +73,14 @@ export default async function ProfileGamesPage({
         </div>
       )}
 
-      {!wheelConfigured && !tombolaConfigured && <div className="dashboard-feedback">Les jeux ne sont pas encore activés par le Gérant.</div>}
+      {!wheelConfigured && !tombolaConfigured && !bingoConfigured && <div className="dashboard-feedback">Les jeux ne sont pas encore activés par le Gérant.</div>}
 
       <section className="profile-games-kpis">
         <article><span>Tirages roue</span><strong>{spins.length}</strong></article>
         <article><span>Bonus disponibles</span><strong>{available}</strong></article>
         <article><span>Bonus utilisés</span><strong>{used}</strong></article>
         <article><span>Tickets tombola</span><strong>{tombolaTickets.length}</strong></article>
+        <article><span>Grilles Bingo</span><strong>{bingoCards.length}</strong></article>
       </section>
 
       {tombolaConfigured && (
@@ -113,6 +125,18 @@ export default async function ProfileGamesPage({
                 <span className={`wheel-gain-status wheel-gain-status-${spin.redemption_status}`}>{statusLabels[spin.redemption_status] ?? spin.redemption_status}</span>
               </article>
             ))}
+          </div>
+        </section>
+      )}
+
+
+      {bingoConfigured && (
+        <section className="profile-games-section profile-bingo-section">
+          <div className="profile-data-heading"><div><p className="eyebrow">BINGO</p><h2>Mes grilles actives</h2></div><span>{bingoCards.length} grille(s)</span></div>
+          <p className="commerce-hint">Les numéros déjà sortis sont colorés automatiquement ici. Sur la page du jeu, tu peux aussi les cocher manuellement.</p>
+          <div className="bingo-cards-grid">
+            {bingoCards.length === 0 && <p className="empty-state">Tu ne possèdes aucune grille pour l’édition actuelle.</p>}
+            {bingoCards.map((card) => <BingoCard key={card.id} card={card} calledNumbers={bingoDraws.map((draw) => draw.ball_number)} />)}
           </div>
         </section>
       )}

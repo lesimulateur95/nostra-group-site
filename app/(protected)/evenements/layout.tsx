@@ -12,7 +12,15 @@ export default async function EventsLayout({
 
   for (const item of baseItems) {
     if (item.key === "jeux") {
-      items.push({ ...item, label: "Bingo" });
+      items.push({
+        key: "bingo",
+        href: "/evenements/bingo",
+        label: "Bingo",
+        children: [
+          { key: "bingo-overview", href: "/evenements/bingo", label: "Jeu en direct" },
+          { key: "bingo-registration", href: "/evenements/bingo/inscription", label: "Acheter mes grilles" },
+        ],
+      });
       items.push({
         key: "tombola",
         href: "/evenements/tombola",

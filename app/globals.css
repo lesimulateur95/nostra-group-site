@@ -2961,3 +2961,109 @@ select:focus { outline: 2px solid rgba(212,175,55,.32); outline-offset: 1px; }
     grid-column: 2;
   }
 }
+
+
+/* Nostra Group V32 — Bingo */
+.bingo-page { width: min(1180px, 100%); display: grid; gap: 24px; }
+.bingo-hero { overflow: hidden; }
+.bingo-round-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) auto; gap: 12px; align-items: stretch; }
+.bingo-round-summary > div { padding: 16px 18px; border: 1px solid var(--line); border-radius: 16px; background: rgba(15,15,15,.8); display: grid; gap: 7px; }
+.bingo-round-summary span { color: var(--muted); font-size: .75rem; letter-spacing: .1em; font-weight: 800; }
+.bingo-round-summary strong { color: var(--gold-light); }
+.bingo-round-summary .btn { align-self: stretch; display: grid; place-items: center; border-radius: 16px; }
+.bingo-live-shell { display: grid; gap: 20px; }
+.bingo-live-stage { position: relative; min-height: 510px; display: grid; place-items: center; overflow: hidden; border: 1px solid var(--line); border-radius: 28px; background: radial-gradient(circle at 50% 40%, rgba(212,175,55,.18), transparent 18rem), linear-gradient(145deg, #111, #070707); padding: 28px; }
+.bingo-drum { position: relative; width: min(390px, 78vw); aspect-ratio: 1; display: grid; place-items: center; border: 10px solid rgba(212,175,55,.3); border-radius: 50%; box-shadow: inset 0 0 60px rgba(0,0,0,.8), 0 28px 80px rgba(0,0,0,.45); background: radial-gradient(circle, #242424 0 27%, #111 28% 56%, #080808 57%); }
+.bingo-drum::before, .bingo-drum::after { content: ""; position: absolute; inset: 9%; border: 1px dashed rgba(241,215,122,.35); border-radius: 50%; }
+.bingo-drum::after { inset: 24%; border-style: solid; }
+.bingo-drum.is-spinning { animation: bingo-drum-pulse .35s linear infinite alternate; }
+@keyframes bingo-drum-pulse { to { transform: scale(1.025); filter: brightness(1.22); } }
+.bingo-drum-ring { position: absolute; inset: 0; animation: bingo-ring-idle 18s linear infinite; }
+.bingo-drum.is-spinning .bingo-drum-ring { animation-duration: .65s; }
+@keyframes bingo-ring-idle { to { transform: rotate(360deg); } }
+.bingo-drum-ring i { --angle: calc(var(--ball-index) * 20deg); position: absolute; top: 50%; left: 50%; width: 35px; height: 35px; margin: -17px; transform: rotate(var(--angle)) translateY(-165px) rotate(calc(var(--angle) * -1)); display: grid; place-items: center; border-radius: 50%; border: 1px solid rgba(212,175,55,.35); background: #f2ead1; color: #111; font-style: normal; font-size: .7rem; font-weight: 900; }
+.bingo-current-ball { position: relative; z-index: 2; width: 150px; height: 150px; display: grid; place-items: center; align-content: center; gap: 4px; border-radius: 50%; border: 6px solid #d4af37; background: radial-gradient(circle at 35% 28%, #fff, #ead9a2 42%, #b58a18 100%); color: #080808; box-shadow: 0 18px 55px rgba(212,175,55,.34); }
+.bingo-current-ball small { font-size: .68rem; letter-spacing: .13em; font-weight: 900; }
+.bingo-current-ball strong { font-size: 4.2rem; line-height: 1; }
+.bingo-stage-meta { position: absolute; left: 24px; top: 24px; display: grid; gap: 4px; padding: 14px 16px; border: 1px solid rgba(212,175,55,.25); border-radius: 14px; background: rgba(0,0,0,.65); }
+.bingo-stage-meta span, .bingo-stage-meta small { color: var(--muted); }
+.bingo-stage-meta strong { color: var(--gold-light); font-size: 1.25rem; }
+.bingo-draw-button { position: absolute; right: 24px; bottom: 24px; min-width: 210px; }
+.bingo-live-message { padding: 18px 22px; border: 1px solid rgba(212,175,55,.5); border-radius: 16px; background: rgba(212,175,55,.1); color: var(--gold-light); font-weight: 900; text-align: center; }
+.bingo-winner-alerts { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; }
+.bingo-winner-alerts article { padding: 18px; border: 1px solid rgba(82,210,126,.4); border-radius: 16px; background: rgba(82,210,126,.08); display: grid; gap: 6px; }
+.bingo-winner-alerts span { color: #8ff1b0; font-size: .72rem; letter-spacing: .12em; font-weight: 900; }
+.bingo-winner-alerts strong { color: white; font-size: 1.18rem; }
+.bingo-winner-alerts small { color: #bcdac5; }
+.bingo-number-panels { display: grid; grid-template-columns: minmax(220px,.55fr) 1.45fr; gap: 16px; }
+.bingo-latest-panel, .bingo-history-panel { min-height: 150px; padding: 24px; border: 1px solid var(--line); border-radius: 20px; background: rgba(13,13,13,.82); }
+.bingo-latest-panel { display: grid; place-items: center; align-content: center; gap: 8px; }
+.bingo-latest-panel span, .bingo-history-panel > span { color: var(--muted); font-size: .72rem; letter-spacing: .12em; font-weight: 900; }
+.bingo-latest-panel strong { color: var(--gold-light); font-size: 4.5rem; line-height: 1; }
+.bingo-history-panel { display: grid; gap: 16px; }
+.bingo-history-panel div { display: flex; flex-wrap: wrap; gap: 8px; align-content: start; }
+.bingo-history-panel b { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 50%; border: 1px solid rgba(212,175,55,.28); background: #eee5c9; color: #111; }
+.bingo-history-panel small { color: var(--muted); }
+.bingo-my-cards-section { display: grid; gap: 18px; }
+.bingo-show-cards-button { justify-self: start; padding: 13px 18px; border: 1px solid rgba(212,175,55,.4); border-radius: 999px; background: rgba(212,175,55,.08); color: var(--gold-light); font-weight: 900; cursor: pointer; }
+.bingo-cards-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 18px; align-items: start; }
+.bingo-card { min-width: 0; padding: 16px; border: 1px solid rgba(212,175,55,.28); border-radius: 20px; background: linear-gradient(145deg, rgba(25,25,25,.97), rgba(8,8,8,.97)); box-shadow: 0 18px 40px rgba(0,0,0,.25); }
+.bingo-card > header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.bingo-card > header div { display: grid; }
+.bingo-card > header span { color: var(--muted); font-size: .62rem; letter-spacing: .13em; font-weight: 900; }
+.bingo-card > header strong { color: var(--gold-light); }
+.bingo-card > header small { color: #ddd; overflow-wrap: anywhere; text-align: center; }
+.bingo-card > header b { color: var(--muted); font-size: .75rem; }
+.bingo-card-grid { display: grid; grid-template-columns: repeat(5, 1fr); border: 2px solid #9e7d20; border-radius: 12px; overflow: hidden; }
+.bingo-cell { aspect-ratio: 1; min-width: 0; display: grid; place-items: center; border: 1px solid rgba(10,10,10,.55); background: #f1ead7; color: #111; font-size: clamp(.8rem, 2vw, 1.15rem); font-weight: 950; cursor: default; transition: background .16s ease, transform .16s ease; }
+.bingo-cell:not(:disabled) { cursor: pointer; }
+.bingo-cell:not(:disabled):hover { transform: scale(.93); }
+.bingo-cell.is-called { outline: 2px solid rgba(212,175,55,.65); outline-offset: -3px; }
+.bingo-cell.is-marked { background: linear-gradient(145deg, #d4af37, #7b5d0d); color: #080808; box-shadow: inset 0 0 0 2px #f7df83; }
+.bingo-cell-center { background: #0a0a0a; color: var(--gold-light); padding: 3px; }
+.bingo-nm-logo { display: grid; place-items: center; gap: 1px; line-height: 1; }
+.bingo-nm-logo i { font-style: normal; color: var(--gold-light); font-size: .85rem; font-weight: 1000; letter-spacing: -.06em; }
+.bingo-nm-logo small { color: #d7c276; font-size: .29rem; letter-spacing: .08em; text-align: center; }
+.bingo-card > footer { margin-top: 10px; color: var(--muted); font-size: .72rem; line-height: 1.4; }
+.bingo-registration-card { padding: 26px; border: 1px solid var(--line); border-radius: 22px; background: rgba(14,14,14,.82); }
+.bingo-registration-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 20px; }
+.bingo-registration-heading h2 { margin: 5px 0 0; }
+.bingo-status { padding: 9px 13px; border-radius: 999px; border: 1px solid rgba(82,210,126,.35); color: #8ff1b0; background: rgba(82,210,126,.08); font-weight: 900; }
+.bingo-status-closed, .bingo-status-playing, .bingo-status-completed { border-color: rgba(255,184,84,.35); color: #ffd08a; background: rgba(255,184,84,.08); }
+.bingo-registration-form, .bingo-settings-form, .bingo-phase-form { display: grid; gap: 18px; }
+.bingo-form-grid, .bingo-settings-form { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 14px; }
+.bingo-registration-form label, .bingo-settings-form label, .bingo-phase-form label { display: grid; gap: 7px; }
+.bingo-registration-form label > span, .bingo-settings-form label > span, .bingo-phase-form label > span { color: #ddd; font-weight: 800; font-size: .86rem; }
+.bingo-registration-form input, .bingo-settings-form input, .bingo-settings-form select, .bingo-phase-form select { width: 100%; border: 1px solid rgba(212,175,55,.25); border-radius: 12px; padding: 12px 13px; background: #0a0a0a; color: white; }
+.bingo-price-preview { display: flex; flex-wrap: wrap; gap: 14px; }
+.bingo-price-preview span { padding: 12px 14px; border: 1px solid rgba(212,175,55,.18); border-radius: 12px; color: var(--muted); }
+.bingo-price-preview strong { color: var(--gold-light); margin-left: 8px; }
+.bingo-dashboard-controls { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 18px; }
+.bingo-phase-form { grid-template-columns: 1fr auto; align-items: end; }
+.bingo-danger-actions { margin-top: 20px; display: grid; gap: 10px; }
+.bingo-danger-actions details { border-top: 1px solid rgba(255,255,255,.08); padding-top: 10px; }
+.bingo-danger-actions form { padding: 12px 0; display: grid; gap: 10px; }
+.bingo-danger-actions p { color: var(--muted); line-height: 1.5; margin: 0; }
+.bingo-dashboard-winners { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; }
+.bingo-dashboard-winners article { padding: 16px; border: 1px solid rgba(82,210,126,.28); border-radius: 14px; background: rgba(82,210,126,.05); display: grid; gap: 5px; }
+.bingo-dashboard-winners span { color: #8ff1b0; font-size: .7rem; font-weight: 900; letter-spacing: .1em; }
+.bingo-dashboard-winners strong { color: white; }
+.bingo-dashboard-winners small { color: var(--muted); }
+.profile-cart-row-bingo { border-color: rgba(69,184,255,.25) !important; }
+.profile-bingo-section { display: grid; gap: 18px; }
+
+@media (max-width: 1000px) {
+  .bingo-round-summary { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .bingo-cards-grid, .bingo-winner-alerts, .bingo-dashboard-winners { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .bingo-dashboard-controls { grid-template-columns: 1fr; }
+}
+@media (max-width: 700px) {
+  .bingo-live-stage { min-height: 440px; padding: 18px; }
+  .bingo-drum-ring i { transform: rotate(var(--angle)) translateY(-134px) rotate(calc(var(--angle) * -1)); width: 30px; height: 30px; margin: -15px; }
+  .bingo-current-ball { width: 125px; height: 125px; }
+  .bingo-current-ball strong { font-size: 3.4rem; }
+  .bingo-stage-meta { left: 14px; top: 14px; }
+  .bingo-draw-button { right: 14px; bottom: 14px; min-width: 180px; }
+  .bingo-number-panels, .bingo-round-summary, .bingo-form-grid, .bingo-settings-form, .bingo-phase-form { grid-template-columns: 1fr; }
+  .bingo-cards-grid, .bingo-winner-alerts, .bingo-dashboard-winners { grid-template-columns: 1fr; }
+}

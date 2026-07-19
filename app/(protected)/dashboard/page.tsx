@@ -7,6 +7,9 @@ import { getDiscordName, getRpName } from "@/lib/auth/user-profile";
 import {
   getAccountingEntries,
   getBackofficeConfigured,
+  getBingoCards,
+  getBingoModuleConfigured,
+  getActiveBingoRound,
   getCatalogVehicles,
   getCircuitSetting,
   getDashboardRoleAccessConfigured,
@@ -41,13 +44,14 @@ export default async function DashboardPage() {
   const ordersAccess = managerAccess || roles.includes("employee") || roles.includes("commercial");
   if (!managerAccess && !commissionerAccess && !ordersAccess) redirect("/accueil");
 
-  const [configured, ordersConfigured, teamRegistrationsConfigured, roleAccessConfigured, wheelConfigured, tombolaConfigured] = await Promise.all([
+  const [configured, ordersConfigured, teamRegistrationsConfigured, roleAccessConfigured, wheelConfigured, tombolaConfigured, bingoConfigured] = await Promise.all([
     managerAccess ? getBackofficeConfigured() : Promise.resolve(false),
     ordersAccess ? getOrderModuleConfigured() : Promise.resolve(false),
     managerAccess ? getTeamRegistrationModuleConfigured() : Promise.resolve(false),
     getDashboardRoleAccessConfigured(),
     managerAccess ? getWheelModuleConfigured() : Promise.resolve(false),
     managerAccess ? getTombolaModuleConfigured() : Promise.resolve(false),
+    managerAccess ? getBingoModuleConfigured() : Promise.resolve(false),
   ]);
 
   const [setting, motorsSetting, motorsStatusConfigured, stock, accounting, events, requests, reservationRequests, catalogVehicles] = managerAccess && configured
@@ -69,6 +73,8 @@ export default async function DashboardPage() {
   const wheelSpins = managerAccess && wheelConfigured ? await getWheelSpins() : [];
   const tombolaRound = managerAccess && tombolaConfigured ? await getActiveTombolaRound() : null;
   const tombolaTickets = managerAccess && tombolaRound ? await getTombolaTickets(tombolaRound.id) : [];
+  const bingoRound = managerAccess && bingoConfigured ? await getActiveBingoRound() : null;
+  const bingoCards = managerAccess && bingoRound ? await getBingoCards(bingoRound.id) : [];
   const unusedWheelGains = wheelSpins.filter((spin) => spin.redemption_status === "unused").length;
   const pendingOrders = orders.filter((order) => order.status === "pending").length;
   const pendingTeamRegistrations = teamRegistrations.filter((request) => request.status === "pending" || request.status === "reviewing").length;
@@ -80,7 +86,7 @@ export default async function DashboardPage() {
   const accessLabel = managerAccess ? "GÉRANT" : commissionerAccess ? "COMMISSAIRE" : roles.includes("commercial") ? "COMMERCIAL" : "EMPLOYÉ";
 
   return (
-    <DashboardShell allowedRoles={["manager", "commissioner", "commercial", "employee"]}>
+    <DashboardShell>
       <section className="dashboard-hero dashboard-hero-compact">
         <div>
           <span className="eyebrow">NOSTRA GROUP</span>
@@ -173,6 +179,7 @@ export default async function DashboardPage() {
             <div className="dashboard-module-grid dashboard-module-grid-grouped dashboard-module-grid-two">
               <DashboardCard href="/dashboard/jeux/roue" icon="🎡" title="Roue de la chance" description="Consulter l’historique, modifier le statut ou retirer un gain du profil du citoyen." badge={!wheelConfigured ? "V29 à activer" : unusedWheelGains ? `${unusedWheelGains} gain(s) à utiliser` : undefined} />
               <DashboardCard href="/dashboard/jeux/tombola" icon="🎟️" title="Tombola" description="Configurer le prix, consulter les tickets, lancer le tirage et réinitialiser la tombola." badge={!tombolaConfigured ? "V31 à activer" : tombolaTickets.length ? `${tombolaTickets.length} ticket(s)` : undefined} />
+              <DashboardCard href="/dashboard/jeux/bingo" icon="🔢" title="Bingo" description="Vendre les grilles, sortir les numéros en direct, détecter les Bingo et réinitialiser la partie." badge={!bingoConfigured ? "V32 à activer" : bingoCards.length ? `${bingoCards.length} grille(s)` : undefined} />
             </div>
           </DashboardModuleGroup>
         )}
