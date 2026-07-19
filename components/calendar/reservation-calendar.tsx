@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { submitCircuitReservation } from "@/app/actions/backoffice";
+import { createClient } from "@/lib/supabase/client";
 
 const MONTHS = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
 const WEEKDAYS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
@@ -38,13 +39,48 @@ export function ReservationCalendar({
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
   const [localError, setLocalError] = useState("");
-  const occupied = useMemo(() => new Set(occupiedSlots), [occupiedSlots]);
+  const [liveOccupiedSlots, setLiveOccupiedSlots] = useState(occupiedSlots);
+  const occupied = useMemo(() => new Set(liveOccupiedSlots), [liveOccupiedSlots]);
 
   useEffect(() => {
     const refresh = () => setNow(new Date());
     refresh();
     const timer = window.setInterval(refresh, 60_000);
     return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    const supabase = createClient();
+    let active = true;
+
+    const refreshOccupiedSlots = async () => {
+      const { data, error } = await supabase
+        .from("circuit_reservation_requests")
+        .select("reservation_date,reservation_time")
+        .eq("status", "approved");
+
+      if (!active || error) return;
+      setLiveOccupiedSlots((data ?? []).map((request) =>
+        `${request.reservation_date}|${String(request.reservation_time).slice(0, 5)}`,
+      ));
+    };
+
+    const onFocus = () => void refreshOccupiedSlots();
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") void refreshOccupiedSlots();
+    };
+
+    void refreshOccupiedSlots();
+    const timer = window.setInterval(() => void refreshOccupiedSlots(), 10_000);
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
   }, []);
 
   const referenceNow = now ?? initialToday;

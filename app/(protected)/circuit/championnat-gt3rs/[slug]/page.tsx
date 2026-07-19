@@ -15,7 +15,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
     return (
       <article className="circuit-document">
         <header className="document-hero"><p className="eyebrow">CHAMPIONNAT GT3 RS</p><h1 className="page-title">Calendrier GT3 RS</h1><p className="document-intro">Toutes les manches et événements officiels publiés depuis le Dashboard Gérant.</p></header>
-        <ChampionshipCalendar events={events} title="SAISON GT3 RS" />
+        <ChampionshipCalendar events={events} title="SAISON GT3 RS" refreshKey="gt3rs" />
       </article>
     );
   }

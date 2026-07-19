@@ -64,7 +64,7 @@ export default async function Page({
           <h1 className="page-title">Créneaux validés</h1>
           <p className="document-intro">Ce calendrier affiche les réservations confirmées par la direction du circuit.</p>
         </header>
-        <ChampionshipCalendar events={events} title="CALENDRIER DU CIRCUIT" />
+        <ChampionshipCalendar events={events} title="CALENDRIER DU CIRCUIT" refreshKey="reservations" />
       </article>
     );
   }

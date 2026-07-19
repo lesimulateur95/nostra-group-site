@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 
 export type CalendarEvent = {
   id: number;
@@ -19,7 +20,7 @@ function keyFromDate(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
-export function ChampionshipCalendar({ events, title }: { events: CalendarEvent[]; title: string }) {
+export function ChampionshipCalendar({ events, title, refreshKey }: { events: CalendarEvent[]; title: string; refreshKey?: "f1" | "gt3rs" | "reservations" }) {
   const [initial] = useState(() => {
     const now = new Date();
     const firstEvent = events.find((event) => new Date(event.starts_at).getTime() >= now.getTime());
@@ -27,6 +28,62 @@ export function ChampionshipCalendar({ events, title }: { events: CalendarEvent[
   });
   const [viewDate, setViewDate] = useState(new Date(initial.getFullYear(), initial.getMonth(), 1));
   const [selectedDay, setSelectedDay] = useState(keyFromDate(initial));
+  const [liveEvents, setLiveEvents] = useState(events);
+
+
+  useEffect(() => {
+    if (!refreshKey) return;
+    const supabase = createClient();
+    let active = true;
+
+    const refreshEvents = async () => {
+      if (refreshKey === "reservations") {
+        const { data, error } = await supabase
+          .from("circuit_reservation_requests")
+          .select("id,reason,reservation_date,reservation_time,status")
+          .eq("status", "approved")
+          .order("reservation_date", { ascending: true })
+          .order("reservation_time", { ascending: true });
+        if (!active || error) return;
+        setLiveEvents((data ?? []).map((request) => ({
+          id: request.id,
+          title: "Créneau réservé",
+          description: request.reason ?? "",
+          location: "Nostra Circuit",
+          starts_at: `${request.reservation_date}T${String(request.reservation_time).slice(0, 5)}:00`,
+          ends_at: null,
+          status: request.status,
+        })));
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("events")
+        .select("id,title,description,location,starts_at,ends_at,status")
+        .eq("championship", refreshKey)
+        .eq("status", "published")
+        .order("starts_at", { ascending: true });
+      if (!active || error) return;
+      setLiveEvents((data ?? []) as CalendarEvent[]);
+    };
+
+    const onFocus = () => void refreshEvents();
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") void refreshEvents();
+    };
+
+    void refreshEvents();
+    const timer = window.setInterval(() => void refreshEvents(), 10_000);
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [refreshKey]);
   const year = viewDate.getFullYear();
   const month = viewDate.getMonth();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -37,12 +94,12 @@ export function ChampionshipCalendar({ events, title }: { events: CalendarEvent[
   });
   const grouped = useMemo(() => {
     const map = new Map<string, CalendarEvent[]>();
-    for (const event of events) {
+    for (const event of liveEvents) {
       const key = keyFromDate(new Date(event.starts_at));
       map.set(key, [...(map.get(key) ?? []), event]);
     }
     return map;
-  }, [events]);
+  }, [liveEvents]);
   const selectedEvents = grouped.get(selectedDay) ?? [];
 
   return (

@@ -394,3 +394,21 @@ export async function updateCircuitReservation(formData: FormData) {
   revalidatePath("/profil");
   redirect("/dashboard/reservations?saved=1");
 }
+
+export async function deleteCircuitReservation(formData: FormData) {
+  const id = integer(formData.get("id"), 0);
+  if (id <= 0) redirect("/dashboard/reservations?error=invalid");
+
+  const { supabase } = await requireManager();
+  const { error } = await supabase
+    .from("circuit_reservation_requests")
+    .delete()
+    .eq("id", id);
+  if (error) redirect("/dashboard/reservations?error=delete");
+
+  revalidatePath("/dashboard/reservations");
+  revalidatePath("/circuit/reservations/demande");
+  revalidatePath("/circuit/reservations/validees");
+  revalidatePath("/profil");
+  redirect("/dashboard/reservations?deleted=1");
+}

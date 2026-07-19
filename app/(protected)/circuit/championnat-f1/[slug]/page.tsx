@@ -15,7 +15,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
     return (
       <article className="circuit-document">
         <header className="document-hero"><p className="eyebrow">CHAMPIONNAT F1</p><h1 className="page-title">Calendrier F1</h1><p className="document-intro">Toutes les manches et événements officiels publiés depuis le Dashboard Gérant.</p></header>
-        <ChampionshipCalendar events={events} title="SAISON F1" />
+        <ChampionshipCalendar events={events} title="SAISON F1" refreshKey="f1" />
       </article>
     );
   }

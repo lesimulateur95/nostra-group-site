@@ -1,4 +1,4 @@
-import { updateCircuitReservation } from "@/app/actions/backoffice";
+import { deleteCircuitReservation, updateCircuitReservation } from "@/app/actions/backoffice";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { getReservationModuleConfigured, getReservationRequests } from "@/lib/backoffice/data";
@@ -40,7 +40,8 @@ export default async function ReservationDashboardPage({ searchParams }: { searc
           </ol>
         </section>
       )}
-      {params.saved && <div className="dashboard-feedback dashboard-feedback-success">La décision a été enregistrée.</div>}
+      {params.saved && <div className="dashboard-feedback dashboard-feedback-success">La décision a été enregistrée. Un créneau annulé, refusé ou remis en attente est libéré automatiquement dans le calendrier.</div>}
+      {params.deleted && <div className="dashboard-feedback">La demande a été supprimée définitivement et le créneau est libéré.</div>}
       {params.error === "occupied" && <div className="dashboard-feedback dashboard-feedback-error">Un autre créneau validé existe déjà à cette date et cette heure.</div>}
       {params.error && params.error !== "occupied" && <div className="dashboard-feedback dashboard-feedback-error">Impossible de traiter cette demande.</div>}
 
@@ -81,6 +82,10 @@ function ReservationReview({ request }: { request: Awaited<ReturnType<typeof get
         <label>Décision<select name="status" defaultValue={request.status}><option value="pending">En attente</option><option value="approved">Valider le créneau</option><option value="rejected">Refuser</option><option value="cancelled">Annuler</option></select></label>
         <label className="form-span-2">Note visible par le demandeur<textarea name="admin_note" rows={3} defaultValue={request.admin_note ?? ""} /></label>
         <button className="btn" type="submit">Enregistrer la décision</button>
+      </form>
+      <form action={deleteCircuitReservation} className="danger-form">
+        <input type="hidden" name="id" value={request.id} />
+        <button type="submit">Supprimer définitivement la demande</button>
       </form>
     </article>
   );
