@@ -67,6 +67,28 @@ export type SiteEvent = {
   championship?: "general" | "f1" | "gt3rs";
 };
 
+
+export type OrderItemSnapshot = {
+  name: string;
+  quantity: number;
+  unit_price: number;
+  image_url: string | null;
+};
+
+export type CustomerOrder = {
+  id: number;
+  user_id: string;
+  order_number: string;
+  customer_name: string;
+  status: "pending" | "confirmed" | "preparing" | "ready" | "completed" | "cancelled";
+  total: number;
+  items: OrderItemSnapshot[];
+  customer_note: string | null;
+  admin_note: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type HomologationRequest = {
   id: number;
   user_id: string;
@@ -187,6 +209,45 @@ export async function getEvents(includeDrafts = false): Promise<SiteEvent[]> {
   return (data ?? []) as SiteEvent[];
 }
 
+
+export async function getOrderModuleConfigured(): Promise<boolean> {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("orders")
+    .select("id,customer_name,items,customer_note,admin_note,updated_at")
+    .limit(1);
+  return !error;
+}
+
+function normalizeOrderItems(value: unknown): OrderItemSnapshot[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    if (!item || typeof item !== "object") return [];
+    const candidate = item as Record<string, unknown>;
+    if (typeof candidate.name !== "string") return [];
+    return [{
+      name: candidate.name,
+      quantity: Math.max(1, Number(candidate.quantity) || 1),
+      unit_price: Math.max(0, Number(candidate.unit_price) || 0),
+      image_url: typeof candidate.image_url === "string" ? candidate.image_url : null,
+    }];
+  });
+}
+
+export async function getOrders(): Promise<CustomerOrder[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("orders")
+    .select("id,user_id,order_number,customer_name,status,total,items,customer_note,admin_note,created_at,updated_at")
+    .order("created_at", { ascending: false });
+  if (error) return [];
+  return (data ?? []).map((order) => ({
+    ...order,
+    customer_name: String(order.customer_name || ""),
+    items: normalizeOrderItems(order.items),
+  })) as CustomerOrder[];
+}
+
 export async function getHomologationRequests(): Promise<HomologationRequest[]> {
   const supabase = await createClient();
   const { data } = await supabase
@@ -209,7 +270,7 @@ export async function getOwnHomologationRequests(userId: string): Promise<Homolo
 export async function getProfileCommerceData(userId: string) {
   const supabase = await createClient();
   const [orders, invoices, loyalty, cart] = await Promise.all([
-    supabase.from("orders").select("id,order_number,status,total,created_at").eq("user_id", userId).order("created_at", { ascending: false }),
+    supabase.from("orders").select("id,order_number,status,total,created_at,customer_name,items,customer_note,admin_note,updated_at").eq("user_id", userId).order("created_at", { ascending: false }),
     supabase.from("invoices").select("id,invoice_number,status,amount,issued_at,download_url").eq("user_id", userId).order("issued_at", { ascending: false }),
     supabase.from("loyalty_profiles").select("tier,purchases_count,discount_percent,updated_at").eq("user_id", userId).maybeSingle(),
     supabase.from("cart_items").select("id,item_name,quantity,unit_price,image_url,created_at").eq("user_id", userId).order("created_at", { ascending: false }),
@@ -217,7 +278,8 @@ export async function getProfileCommerceData(userId: string) {
 
   return {
     configured: !orders.error && !invoices.error && !loyalty.error && !cart.error,
-    orders: orders.data ?? [],
+    ordersConfigured: !orders.error,
+    orders: (orders.data ?? []).map((order) => ({ ...order, items: normalizeOrderItems(order.items) })),
     invoices: invoices.data ?? [],
     loyalty: loyalty.data ?? null,
     cart: cart.data ?? [],

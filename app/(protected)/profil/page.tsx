@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { saveRpProfile } from "@/app/actions/profile";
+import { placeCartOrder } from "@/app/actions/orders";
 import { Topbar } from "@/components/site/topbar";
 import {
   getAvatarUrl,
@@ -13,7 +14,7 @@ import { getUserRoleLabel } from "@/lib/auth/access";
 import { createClient } from "@/lib/supabase/server";
 
 type ProfilePageProps = {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; order_sent?: string; order_error?: string }>;
 };
 
 function money(value: number | string) {
@@ -36,6 +37,15 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
     getOwnHomologationRequests(data.user.id),
   ]);
   const cartTotal = commerce.cart.reduce((sum, item) => sum + Number(item.unit_price) * Number(item.quantity), 0);
+
+  const orderErrorMessage =
+    params.order_error === "empty"
+      ? "Ton panier est vide."
+      : params.order_error === "setup"
+        ? "Le module des commandes doit être activé depuis Dashboard → Commandes Nostra Motors."
+        : params.order_error
+          ? "La commande n’a pas pu être envoyée. Réessaie dans un instant."
+          : null;
 
   const errorMessage =
     params.error === "invalid_name"
@@ -90,6 +100,9 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
           <div className="dashboard-feedback">Les rubriques commerciales seront disponibles dès que le nouveau script SQL du Dashboard aura été exécuté.</div>
         )}
 
+        {params.order_sent && <div className="dashboard-feedback dashboard-feedback-success">Commande <strong>{params.order_sent}</strong> envoyée à Nostra Motors. Tu peux suivre son statut dans « Mes commandes ».</div>}
+        {orderErrorMessage && <div className="dashboard-feedback dashboard-feedback-error">{orderErrorMessage}</div>}
+
         <section className="profile-commerce-grid">
           <article className="profile-commerce-card loyalty-card">
             <div className="profile-commerce-head"><span>◆</span><div><p>STATUT DE FIDÉLITÉ</p><h2>{commerce.loyalty?.tier ?? "Aucun statut"}</h2></div></div>
@@ -107,6 +120,16 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
               {commerce.cart.map((item) => <div key={item.id}><span>{item.quantity} × {item.item_name}</span><strong>{money(Number(item.unit_price) * Number(item.quantity))}</strong></div>)}
             </div>
             <footer><span>Total</span><strong>{money(cartTotal)}</strong></footer>
+            {commerce.cart.length > 0 && (
+              <form action={placeCartOrder} className="profile-order-form">
+                <label>
+                  <span>Message pour Nostra Motors <small>(facultatif)</small></span>
+                  <textarea name="customer_note" rows={3} maxLength={1500} placeholder="Exemple : couleur souhaitée, disponibilité pour la livraison…" />
+                </label>
+                <button className="btn" type="submit" disabled={!commerce.ordersConfigured}>Passer la commande</button>
+                {!commerce.ordersConfigured && <p>Active d’abord le module depuis <strong>Dashboard → Commandes Nostra Motors</strong>.</p>}
+              </form>
+            )}
           </article>
         </section>
 
@@ -117,7 +140,10 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
               <thead><tr><th>Numéro</th><th>Date</th><th>Statut</th><th>Total</th></tr></thead>
               <tbody>
                 {commerce.orders.length === 0 && <tr><td colSpan={4} className="empty-table-cell">Aucune commande enregistrée.</td></tr>}
-                {commerce.orders.map((order) => <tr key={order.id}><td><strong>{order.order_number}</strong></td><td>{new Date(order.created_at).toLocaleDateString("fr-FR")}</td><td><span className="order-status">{order.status}</span></td><td>{money(order.total)}</td></tr>)}
+                {commerce.orders.map((order) => {
+                  const labels: Record<string, string> = { pending: "Envoyée", confirmed: "Confirmée", preparing: "En préparation", ready: "Prête", completed: "Terminée", cancelled: "Annulée" };
+                  return <tr key={order.id}><td><strong>{order.order_number}</strong>{order.admin_note && <small className="order-client-note">{order.admin_note}</small>}</td><td>{new Date(order.created_at).toLocaleDateString("fr-FR")}</td><td><span className={`order-status order-status-${order.status}`}>{labels[order.status] ?? order.status}</span></td><td>{money(order.total)}</td></tr>;
+                })}
               </tbody>
             </table>
           </div>

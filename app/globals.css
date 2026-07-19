@@ -1570,3 +1570,34 @@ select:focus { outline: 2px solid rgba(212,175,55,.32); outline-offset: 1px; }
 .catalogue-cart-button { width: 100%; justify-content: center; }
 .homologation-delete-form { margin-top: 18px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,.08); }
 .homologation-delete-form button { color: #ff9d9d; font-weight: 800; }
+
+/* V21 — validation du panier et gestion des commandes Nostra Motors */
+.profile-order-form { display: grid; gap: 12px; margin-top: 18px; padding-top: 18px; border-top: 1px solid rgba(255,255,255,.09); }
+.profile-order-form label { display: grid; gap: 8px; color: #ececec; font-weight: 800; font-size: .9rem; }
+.profile-order-form label small { color: var(--muted); font-weight: 600; }
+.profile-order-form textarea { width: 100%; padding: 12px 13px; border: 1px solid rgba(212,175,55,.28); border-radius: 12px; background: #080808; color: #fff; resize: vertical; font: inherit; }
+.profile-order-form textarea:focus { outline: none; border-color: rgba(212,175,55,.75); box-shadow: 0 0 0 3px rgba(212,175,55,.09); }
+.profile-order-form button:disabled { opacity: .48; cursor: not-allowed; }
+.profile-order-form > p { margin: 0; color: #ffce8f; font-size: .84rem; line-height: 1.45; }
+.order-client-note { display: block; max-width: 420px; margin-top: 6px; color: var(--muted); font-weight: 500; line-height: 1.4; }
+.orders-admin-list { display: grid; gap: 18px; margin-top: 22px; }
+.order-admin-card { display: grid; gap: 20px; }
+.order-admin-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 22px; }
+.order-admin-head h2 { margin: 10px 0 5px; }
+.order-admin-head p { margin: 0; color: var(--muted); }
+.order-admin-total { color: var(--gold-light); font-size: 1.45rem; white-space: nowrap; }
+.order-items-list { display: grid; border: 1px solid rgba(255,255,255,.08); border-radius: 14px; overflow: hidden; }
+.order-items-list > div { display: flex; justify-content: space-between; gap: 16px; padding: 13px 15px; background: rgba(255,255,255,.025); }
+.order-items-list > div + div { border-top: 1px solid rgba(255,255,255,.07); }
+.order-items-list strong { color: var(--gold-light); }
+.order-status-pending { background: rgba(230,171,51,.14); color: #ffd583; }
+.order-status-confirmed { background: rgba(66,153,225,.14); color: #9bd2ff; }
+.order-status-preparing { background: rgba(166,110,255,.14); color: #d2b5ff; }
+.order-status-ready { background: rgba(84,196,124,.14); color: #a9edbf; }
+.order-status-completed { background: rgba(84,196,124,.14); color: #a9edbf; }
+.order-status-cancelled { background: rgba(226,93,93,.14); color: #ffb3b3; }
+@media (max-width: 720px) {
+  .order-admin-head { flex-direction: column; }
+  .order-admin-total { font-size: 1.2rem; }
+  .order-items-list > div { align-items: flex-start; flex-direction: column; gap: 6px; }
+}

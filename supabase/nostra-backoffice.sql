@@ -462,3 +462,21 @@ drop policy if exists "dashboard deletes vehicle images" on storage.objects;
 create policy "dashboard deletes vehicle images" on storage.objects
 for delete to authenticated
 using (bucket_id = 'vehicle-images' and public.has_nostra_dashboard_access());
+
+-- V21 — validation du panier et commandes Nostra Motors
+alter table public.orders add column if not exists customer_name text not null default '';
+alter table public.orders add column if not exists items jsonb not null default '[]'::jsonb;
+alter table public.orders add column if not exists customer_note text;
+alter table public.orders add column if not exists admin_note text;
+alter table public.orders add column if not exists updated_at timestamptz not null default now();
+
+alter table public.orders enable row level security;
+
+drop policy if exists "users create own orders" on public.orders;
+create policy "users create own orders" on public.orders
+for insert to authenticated with check (user_id = auth.uid());
+
+drop policy if exists "users delete own pending orders" on public.orders;
+create policy "users delete own pending orders" on public.orders
+for delete to authenticated using (user_id = auth.uid() and status = 'pending');
+
