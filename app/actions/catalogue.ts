@@ -58,6 +58,22 @@ function missingStockSetup(error: { code?: string | null; message?: string | nul
   return error.code === "PGRST204" || error.code === "42703" || message.includes("stock_quantity") || message.includes("vehicle_id");
 }
 
+function configuredCartErrorCode(
+  error: { code?: string | null; message?: string | null; details?: string | null } | null | undefined,
+): string {
+  const value = `${error?.code ?? ""} ${error?.message ?? ""} ${error?.details ?? ""}`.toLowerCase();
+  if (
+    value.includes("pgrst202")
+    || value.includes("add_configured_vehicle_to_cart")
+    || value.includes("item_type")
+    || value.includes("related_vehicle_id")
+  ) return "setup";
+  if (value.includes("insufficient_stock")) return "stock";
+  if (value.includes("vehicle_unavailable")) return "not-found";
+  if (value.includes("invalid_delivery_mode")) return "delivery";
+  return "save";
+}
+
 async function requireManager() {
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
@@ -258,6 +274,35 @@ export async function addCatalogVehicleToCart(formData: FormData) {
   redirect("/motors/catalogue?cart_added=1");
 }
 
+
+export async function addConfiguredCatalogVehicleToCart(formData: FormData) {
+  const vehicleId = integer(formData.get("vehicle_id"), 0);
+  const deliveryMode = text(formData.get("delivery_mode"), 30);
+
+  if (vehicleId <= 0) redirect("/motors/catalogue?cart_error=invalid");
+  if (deliveryMode !== "showroom" && deliveryMode !== "home") {
+    redirect(`/motors/catalogue/${vehicleId}/commande?error=delivery`);
+  }
+
+  const supabase = await createClient();
+  const { data: authData } = await supabase.auth.getUser();
+  if (!authData.user) redirect("/");
+
+  const { error } = await supabase.rpc("add_configured_vehicle_to_cart", {
+    p_vehicle_id: vehicleId,
+    p_delivery_mode: deliveryMode,
+  });
+
+  if (error) {
+    redirect(`/motors/catalogue/${vehicleId}/commande?error=${configuredCartErrorCode(error)}`);
+  }
+
+  revalidatePath("/motors/catalogue");
+  revalidatePath(`/motors/catalogue/${vehicleId}/commande`);
+  revalidatePath("/profil");
+  redirect("/profil?vehicle_added=1");
+}
+
 export async function deleteCatalogVehicle(formData: FormData) {
   const id = integer(formData.get("id"), 0);
   if (id <= 0) redirect("/dashboard/catalogue?error=invalid");
@@ -273,6 +318,7 @@ export async function deleteCatalogVehicle(formData: FormData) {
 
   // Nettoyage explicite pour les anciens paniers, en complément de la cascade SQL V22.
   await supabase.from("cart_items").delete().eq("vehicle_id", id);
+  await supabase.from("cart_items").delete().eq("related_vehicle_id", id);
   if (itemName) await supabase.from("cart_items").delete().eq("item_name", itemName);
 
   const { error } = await supabase.from("catalog_vehicles").delete().eq("id", id);

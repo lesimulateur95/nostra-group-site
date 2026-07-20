@@ -30,7 +30,7 @@ function orderErrorCode(error: { code?: string | null; message?: string | null }
   if (value.includes("empty_cart")) return "empty";
   if (value.includes("insufficient_stock")) return "stock";
   if (value.includes("vehicle_unavailable")) return "unavailable";
-  if (value.includes("cart_needs_refresh")) return "cart-refresh";
+  if (value.includes("cart_needs_refresh") || value.includes("invalid_delivery_cart")) return "cart-refresh";
   return "save";
 }
 
@@ -55,6 +55,22 @@ export async function removeCartItem(formData: FormData) {
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
   if (!data.user) redirect("/");
+
+  const lookup = await supabase
+    .from("cart_items")
+    .select("id,item_type,vehicle_id,related_vehicle_id")
+    .eq("id", id)
+    .eq("user_id", data.user.id)
+    .maybeSingle();
+
+  if (!lookup.error && lookup.data?.item_type === "vehicle" && lookup.data.vehicle_id) {
+    await supabase
+      .from("cart_items")
+      .delete()
+      .eq("user_id", data.user.id)
+      .eq("item_type", "delivery")
+      .eq("related_vehicle_id", lookup.data.vehicle_id);
+  }
 
   const { error } = await supabase
     .from("cart_items")

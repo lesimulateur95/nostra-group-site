@@ -1,5 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
-import { addCatalogVehicleToCart } from "@/app/actions/catalogue";
+import Link from "next/link";
 import { getCatalogModuleConfigured, getCatalogVehicles, getStockCommerceConfigured } from "@/lib/backoffice/data";
 import { getSitePage } from "@/lib/content/site-content";
 
@@ -130,12 +130,20 @@ export default async function CataloguePage({ searchParams }: CataloguePageProps
                           <strong>{stockConfigured ? `${vehicle.stock_quantity} en stock` : "Stock en cours d’activation"}</strong>
                         </div>
 
-                        <form action={addCatalogVehicleToCart} className="catalogue-cart-form">
-                          <input type="hidden" name="vehicle_id" value={vehicle.id} />
-                          <button className="btn catalogue-cart-button" type="submit" disabled={!stockConfigured || vehicle.stock_quantity <= 0}>
-                            {vehicle.stock_quantity > 0 && stockConfigured ? "Ajouter au panier" : "Indisponible"}
-                          </button>
-                        </form>
+                        <div className="catalogue-cart-form">
+                          {vehicle.stock_quantity > 0 && stockConfigured ? (
+                            <Link
+                              className="btn catalogue-cart-button"
+                              href={`/motors/catalogue/${vehicle.id}/commande`}
+                            >
+                              Ajouter au panier
+                            </Link>
+                          ) : (
+                            <button className="btn catalogue-cart-button" type="button" disabled>
+                              Indisponible
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </article>
                   ))}
