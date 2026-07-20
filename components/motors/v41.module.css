@@ -231,3 +231,82 @@
     font-weight: 800;
   }
 }
+
+.publicToolsNav {
+  position: sticky;
+  top: 12px;
+  z-index: 35;
+  width: min(1180px, calc(100% - 32px));
+  margin: 16px auto 0;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  border: 1px solid rgba(212, 175, 55, 0.34);
+  border-radius: 16px;
+  background: rgba(10, 10, 12, 0.94);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(14px);
+}
+
+.publicToolsNav a {
+  padding: 10px 15px;
+  border-radius: 11px;
+  color: #f5f5f5;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.publicToolsNav a:hover,
+.publicToolsNavActive {
+  background: rgba(212, 175, 55, 0.14);
+  color: #e2c35f !important;
+}
+
+.publicToolsNavImportant {
+  background: #d4af37;
+  color: #111 !important;
+}
+
+.publicIntegrationBlock {
+  width: min(1180px, calc(100% - 32px));
+  margin: 26px auto 46px;
+  display: grid;
+  gap: 22px;
+}
+
+.appointmentCallout {
+  padding: clamp(22px, 4vw, 36px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  border: 1px solid rgba(212, 175, 55, 0.38);
+  border-radius: 20px;
+  background:
+    linear-gradient(120deg, rgba(212, 175, 55, 0.12), transparent 60%),
+    rgba(15, 15, 17, 0.94);
+}
+
+.appointmentCallout h2 {
+  margin: 8px 0;
+}
+
+@media (max-width: 720px) {
+  .publicToolsNav {
+    position: relative;
+    top: auto;
+  }
+
+  .publicToolsNav a {
+    flex: 1 1 140px;
+    text-align: center;
+  }
+
+  .appointmentCallout {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

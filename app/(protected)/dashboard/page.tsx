@@ -206,7 +206,7 @@ export default async function DashboardPage() {
             eyebrow="CONCESSION"
             title="Nostra Motors"
             description={managerAccess ? "Catalogue, commandes clients et quantités disponibles." : "Accès limité au traitement des commandes clients."}
-            defaultOpen={!managerAccess}
+            defaultOpen
           >
             <div className="dashboard-module-grid dashboard-module-grid-grouped">
               {managerAccess && <DashboardCard href="/dashboard/catalogue" icon="🚘" title="Catalogue Nostra Motors" description="Ajouter les véhicules par marque avec leurs photos, caractéristiques, prix et quantité en stock." badge={catalogVehicles.length ? `${catalogVehicles.length} véhicule(s)` : undefined} />}
@@ -264,7 +264,7 @@ export default async function DashboardPage() {
             description={managerAccess
               ? "Messagerie officielle, état des activités, finances et événements du groupe."
               : "Accès à la messagerie officielle de l’équipe Nostra Group."}
-            defaultOpen={!managerAccess}
+            defaultOpen
           >
             <div className="dashboard-module-grid dashboard-module-grid-grouped">
               <DashboardCard
