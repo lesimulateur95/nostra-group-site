@@ -1,5 +1,9 @@
-import { updateMotorAppointment } from "@/app/actions/motors-appointments";
+import {
+  deleteMotorAppointment,
+  updateMotorAppointment,
+} from "@/app/actions/motors-appointments";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
+import { DeleteAppointmentButton } from "@/components/motors/delete-appointment-button";
 import { getMotorAppointments } from "@/lib/nostra-motors/v41-data";
 import styles from "@/components/motors/motors-services.module.css";
 
@@ -14,6 +18,7 @@ const statusLabels: Record<string, string> = {
 type PageProps = {
   searchParams: Promise<{
     saved?: string;
+    deleted?: string;
     error?: string;
   }>;
 };
@@ -46,9 +51,17 @@ export default async function DashboardMotorAppointmentsPage({
           </div>
         )}
 
+        {params.deleted === "1" && (
+          <div className={styles.success}>
+            La prise de rendez-vous a été supprimée définitivement.
+          </div>
+        )}
+
         {params.error && (
           <div className={styles.error}>
-            La modification n’a pas pu être enregistrée.
+            {params.error === "delete"
+              ? "La prise de rendez-vous n’a pas pu être supprimée."
+              : "La modification n’a pas pu être enregistrée."}
           </div>
         )}
 
@@ -70,6 +83,7 @@ export default async function DashboardMotorAppointmentsPage({
                   </span>
                   <h2>{appointment.customer_name}</h2>
                 </div>
+
                 <span className={styles.status}>
                   {statusLabels[appointment.status] ?? appointment.status}
                 </span>
@@ -126,6 +140,14 @@ export default async function DashboardMotorAppointmentsPage({
                     Enregistrer
                   </button>
                 </div>
+              </form>
+
+              <form
+                action={deleteMotorAppointment}
+                className={styles.deleteAppointmentForm}
+              >
+                <input name="id" type="hidden" value={appointment.id} />
+                <DeleteAppointmentButton />
               </form>
             </article>
           ))}

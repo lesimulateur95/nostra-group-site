@@ -134,9 +134,10 @@
   color: #0a0a0a;
 }
 
-.primaryButton:disabled {
+.primaryButton:disabled,
+.deleteButton:disabled {
   cursor: not-allowed;
-  opacity: 0.45;
+  opacity: 0.55;
 }
 
 .secondaryButton {
@@ -149,6 +150,19 @@
   border: 1px solid rgba(255, 93, 93, 0.45);
   background: rgba(122, 22, 22, 0.22);
   color: #ffb3b3;
+}
+
+.deleteButton:hover:not(:disabled) {
+  border-color: rgba(255, 93, 93, 0.78);
+  background: rgba(166, 30, 30, 0.34);
+}
+
+.deleteAppointmentForm {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.09);
 }
 
 .success,
@@ -323,6 +337,10 @@
 
   .manageThumb {
     width: 88px;
+  }
+
+  .deleteAppointmentForm {
+    justify-content: stretch;
   }
 
   .deleteButton,
