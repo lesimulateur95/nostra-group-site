@@ -115,7 +115,7 @@ export async function getUserRoleKeys(
       .eq("user_id", user.id)
       .maybeSingle();
 
-    let roles =
+    let roles: RoleKey[] =
       !completeResult.error && completeResult.data
         ? normalizeRoleKeys(
             completeResult.data.roles,
