@@ -19,6 +19,7 @@ import { getUnreadNotificationCount } from "@/lib/notifications/data";
 import { getMyMailboxOverview } from "@/lib/mail/data";
 import { getUserRoleLabel } from "@/lib/auth/access";
 import { createClient } from "@/lib/supabase/server";
+import styles from "./profile-top-layout.module.css";
 
 type ProfilePageProps = {
   searchParams: Promise<{ error?: string; order_sent?: string; order_error?: string; cart_removed?: string; cart_error?: string; tombola_added?: string; tombola_removed?: string; tombola_cart_error?: string; tombola_order_error?: string; bingo_added?: string; bingo_removed?: string; bingo_cart_error?: string; bingo_order_error?: string }>;
@@ -90,27 +91,29 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
           </dl>
         </aside>
 
-        <section className="profile-card profile-form-card">
-          <div className="profile-form-title">
-            <div><span className="eyebrow">IDENTITÉ RP</span><h2>{complete ? "Modifier mon identité" : "Créer mon identité RP"}</h2></div>
-            {!complete && <span className="required-badge">Obligatoire</span>}
-          </div>
-          <p className="profile-help">Discord sert uniquement à sécuriser la connexion. Le site utilise ton prénom et ton nom RP.</p>
-          {errorMessage && <p className="form-error">{errorMessage}</p>}
-          <form action={saveRpProfile} className="profile-form">
-            <label><span>Prénom RP</span><input name="rp_first_name" required minLength={2} maxLength={32} defaultValue={typeof metadata.rp_first_name === "string" ? metadata.rp_first_name : ""} placeholder="Exemple : Liam" autoComplete="off" /></label>
-            <label><span>Nom RP</span><input name="rp_last_name" required minLength={2} maxLength={32} defaultValue={typeof metadata.rp_last_name === "string" ? metadata.rp_last_name : ""} placeholder="Exemple : Nostra" autoComplete="off" /></label>
-            <button className="btn profile-submit" type="submit">{complete ? "Enregistrer les modifications" : "Valider mon profil"}</button>
-          </form>
-        </section>
+        <div className={styles.rightColumn}>
+          <section className="profile-card profile-form-card">
+            <div className="profile-form-title">
+              <div><span className="eyebrow">IDENTITÉ RP</span><h2>{complete ? "Modifier mon identité" : "Créer mon identité RP"}</h2></div>
+              {!complete && <span className="required-badge">Obligatoire</span>}
+            </div>
+            <p className="profile-help">Discord sert uniquement à sécuriser la connexion. Le site utilise ton prénom et ton nom RP.</p>
+            {errorMessage && <p className="form-error">{errorMessage}</p>}
+            <form action={saveRpProfile} className="profile-form">
+              <label><span>Prénom RP</span><input name="rp_first_name" required minLength={2} maxLength={32} defaultValue={typeof metadata.rp_first_name === "string" ? metadata.rp_first_name : ""} placeholder="Exemple : Liam" autoComplete="off" /></label>
+              <label><span>Nom RP</span><input name="rp_last_name" required minLength={2} maxLength={32} defaultValue={typeof metadata.rp_last_name === "string" ? metadata.rp_last_name : ""} placeholder="Exemple : Nostra" autoComplete="off" /></label>
+              <button className="btn profile-submit" type="submit">{complete ? "Enregistrer les modifications" : "Valider mon profil"}</button>
+            </form>
+          </section>
 
-        <MailboxLauncher
-          address={mailboxOverview.mailbox?.address ?? null}
-          configured={mailboxOverview.configured}
-          initialUnreadCount={mailboxOverview.unread}
-        />
+          <MailboxLauncher
+            address={mailboxOverview.mailbox?.address ?? null}
+            configured={mailboxOverview.configured}
+            initialUnreadCount={mailboxOverview.unread}
+          />
 
-        <NotificationLauncher initialUnreadCount={unreadNotifications} />
+          <NotificationLauncher initialUnreadCount={unreadNotifications} />
+        </div>
       </div>
 
       <ProfileNavigation orders={commerce.orders.length} homologations={homologations.length} teams={teamRegistrations.length} documents={commerce.invoices.length} games={wheelSpins.length + tombolaTickets.length + bingoCards.length} />
