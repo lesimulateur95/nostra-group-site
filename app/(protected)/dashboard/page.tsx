@@ -38,6 +38,7 @@ import {
   getRaceControlDashboardState,
   getRaceControlModuleConfigured,
 } from "@/lib/race-control/data";
+import { getSpecialRankingsConfigured } from "@/lib/special-rankings/data";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -50,7 +51,7 @@ export default async function DashboardPage() {
   const ordersAccess = managerAccess || roles.includes("employee") || roles.includes("commercial");
   if (!managerAccess && !commissionerAccess && !ordersAccess) redirect("/accueil");
 
-  const [configured, ordersConfigured, teamRegistrationsConfigured, roleAccessConfigured, wheelConfigured, tombolaConfigured, bingoConfigured, teamMailOverview, dealConfigured, raceControlConfigured] = await Promise.all([
+  const [configured, ordersConfigured, teamRegistrationsConfigured, roleAccessConfigured, wheelConfigured, tombolaConfigured, bingoConfigured, teamMailOverview, dealConfigured, raceControlConfigured, specialRankingsConfigured] = await Promise.all([
     managerAccess ? getBackofficeConfigured() : Promise.resolve(false),
     ordersAccess ? getOrderModuleConfigured() : Promise.resolve(false),
     managerAccess ? getTeamRegistrationModuleConfigured() : Promise.resolve(false),
@@ -61,6 +62,7 @@ export default async function DashboardPage() {
     ordersAccess ? getUnreadTeamMailCount() : Promise.resolve({ configured: false, unread: 0 }),
     managerAccess ? getDealModuleConfigured() : Promise.resolve(false),
     commissionerAccess ? getRaceControlModuleConfigured() : Promise.resolve(false),
+    commissionerAccess ? getSpecialRankingsConfigured() : Promise.resolve(false),
   ]);
 
   const [setting, motorsSetting, motorsStatusConfigured, stock, accounting, events, requests, reservationRequests, catalogVehicles] = managerAccess && configured
@@ -187,6 +189,7 @@ export default async function DashboardPage() {
             <div className="dashboard-module-grid dashboard-module-grid-grouped dashboard-module-grid-two">
               <DashboardCard href="/dashboard/commissaires" icon="🏁" title="Planning course en direct" description="Renseigner l’ouverture des stands, les qualifications, le départ, la météo et les annonces en direct." badge={!roleAccessConfigured ? "V30 à activer" : "En direct"} />
               <DashboardCard href="/dashboard/commissaires/chronometrage" icon="⏱️" title="Chronométrage et tours" description="Noter les pilotes et écuries au départ, lancer les chronomètres, enregistrer chaque tour et publier les résultats." badge={!raceControlConfigured ? "V37 à activer" : activeRaceEvent ? `${activeRaceEvent.active_count} en piste` : undefined} />
+              <DashboardCard href="/dashboard/commissaires/classements-speciaux" icon="🏆" title="Classements spéciaux" description="Gérer le classement événements, les chronos contre la montre et les records du tour circuit." badge={!specialRankingsConfigured ? "V38 à activer" : undefined} />
               <DashboardCard href="/commissaires/incidents-circuit" icon="🚨" title="Rapports d’incident" description="Créer et consulter les rapports des incidents survenus pendant les sessions." />
             </div>
           </DashboardModuleGroup>

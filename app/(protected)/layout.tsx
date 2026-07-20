@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { GlobalNotificationPopup } from "@/components/notifications/global-notification-popup";
+import { AutoRefresh } from "@/components/site/auto-refresh";
 
 export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -10,6 +11,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
 
   return (
     <>
+      <AutoRefresh />
       {children}
       <GlobalNotificationPopup />
     </>

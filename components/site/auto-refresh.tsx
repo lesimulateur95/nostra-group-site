@@ -1,9 +1,10 @@
+
 "use client";
 
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
-const REFRESH_INTERVAL_MS = 5_000;
+const REFRESH_INTERVAL_MS = 3_000;
 
 function userIsEditing() {
   const activeElement = document.activeElement;
@@ -13,7 +14,6 @@ function userIsEditing() {
     activeElement instanceof HTMLInputElement ||
     activeElement instanceof HTMLTextAreaElement ||
     activeElement instanceof HTMLSelectElement ||
-    activeElement instanceof HTMLButtonElement ||
     activeElement.getAttribute("contenteditable") === "true"
   );
 }
@@ -22,12 +22,42 @@ export function AutoRefresh() {
   const router = useRouter();
 
   useEffect(() => {
-    const interval = window.setInterval(() => {
-      if (document.visibilityState !== "visible" || userIsEditing()) return;
-      router.refresh();
-    }, REFRESH_INTERVAL_MS);
+    const refresh = () => {
+      if (
+        document.visibilityState !== "visible" ||
+        userIsEditing()
+      ) {
+        return;
+      }
 
-    return () => window.clearInterval(interval);
+      router.refresh();
+    };
+
+    const interval = window.setInterval(
+      refresh,
+      REFRESH_INTERVAL_MS,
+    );
+
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") {
+        refresh();
+      }
+    };
+
+    window.addEventListener("focus", refresh);
+    document.addEventListener(
+      "visibilitychange",
+      refreshWhenVisible,
+    );
+
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener(
+        "visibilitychange",
+        refreshWhenVisible,
+      );
+    };
   }, [router]);
 
   return null;

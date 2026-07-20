@@ -237,35 +237,45 @@ export function RaceTimingConsole({
               ? "00:00.000"
               : formatRaceTime(liveElapsed, true)}
           </strong>
-          <small>{statusLabel(event.status)}</small>
+          <small>
+            {event.status === "finished"
+              ? "Course terminée"
+              : event.status === "published"
+                ? "Résultats publiés"
+                : statusLabel(event.status)}
+          </small>
+
+          <button
+            className={styles.masterClockStopButton}
+            disabled={event.status !== "running" || isPending}
+            type="button"
+            onClick={() =>
+              runAction(() => stopRaceControlEvent(event.id))
+            }
+          >
+            {event.status === "running"
+              ? "■ Arrêter le chrono général"
+              : event.status === "ready"
+                ? "■ Chrono non lancé"
+                : "■ Chrono général arrêté"}
+          </button>
         </div>
       </header>
 
       {error && <p className={styles.error}>{error}</p>}
 
       <section className={styles.raceControls}>
-        {(event.status === "ready" || event.status === "running") && (
+        {event.status === "ready" && (
           <div className={styles.generalClockButtons}>
             <button
               className={styles.startButton}
-              disabled={event.status !== "ready" || isPending}
+              disabled={isPending}
               type="button"
               onClick={() =>
                 runAction(() => startRaceControlEvent(event.id))
               }
             >
-              ▶ Lancer le départ
-            </button>
-
-            <button
-              className={styles.stopAllButton}
-              disabled={event.status !== "running" || isPending}
-              type="button"
-              onClick={() =>
-                runAction(() => stopRaceControlEvent(event.id))
-              }
-            >
-              ■ Arrêter le chrono général
+              ▶ Lancer le départ et tous les chronomètres
             </button>
           </div>
         )}

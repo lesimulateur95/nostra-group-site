@@ -2,10 +2,47 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { hasRpProfile, isManager } from "@/lib/auth/user-profile";
 
-function normalizeRoles(roles: unknown, role: unknown): string[] {
-  const values = Array.isArray(roles) ? roles.filter((value): value is string => typeof value === "string") : [];
-  if (values.length > 0) return values.map((value) => value === "member" ? "citizen" : value);
-  if (typeof role === "string") return [role === "member" ? "citizen" : role];
+function normalizeRole(value: string): string {
+  const normalized = value
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+  const aliases: Record<string, string> = {
+    member: "citizen",
+    membre: "citizen",
+    citoyen: "citizen",
+    employe: "employee",
+    staff: "employee",
+    administrator: "employee",
+    vendeur: "commercial",
+    commissaire: "commissioner",
+    gerant: "manager",
+    direction: "manager",
+  };
+
+  return aliases[normalized] ?? normalized;
+}
+
+function normalizeRoles(
+  roles: unknown,
+  role: unknown,
+): string[] {
+  const values = Array.isArray(roles)
+    ? roles.filter(
+        (value): value is string => typeof value === "string",
+      )
+    : [];
+
+  if (values.length > 0) {
+    return [...new Set(values.map(normalizeRole))];
+  }
+
+  if (typeof role === "string") {
+    return [normalizeRole(role)];
+  }
+
   return ["citizen"];
 }
 
@@ -66,7 +103,17 @@ export async function updateSession(request: NextRequest) {
       .maybeSingle();
     const roles = normalizeRoles(profile?.roles, profile?.role);
 
-    if (isDashboardPage && !roles.includes("manager")) {
+    const dashboardRoles = [
+      "manager",
+      "commissioner",
+      "employee",
+      "commercial",
+    ];
+
+    if (
+      isDashboardPage &&
+      !roles.some((role) => dashboardRoles.includes(role))
+    ) {
       const url = request.nextUrl.clone();
       url.pathname = "/accueil";
       return NextResponse.redirect(url);

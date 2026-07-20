@@ -820,3 +820,84 @@
     min-width: 0;
   }
 }
+
+
+.savedRaceWarning {
+  margin: 0 0 14px;
+  color: #9b9c98;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.savedRaceList {
+  display: grid;
+  gap: 10px;
+}
+
+.savedRaceRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.savedRaceLink {
+  min-width: 0;
+}
+
+.savedRaceRow form {
+  display: flex;
+}
+
+.deleteRaceButton {
+  min-width: 185px;
+  padding: 12px 15px;
+  border: 1px solid rgba(235, 82, 82, 0.5);
+  border-radius: 12px;
+  background: #961f27;
+  color: #fff;
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.deleteRaceButton:hover {
+  filter: brightness(1.1);
+}
+
+@media (max-width: 760px) {
+  .savedRaceRow {
+    grid-template-columns: 1fr;
+  }
+
+  .deleteRaceButton {
+    width: 100%;
+  }
+}
+
+
+.masterClockStopButton {
+  width: 100%;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(239, 82, 82, 0.58);
+  border-radius: 10px;
+  background: #9b2028;
+  color: #fff;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.masterClockStopButton:hover:not(:disabled) {
+  filter: brightness(1.12);
+}
+
+.masterClockStopButton:disabled {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: #171818;
+  color: #777875;
+  cursor: not-allowed;
+  opacity: 1;
+}

@@ -11,8 +11,14 @@ export async function Topbar() {
   const rpName = getRpName(user);
   const roleKeys = await getUserRoleKeys(user);
   const role = roleKeys.map((key) => ROLE_LABELS[key]).join(" · ");
-  const dashboardAccess = roleKeys.includes("manager");
-  const commissionerAccess = dashboardAccess || roleKeys.includes("commissioner");
+  const dashboardAccess = roleKeys.some((role) =>
+    ["manager", "commissioner", "employee", "commercial"].includes(
+      role,
+    ),
+  );
+  const commissionerAccess =
+    roleKeys.includes("manager") ||
+    roleKeys.includes("commissioner");
 
   return (
     <header className="topbar">
