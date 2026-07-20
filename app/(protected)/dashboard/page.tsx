@@ -79,18 +79,50 @@ export default async function DashboardPage() {
       ])
     : [null, null, false, [], [], [], [], [], []];
 
-  const orders = ordersConfigured ? await getOrders() : [];
-  const teamRegistrations = managerAccess && teamRegistrationsConfigured ? await getTeamRegistrationRequests() : [];
-  const wheelSpins = managerAccess && wheelConfigured ? await getWheelSpins() : [];
-  const tombolaRound = managerAccess && tombolaConfigured ? await getActiveTombolaRound() : null;
-  const tombolaTickets = managerAccess && tombolaRound ? await getTombolaTickets(tombolaRound.id) : [];
-  const bingoRound = managerAccess && bingoConfigured ? await getActiveBingoRound() : null;
-  const bingoCards = managerAccess && bingoRound ? await getBingoCards(bingoRound.id) : [];
-  const dealState = managerAccess && dealConfigured ? await getDealDashboardState() : { edition: null, sessions: [] };
-  const activeDealSessions = dealState.sessions.filter((session) => ["choosing", "playing", "banker_call"].includes(session.status)).length;
-  const raceControlState = commissionerAccess && raceControlConfigured
-    ? await getRaceControlDashboardState()
-    : { configured: false, events: [] };
+  const [
+    orders,
+    teamRegistrations,
+    wheelSpins,
+    tombolaRound,
+    bingoRound,
+    dealState,
+    raceControlState,
+  ] = await Promise.all([
+    ordersConfigured ? getOrders() : Promise.resolve([]),
+    managerAccess && teamRegistrationsConfigured
+      ? getTeamRegistrationRequests()
+      : Promise.resolve([]),
+    managerAccess && wheelConfigured
+      ? getWheelSpins()
+      : Promise.resolve([]),
+    managerAccess && tombolaConfigured
+      ? getActiveTombolaRound()
+      : Promise.resolve(null),
+    managerAccess && bingoConfigured
+      ? getActiveBingoRound()
+      : Promise.resolve(null),
+    managerAccess && dealConfigured
+      ? getDealDashboardState()
+      : Promise.resolve({ edition: null, sessions: [] }),
+    commissionerAccess && raceControlConfigured
+      ? getRaceControlDashboardState()
+      : Promise.resolve({ configured: false, events: [] }),
+  ]);
+
+  const [tombolaTickets, bingoCards] = await Promise.all([
+    managerAccess && tombolaRound
+      ? getTombolaTickets(tombolaRound.id)
+      : Promise.resolve([]),
+    managerAccess && bingoRound
+      ? getBingoCards(bingoRound.id)
+      : Promise.resolve([]),
+  ]);
+
+  const activeDealSessions = dealState.sessions.filter((session) =>
+    ["choosing", "playing", "banker_call"].includes(
+      session.status,
+    ),
+  ).length;
   const activeRaceEvent = raceControlState.events.find(
     (event) => event.status === "running",
   );
@@ -147,7 +179,7 @@ export default async function DashboardPage() {
       <section className="dashboard-section-heading dashboard-section-heading-tight">
         <p className="eyebrow">CENTRE DE GESTION</p>
         <h2>Modules disponibles</h2>
-        <p>Les pages sont actualisées automatiquement toutes les cinq secondes lorsque personne ne remplit un formulaire.</p>
+        <p>Seuls les modules qui ont besoin du direct sont synchronisés automatiquement. Les autres pages ne sont plus rechargées en permanence.</p>
       </section>
 
       <div className="dashboard-module-groups">

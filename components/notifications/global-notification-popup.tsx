@@ -57,9 +57,19 @@ export function GlobalNotificationPopup() {
 
   useEffect(() => {
     let active = true;
+    let requestInProgress = false;
     let toastTimer: number | null = null;
 
     const refresh = async () => {
+      if (
+        requestInProgress ||
+        document.visibilityState !== "visible"
+      ) {
+        return;
+      }
+
+      requestInProgress = true;
+
       try {
         const response = await fetch("/api/notifications/latest", {
           cache: "no-store",
@@ -102,15 +112,33 @@ export function GlobalNotificationPopup() {
         latestKnownId.current = newest?.id ?? latestKnownId.current;
       } catch {
         // Le reste du site reste utilisable en cas de coupure momentanée.
+      } finally {
+        requestInProgress = false;
+      }
+    };
+
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") {
+        void refresh();
       }
     };
 
     void refresh();
-    const interval = window.setInterval(refresh, 5_000);
+    const interval = window.setInterval(refresh, 12_000);
+    window.addEventListener("focus", refreshWhenVisible);
+    document.addEventListener(
+      "visibilitychange",
+      refreshWhenVisible,
+    );
 
     return () => {
       active = false;
       window.clearInterval(interval);
+      window.removeEventListener("focus", refreshWhenVisible);
+      document.removeEventListener(
+        "visibilitychange",
+        refreshWhenVisible,
+      );
       if (toastTimer !== null) {
         window.clearTimeout(toastTimer);
       }
