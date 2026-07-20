@@ -1,4 +1,5 @@
 import Link from "next/link";
+
 import { Topbar } from "@/components/site/topbar";
 import { getUserRoleKeys } from "@/lib/auth/access";
 import { createClient } from "@/lib/supabase/server";
@@ -10,19 +11,39 @@ const publicPortals = [
     href: "/motors",
     kicker: "AUTOMOBILE",
     title: "NOSTRA MOTORS",
-    description: "Concession de luxe, véhicules exclusifs, fidélité et services clients.",
+    description:
+      "Concession de luxe, véhicules exclusifs, fidélité et services clients.",
   },
   {
     href: "/circuit",
     kicker: "SPORT AUTOMOBILE",
     title: "NOSTRA CIRCUIT",
-    description: "Réservations, activités piste, règlements et informations du circuit.",
+    description:
+      "Réservations, activités piste, règlements et informations du circuit.",
   },
   {
     href: "/evenements",
     kicker: "COMMUNAUTÉ",
     title: "ÉVÉNEMENTS & JEUX",
-    description: "Agenda, inscriptions et animations organisées par Nostra Group.",
+    description:
+      "Agenda, inscriptions et animations organisées par Nostra Group.",
+  },
+];
+
+const motorsServicePortals = [
+  {
+    href: "/motors/rendez-vous",
+    kicker: "SERVICE CLIENT",
+    title: "PRISE DE RENDEZ-VOUS",
+    description:
+      "Réserver une visite du showroom ou demander l’essai d’un véhicule.",
+  },
+  {
+    href: "/motors/top-ventes",
+    kicker: "NOSTRA MOTORS",
+    title: "VÉHICULES EN TOP VENTE",
+    description:
+      "Découvrir les véhicules actuellement mis en avant par la concession.",
   },
 ];
 
@@ -30,7 +51,8 @@ const commissionerPortal = {
   href: "/commissaires",
   kicker: "ACCÈS RÉSERVÉ",
   title: "ESPACE COMMISSAIRES",
-  description: "Règlement, planning de course en direct et rapports d’incident du Nostra Circuit.",
+  description:
+    "Règlement, planning de course en direct et rapports d’incident du Nostra Circuit.",
 };
 
 export default async function HomePage({
@@ -44,14 +66,22 @@ export default async function HomePage({
 }) {
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
+
   const [roles, reviews, params] = await Promise.all([
     getUserRoleKeys(data.user),
     getHomeReviewsData(),
     searchParams,
   ]);
-  const portals = roles.includes("manager") || roles.includes("commissioner")
-    ? [...publicPortals, commissionerPortal]
-    : publicPortals;
+
+  const hasCommissionerPortal =
+    roles.includes("manager") || roles.includes("commissioner");
+
+  // Sur une grille de trois colonnes :
+  // ligne 1 : Motors / Circuit / Événements
+  // ligne 2 : Commissaires / Rendez-vous / Top ventes
+  const portals = hasCommissionerPortal
+    ? [...publicPortals, commissionerPortal, ...motorsServicePortals]
+    : [...publicPortals, ...motorsServicePortals];
 
   return (
     <div className="site-shell">
@@ -59,7 +89,10 @@ export default async function HomePage({
       <main className="home-main">
         <p className="eyebrow">Universe Life · Saint-Martin V2</p>
         <h1 className="home-title">Nostra Group</h1>
-        <p className="home-sub">Choisissez l’espace que vous souhaitez ouvrir.</p>
+        <p className="home-sub">
+          Choisissez l’espace que vous souhaitez ouvrir.
+        </p>
+
         <section className="portal-grid">
           {portals.map((portal) => (
             <Link href={portal.href} className="portal-card" key={portal.href}>
