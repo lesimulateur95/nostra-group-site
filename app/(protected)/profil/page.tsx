@@ -5,6 +5,7 @@ import { placeCartOrder, removeCartItem } from "@/app/actions/orders";
 import { checkoutTombolaCart, removeTombolaCart } from "@/app/actions/tombola";
 import { checkoutBingoCart, removeBingoCart } from "@/app/actions/bingo";
 import { ProfileNavigation } from "@/components/profile/profile-navigation";
+import { NotificationLauncher } from "@/components/profile/notification-launcher";
 import {
   getAvatarUrl,
   getDiscordId,
@@ -13,6 +14,7 @@ import {
   hasRpProfile,
 } from "@/lib/auth/user-profile";
 import { getOwnBingoCards, getOwnBingoCart, getOwnHomologationRequests, getOwnTeamRegistrationRequests, getOwnTombolaCart, getOwnTombolaTickets, getOwnWheelSpins, getProfileCommerceData } from "@/lib/backoffice/data";
+import { getUnreadNotificationCount } from "@/lib/notifications/data";
 import { getUserRoleLabel } from "@/lib/auth/access";
 import { createClient } from "@/lib/supabase/server";
 
@@ -34,7 +36,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
   const avatarUrl = getAvatarUrl(data.user);
   const rpName = getRpName(data.user);
   const complete = hasRpProfile(data.user);
-  const [role, commerce, homologations, teamRegistrations, wheelSpins, tombolaCart, tombolaTickets, bingoCart, bingoCards] = await Promise.all([
+  const [role, commerce, homologations, teamRegistrations, wheelSpins, tombolaCart, tombolaTickets, bingoCart, bingoCards, unreadNotifications] = await Promise.all([
     getUserRoleLabel(data.user),
     getProfileCommerceData(data.user.id),
     getOwnHomologationRequests(data.user.id),
@@ -44,6 +46,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
     getOwnTombolaTickets(data.user.id),
     getOwnBingoCart(data.user.id),
     getOwnBingoCards(data.user.id),
+    getUnreadNotificationCount(data.user.id),
   ]);
   const cartTotal = commerce.cart.reduce((sum, item) => sum + Number(item.unit_price) * Number(item.quantity), 0);
   const tombolaCartTotal = tombolaCart ? Number(tombolaCart.unit_price) * Number(tombolaCart.quantity) : 0;
@@ -97,6 +100,8 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
             <button className="btn profile-submit" type="submit">{complete ? "Enregistrer les modifications" : "Valider mon profil"}</button>
           </form>
         </section>
+
+        <NotificationLauncher initialUnreadCount={unreadNotifications} />
       </div>
 
       <ProfileNavigation orders={commerce.orders.length} homologations={homologations.length} teams={teamRegistrations.length} documents={commerce.invoices.length} games={wheelSpins.length + tombolaTickets.length + bingoCards.length} />
@@ -167,7 +172,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
           )}
           {bingoCart && (
             <form action={checkoutBingoCart} className="profile-order-form profile-bingo-checkout">
-              <p className="commerce-hint">La commande Bingo génère immédiatement {bingoCart.quantity} carton(s) au format classique B-I-N-G-O, avec 24 numéros et la case centrale Nostra Motors.</p>
+              <p className="commerce-hint">La commande Bingo génère immédiatement {bingoCart.quantity} carton(s), avec 24 numéros et la case centrale Nostra Motors.</p>
               <button className="btn" type="submit">Commander mes grilles Bingo</button>
             </form>
           )}
