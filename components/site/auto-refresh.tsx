@@ -28,7 +28,11 @@ function refreshIntervalForPath(pathname: string): number | null {
     return 6_000;
   }
 
-  if (pathname.startsWith("/dashboard/commandes")) {
+  if (
+    pathname.startsWith("/dashboard/commandes") ||
+    pathname.startsWith("/dashboard/livraisons") ||
+    pathname.startsWith("/dashboard/rendez-vous-motors")
+  ) {
     return 8_000;
   }
 

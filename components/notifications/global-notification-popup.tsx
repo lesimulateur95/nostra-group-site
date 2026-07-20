@@ -28,6 +28,8 @@ const icons: Record<string, string> = {
   homologation: "📋",
   team: "🏎️",
   reservation: "🗓️",
+  appointment: "🗓️",
+  delivery: "🚚",
   invoice: "🧾",
   loyalty: "◆",
   mail: "✉️",

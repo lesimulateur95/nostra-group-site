@@ -39,6 +39,8 @@ import {
   getRaceControlModuleConfigured,
 } from "@/lib/race-control/data";
 import { getSpecialRankingsConfigured } from "@/lib/special-rankings/data";
+import { getMotorsV41Overview } from "@/lib/nostra-motors/v41-data";
+import { MOTORS_V41_SETUP_SQL } from "@/lib/nostra-motors/v41-setup-sql";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -109,6 +111,10 @@ export default async function DashboardPage() {
       : Promise.resolve({ configured: false, events: [] }),
   ]);
 
+  const motorsV41Overview = ordersAccess
+    ? await getMotorsV41Overview()
+    : { configured: false, pendingAppointments: 0, pendingDeliveries: 0 };
+
   const [tombolaTickets, bingoCards] = await Promise.all([
     managerAccess && tombolaRound
       ? getTombolaTickets(tombolaRound.id)
@@ -135,6 +141,7 @@ export default async function DashboardPage() {
   const currentBalance = accounting.reduce((total, entry) => total + (entry.entry_type === "income" ? Number(entry.amount) : -Number(entry.amount)), 0);
   const generalEventsCount = events.filter((event) => !event.championship || event.championship === "general").length;
   const accessLabel = managerAccess ? "GÉRANT" : commissionerAccess ? "COMMISSAIRE" : roles.includes("commercial") ? "COMMERCIAL" : "EMPLOYÉ";
+  const totalPending = pending + pendingReservations + pendingTeamRegistrations + pendingOrders + motorsV41Overview.pendingAppointments;
 
   return (
     <DashboardShell>
@@ -156,6 +163,16 @@ export default async function DashboardPage() {
         </section>
       )}
 
+      {managerAccess && !motorsV41Overview.configured && (
+        <section className="dashboard-setup">
+          <span className="module-status">Activation V41 nécessaire</span>
+          <h2>Activer les rendez-vous et les livraisons Nostra Motors</h2>
+          <p>Ce script ajoute la prise de rendez-vous publique, les notifications Direction et le suivi détaillé des livraisons.</p>
+          <details><summary>Afficher le code SQL V41</summary><pre>{MOTORS_V41_SETUP_SQL}</pre></details>
+          <ol><li>Copie le code dans une nouvelle requête Supabase.</li><li>Exécute-le avec <strong>Run without RLS</strong>.</li><li>Recharge cette page avec <strong>Ctrl + F5</strong>.</li></ol>
+        </section>
+      )}
+
       {managerAccess && !roleAccessConfigured && (
         <section className="dashboard-setup">
           <span className="module-status">Activation V30 nécessaire</span>
@@ -170,7 +187,7 @@ export default async function DashboardPage() {
         <section className="dashboard-kpi-grid">
           <article><span>État du circuit</span><strong>{setting?.label ?? "À configurer"}</strong></article>
           <article><span>État Nostra Motors</span><strong>{motorsStatusConfigured ? motorsSetting?.label ?? "À configurer" : "Activation requise"}</strong></article>
-          <article><span>Demandes en attente</span><strong>{pending + pendingReservations + pendingTeamRegistrations + pendingOrders}</strong></article>
+          <article><span>Demandes en attente</span><strong>{totalPending}</strong></article>
           <article><span>Alertes de stock</span><strong>{lowStock}</strong></article>
           <article><span>Solde enregistré</span><strong>{currentBalance.toLocaleString("fr-FR")} €</strong></article>
         </section>
@@ -194,6 +211,7 @@ export default async function DashboardPage() {
             <div className="dashboard-module-grid dashboard-module-grid-grouped">
               {managerAccess && <DashboardCard href="/dashboard/catalogue" icon="🚘" title="Catalogue Nostra Motors" description="Ajouter les véhicules par marque avec leurs photos, caractéristiques, prix et quantité en stock." badge={catalogVehicles.length ? `${catalogVehicles.length} véhicule(s)` : undefined} />}
               <DashboardCard href="/dashboard/commandes" icon="🧾" title="Commandes Nostra Motors" description="Recevoir les commandes des citoyens, suivre leur préparation et modifier leur statut." badge={!ordersConfigured ? "À activer" : pendingOrders ? `${pendingOrders} nouvelle(s)` : undefined} />
+              <DashboardCard href="/dashboard/livraisons" icon="🚚" title="Gestion des livraisons" description="Planifier les livraisons à domicile, assigner un livreur et suivre leur progression." badge={!motorsV41Overview.configured ? "V41 à activer" : motorsV41Overview.pendingDeliveries ? `${motorsV41Overview.pendingDeliveries} à traiter` : undefined} />
               {managerAccess && <DashboardCard href="/dashboard/stocks" icon="▦" title="Gestion des stocks" description="Modifier les quantités et surveiller les véhicules bientôt épuisés." badge={lowStock ? `${lowStock} alerte(s)` : undefined} />}
             </div>
           </DashboardModuleGroup>
@@ -260,6 +278,19 @@ export default async function DashboardPage() {
                     ? `${teamMailOverview.unread} non lu(s)`
                     : undefined}
               />
+              {managerAccess && (
+                <DashboardCard
+                  href="/dashboard/rendez-vous-motors"
+                  icon="🗓️"
+                  title="Rendez-vous Nostra Motors"
+                  description="Recevoir, confirmer ou refuser les visites du showroom et les demandes d’essai."
+                  badge={!motorsV41Overview.configured
+                    ? "V41 à activer"
+                    : motorsV41Overview.pendingAppointments
+                      ? `${motorsV41Overview.pendingAppointments} nouveau(x)`
+                      : undefined}
+                />
+              )}
               {managerAccess && (
                 <DashboardCard
                   href="/dashboard/circuit"
