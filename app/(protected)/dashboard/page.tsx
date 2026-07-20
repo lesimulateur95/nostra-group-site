@@ -191,33 +191,58 @@ export default async function DashboardPage() {
           </DashboardModuleGroup>
         )}
 
-
         {ordersAccess && (
           <DashboardModuleGroup
-            icon="✉️"
-            eyebrow="COMMUNICATION"
-            title="Messagerie Nostra Group"
-            description="Recevoir les demandes des citoyens et leur envoyer des messages officiels."
+            icon="⚙️"
+            eyebrow="DIRECTION"
+            title="Direction"
+            description={managerAccess
+              ? "Messagerie officielle, état des activités, finances et événements du groupe."
+              : "Accès à la messagerie officielle de l’équipe Nostra Group."}
             defaultOpen={!managerAccess}
           >
-            <div className="dashboard-module-grid dashboard-module-grid-grouped dashboard-module-grid-two">
+            <div className="dashboard-module-grid dashboard-module-grid-grouped">
               <DashboardCard
                 href="/dashboard/messagerie"
                 icon="📨"
-                title="Boîte mail de l’équipe"
+                title="Messagerie Nostra Group"
                 description="Lire les messages des citoyens, répondre aux conversations et écrire depuis equipe@nostra.group."
-                badge={!teamMailOverview.configured ? "V35 à activer" : teamMailOverview.unread ? `${teamMailOverview.unread} non lu(s)` : undefined}
+                badge={!teamMailOverview.configured
+                  ? "V35 à activer"
+                  : teamMailOverview.unread
+                    ? `${teamMailOverview.unread} non lu(s)`
+                    : undefined}
               />
-            </div>
-          </DashboardModuleGroup>
-        )}
-
-        {managerAccess && (
-          <DashboardModuleGroup icon="⚙️" eyebrow="DIRECTION" title="Gestion générale" description="État des activités, finances et événements du groupe.">
-            <div className="dashboard-module-grid dashboard-module-grid-grouped">
-              <DashboardCard href="/dashboard/circuit" icon="◉" title="État des activités" description="Gérer au même endroit l’état du Nostra Circuit et de Nostra Motors." badge={motorsStatusConfigured ? `${setting?.label ?? "Circuit"} / ${motorsSetting?.label ?? "Motors"}` : "Motors à activer"} />
-              <DashboardCard href="/dashboard/comptabilite" icon="€" title="Comptabilité" description="Enregistrer les recettes, les dépenses et suivre le solde du groupe." />
-              <DashboardCard href="/dashboard/evenements" icon="📅" title="Gestion des événements" description="Créer, publier, modifier ou annuler les événements Nostra Group." badge={generalEventsCount ? `${generalEventsCount} événement(s)` : undefined} />
+              {managerAccess && (
+                <DashboardCard
+                  href="/dashboard/circuit"
+                  icon="◉"
+                  title="État des activités"
+                  description="Gérer au même endroit l’état du Nostra Circuit et de Nostra Motors."
+                  badge={motorsStatusConfigured
+                    ? `${setting?.label ?? "Circuit"} / ${motorsSetting?.label ?? "Motors"}`
+                    : "Motors à activer"}
+                />
+              )}
+              {managerAccess && (
+                <DashboardCard
+                  href="/dashboard/comptabilite"
+                  icon="€"
+                  title="Comptabilité"
+                  description="Enregistrer les recettes, les dépenses et suivre le solde du groupe."
+                />
+              )}
+              {managerAccess && (
+                <DashboardCard
+                  href="/dashboard/evenements"
+                  icon="📅"
+                  title="Gestion des événements"
+                  description="Créer, publier, modifier ou annuler les événements Nostra Group."
+                  badge={generalEventsCount
+                    ? `${generalEventsCount} événement(s)`
+                    : undefined}
+                />
+              )}
             </div>
           </DashboardModuleGroup>
         )}
