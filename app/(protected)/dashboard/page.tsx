@@ -40,7 +40,6 @@ import {
 } from "@/lib/race-control/data";
 import { getSpecialRankingsConfigured } from "@/lib/special-rankings/data";
 import { getMotorsV41Overview } from "@/lib/nostra-motors/v41-data";
-import { MOTORS_V41_SETUP_SQL } from "@/lib/nostra-motors/v41-setup-sql";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -141,7 +140,7 @@ export default async function DashboardPage() {
   const currentBalance = accounting.reduce((total, entry) => total + (entry.entry_type === "income" ? Number(entry.amount) : -Number(entry.amount)), 0);
   const generalEventsCount = events.filter((event) => !event.championship || event.championship === "general").length;
   const accessLabel = managerAccess ? "GÉRANT" : commissionerAccess ? "COMMISSAIRE" : roles.includes("commercial") ? "COMMERCIAL" : "EMPLOYÉ";
-  const totalPending = pending + pendingReservations + pendingTeamRegistrations + pendingOrders + motorsV41Overview.pendingAppointments;
+  const totalPending = pending + pendingReservations + pendingTeamRegistrations + pendingOrders;
 
   return (
     <DashboardShell>
@@ -160,16 +159,6 @@ export default async function DashboardPage() {
           <h2>Activer les modules généraux</h2>
           <p>Le dashboard a besoin de tables Supabase pour les stocks, la comptabilité, les événements, l’état du circuit, les homologations et l’espace client.</p>
           <details><summary>Afficher le code SQL général</summary><pre>{BACKOFFICE_SETUP_SQL}</pre></details>
-        </section>
-      )}
-
-      {managerAccess && !motorsV41Overview.configured && (
-        <section className="dashboard-setup">
-          <span className="module-status">Activation V41 nécessaire</span>
-          <h2>Activer les rendez-vous et les livraisons Nostra Motors</h2>
-          <p>Ce script ajoute la prise de rendez-vous publique, les notifications Direction et le suivi détaillé des livraisons.</p>
-          <details><summary>Afficher le code SQL V41</summary><pre>{MOTORS_V41_SETUP_SQL}</pre></details>
-          <ol><li>Copie le code dans une nouvelle requête Supabase.</li><li>Exécute-le avec <strong>Run without RLS</strong>.</li><li>Recharge cette page avec <strong>Ctrl + F5</strong>.</li></ol>
         </section>
       )}
 
@@ -278,19 +267,6 @@ export default async function DashboardPage() {
                     ? `${teamMailOverview.unread} non lu(s)`
                     : undefined}
               />
-              {managerAccess && (
-                <DashboardCard
-                  href="/dashboard/rendez-vous-motors"
-                  icon="🗓️"
-                  title="Rendez-vous Nostra Motors"
-                  description="Recevoir, confirmer ou refuser les visites du showroom et les demandes d’essai."
-                  badge={!motorsV41Overview.configured
-                    ? "V41 à activer"
-                    : motorsV41Overview.pendingAppointments
-                      ? `${motorsV41Overview.pendingAppointments} nouveau(x)`
-                      : undefined}
-                />
-              )}
               {managerAccess && (
                 <DashboardCard
                   href="/dashboard/circuit"
