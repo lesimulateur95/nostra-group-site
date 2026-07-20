@@ -33,6 +33,7 @@ import { DASHBOARD_ACCESS_SETUP_SQL } from "@/lib/backoffice/dashboard-access-se
 import { BACKOFFICE_SETUP_SQL } from "@/lib/backoffice/setup-sql";
 import { createClient } from "@/lib/supabase/server";
 import { getUnreadTeamMailCount } from "@/lib/mail/data";
+import { getDealDashboardState, getDealModuleConfigured } from "@/lib/deal/data";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -45,7 +46,7 @@ export default async function DashboardPage() {
   const ordersAccess = managerAccess || roles.includes("employee") || roles.includes("commercial");
   if (!managerAccess && !commissionerAccess && !ordersAccess) redirect("/accueil");
 
-  const [configured, ordersConfigured, teamRegistrationsConfigured, roleAccessConfigured, wheelConfigured, tombolaConfigured, bingoConfigured, teamMailOverview] = await Promise.all([
+  const [configured, ordersConfigured, teamRegistrationsConfigured, roleAccessConfigured, wheelConfigured, tombolaConfigured, bingoConfigured, teamMailOverview, dealConfigured] = await Promise.all([
     managerAccess ? getBackofficeConfigured() : Promise.resolve(false),
     ordersAccess ? getOrderModuleConfigured() : Promise.resolve(false),
     managerAccess ? getTeamRegistrationModuleConfigured() : Promise.resolve(false),
@@ -54,6 +55,7 @@ export default async function DashboardPage() {
     managerAccess ? getTombolaModuleConfigured() : Promise.resolve(false),
     managerAccess ? getBingoModuleConfigured() : Promise.resolve(false),
     ordersAccess ? getUnreadTeamMailCount() : Promise.resolve({ configured: false, unread: 0 }),
+    managerAccess ? getDealModuleConfigured() : Promise.resolve(false),
   ]);
 
   const [setting, motorsSetting, motorsStatusConfigured, stock, accounting, events, requests, reservationRequests, catalogVehicles] = managerAccess && configured
@@ -77,6 +79,8 @@ export default async function DashboardPage() {
   const tombolaTickets = managerAccess && tombolaRound ? await getTombolaTickets(tombolaRound.id) : [];
   const bingoRound = managerAccess && bingoConfigured ? await getActiveBingoRound() : null;
   const bingoCards = managerAccess && bingoRound ? await getBingoCards(bingoRound.id) : [];
+  const dealState = managerAccess && dealConfigured ? await getDealDashboardState() : { edition: null, sessions: [] };
+  const activeDealSessions = dealState.sessions.filter((session) => ["choosing", "playing", "banker_call"].includes(session.status)).length;
   const unusedWheelGains = wheelSpins.filter((spin) => spin.redemption_status === "unused").length;
   const pendingOrders = orders.filter((order) => order.status === "pending").length;
   const pendingTeamRegistrations = teamRegistrations.filter((request) => request.status === "pending" || request.status === "reviewing").length;
@@ -182,6 +186,7 @@ export default async function DashboardPage() {
               <DashboardCard href="/dashboard/jeux/roue" icon="🎡" title="Roue de la chance" description="Consulter l’historique, modifier le statut ou retirer un gain du profil du citoyen." badge={!wheelConfigured ? "V29 à activer" : unusedWheelGains ? `${unusedWheelGains} gain(s) à utiliser` : undefined} />
               <DashboardCard href="/dashboard/jeux/tombola" icon="🎟️" title="Tombola" description="Configurer le prix, consulter les tickets, lancer le tirage et réinitialiser la tombola." badge={!tombolaConfigured ? "V31 à activer" : tombolaTickets.length ? `${tombolaTickets.length} ticket(s)` : undefined} />
               <DashboardCard href="/dashboard/jeux/bingo" icon="🎱" title="Bingo" description="Configurer les grilles, tirer les numéros et suivre les gagnants et les récompenses." badge={!bingoConfigured ? "V32 à activer" : bingoCards.length ? `${bingoCards.length} grille(s)` : undefined} />
+              <DashboardCard href="/dashboard/jeux/a-prendre-ou-a-laisser" icon="🎁" title="À Prendre ou à Laisser" description="Créer les 24 gains, suivre les joueurs en direct et déclencher manuellement les appels du banquier." badge={!dealConfigured ? "V36 à activer" : activeDealSessions ? `${activeDealSessions} partie(s) en direct` : dealState.edition ? "Édition ouverte" : undefined} />
             </div>
           </DashboardModuleGroup>
         )}

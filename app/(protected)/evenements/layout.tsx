@@ -30,6 +30,11 @@ export default async function EventsLayout({
           { key: "tombola-registration", href: "/evenements/tombola/inscription", label: "Inscription" },
         ],
       });
+      items.push({
+        key: "deal-or-no-deal",
+        href: "/evenements/a-prendre-ou-a-laisser",
+        label: "À Prendre ou à Laisser",
+      });
       continue;
     }
     items.push(item);

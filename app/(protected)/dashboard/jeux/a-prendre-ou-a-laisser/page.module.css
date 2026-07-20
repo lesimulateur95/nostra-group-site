@@ -1,0 +1,403 @@
+
+.page {
+  display: grid;
+  gap: 22px;
+}
+
+.header,
+.editionHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.eyebrow,
+.sectionLabel {
+  color: #e8c84d;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.15em;
+}
+
+.header h1 {
+  margin: 7px 0 9px;
+  font-size: clamp(2.7rem, 7vw, 5rem);
+  line-height: 0.98;
+}
+
+.header p,
+.createPanel p,
+.editionHeader p {
+  max-width: 760px;
+  margin: 0;
+  color: #aaa;
+  line-height: 1.6;
+}
+
+.backButton {
+  padding: 12px 15px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 11px;
+  color: #fff;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.setup,
+.createPanel,
+.editionHeader,
+.sessions,
+.empty {
+  padding: 22px;
+  border: 1px solid rgba(212, 175, 55, 0.27);
+  border-radius: 18px;
+  background: rgba(10, 10, 10, 0.96);
+}
+
+.setup > span {
+  color: #e8c84d;
+  font-weight: 900;
+}
+
+.setup details {
+  margin-top: 15px;
+}
+
+.setup summary {
+  cursor: pointer;
+  color: #e8c84d;
+  font-weight: 800;
+}
+
+.setup pre {
+  max-height: 520px;
+  overflow: auto;
+  padding: 15px;
+  border-radius: 12px;
+  background: #050606;
+  white-space: pre-wrap;
+}
+
+.success,
+.error {
+  margin: 0;
+  padding: 13px 15px;
+  border: 1px solid rgba(212, 175, 55, 0.36);
+  border-radius: 12px;
+  background: rgba(212, 175, 55, 0.08);
+  color: #e7c64e;
+}
+
+.error {
+  border-color: rgba(235, 82, 82, 0.38);
+  background: rgba(120, 20, 20, 0.13);
+  color: #ffaaaa;
+}
+
+.createPanel {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.7fr) minmax(430px, 1.3fr);
+  gap: 25px;
+}
+
+.createPanel h2,
+.editionHeader h2,
+.sessionsHeading h2 {
+  margin: 6px 0 8px;
+}
+
+.form,
+.bankerForm {
+  display: grid;
+  gap: 13px;
+}
+
+.form label,
+.bankerForm label {
+  display: grid;
+  gap: 7px;
+  font-weight: 800;
+}
+
+.form input,
+.form textarea,
+.bankerForm input {
+  width: 100%;
+  padding: 12px 13px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 11px;
+  outline: none;
+  background: #080909;
+  color: #fff;
+  font: inherit;
+}
+
+.form textarea {
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.form input:focus,
+.form textarea:focus,
+.bankerForm input:focus {
+  border-color: #d3af2d;
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+}
+
+.createActions,
+.sessionActions {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.primaryButton,
+.secondaryButton,
+.callButton,
+.dangerButton {
+  padding: 12px 16px;
+  border-radius: 11px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.primaryButton,
+.callButton {
+  border: 0;
+  background: #cda91f;
+  color: #080808;
+}
+
+.secondaryButton {
+  border: 1px solid rgba(212, 175, 55, 0.48);
+  background: #111;
+  color: #f0cf5b;
+}
+
+.dangerButton {
+  border: 1px solid rgba(235, 82, 82, 0.4);
+  background: rgba(100, 18, 18, 0.17);
+  color: #ffaaaa;
+}
+
+.prizeList {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(160px, 1fr));
+  gap: 9px;
+}
+
+.prizeList article {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 9px;
+  padding: 11px;
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  border-radius: 10px;
+  background: rgba(10, 10, 10, 0.94);
+}
+
+.prizeList span {
+  display: grid;
+  place-items: center;
+  width: 27px;
+  height: 27px;
+  border-radius: 8px;
+  background: rgba(212, 175, 55, 0.12);
+  color: #e8c84d;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.sessions {
+  display: grid;
+  gap: 14px;
+}
+
+.sessionCard {
+  padding: 17px;
+  border: 1px solid rgba(212, 175, 55, 0.22);
+  border-radius: 15px;
+  background: #0b0b0a;
+}
+
+.sessionHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.sessionHeader h3 {
+  margin: 6px 0 4px;
+  font-size: 1.35rem;
+}
+
+.sessionHeader p {
+  margin: 0;
+  color: #999;
+}
+
+.status {
+  display: inline-flex;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: rgba(212, 175, 55, 0.1);
+  color: #e7c64e;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.calling {
+  animation: callPulse 1s ease-in-out infinite;
+}
+
+.sessionResult {
+  display: grid;
+  justify-items: end;
+  align-content: start;
+}
+
+.sessionResult span {
+  color: #888;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+}
+
+.sessionResult strong {
+  color: #f0d063;
+  font-size: 1.1rem;
+}
+
+.liveDetails {
+  margin-top: 15px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 11px;
+}
+
+.liveDetails summary {
+  cursor: pointer;
+  color: #e6c64e;
+  font-weight: 800;
+}
+
+.liveBoxes {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(100px, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.liveBox {
+  display: grid;
+  gap: 4px;
+  padding: 9px;
+  border: 1px solid rgba(212, 175, 55, 0.19);
+  border-radius: 9px;
+  background: #111;
+}
+
+.liveBox span,
+.liveBox small {
+  color: #888;
+  font-size: 0.72rem;
+}
+
+.liveBox strong {
+  color: #eee;
+  font-size: 0.82rem;
+}
+
+.liveBoxOpened {
+  opacity: 0.5;
+}
+
+.liveBoxSelected {
+  border-color: rgba(212, 175, 55, 0.8);
+  background: rgba(212, 175, 55, 0.1);
+}
+
+.sessionActions {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.bankerForm {
+  flex: 1 1 560px;
+}
+
+.pendingOffer {
+  flex: 1 1 500px;
+  padding: 13px;
+  border: 1px solid rgba(212, 175, 55, 0.39);
+  border-radius: 11px;
+  background: rgba(212, 175, 55, 0.08);
+}
+
+.pendingOffer span {
+  color: #e7c64e;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+}
+
+.pendingOffer strong {
+  display: block;
+  margin-top: 5px;
+  color: #fff;
+  font-size: 1.2rem;
+}
+
+.pendingOffer p {
+  margin: 5px 0 0;
+  color: #999;
+}
+
+@keyframes callPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(212, 175, 55, 0);
+  }
+  50% {
+    box-shadow: 0 0 0 7px rgba(212, 175, 55, 0.13);
+  }
+}
+
+@media (max-width: 980px) {
+  .createPanel {
+    grid-template-columns: 1fr;
+  }
+
+  .prizeList {
+    grid-template-columns: repeat(2, minmax(150px, 1fr));
+  }
+
+  .liveBoxes {
+    grid-template-columns: repeat(4, minmax(90px, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .header,
+  .editionHeader,
+  .sessionHeader {
+    flex-direction: column;
+  }
+
+  .sessionResult {
+    justify-items: start;
+  }
+
+  .prizeList {
+    grid-template-columns: 1fr;
+  }
+
+  .liveBoxes {
+    grid-template-columns: repeat(2, minmax(90px, 1fr));
+  }
+}
