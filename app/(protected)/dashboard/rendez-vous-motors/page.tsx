@@ -35,13 +35,11 @@ export default async function DashboardMotorAppointmentsPage({
     <DashboardShell>
       <main className={styles.dashboardPage}>
         <section className={styles.hero}>
-          <span className={styles.eyebrow}>
-            DIRECTION · NOSTRA MOTORS
-          </span>
+          <span className={styles.eyebrow}>NOSTRA MOTORS</span>
           <h1>Demandes de rendez-vous</h1>
           <p>
-            Traite les visites du showroom et les demandes d’essai envoyées
-            depuis la carte publique de l’accueil.
+            Consulte, traite ou supprime les demandes envoyées par les
+            citoyens depuis la partie publique.
           </p>
         </section>
 
@@ -77,9 +75,7 @@ export default async function DashboardMotorAppointmentsPage({
               <div className={styles.cardHeader}>
                 <div>
                   <span className={styles.eyebrow}>
-                    {appointment.appointment_type === "test_drive"
-                      ? "ESSAI VÉHICULE"
-                      : "VISITE SHOWROOM"}
+                    DEMANDE DE RENDEZ-VOUS
                   </span>
                   <h2>{appointment.customer_name}</h2>
                 </div>
@@ -102,11 +98,10 @@ export default async function DashboardMotorAppointmentsPage({
                 </p>
               )}
 
-              {appointment.message && (
-                <p>
-                  <strong>Message :</strong> {appointment.message}
-                </p>
-              )}
+              <p>
+                <strong>Motif :</strong>{" "}
+                {appointment.message || "Motif non renseigné"}
+              </p>
 
               <form
                 action={updateMotorAppointment}
@@ -126,12 +121,12 @@ export default async function DashboardMotorAppointmentsPage({
                 </label>
 
                 <label className={styles.field}>
-                  <span>Note Direction</span>
+                  <span>Réponse de Nostra Motors</span>
                   <input
                     defaultValue={appointment.direction_note ?? ""}
                     name="direction_note"
                     maxLength={1000}
-                    placeholder="Créneau proposé, motif du refus…"
+                    placeholder="Réponse, créneau proposé, motif du refus…"
                   />
                 </label>
 

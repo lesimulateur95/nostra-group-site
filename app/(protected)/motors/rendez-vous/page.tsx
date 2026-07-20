@@ -32,15 +32,15 @@ export default async function MotorAppointmentPage({
         <span className={styles.eyebrow}>SERVICE CLIENT · NOSTRA MOTORS</span>
         <h1>Prise de rendez-vous</h1>
         <p>
-          Réserve une visite du showroom ou demande l’essai d’un véhicule. La
-          demande arrive directement dans le Dashboard de la Direction.
+          Indique librement le motif de ta demande. Elle arrivera directement
+          dans la section Nostra Motors du Dashboard.
         </p>
       </section>
 
       <section className={styles.panel}>
         {params.sent === "1" && (
           <div className={styles.success}>
-            Ta demande a bien été envoyée à la Direction Nostra Motors.
+            Ta demande a bien été envoyée à Nostra Motors.
           </div>
         )}
 
@@ -69,14 +69,6 @@ export default async function MotorAppointmentPage({
           </label>
 
           <label className={styles.field}>
-            <span>Type de rendez-vous</span>
-            <select name="appointment_type" required defaultValue="showroom">
-              <option value="showroom">Visite du showroom</option>
-              <option value="test_drive">Essai d’un véhicule</option>
-            </select>
-          </label>
-
-          <label className={styles.field}>
             <span>Date souhaitée</span>
             <input
               min={minimumDate}
@@ -91,8 +83,8 @@ export default async function MotorAppointmentPage({
             <input name="appointment_time" type="time" required />
           </label>
 
-          <label className={styles.fieldFull}>
-            <span>Véhicule concerné par l’essai</span>
+          <label className={styles.field}>
+            <span>Véhicule concerné</span>
             <select name="vehicle_id" defaultValue="">
               <option value="">Aucun véhicule précis</option>
               {vehicles.map((vehicle) => {
@@ -115,17 +107,19 @@ export default async function MotorAppointmentPage({
             <input
               name="vehicle_label"
               maxLength={150}
-              placeholder="À remplir uniquement si le modèle n’est pas dans la liste"
+              placeholder="À remplir uniquement si le véhicule n’est pas dans la liste"
             />
           </label>
 
           <label className={styles.fieldFull}>
-            <span>Informations complémentaires</span>
+            <span>Motif du rendez-vous</span>
             <textarea
               name="message"
               rows={5}
+              minLength={3}
               maxLength={1500}
-              placeholder="Disponibilités, demande particulière, précision sur le véhicule…"
+              required
+              placeholder="Écris librement le motif de ta demande…"
             />
           </label>
 

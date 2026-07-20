@@ -31,14 +31,13 @@ export async function createMotorAppointment(formData: FormData) {
   const customerName = field(formData, "customer_name");
   const phone = field(formData, "phone");
   const email = field(formData, "email");
-  const appointmentType = field(formData, "appointment_type");
   const appointmentDate = field(formData, "appointment_date");
   const appointmentTime = field(formData, "appointment_time");
   const vehicleSelection = field(formData, "vehicle_id");
   const customVehicleLabel = field(formData, "vehicle_label");
   const [vehicleId, selectedVehicleLabel] = vehicleSelection.split("|||", 2);
   const vehicleLabel = customVehicleLabel || selectedVehicleLabel || "";
-  const message = field(formData, "message");
+  const reason = field(formData, "message");
 
   const selectedDate = new Date(`${appointmentDate}T${appointmentTime}:00`);
 
@@ -47,9 +46,9 @@ export async function createMotorAppointment(formData: FormData) {
     !phone ||
     !appointmentDate ||
     !appointmentTime ||
+    reason.length < 3 ||
     Number.isNaN(selectedDate.getTime()) ||
-    selectedDate.getTime() < Date.now() - 60_000 ||
-    !["showroom", "test_drive"].includes(appointmentType)
+    selectedDate.getTime() < Date.now() - 60_000
   ) {
     redirect("/motors/rendez-vous?error=missing");
   }
@@ -61,12 +60,14 @@ export async function createMotorAppointment(formData: FormData) {
       customer_name: customerName,
       phone,
       email: email || null,
-      appointment_type: appointmentType,
+      // Valeur technique conservée pour rester compatible avec la table
+      // existante. Le véritable motif libre est enregistré dans message.
+      appointment_type: "showroom",
       appointment_date: appointmentDate,
       appointment_time: appointmentTime,
       vehicle_id: vehicleId || null,
       vehicle_label: vehicleLabel || null,
-      message: message || null,
+      message: reason,
       status: "pending",
     });
 

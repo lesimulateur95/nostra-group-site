@@ -28,11 +28,13 @@ export function DashboardModuleGroup({
         <span className="dashboard-module-group-icon" aria-hidden="true">
           {icon}
         </span>
+
         <span className="dashboard-module-group-copy">
           <span className="eyebrow">{eyebrow}</span>
           <strong>{title}</strong>
           <span>{description}</span>
         </span>
+
         <span className="dashboard-module-group-chevron" aria-hidden="true">
           ⌄
         </span>
