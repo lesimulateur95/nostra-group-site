@@ -77,7 +77,12 @@ export async function updateMotorAppointment(formData: FormData) {
   const status = field(formData, "status");
   const directionNote = field(formData, "direction_note");
 
-  if (!id || !["pending", "confirmed", "declined", "completed", "cancelled"].includes(status)) {
+  if (
+    !id ||
+    !["pending", "confirmed", "declined", "completed", "cancelled"].includes(
+      status,
+    )
+  ) {
     return;
   }
 
@@ -96,7 +101,9 @@ export async function updateMotorAppointment(formData: FormData) {
 
 export async function updateMotorDelivery(formData: FormData) {
   const { supabase, user, roles } = await currentUserAndRoles();
-  const allowed = roles.some((role) => ["manager", "employee", "commercial"].includes(role));
+  const allowed = roles.some((role) =>
+    ["manager", "employee", "commercial"].includes(role),
+  );
   if (!user || !allowed) redirect("/accueil");
 
   const id = field(formData, "id");
@@ -105,22 +112,53 @@ export async function updateMotorDelivery(formData: FormData) {
   const deliveryDriver = field(formData, "delivery_driver");
   const deliveryNotes = field(formData, "delivery_notes");
 
-  if (!id || !["not_planned", "planned", "in_progress", "delivered", "cancelled"].includes(deliveryStatus)) {
-    return;
+  if (
+    !id ||
+    !["not_planned", "planned", "in_progress", "delivered", "cancelled"].includes(
+      deliveryStatus,
+    )
+  ) {
+    redirect("/dashboard/livraisons?error=invalid");
   }
 
-  const update: Record<string, string | null> = {
+  let normalizedDeliveryDate: string | null = null;
+  if (deliveryDate) {
+    const parsedDate = new Date(deliveryDate);
+    if (Number.isNaN(parsedDate.getTime())) {
+      redirect("/dashboard/livraisons?error=date");
+    }
+    normalizedDeliveryDate = parsedDate.toISOString();
+  }
+
+  const update: Record<string, unknown> = {
     delivery_status: deliveryStatus,
-    delivery_date: deliveryDate ? new Date(deliveryDate).toISOString() : null,
+    delivery_date: normalizedDeliveryDate,
     delivery_driver: deliveryDriver || null,
     delivery_notes: deliveryNotes || null,
+    updated_at: new Date().toISOString(),
   };
 
-  if (deliveryStatus === "delivered") update.status = "delivered";
+  // Le statut de commande existant utilise "completed", jamais "delivered".
+  // Le passage à "Livrée" reste ainsi compatible avec les documents/factures.
+  if (deliveryStatus === "delivered") update.status = "completed";
 
-  await (supabase as any).from("orders").update(update).eq("id", id);
+  const { data: updatedOrder, error } = await (supabase as any)
+    .from("orders")
+    .update(update)
+    .eq("id", id)
+    .select("id")
+    .maybeSingle();
+
+  if (error || !updatedOrder) {
+    console.error("[Nostra Motors] Mise à jour de livraison impossible", error);
+    redirect("/dashboard/livraisons?error=save");
+  }
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/livraisons");
   revalidatePath("/dashboard/commandes");
+  revalidatePath("/profil");
+  revalidatePath("/profil/commandes");
+  revalidatePath("/profil/documents");
+  redirect("/dashboard/livraisons?saved=1");
 }
