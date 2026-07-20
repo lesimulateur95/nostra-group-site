@@ -1,48 +1,20 @@
 import { createClient } from "@/lib/supabase/server";
+import type {
+  CatalogVehicleV41,
+  MotorAppointment,
+  MotorDelivery,
+} from "@/lib/nostra-motors/v41-shared";
 
-export type MotorAppointment = {
-  id: string;
-  user_id: string | null;
-  customer_name: string;
-  phone: string;
-  email: string | null;
-  appointment_type: "showroom" | "test_drive";
-  appointment_date: string;
-  appointment_time: string;
-  vehicle_id: string | null;
-  vehicle_label: string | null;
-  message: string | null;
-  status: "pending" | "confirmed" | "declined" | "completed" | "cancelled";
-  direction_note: string | null;
-  created_at: string;
-};
-
-export type MotorDelivery = Record<string, unknown> & {
-  id: string | number;
-  status?: string;
-  delivery_status?: string;
-  delivery_date?: string | null;
-  delivery_driver?: string | null;
-  delivery_notes?: string | null;
-  delivery_address?: string | null;
-  delivery_method?: string | null;
-};
-
-export type CatalogVehicleV41 = Record<string, unknown> & {
-  id: string | number;
-  brand?: string | null;
-  make?: string | null;
-  model?: string | null;
-  name?: string | null;
-  price?: number | string | null;
-  image_url?: string | null;
-  photo_url?: string | null;
-  quantity?: number | null;
-  sales_count?: number | null;
-  order_count?: number | null;
-  popularity?: number | null;
-  views?: number | null;
-};
+// Compatibilité avec les pages serveur déjà ajoutées en V41.
+export type {
+  CatalogVehicleV41,
+  MotorAppointment,
+  MotorDelivery,
+} from "@/lib/nostra-motors/v41-shared";
+export {
+  vehicleLabel,
+  vehiclePopularityScore,
+} from "@/lib/nostra-motors/v41-shared";
 
 const emptyOverview = {
   configured: false,
@@ -61,7 +33,9 @@ export async function getMotorsV41Overview() {
     const deliveriesQuery = (supabase as any)
       .from("orders")
       .select("id", { count: "exact", head: true })
-      .or("delivery_method.eq.home,delivery_method.eq.home_delivery,delivery_address.not.is.null")
+      .or(
+        "delivery_method.eq.home,delivery_method.eq.home_delivery,delivery_address.not.is.null",
+      )
       .in("delivery_status", ["not_planned", "planned", "in_progress"]);
 
     const [appointments, deliveries] = await Promise.all([
@@ -96,14 +70,18 @@ export async function getMotorDeliveries(): Promise<MotorDelivery[]> {
   const { data, error } = await (supabase as any)
     .from("orders")
     .select("*")
-    .or("delivery_method.eq.home,delivery_method.eq.home_delivery,delivery_address.not.is.null")
+    .or(
+      "delivery_method.eq.home,delivery_method.eq.home_delivery,delivery_address.not.is.null",
+    )
     .order("created_at", { ascending: false });
 
   if (error) return [];
   return (data ?? []) as MotorDelivery[];
 }
 
-export async function getPublicCatalogVehiclesV41(): Promise<CatalogVehicleV41[]> {
+export async function getPublicCatalogVehiclesV41(): Promise<
+  CatalogVehicleV41[]
+> {
   const supabase = await createClient();
   const { data, error } = await (supabase as any)
     .from("catalog_vehicles")
@@ -112,20 +90,4 @@ export async function getPublicCatalogVehiclesV41(): Promise<CatalogVehicleV41[]
 
   if (error) return [];
   return (data ?? []) as CatalogVehicleV41[];
-}
-
-export function vehicleLabel(vehicle: CatalogVehicleV41): string {
-  return [vehicle.brand ?? vehicle.make, vehicle.model ?? vehicle.name]
-    .filter(Boolean)
-    .join(" ") || `Véhicule ${vehicle.id}`;
-}
-
-export function vehiclePopularityScore(vehicle: CatalogVehicleV41): number {
-  return Number(
-    vehicle.sales_count ??
-      vehicle.order_count ??
-      vehicle.popularity ??
-      vehicle.views ??
-      0,
-  );
 }

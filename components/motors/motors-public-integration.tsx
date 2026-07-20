@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { CatalogVehicleV41 } from "@/lib/nostra-motors/v41-data";
+import type { CatalogVehicleV41 } from "@/lib/nostra-motors/v41-shared";
 import { PopularVehicles } from "./popular-vehicles";
 import { VehicleComparator } from "./vehicle-comparator";
 import styles from "./v41.module.css";

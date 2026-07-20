@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { CatalogVehicleV41 } from "@/lib/nostra-motors/v41-data";
+import type { CatalogVehicleV41 } from "@/lib/nostra-motors/v41-shared";
 import styles from "./v41.module.css";
 
 type Props = {
