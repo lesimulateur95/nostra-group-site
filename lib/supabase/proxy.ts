@@ -96,12 +96,27 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (user && (isDashboardPage || isCommissionerPage) && !isManager(user)) {
-    const { data: profile } = await supabase
-      .from("member_profiles")
-      .select("roles,role")
-      .eq("user_id", user.id)
-      .maybeSingle();
-    const roles = normalizeRoles(profile?.roles, profile?.role);
+    // Le middleware ne doit pas dépendre d'une lecture directe de
+    // member_profiles : les règles RLS peuvent la refuser et faire croire
+    // que le membre est un simple citoyen. nostra_roles() est la source
+    // fiable utilisée pour les accès par rôle.
+    const rpcResult = await supabase.rpc("nostra_roles");
+
+    let roles = !rpcResult.error
+      ? normalizeRoles(rpcResult.data, null)
+      : ["citizen"];
+
+    // Compatibilité avec une ancienne base qui n'aurait pas encore
+    // la fonction nostra_roles().
+    if (rpcResult.error) {
+      const { data: profile } = await supabase
+        .from("member_profiles")
+        .select("roles,role")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      roles = normalizeRoles(profile?.roles, profile?.role);
+    }
 
     const dashboardRoles = [
       "manager",
@@ -119,7 +134,11 @@ export async function updateSession(request: NextRequest) {
       return NextResponse.redirect(url);
     }
 
-    if (isCommissionerPage && !roles.includes("manager") && !roles.includes("commissioner")) {
+    if (
+      isCommissionerPage &&
+      !roles.includes("manager") &&
+      !roles.includes("commissioner")
+    ) {
       const url = request.nextUrl.clone();
       url.pathname = "/accueil";
       return NextResponse.redirect(url);

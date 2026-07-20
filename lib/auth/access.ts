@@ -109,34 +109,46 @@ export async function getUserRoleKeys(
   try {
     const supabase = await createClient();
 
-    const completeResult = await supabase
-      .from("member_profiles")
-      .select("roles,role")
-      .eq("user_id", user.id)
-      .maybeSingle();
+    // La fonction SQL nostra_roles() est SECURITY DEFINER :
+    // elle peut lire les rôles du compte même lorsque les règles RLS
+    // empêchent une lecture directe de member_profiles.
+    const rpcResult = await supabase.rpc("nostra_roles");
 
     let roles: RoleKey[] =
-      !completeResult.error && completeResult.data
-        ? normalizeRoleKeys(
-            completeResult.data.roles,
-            completeResult.data.role,
-          )
+      !rpcResult.error && rpcResult.data
+        ? normalizeRoleKeys(rpcResult.data)
         : ["citizen"];
 
-    // Sécurité pour les anciennes installations où la colonne
-    // multi-rôles n'était pas encore lisible.
-    if (completeResult.error) {
-      const legacyResult = await supabase
+    // Compatibilité avec les installations plus anciennes où
+    // nostra_roles() n'existe pas encore.
+    if (rpcResult.error) {
+      const completeResult = await supabase
         .from("member_profiles")
-        .select("role")
+        .select("roles,role")
         .eq("user_id", user.id)
         .maybeSingle();
 
-      if (!legacyResult.error && legacyResult.data) {
-        roles = normalizeRoleKeys(
-          null,
-          legacyResult.data.role,
-        );
+      roles =
+        !completeResult.error && completeResult.data
+          ? normalizeRoleKeys(
+              completeResult.data.roles,
+              completeResult.data.role,
+            )
+          : ["citizen"];
+
+      if (completeResult.error) {
+        const legacyResult = await supabase
+          .from("member_profiles")
+          .select("role")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (!legacyResult.error && legacyResult.data) {
+          roles = normalizeRoleKeys(
+            null,
+            legacyResult.data.role,
+          );
+        }
       }
     }
 
