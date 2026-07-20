@@ -34,6 +34,10 @@ import { BACKOFFICE_SETUP_SQL } from "@/lib/backoffice/setup-sql";
 import { createClient } from "@/lib/supabase/server";
 import { getUnreadTeamMailCount } from "@/lib/mail/data";
 import { getDealDashboardState, getDealModuleConfigured } from "@/lib/deal/data";
+import {
+  getRaceControlDashboardState,
+  getRaceControlModuleConfigured,
+} from "@/lib/race-control/data";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -46,7 +50,7 @@ export default async function DashboardPage() {
   const ordersAccess = managerAccess || roles.includes("employee") || roles.includes("commercial");
   if (!managerAccess && !commissionerAccess && !ordersAccess) redirect("/accueil");
 
-  const [configured, ordersConfigured, teamRegistrationsConfigured, roleAccessConfigured, wheelConfigured, tombolaConfigured, bingoConfigured, teamMailOverview, dealConfigured] = await Promise.all([
+  const [configured, ordersConfigured, teamRegistrationsConfigured, roleAccessConfigured, wheelConfigured, tombolaConfigured, bingoConfigured, teamMailOverview, dealConfigured, raceControlConfigured] = await Promise.all([
     managerAccess ? getBackofficeConfigured() : Promise.resolve(false),
     ordersAccess ? getOrderModuleConfigured() : Promise.resolve(false),
     managerAccess ? getTeamRegistrationModuleConfigured() : Promise.resolve(false),
@@ -56,6 +60,7 @@ export default async function DashboardPage() {
     managerAccess ? getBingoModuleConfigured() : Promise.resolve(false),
     ordersAccess ? getUnreadTeamMailCount() : Promise.resolve({ configured: false, unread: 0 }),
     managerAccess ? getDealModuleConfigured() : Promise.resolve(false),
+    commissionerAccess ? getRaceControlModuleConfigured() : Promise.resolve(false),
   ]);
 
   const [setting, motorsSetting, motorsStatusConfigured, stock, accounting, events, requests, reservationRequests, catalogVehicles] = managerAccess && configured
@@ -81,6 +86,12 @@ export default async function DashboardPage() {
   const bingoCards = managerAccess && bingoRound ? await getBingoCards(bingoRound.id) : [];
   const dealState = managerAccess && dealConfigured ? await getDealDashboardState() : { edition: null, sessions: [] };
   const activeDealSessions = dealState.sessions.filter((session) => ["choosing", "playing", "banker_call"].includes(session.status)).length;
+  const raceControlState = commissionerAccess && raceControlConfigured
+    ? await getRaceControlDashboardState()
+    : { configured: false, events: [] };
+  const activeRaceEvent = raceControlState.events.find(
+    (event) => event.status === "running",
+  );
   const unusedWheelGains = wheelSpins.filter((spin) => spin.redemption_status === "unused").length;
   const pendingOrders = orders.filter((order) => order.status === "pending").length;
   const pendingTeamRegistrations = teamRegistrations.filter((request) => request.status === "pending" || request.status === "reviewing").length;
@@ -175,6 +186,7 @@ export default async function DashboardPage() {
           >
             <div className="dashboard-module-grid dashboard-module-grid-grouped dashboard-module-grid-two">
               <DashboardCard href="/dashboard/commissaires" icon="🏁" title="Planning course en direct" description="Renseigner l’ouverture des stands, les qualifications, le départ, la météo et les annonces en direct." badge={!roleAccessConfigured ? "V30 à activer" : "En direct"} />
+              <DashboardCard href="/dashboard/commissaires/chronometrage" icon="⏱️" title="Chronométrage et tours" description="Noter les pilotes et écuries au départ, lancer les chronomètres, enregistrer chaque tour et publier les résultats." badge={!raceControlConfigured ? "V37 à activer" : activeRaceEvent ? `${activeRaceEvent.active_count} en piste` : undefined} />
               <DashboardCard href="/commissaires/incidents-circuit" icon="🚨" title="Rapports d’incident" description="Créer et consulter les rapports des incidents survenus pendant les sessions." />
             </div>
           </DashboardModuleGroup>

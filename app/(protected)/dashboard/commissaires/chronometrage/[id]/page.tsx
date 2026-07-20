@@ -1,0 +1,80 @@
+
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { DashboardShell } from "@/components/dashboard/dashboard-shell";
+import { RaceTimingConsole } from "@/components/race-control/race-timing-console";
+import { getUserRoleKeys } from "@/lib/auth/access";
+import { getRaceControlEventState } from "@/lib/race-control/data";
+import { createClient } from "@/lib/supabase/server";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+export default async function RaceControlLivePage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{
+    created?: string;
+    published?: string;
+    error?: string;
+  }>;
+}) {
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getUser();
+  if (!data.user) redirect("/");
+
+  const roles = await getUserRoleKeys(data.user);
+  if (
+    !roles.includes("manager") &&
+    !roles.includes("commissioner")
+  ) {
+    redirect("/accueil");
+  }
+
+  const route = await params;
+  const query = await searchParams;
+  const eventId = Number.parseInt(route.id, 10);
+
+  if (!Number.isFinite(eventId) || eventId <= 0) {
+    redirect("/dashboard/commissaires/chronometrage");
+  }
+
+  const state = await getRaceControlEventState(eventId);
+
+  return (
+    <DashboardShell>
+      <main className="dashboard-stack">
+        <div>
+          <Link
+            className="btn btn-secondary"
+            href="/dashboard/commissaires/chronometrage"
+          >
+            ← Courses et grilles de départ
+          </Link>
+        </div>
+
+        {query.created && (
+          <div className="dashboard-feedback dashboard-feedback-success">
+            La grille est validée. Les chronomètres sont prêts.
+          </div>
+        )}
+
+        {query.published && (
+          <div className="dashboard-feedback dashboard-feedback-success">
+            Les résultats et les classements ont été mis à jour.
+          </div>
+        )}
+
+        {query.error && (
+          <div className="dashboard-feedback dashboard-feedback-error">
+            La publication des résultats a échoué.
+          </div>
+        )}
+
+        <RaceTimingConsole initialState={state} />
+      </main>
+    </DashboardShell>
+  );
+}
