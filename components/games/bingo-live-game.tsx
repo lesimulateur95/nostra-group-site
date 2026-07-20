@@ -47,16 +47,103 @@ export function BingoLiveGame({
 
   useEffect(() => {
     const supabase = createClient();
-    const refresh = () => router.refresh();
+    let refreshInProgress = false;
+
+    const refresh = () => {
+      if (refreshInProgress) return;
+
+      refreshInProgress = true;
+      router.refresh();
+
+      window.setTimeout(() => {
+        refreshInProgress = false;
+      }, 500);
+    };
+
     const channel = supabase
       .channel(`nostra-bingo-live-${roundId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "bingo_draws", filter: `round_id=eq.${roundId}` }, refresh)
-      .on("postgres_changes", { event: "*", schema: "public", table: "bingo_winners", filter: `round_id=eq.${roundId}` }, refresh)
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "bingo_rounds", filter: `id=eq.${roundId}` }, refresh)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "bingo_draws",
+          filter: `round_id=eq.${roundId}`,
+        },
+        refresh,
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "bingo_draws",
+        },
+        refresh,
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "bingo_winners",
+          filter: `round_id=eq.${roundId}`,
+        },
+        refresh,
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "bingo_winners",
+          filter: `round_id=eq.${roundId}`,
+        },
+        refresh,
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "bingo_winners",
+        },
+        refresh,
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "bingo_rounds",
+          filter: `id=eq.${roundId}`,
+        },
+        refresh,
+      )
       .subscribe();
+
+    // Sécurité supplémentaire : même si Realtime rate un événement DELETE,
+    // la page récupère l'état réel du Bingo toutes les deux secondes.
+    const pollingTimer = window.setInterval(refresh, 2_000);
+
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") {
+        refresh();
+      }
+    };
+
+    document.addEventListener(
+      "visibilitychange",
+      refreshWhenVisible,
+    );
 
     return () => {
       if (timer.current) clearInterval(timer.current);
+      window.clearInterval(pollingTimer);
+      document.removeEventListener(
+        "visibilitychange",
+        refreshWhenVisible,
+      );
       void supabase.removeChannel(channel);
     };
   }, [roundId, router]);
