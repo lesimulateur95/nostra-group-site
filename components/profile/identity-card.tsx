@@ -48,14 +48,21 @@ export function IdentityCard({
   saved = false,
 }: IdentityCardProps) {
   const [editing, setEditing] = useState(!complete || Boolean(errorMessage));
+  const [expanded, setExpanded] = useState(
+    !complete || Boolean(errorMessage) || saved,
+  );
   const rpName = [firstName, lastName].filter(Boolean).join(" ");
 
   return (
-    <details
-      className={styles.card}
-      defaultOpen={!complete || Boolean(errorMessage) || saved}
-    >
-      <summary className={styles.summary}>
+    <details className={styles.card} open={expanded}>
+      <summary
+        className={styles.summary}
+        aria-expanded={expanded}
+        onClick={(event) => {
+          event.preventDefault();
+          setExpanded((current) => !current);
+        }}
+      >
         <span className={styles.summaryIcon}>◆</span>
 
         <span className={styles.summaryCopy}>
@@ -130,7 +137,10 @@ export function IdentityCard({
             <button
               className={styles.editButton}
               type="button"
-              onClick={() => setEditing(true)}
+              onClick={() => {
+                setExpanded(true);
+                setEditing(true);
+              }}
             >
               Modifier mes informations
             </button>
