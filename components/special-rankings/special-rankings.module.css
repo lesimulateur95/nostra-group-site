@@ -1,0 +1,272 @@
+
+.groups {
+  display: grid;
+  gap: 18px;
+}
+
+.panel,
+.empty,
+.managementPanel,
+.resetPanel {
+  border: 1px solid rgba(212, 175, 55, 0.27);
+  border-radius: 18px;
+  background: rgba(9, 10, 9, 0.96);
+}
+
+.panel {
+  overflow: hidden;
+}
+
+.groupHeader,
+.recordHeader {
+  padding: 19px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.groupHeader span,
+.recordHeader span,
+.sectionLabel {
+  color: #e7c64e;
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+}
+
+.groupHeader h2,
+.recordHeader h2,
+.managementPanel h2,
+.resetPanel h2 {
+  margin: 6px 0 5px;
+}
+
+.recordHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.recordHeader p {
+  margin: 0;
+  color: #999;
+}
+
+.recordHeader > strong {
+  color: #f2d25f;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: clamp(1.5rem, 4vw, 2.5rem);
+}
+
+.tableScroller {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  padding: 13px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  text-align: left;
+}
+
+.table th {
+  color: #d8ba49;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+}
+
+.table td {
+  color: #c5c6c2;
+}
+
+.table tbody tr:hover {
+  background: rgba(212, 175, 55, 0.05);
+}
+
+.table td strong {
+  color: #f1d15e;
+}
+
+.empty {
+  display: grid;
+  justify-items: center;
+  padding: 48px 22px;
+  text-align: center;
+}
+
+.empty > span {
+  font-size: 2.2rem;
+}
+
+.empty h2 {
+  margin: 10px 0 6px;
+}
+
+.empty p {
+  margin: 0;
+  color: #999;
+}
+
+.dashboardGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(280px, 1fr));
+  gap: 15px;
+}
+
+.managementPanel {
+  display: grid;
+  gap: 15px;
+  padding: 19px;
+}
+
+.managementPanel > header p,
+.resetPanel p {
+  margin: 0;
+  color: #999;
+  line-height: 1.55;
+}
+
+.form {
+  display: grid;
+  gap: 11px;
+}
+
+.form label,
+.resetForm > label:not(.confirm) {
+  display: grid;
+  gap: 6px;
+  font-weight: 800;
+}
+
+.form input,
+.form textarea,
+.resetForm select {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  outline: none;
+  background: #080909;
+  color: #fff;
+  font: inherit;
+}
+
+.form textarea {
+  resize: vertical;
+}
+
+.form input:focus,
+.form textarea:focus,
+.resetForm select:focus {
+  border-color: #d1ad2b;
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+}
+
+.rowTwo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+}
+
+.primaryButton,
+.deleteButton,
+.resetButton {
+  padding: 11px 14px;
+  border-radius: 10px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.primaryButton {
+  border: 0;
+  background: #cda91f;
+  color: #080808;
+}
+
+.records {
+  display: grid;
+  gap: 8px;
+  max-height: 430px;
+  overflow-y: auto;
+}
+
+.recordRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 11px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: #0d0e0d;
+}
+
+.recordRow strong {
+  display: block;
+  color: #f0d05d;
+}
+
+.recordRow span,
+.recordRow small {
+  display: block;
+  color: #929390;
+}
+
+.deleteButton,
+.resetButton {
+  border: 1px solid rgba(235, 83, 83, 0.42);
+  background: rgba(120, 20, 20, 0.18);
+  color: #ffaaaa;
+}
+
+.resetPanel {
+  display: grid;
+  grid-template-columns: minmax(300px, 1fr) minmax(300px, 0.7fr);
+  gap: 20px;
+  padding: 20px;
+}
+
+.resetForm {
+  display: grid;
+  gap: 12px;
+  align-content: center;
+}
+
+.confirm {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 9px;
+  color: #b7b8b4;
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.confirm input {
+  width: 18px;
+  height: 18px;
+  accent-color: #cda91f;
+}
+
+@media (max-width: 1120px) {
+  .dashboardGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 780px) {
+  .recordHeader,
+  .resetPanel {
+    grid-template-columns: 1fr;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .rowTwo {
+    grid-template-columns: 1fr;
+  }
+}

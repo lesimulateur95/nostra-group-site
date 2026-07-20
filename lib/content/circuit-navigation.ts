@@ -113,6 +113,9 @@ export const BUILT_IN_CIRCUIT_CATEGORIES: CircuitNavCategory[] = [
       { key: "classement-f1", href: "/circuit/classement/f1", label: "Classement F1", editableSlug: "classement-f1" },
       { key: "classement-ecuries", href: "/circuit/classement/ecuries", label: "Classement écuries", editableSlug: "classement-ecuries" },
       { key: "classement-gt3rs", href: "/circuit/classement/gt3rs", label: "Classement GT3 RS", editableSlug: "classement-gt3rs" },
+      { key: "classement-evenements", href: "/circuit/classement/evenements", label: "Classement événements" },
+      { key: "classement-contre-la-montre", href: "/circuit/classement/contre-la-montre", label: "Chrono contre la montre" },
+      { key: "classement-records-tour", href: "/circuit/classement/records-tour", label: "Records tour circuit" },
     ],
   },
 ];

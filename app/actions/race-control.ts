@@ -410,3 +410,37 @@ export async function resetRaceControlStandings(
     `/dashboard/commissaires/chronometrage?reset=${scope}`,
   );
 }
+
+export async function deleteRaceControlEvent(formData: FormData) {
+  const eventId = integer(formData.get("event_id"));
+
+  if (eventId <= 0) {
+    redirect(
+      "/dashboard/commissaires/chronometrage?error=delete",
+    );
+  }
+
+  const { supabase, authenticated, allowed } =
+    await requireCommissioner();
+
+  if (!authenticated) redirect("/");
+  if (!allowed) redirect("/accueil");
+
+  const { error } = await supabase.rpc(
+    "nostra_delete_race_control_event",
+    {
+      p_event_id: eventId,
+    },
+  );
+
+  if (error) {
+    redirect(
+      "/dashboard/commissaires/chronometrage?error=delete",
+    );
+  }
+
+  revalidateRace(eventId);
+  redirect(
+    "/dashboard/commissaires/chronometrage?deleted=1",
+  );
+}

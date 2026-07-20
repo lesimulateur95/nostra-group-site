@@ -2,7 +2,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
-import { resetRaceControlStandings } from "@/app/actions/race-control";
+import {
+  deleteRaceControlEvent,
+  resetRaceControlStandings,
+} from "@/app/actions/race-control";
 import { RaceEventSetup } from "@/components/race-control/race-event-setup";
 import { getUserRoleKeys } from "@/lib/auth/access";
 import {
@@ -36,6 +39,7 @@ export default async function RaceControlSetupPage({
   searchParams: Promise<{
     error?: string;
     reset?: string;
+    deleted?: string;
   }>;
 }) {
   const supabase = await createClient();
@@ -96,6 +100,12 @@ export default async function RaceControlSetupPage({
               ? "Tous les classements F1 et GT3 RS ont été réinitialisés."
               : `Le classement ${params.reset.toUpperCase()} a été réinitialisé.`}
             Les courses et tous les chronos restent sauvegardés.
+          </div>
+        )}
+
+        {params.deleted && (
+          <div className="dashboard-feedback dashboard-feedback-success">
+            La course et tous ses chronos ont été supprimés.
           </div>
         )}
 
@@ -179,7 +189,13 @@ export default async function RaceControlSetupPage({
                 </div>
               </div>
 
-              <div className="dashboard-module-grid dashboard-module-grid-two">
+              <p className={styles.savedRaceWarning}>
+                Le bouton rouge supprime définitivement la course,
+                ses pilotes, ses tours et ses chronos. Aucune fenêtre
+                de confirmation ne s’ouvrira.
+              </p>
+
+              <div className={styles.savedRaceList}>
                 {state.events.length === 0 && (
                   <p className="commerce-hint">
                     Aucune course n’a encore été créée.
@@ -187,28 +203,46 @@ export default async function RaceControlSetupPage({
                 )}
 
                 {state.events.map((event) => (
-                  <Link
-                    className="dashboard-card"
-                    href={`/dashboard/commissaires/chronometrage/${event.id}`}
+                  <article
+                    className={styles.savedRaceRow}
                     key={event.id}
                   >
-                    <span className="dashboard-card-icon">⏱️</span>
-                    <span className="dashboard-card-content">
-                      <strong>{event.title}</strong>
-                      <small>
-                        {competitionLabels[event.competition_type]} ·{" "}
-                        {event.target_laps} tour(s) ·{" "}
-                        {event.participant_count} pilote(s)
-                      </small>
-                      <small>
-                        {statusLabels[event.status] ?? event.status}
-                        {event.active_count > 0
-                          ? ` · ${event.active_count} encore en piste`
-                          : ""}
-                      </small>
-                    </span>
-                    <span className="dashboard-card-arrow">→</span>
-                  </Link>
+                    <Link
+                      className={`dashboard-card ${styles.savedRaceLink}`}
+                      href={`/dashboard/commissaires/chronometrage/${event.id}`}
+                    >
+                      <span className="dashboard-card-icon">⏱️</span>
+                      <span className="dashboard-card-content">
+                        <strong>{event.title}</strong>
+                        <small>
+                          {competitionLabels[event.competition_type]} ·{" "}
+                          {event.target_laps} tour(s) ·{" "}
+                          {event.participant_count} pilote(s)
+                        </small>
+                        <small>
+                          {statusLabels[event.status] ?? event.status}
+                          {event.active_count > 0
+                            ? ` · ${event.active_count} encore en piste`
+                            : ""}
+                        </small>
+                      </span>
+                      <span className="dashboard-card-arrow">→</span>
+                    </Link>
+
+                    <form action={deleteRaceControlEvent}>
+                      <input
+                        type="hidden"
+                        name="event_id"
+                        value={event.id}
+                      />
+                      <button
+                        className={styles.deleteRaceButton}
+                        type="submit"
+                      >
+                        Supprimer la course
+                      </button>
+                    </form>
+                  </article>
                 ))}
               </div>
             </section>
