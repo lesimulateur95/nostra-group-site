@@ -1,0 +1,190 @@
+.comparatorPanel {
+  width: min(100%, 1800px);
+  margin: 1.5rem 0;
+  padding: 1.4rem;
+  border: 1px solid rgba(212, 175, 55, 0.34);
+  border-radius: 26px;
+  background:
+    linear-gradient(145deg, rgba(212, 175, 55, 0.06), transparent 40%),
+    rgba(12, 13, 14, 0.92);
+}
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.eyebrow {
+  display: inline-block;
+  color: #f0c94e;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.head h2 {
+  margin: 0.4rem 0 0.55rem;
+  font-size: clamp(1.4rem, 2vw, 2rem);
+}
+
+.head p {
+  margin: 0;
+  color: #c7cbd2;
+  line-height: 1.6;
+}
+
+.counterBlock {
+  display: grid;
+  justify-items: end;
+  gap: 0.7rem;
+  flex: 0 0 auto;
+}
+
+.counterBlock strong {
+  color: #f0c94e;
+  font-size: 1.05rem;
+}
+
+.clearButton,
+.removeButton,
+.inlineCompareButton {
+  min-height: 42px;
+  border-radius: 12px;
+  padding: 0.72rem 0.95rem;
+  border: 1px solid rgba(212, 175, 55, 0.38);
+  background: rgba(212, 175, 55, 0.1);
+  color: #f6d56b;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.removeButton {
+  width: 100%;
+  border-color: rgba(255, 107, 107, 0.45);
+  background: rgba(139, 31, 31, 0.2);
+  color: #ffb9b9;
+}
+
+.inlineCompareButton {
+  margin-left: 0.6rem;
+}
+
+.inlineCompareButton:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.emptyState {
+  padding: 1rem 1.15rem;
+  border: 1px dashed rgba(212, 175, 55, 0.28);
+  border-radius: 18px;
+  color: #d0d4db;
+}
+
+.vehicleGrid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.vehicleCard {
+  overflow: hidden;
+  border: 1px solid rgba(212, 175, 55, 0.22);
+  border-radius: 18px;
+  background: rgba(0, 0, 0, 0.26);
+}
+
+.imageWrap {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 20%, rgba(212, 175, 55, 0.16), transparent 55%),
+    #080808;
+  color: #d7b43c;
+  font-size: 2rem;
+  font-weight: 900;
+}
+
+.imageWrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.vehicleBody {
+  display: grid;
+  gap: 0.6rem;
+  padding: 1rem;
+}
+
+.vehicleBody h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.price {
+  margin: 0;
+  color: #f2d36b;
+  font-weight: 700;
+}
+
+.noteList {
+  display: grid;
+  gap: 0.42rem;
+  padding-left: 1rem;
+  margin: 0;
+  color: #c7cbd2;
+  font-size: 0.92rem;
+}
+
+.noDetails {
+  margin: 0;
+  color: #aeb4bd;
+  font-size: 0.92rem;
+}
+
+@media (max-width: 1400px) {
+  .vehicleGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 950px) {
+  .head {
+    flex-direction: column;
+  }
+
+  .counterBlock {
+    justify-items: start;
+  }
+
+  .vehicleGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .inlineCompareButton {
+    display: block;
+    width: 100%;
+    margin-left: 0;
+    margin-top: 0.6rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .vehicleGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .clearButton,
+  .removeButton,
+  .inlineCompareButton {
+    width: 100%;
+  }
+}
