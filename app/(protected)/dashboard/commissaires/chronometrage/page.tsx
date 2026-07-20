@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
+import { resetRaceControlStandings } from "@/app/actions/race-control";
 import { RaceEventSetup } from "@/components/race-control/race-event-setup";
 import { getUserRoleKeys } from "@/lib/auth/access";
 import {
@@ -32,7 +33,10 @@ const competitionLabels: Record<string, string> = {
 export default async function RaceControlSetupPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{
+    error?: string;
+    reset?: string;
+  }>;
 }) {
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
@@ -86,17 +90,82 @@ export default async function RaceControlSetupPage({
           </section>
         )}
 
+        {params.reset && (
+          <div className="dashboard-feedback dashboard-feedback-success">
+            {params.reset === "all"
+              ? "Tous les classements F1 et GT3 RS ont été réinitialisés."
+              : `Le classement ${params.reset.toUpperCase()} a été réinitialisé.`}
+            Les courses et tous les chronos restent sauvegardés.
+          </div>
+        )}
+
         {params.error && (
           <div className="dashboard-feedback dashboard-feedback-error">
             {params.error === "entries"
               ? "Ajoute au moins un pilote avec son écurie."
-              : "La course n’a pas pu être créée. Vérifie les informations."}
+              : params.error === "reset_confirmation"
+                ? "Coche la confirmation avant de réinitialiser un classement."
+                : "L’action n’a pas pu être enregistrée. Vérifie les informations."}
           </div>
         )}
 
         {configured && (
           <>
             <RaceEventSetup />
+
+
+            <section className={styles.resetPanel}>
+              <div>
+                <span className={styles.sectionLabel}>
+                  GESTION DES CLASSEMENTS
+                </span>
+                <h2>Réinitialiser les classements publiés</h2>
+                <p>
+                  La réinitialisation retire les courses concernées
+                  des résultats publics et remet les points à zéro.
+                  Les courses, les tours et tous les chronos restent
+                  enregistrés dans la base de données.
+                </p>
+              </div>
+
+              <form
+                action={resetRaceControlStandings}
+                className={styles.resetForm}
+              >
+                <label>
+                  Classement à réinitialiser
+                  <select name="scope" defaultValue="f1">
+                    <option value="f1">Championnat F1</option>
+                    <option value="gt3rs">
+                      Championnat GT3 RS
+                    </option>
+                    <option value="all">
+                      Tous les classements
+                    </option>
+                  </select>
+                </label>
+
+                <label className={styles.resetConfirm}>
+                  <input
+                    type="checkbox"
+                    name="confirmed"
+                    value="yes"
+                    required
+                  />
+                  <span>
+                    Je confirme la remise à zéro des résultats
+                    publiés sélectionnés.
+                  </span>
+                </label>
+
+                <button
+                  className={styles.resetButton}
+                  type="submit"
+                >
+                  Réinitialiser le classement
+                </button>
+              </form>
+            </section>
 
             <section className="backoffice-panel">
               <div className="panel-heading">

@@ -328,3 +328,85 @@ export async function publishRaceControlResults(
     `/dashboard/commissaires/chronometrage/${eventId}?published=1`,
   );
 }
+
+export async function unpublishRaceControlResults(
+  formData: FormData,
+) {
+  const eventId = integer(formData.get("event_id"));
+
+  if (eventId <= 0) {
+    redirect("/dashboard/commissaires/chronometrage?error=event");
+  }
+
+  const { supabase, authenticated, allowed } =
+    await requireCommissioner();
+
+  if (!authenticated) redirect("/");
+  if (!allowed) redirect("/accueil");
+
+  const { error } = await supabase.rpc(
+    "nostra_unpublish_race_control_results",
+    {
+      p_event_id: eventId,
+    },
+  );
+
+  if (error) {
+    redirect(
+      `/dashboard/commissaires/chronometrage/${eventId}?error=${actionErrorCode(
+        error,
+      )}`,
+    );
+  }
+
+  revalidateRace(eventId);
+  redirect(
+    `/dashboard/commissaires/chronometrage/${eventId}?unpublished=1`,
+  );
+}
+
+export async function resetRaceControlStandings(
+  formData: FormData,
+) {
+  const scope = text(formData.get("scope"), 20);
+  const confirmed = formData.get("confirmed") === "yes";
+
+  if (!["f1", "gt3rs", "all"].includes(scope) || !confirmed) {
+    redirect(
+      "/dashboard/commissaires/chronometrage?error=reset_confirmation",
+    );
+  }
+
+  const { supabase, authenticated, allowed } =
+    await requireCommissioner();
+
+  if (!authenticated) redirect("/");
+  if (!allowed) redirect("/accueil");
+
+  const { error } = await supabase.rpc(
+    "nostra_reset_race_control_standings",
+    {
+      p_scope: scope,
+    },
+  );
+
+  if (error) {
+    redirect(
+      `/dashboard/commissaires/chronometrage?error=${actionErrorCode(
+        error,
+      )}`,
+    );
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/commissaires/chronometrage");
+  revalidatePath("/circuit/championnat-f1/resultats");
+  revalidatePath("/circuit/championnat-gt3rs/resultats");
+  revalidatePath("/circuit/classement/f1");
+  revalidatePath("/circuit/classement/gt3rs");
+  revalidatePath("/circuit/classement/ecuries");
+
+  redirect(
+    `/dashboard/commissaires/chronometrage?reset=${scope}`,
+  );
+}

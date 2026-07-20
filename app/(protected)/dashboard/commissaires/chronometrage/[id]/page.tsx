@@ -18,6 +18,7 @@ export default async function RaceControlLivePage({
   searchParams: Promise<{
     created?: string;
     published?: string;
+    unpublished?: string;
     error?: string;
   }>;
 }) {
@@ -64,6 +65,13 @@ export default async function RaceControlLivePage({
         {query.published && (
           <div className="dashboard-feedback dashboard-feedback-success">
             Les résultats et les classements ont été mis à jour.
+          </div>
+        )}
+
+        {query.unpublished && (
+          <div className="dashboard-feedback dashboard-feedback-success">
+            Cette course a été retirée des résultats publics et des
+            classements. Les chronos restent sauvegardés.
           </div>
         )}
 

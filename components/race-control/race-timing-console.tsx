@@ -13,6 +13,7 @@ import {
   finishRaceControlEntry,
   markRaceControlEntryDnf,
   publishRaceControlResults,
+  unpublishRaceControlResults,
   recordRaceControlLap,
   startRaceControlEvent,
   stopRaceControlEvent,
@@ -160,10 +161,7 @@ export function RaceTimingConsole({
 
   const runAction = (
     action: () => Promise<RaceControlActionResult>,
-    confirmation?: string,
   ) => {
-    if (confirmation && !window.confirm(confirmation)) return;
-
     setError(null);
 
     startTransition(async () => {
@@ -246,20 +244,37 @@ export function RaceTimingConsole({
       {error && <p className={styles.error}>{error}</p>}
 
       <section className={styles.raceControls}>
+        {(event.status === "ready" || event.status === "running") && (
+          <div className={styles.generalClockButtons}>
+            <button
+              className={styles.startButton}
+              disabled={event.status !== "ready" || isPending}
+              type="button"
+              onClick={() =>
+                runAction(() => startRaceControlEvent(event.id))
+              }
+            >
+              ▶ Lancer le départ
+            </button>
+
+            <button
+              className={styles.stopAllButton}
+              disabled={event.status !== "running" || isPending}
+              type="button"
+              onClick={() =>
+                runAction(() => stopRaceControlEvent(event.id))
+              }
+            >
+              ■ Arrêter le chrono général
+            </button>
+          </div>
+        )}
+
         {event.status === "ready" && (
-          <button
-            className={styles.startButton}
-            disabled={isPending}
-            type="button"
-            onClick={() =>
-              runAction(
-                () => startRaceControlEvent(event.id),
-                "Lancer simultanément tous les chronomètres ?",
-              )
-            }
-          >
-            ▶ Lancer le départ et tous les chronomètres
-          </button>
+          <p>
+            Le bouton de départ lance simultanément le chronomètre
+            général et tous les chronomètres des pilotes.
+          </p>
         )}
 
         {event.status === "running" && (
@@ -270,23 +285,11 @@ export function RaceTimingConsole({
             </div>
             <p>
               À chaque passage, appuie sur <strong>+1 tour</strong>.
-              Pour le dernier passage, utilise le bouton rouge{" "}
-              <strong>Arrivée</strong> : il enregistre le dernier tour
-              et arrête le chronomètre du pilote.
+              Au dernier passage, utilise le bouton rouge{" "}
+              <strong>Arrivée</strong>. Le bouton rouge du chrono
+              général arrête toute la course et classe les pilotes
+              encore en piste en abandon.
             </p>
-            <button
-              className={styles.stopAllButton}
-              disabled={isPending}
-              type="button"
-              onClick={() =>
-                runAction(
-                  () => stopRaceControlEvent(event.id),
-                  "Arrêter toute la course ? Les pilotes encore en piste seront classés en abandon.",
-                )
-              }
-            >
-              ■ Arrêter toute la course
-            </button>
           </>
         )}
 
@@ -432,13 +435,11 @@ export function RaceTimingConsole({
                       disabled={!canFinish || isPending}
                       type="button"
                       onClick={() =>
-                        runAction(
-                          () =>
-                            finishRaceControlEntry(
-                              entry.id,
-                              liveElapsed,
-                            ),
-                          `Valider l’arrivée de ${entry.driver_name} ? Le dernier tour sera enregistré et son chronomètre sera arrêté.`,
+                        runAction(() =>
+                          finishRaceControlEntry(
+                            entry.id,
+                            liveElapsed,
+                          ),
                         )
                       }
                     >
@@ -450,13 +451,11 @@ export function RaceTimingConsole({
                       disabled={isPending}
                       type="button"
                       onClick={() =>
-                        runAction(
-                          () =>
-                            markRaceControlEntryDnf(
-                              entry.id,
-                              liveElapsed,
-                            ),
-                          `Classer ${entry.driver_name} en abandon ?`,
+                        runAction(() =>
+                          markRaceControlEntryDnf(
+                            entry.id,
+                            liveElapsed,
+                          ),
                         )
                       }
                     >
@@ -534,6 +533,23 @@ export function RaceTimingConsole({
                 : "Publier les résultats"}
             </button>
           </form>
+
+          {event.status === "published" && (
+            <form
+              action={unpublishRaceControlResults}
+              className={styles.unpublishForm}
+            >
+              <input type="hidden" name="event_id" value={event.id} />
+              <p>
+                Cette action retire uniquement cette course des pages
+                publiques et des classements. Les chronos et les tours
+                restent sauvegardés.
+              </p>
+              <button className={styles.unpublishButton} type="submit">
+                Retirer cette course des classements
+              </button>
+            </form>
+          )}
 
           {event.status === "published" &&
             event.competition_type !== "general" && (

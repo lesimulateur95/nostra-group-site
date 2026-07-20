@@ -158,7 +158,9 @@
 .stopAllButton,
 .lapButton,
 .finishButton,
-.dnfButton {
+.dnfButton,
+.unpublishButton,
+.resetButton {
   padding: 12px 16px;
   border-radius: 11px;
   font-weight: 900;
@@ -253,16 +255,29 @@
   line-height: 1.5;
 }
 
+.generalClockButtons {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .startButton {
-  width: 100%;
-  padding: 16px;
-  font-size: 1rem;
+  min-width: 220px;
+  padding: 14px 18px;
+  font-size: 0.95rem;
 }
 
 .stopAllButton {
-  border: 1px solid rgba(235, 80, 80, 0.42);
-  background: rgba(120, 18, 18, 0.18);
-  color: #ffaaaa;
+  min-width: 240px;
+  border: 1px solid rgba(235, 80, 80, 0.52);
+  background: #991f26;
+  color: #fff;
+}
+
+.startButton:disabled,
+.stopAllButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.34;
 }
 
 .liveIndicator {
@@ -700,5 +715,108 @@
 
   .publicBestLap {
     justify-items: start;
+  }
+}
+
+
+.unpublishForm {
+  display: grid;
+  gap: 10px;
+  align-content: center;
+  padding: 14px;
+  border: 1px solid rgba(235, 84, 84, 0.3);
+  border-radius: 12px;
+  background: rgba(105, 18, 18, 0.11);
+}
+
+.unpublishForm p {
+  margin: 0;
+  color: #aaa;
+  line-height: 1.5;
+}
+
+.unpublishButton,
+.resetButton {
+  border: 1px solid rgba(235, 84, 84, 0.48);
+  background: #922028;
+  color: #fff;
+}
+
+.resetPanel {
+  display: grid;
+  grid-template-columns: minmax(300px, 1fr) minmax(300px, 0.72fr);
+  gap: 22px;
+  padding: 22px;
+  border: 1px solid rgba(235, 84, 84, 0.28);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 90% 0%, rgba(160, 35, 35, 0.12), transparent 34%),
+    rgba(10, 10, 10, 0.96);
+}
+
+.resetPanel h2 {
+  margin: 6px 0 8px;
+}
+
+.resetPanel p {
+  margin: 0;
+  color: #999;
+  line-height: 1.6;
+}
+
+.resetForm {
+  display: grid;
+  gap: 13px;
+  align-content: center;
+}
+
+.resetForm > label:not(.resetConfirm) {
+  display: grid;
+  gap: 7px;
+  font-weight: 800;
+}
+
+.resetForm select {
+  width: 100%;
+  padding: 12px 13px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 11px;
+  background: #080909;
+  color: #fff;
+  font: inherit;
+}
+
+.resetConfirm {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 9px;
+  align-items: start;
+  color: #b8b9b5;
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.resetConfirm input {
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  accent-color: #cda91f;
+}
+
+@media (max-width: 1000px) {
+  .resetPanel {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .generalClockButtons {
+    width: 100%;
+  }
+
+  .startButton,
+  .stopAllButton {
+    width: 100%;
+    min-width: 0;
   }
 }
