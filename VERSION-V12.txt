@@ -1,9 +1,0 @@
-NOSTRA GROUP — VERSION V12
-
-Correctif réservations et calendriers :
-- Une demande peut être supprimée définitivement depuis Dashboard > Demandes de réservation.
-- Passer un créneau de Validé à Annulé, Refusé ou En attente libère automatiquement la date et l'heure.
-- Le calendrier des réservations vérifie automatiquement Supabase toutes les 10 secondes et dès le retour sur l'onglet.
-- Le calendrier des créneaux validés se met également à jour automatiquement.
-- Les calendriers F1 et GT3 RS se mettent à jour après modification, annulation ou suppression d'un événement.
-- Aucun nouveau script SQL n'est requis si le module Réservations V11 a déjà été activé.
