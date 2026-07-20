@@ -71,6 +71,7 @@ function configuredCartErrorCode(
   if (value.includes("insufficient_stock")) return "stock";
   if (value.includes("vehicle_unavailable")) return "not-found";
   if (value.includes("invalid_delivery_mode")) return "delivery";
+  if (value.includes("invalid_delivery_address")) return "address";
   return "save";
 }
 
@@ -278,10 +279,14 @@ export async function addCatalogVehicleToCart(formData: FormData) {
 export async function addConfiguredCatalogVehicleToCart(formData: FormData) {
   const vehicleId = integer(formData.get("vehicle_id"), 0);
   const deliveryMode = text(formData.get("delivery_mode"), 30);
+  const deliveryAddress = text(formData.get("delivery_address"), 500);
 
   if (vehicleId <= 0) redirect("/motors/catalogue?cart_error=invalid");
   if (deliveryMode !== "showroom" && deliveryMode !== "home") {
     redirect(`/motors/catalogue/${vehicleId}/commande?error=delivery`);
+  }
+  if (deliveryMode === "home" && deliveryAddress.length < 5) {
+    redirect(`/motors/catalogue/${vehicleId}/commande?error=address`);
   }
 
   const supabase = await createClient();
@@ -291,6 +296,7 @@ export async function addConfiguredCatalogVehicleToCart(formData: FormData) {
   const { error } = await supabase.rpc("add_configured_vehicle_to_cart", {
     p_vehicle_id: vehicleId,
     p_delivery_mode: deliveryMode,
+    p_delivery_address: deliveryMode === "home" ? deliveryAddress : null,
   });
 
   if (error) {

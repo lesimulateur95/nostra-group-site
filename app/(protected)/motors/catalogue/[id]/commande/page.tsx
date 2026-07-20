@@ -59,9 +59,11 @@ export default async function VehicleConfigurationPage({
         ? "Le module de livraison doit encore être activé dans Supabase."
         : query.error === "delivery"
           ? "Choisis un mode de livraison valide."
-          : query.error
-            ? "Impossible d’ajouter cette configuration au panier."
-            : null;
+          : query.error === "address"
+            ? "Renseigne une adresse de livraison complète pour la livraison à domicile."
+            : query.error
+              ? "Impossible d’ajouter cette configuration au panier."
+              : null;
 
   return (
     <article className={styles.page}>
@@ -128,10 +130,25 @@ export default async function VehicleConfigurationPage({
             <span className={styles.optionIcon}>🚛</span>
             <span className={styles.optionText}>
               <strong>Livraison à domicile</strong>
-              <small>Un camion est mobilisé pour transporter ce véhicule jusqu’à l’adresse convenue.</small>
+              <small>Un camion est mobilisé pour transporter ce véhicule jusqu’à l’adresse indiquée.</small>
             </span>
             <span className={styles.optionPrice}>{formatPrice(HOME_DELIVERY_PRICE)}</span>
           </label>
+
+          <div className={styles.addressField}>
+            <label htmlFor="delivery_address">Adresse complète de livraison</label>
+            <textarea
+              id="delivery_address"
+              name="delivery_address"
+              maxLength={500}
+              rows={4}
+              placeholder="Exemple : 12 rue de Locmaria, résidence Nostra, bâtiment B"
+            />
+            <small>
+              Ce champ apparaît avec l’option domicile et devient obligatoire pour valider la livraison.
+              L’adresse sera affichée dans le panier et transmise avec la commande.
+            </small>
+          </div>
 
           <div className={styles.summary}>
             <div><span>Véhicule</span><strong>{formatPrice(vehiclePrice)}</strong></div>

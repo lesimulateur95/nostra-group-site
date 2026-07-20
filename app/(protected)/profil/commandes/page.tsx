@@ -12,7 +12,7 @@ export default async function ProfileOrdersPage() {
   const { data } = await supabase.auth.getUser();
   if (!data.user) redirect("/");
   const commerce = await getProfileCommerceData(data.user.id);
-  const labels: Record<string, string> = { pending: "Envoyée", confirmed: "Confirmée", preparing: "En préparation", ready: "Prête", completed: "Terminée", cancelled: "Annulée" };
+  const labels: Record<string, string> = { pending: "Envoyée", confirmed: "Confirmée", preparing: "En préparation", ready: "Prête", completed: "Livrée", cancelled: "Annulée" };
 
   return (
     <>

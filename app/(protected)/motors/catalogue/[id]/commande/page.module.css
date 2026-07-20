@@ -230,6 +230,53 @@
   white-space: nowrap;
 }
 
+
+.addressField {
+  display: none;
+  gap: 8px;
+  padding: 17px;
+  border: 1px solid rgba(212, 175, 55, 0.32);
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.09), rgba(7, 8, 8, 0.98));
+}
+
+.deliveryCard:has(input[name="delivery_mode"][value="home"]:checked) .addressField {
+  display: grid;
+}
+
+.addressField label {
+  color: #f2d36b;
+  font-weight: 800;
+}
+
+.addressField textarea {
+  width: 100%;
+  min-height: 108px;
+  resize: vertical;
+  padding: 13px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  outline: none;
+  background: #080909;
+  color: #fff;
+  font: inherit;
+  line-height: 1.5;
+}
+
+.addressField textarea:focus {
+  border-color: #d4af37;
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.12);
+}
+
+.addressField textarea::placeholder {
+  color: #747572;
+}
+
+.addressField small {
+  color: #989996;
+  line-height: 1.5;
+}
+
 .summary {
   display: grid;
   gap: 10px;

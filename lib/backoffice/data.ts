@@ -70,8 +70,11 @@ export type SiteEvent = {
 
 
 export type OrderItemSnapshot = {
+  item_type: "vehicle" | "delivery" | null;
   vehicle_id: number | null;
+  related_vehicle_id: number | null;
   name: string;
+  delivery_address: string | null;
   quantity: number;
   unit_price: number;
   image_url: string | null;
@@ -257,8 +260,21 @@ function normalizeOrderItems(value: unknown): OrderItemSnapshot[] {
     const candidate = item as Record<string, unknown>;
     if (typeof candidate.name !== "string") return [];
     return [{
-      vehicle_id: Number.isFinite(Number(candidate.vehicle_id)) ? Number(candidate.vehicle_id) : null,
+      item_type:
+        candidate.item_type === "vehicle" || candidate.item_type === "delivery"
+          ? candidate.item_type
+          : null,
+      vehicle_id: Number.isFinite(Number(candidate.vehicle_id))
+        ? Number(candidate.vehicle_id)
+        : null,
+      related_vehicle_id: Number.isFinite(Number(candidate.related_vehicle_id))
+        ? Number(candidate.related_vehicle_id)
+        : null,
       name: candidate.name,
+      delivery_address:
+        typeof candidate.delivery_address === "string"
+          ? candidate.delivery_address
+          : null,
       quantity: Math.max(1, Number(candidate.quantity) || 1),
       unit_price: Math.max(0, Number(candidate.unit_price) || 0),
       image_url: typeof candidate.image_url === "string" ? candidate.image_url : null,
@@ -305,7 +321,7 @@ export async function getProfileCommerceData(userId: string) {
     supabase.from("orders").select("id,order_number,status,total,created_at,customer_name,items,customer_note,admin_note,stock_deducted,updated_at").eq("user_id", userId).order("created_at", { ascending: false }),
     supabase.from("invoices").select("id,invoice_number,status,amount,issued_at,download_url").eq("user_id", userId).order("issued_at", { ascending: false }),
     supabase.from("loyalty_profiles").select("tier,purchases_count,discount_percent,updated_at").eq("user_id", userId).maybeSingle(),
-    supabase.from("cart_items").select("id,vehicle_id,item_name,quantity,unit_price,image_url,created_at").eq("user_id", userId).order("created_at", { ascending: false }),
+    supabase.from("cart_items").select("id,vehicle_id,related_vehicle_id,item_type,delivery_mode,delivery_address,item_name,quantity,unit_price,image_url,created_at").eq("user_id", userId).order("created_at", { ascending: false }),
   ]);
 
   return {

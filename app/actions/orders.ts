@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { hasDashboardAccess } from "@/lib/auth/access";
+import { getUserRoleKeys } from "@/lib/auth/access";
 import { getDiscordName, getRpName } from "@/lib/auth/user-profile";
 import { createClient } from "@/lib/supabase/server";
 
@@ -34,11 +34,15 @@ function orderErrorCode(error: { code?: string | null; message?: string | null }
   return "save";
 }
 
-async function requireManager() {
+async function requireMotorsStaff() {
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
   if (!data.user) redirect("/");
-  if (!(await hasDashboardAccess(data.user))) redirect("/accueil");
+  const roles = await getUserRoleKeys(data.user);
+  const allowed = roles.some((role) =>
+    ["manager", "employee", "commercial"].includes(role),
+  );
+  if (!allowed) redirect("/accueil");
   return { supabase, user: data.user };
 }
 
@@ -104,6 +108,8 @@ export async function placeCartOrder(formData: FormData) {
   const savedNumber = typeof response.order_number === "string" ? response.order_number : orderNumber;
 
   revalidatePath("/profil");
+  revalidatePath("/profil/commandes");
+  revalidatePath("/profil/documents");
   revalidatePath("/motors/catalogue");
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/commandes");
@@ -119,7 +125,7 @@ export async function updateOrder(formData: FormData) {
   const allowed = new Set(["pending", "confirmed", "preparing", "ready", "completed", "cancelled"]);
   if (id <= 0 || !allowed.has(status)) redirect("/dashboard/commandes?error=invalid");
 
-  const { supabase } = await requireManager();
+  const { supabase } = await requireMotorsStaff();
   const { error } = await supabase.rpc("update_nostra_order", {
     p_order_id: id,
     p_status: status,
@@ -136,6 +142,8 @@ export async function updateOrder(formData: FormData) {
   revalidatePath("/dashboard/stocks");
   revalidatePath("/dashboard/catalogue");
   revalidatePath("/profil");
+  revalidatePath("/profil/commandes");
+  revalidatePath("/profil/documents");
   redirect("/dashboard/commandes?saved=1");
 }
 
@@ -143,7 +151,7 @@ export async function deleteOrder(formData: FormData) {
   const id = integer(formData.get("id"));
   if (id <= 0) redirect("/dashboard/commandes?error=invalid");
 
-  const { supabase } = await requireManager();
+  const { supabase } = await requireMotorsStaff();
   const { error } = await supabase.rpc("delete_nostra_order", { p_order_id: id });
   if (error) redirect(`/dashboard/commandes?error=${isMissingStockOrderSetup(error) ? "setup" : "delete"}`);
 
@@ -153,5 +161,7 @@ export async function deleteOrder(formData: FormData) {
   revalidatePath("/dashboard/stocks");
   revalidatePath("/dashboard/catalogue");
   revalidatePath("/profil");
+  revalidatePath("/profil/commandes");
+  revalidatePath("/profil/documents");
   redirect("/dashboard/commandes?deleted=1");
 }
