@@ -1,6 +1,7 @@
 
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { DISPLAYED_NOTIFICATION_TYPES } from "@/lib/notifications/data";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -28,6 +29,7 @@ export async function GET() {
       .from("user_notifications")
       .select("id", { count: "exact", head: true })
       .eq("user_id", authData.user.id)
+      .in("notification_type", [...DISPLAYED_NOTIFICATION_TYPES])
       .is("read_at", null),
     supabase
       .from("user_notifications")
@@ -35,6 +37,7 @@ export async function GET() {
         "id,notification_type,title,message,target_url,created_at",
       )
       .eq("user_id", authData.user.id)
+      .in("notification_type", [...DISPLAYED_NOTIFICATION_TYPES])
       .is("read_at", null)
       .order("created_at", { ascending: false })
       .limit(6),

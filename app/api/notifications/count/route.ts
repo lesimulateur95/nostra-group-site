@@ -1,6 +1,7 @@
 
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { DISPLAYED_NOTIFICATION_TYPES } from "@/lib/notifications/data";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -20,6 +21,7 @@ export async function GET() {
     .from("user_notifications")
     .select("id", { count: "exact", head: true })
     .eq("user_id", data.user.id)
+    .in("notification_type", [...DISPLAYED_NOTIFICATION_TYPES])
     .is("read_at", null);
 
   return NextResponse.json(
