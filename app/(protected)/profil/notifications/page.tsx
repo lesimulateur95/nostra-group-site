@@ -25,6 +25,7 @@ const typeIcons: Record<string, string> = {
   invoice: "🧾",
   loyalty: "◆",
   general: "🔔",
+  mail: "✉️",
 };
 
 function formatDate(value: string) {

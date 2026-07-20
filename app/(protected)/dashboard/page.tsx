@@ -7,9 +7,6 @@ import { getDiscordName, getRpName } from "@/lib/auth/user-profile";
 import {
   getAccountingEntries,
   getBackofficeConfigured,
-  getBingoCards,
-  getBingoModuleConfigured,
-  getActiveBingoRound,
   getCatalogVehicles,
   getCircuitSetting,
   getDashboardRoleAccessConfigured,
@@ -26,12 +23,16 @@ import {
   getTombolaModuleConfigured,
   getActiveTombolaRound,
   getTombolaTickets,
+  getBingoModuleConfigured,
+  getActiveBingoRound,
+  getBingoCards,
   getWheelModuleConfigured,
   getWheelSpins,
 } from "@/lib/backoffice/data";
 import { DASHBOARD_ACCESS_SETUP_SQL } from "@/lib/backoffice/dashboard-access-setup-sql";
 import { BACKOFFICE_SETUP_SQL } from "@/lib/backoffice/setup-sql";
 import { createClient } from "@/lib/supabase/server";
+import { getUnreadTeamMailCount } from "@/lib/mail/data";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -44,7 +45,7 @@ export default async function DashboardPage() {
   const ordersAccess = managerAccess || roles.includes("employee") || roles.includes("commercial");
   if (!managerAccess && !commissionerAccess && !ordersAccess) redirect("/accueil");
 
-  const [configured, ordersConfigured, teamRegistrationsConfigured, roleAccessConfigured, wheelConfigured, tombolaConfigured, bingoConfigured] = await Promise.all([
+  const [configured, ordersConfigured, teamRegistrationsConfigured, roleAccessConfigured, wheelConfigured, tombolaConfigured, bingoConfigured, teamMailOverview] = await Promise.all([
     managerAccess ? getBackofficeConfigured() : Promise.resolve(false),
     ordersAccess ? getOrderModuleConfigured() : Promise.resolve(false),
     managerAccess ? getTeamRegistrationModuleConfigured() : Promise.resolve(false),
@@ -52,6 +53,7 @@ export default async function DashboardPage() {
     managerAccess ? getWheelModuleConfigured() : Promise.resolve(false),
     managerAccess ? getTombolaModuleConfigured() : Promise.resolve(false),
     managerAccess ? getBingoModuleConfigured() : Promise.resolve(false),
+    ordersAccess ? getUnreadTeamMailCount() : Promise.resolve({ configured: false, unread: 0 }),
   ]);
 
   const [setting, motorsSetting, motorsStatusConfigured, stock, accounting, events, requests, reservationRequests, catalogVehicles] = managerAccess && configured
@@ -179,7 +181,28 @@ export default async function DashboardPage() {
             <div className="dashboard-module-grid dashboard-module-grid-grouped dashboard-module-grid-two">
               <DashboardCard href="/dashboard/jeux/roue" icon="🎡" title="Roue de la chance" description="Consulter l’historique, modifier le statut ou retirer un gain du profil du citoyen." badge={!wheelConfigured ? "V29 à activer" : unusedWheelGains ? `${unusedWheelGains} gain(s) à utiliser` : undefined} />
               <DashboardCard href="/dashboard/jeux/tombola" icon="🎟️" title="Tombola" description="Configurer le prix, consulter les tickets, lancer le tirage et réinitialiser la tombola." badge={!tombolaConfigured ? "V31 à activer" : tombolaTickets.length ? `${tombolaTickets.length} ticket(s)` : undefined} />
-              <DashboardCard href="/dashboard/jeux/bingo" icon="🔢" title="Bingo" description="Vendre les grilles, sortir les numéros en direct, détecter les Bingo et réinitialiser la partie." badge={!bingoConfigured ? "V32 à activer" : bingoCards.length ? `${bingoCards.length} grille(s)` : undefined} />
+              <DashboardCard href="/dashboard/jeux/bingo" icon="🎱" title="Bingo" description="Configurer les grilles, tirer les numéros et suivre les gagnants et les récompenses." badge={!bingoConfigured ? "V32 à activer" : bingoCards.length ? `${bingoCards.length} grille(s)` : undefined} />
+            </div>
+          </DashboardModuleGroup>
+        )}
+
+
+        {ordersAccess && (
+          <DashboardModuleGroup
+            icon="✉️"
+            eyebrow="COMMUNICATION"
+            title="Messagerie Nostra Group"
+            description="Recevoir les demandes des citoyens et leur envoyer des messages officiels."
+            defaultOpen={!managerAccess}
+          >
+            <div className="dashboard-module-grid dashboard-module-grid-grouped dashboard-module-grid-two">
+              <DashboardCard
+                href="/dashboard/messagerie"
+                icon="📨"
+                title="Boîte mail de l’équipe"
+                description="Lire les messages des citoyens, répondre aux conversations et écrire depuis equipe@nostra.group."
+                badge={!teamMailOverview.configured ? "V35 à activer" : teamMailOverview.unread ? `${teamMailOverview.unread} non lu(s)` : undefined}
+              />
             </div>
           </DashboardModuleGroup>
         )}

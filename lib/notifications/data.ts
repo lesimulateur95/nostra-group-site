@@ -13,7 +13,8 @@ export type UserNotification = {
     | "reservation"
     | "invoice"
     | "loyalty"
-    | "general";
+    | "general"
+    | "mail";
   title: string;
   message: string;
   target_url: string | null;
