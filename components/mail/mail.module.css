@@ -361,3 +361,43 @@
     max-width: 100%;
   }
 }
+
+
+.threadHeaderTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.threadHeaderTop > div {
+  min-width: 0;
+}
+
+.deleteThreadButton {
+  padding: 10px 12px;
+  border: 1px solid rgba(235, 82, 82, 0.42);
+  border-radius: 10px;
+  background: rgba(115, 18, 18, 0.17);
+  color: #ffaaaa;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 900;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.deleteThreadButton:hover {
+  background: #922028;
+  color: #fff;
+}
+
+@media (max-width: 680px) {
+  .threadHeaderTop {
+    flex-direction: column;
+  }
+
+  .deleteThreadButton {
+    width: 100%;
+  }
+}

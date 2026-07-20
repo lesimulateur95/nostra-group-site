@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
+  deleteTeamMailThread,
   openTeamMailThread,
   replyToMail,
   sendTeamMailToCitizen,
@@ -36,6 +37,7 @@ export default async function TeamMailboxPage({
     thread?: string;
     sent?: string;
     replied?: string;
+    deleted?: string;
     error?: string;
   }>;
 }) {
@@ -126,6 +128,11 @@ export default async function TeamMailboxPage({
       )}
       {params.replied && (
         <p className={styles.feedback}>La réponse a été envoyée.</p>
+      )}
+      {params.deleted && (
+        <p className={styles.feedback}>
+          La conversation a été supprimée de la boîte de l’équipe.
+        </p>
       )}
       {params.error && (
         <p className={`${styles.feedback} ${styles.feedbackError}`}>
@@ -252,12 +259,30 @@ export default async function TeamMailboxPage({
             ) : (
               <>
                 <header className={styles.threadHeader}>
-                  <span>CONVERSATION</span>
-                  <h2>{selectedMessage.subject}</h2>
-                  <span>
-                    {selectedThread.length} message
-                    {selectedThread.length > 1 ? "s" : ""}
-                  </span>
+                  <div className={styles.threadHeaderTop}>
+                    <div>
+                      <span>CONVERSATION</span>
+                      <h2>{selectedMessage.subject}</h2>
+                      <span>
+                        {selectedThread.length} message
+                        {selectedThread.length > 1 ? "s" : ""}
+                      </span>
+                    </div>
+
+                    <form action={deleteTeamMailThread}>
+                      <input
+                        type="hidden"
+                        name="thread_id"
+                        value={selectedMessage.thread_id}
+                      />
+                      <button
+                        className={styles.deleteThreadButton}
+                        type="submit"
+                      >
+                        Supprimer la conversation
+                      </button>
+                    </form>
+                  </div>
                 </header>
 
                 <div className={styles.threadMessages}>

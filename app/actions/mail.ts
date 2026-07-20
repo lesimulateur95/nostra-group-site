@@ -143,3 +143,52 @@ export async function openTeamMailThread(formData: FormData) {
   revalidatePath("/dashboard/messagerie");
   redirect(`/dashboard/messagerie?thread=${threadId}`);
 }
+
+
+export async function deleteMyMailThread(formData: FormData) {
+  const threadId = safeThread(formData.get("thread_id"));
+  if (!threadId) redirect("/profil/messagerie?error=delete");
+
+  const supabase = await requireUser();
+  const { error } = await supabase.rpc(
+    "nostra_delete_my_mail_thread",
+    {
+      p_thread_id: threadId,
+    },
+  );
+
+  if (error) {
+    redirect(
+      `/profil/messagerie?thread=${threadId}&error=delete`,
+    );
+  }
+
+  revalidatePath("/profil");
+  revalidatePath("/profil/messagerie");
+  redirect("/profil/messagerie?deleted=1");
+}
+
+export async function deleteTeamMailThread(formData: FormData) {
+  const threadId = safeThread(formData.get("thread_id"));
+  if (!threadId) {
+    redirect("/dashboard/messagerie?error=delete");
+  }
+
+  const supabase = await requireUser();
+  const { error } = await supabase.rpc(
+    "nostra_delete_team_mail_thread",
+    {
+      p_thread_id: threadId,
+    },
+  );
+
+  if (error) {
+    redirect(
+      `/dashboard/messagerie?thread=${threadId}&error=delete`,
+    );
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/messagerie");
+  redirect("/dashboard/messagerie?deleted=1");
+}

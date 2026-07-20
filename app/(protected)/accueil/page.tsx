@@ -2,6 +2,8 @@ import Link from "next/link";
 import { Topbar } from "@/components/site/topbar";
 import { getUserRoleKeys } from "@/lib/auth/access";
 import { createClient } from "@/lib/supabase/server";
+import { HomeReviews } from "@/components/reviews/home-reviews";
+import { getHomeReviewsData } from "@/lib/reviews/data";
 
 const publicPortals = [
   {
@@ -31,10 +33,22 @@ const commissionerPortal = {
   description: "Règlement, planning de course en direct et rapports d’incident du Nostra Circuit.",
 };
 
-export default async function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    review_saved?: string;
+    review_deleted?: string;
+    review_error?: string;
+  }>;
+}) {
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
-  const roles = await getUserRoleKeys(data.user);
+  const [roles, reviews, params] = await Promise.all([
+    getUserRoleKeys(data.user),
+    getHomeReviewsData(),
+    searchParams,
+  ]);
   const portals = roles.includes("manager") || roles.includes("commissioner")
     ? [...publicPortals, commissionerPortal]
     : publicPortals;
@@ -55,6 +69,13 @@ export default async function HomePage() {
             </Link>
           ))}
         </section>
+
+        <HomeReviews
+          initialData={reviews}
+          saved={Boolean(params.review_saved)}
+          deleted={Boolean(params.review_deleted)}
+          error={params.review_error ?? null}
+        />
       </main>
     </div>
   );
