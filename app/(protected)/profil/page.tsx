@@ -2,14 +2,13 @@ import Link from "next/link";
 
 import { redirect } from "next/navigation";
 
-import { saveRpProfile } from "@/app/actions/profile";
-
 import { placeCartOrder, removeCartItem } from "@/app/actions/orders";
 
 import { checkoutTombolaCart, removeTombolaCart } from "@/app/actions/tombola";
 import { checkoutBingoCart, removeBingoCart } from "@/app/actions/bingo";
 
 import { ProfileNavigation } from "@/components/profile/profile-navigation";
+import { IdentityCard } from "@/components/profile/identity-card";
 
 import { NotificationLauncher } from "@/components/profile/notification-launcher";
 
@@ -41,7 +40,7 @@ import styles from "./profile-top-layout.module.css";
 
 type ProfilePageProps = {
 
- searchParams: Promise<{ error?: string; order_sent?: string; order_error?: string; cart_removed?: string; cart_error?: string; tombola_added?: string; tombola_removed?: string; tombola_cart_error?: string; tombola_order_error?: string; bingo_added?: string; bingo_removed?: string; bingo_cart_error?: string; bingo_order_error?: string }>;
+ searchParams: Promise<{ error?: string; profile_saved?: string; vehicle_added?: string; order_sent?: string; order_error?: string; cart_removed?: string; cart_error?: string; tombola_added?: string; tombola_removed?: string; tombola_cart_error?: string; tombola_order_error?: string; bingo_added?: string; bingo_removed?: string; bingo_cart_error?: string; bingo_order_error?: string }>;
 
 };
 
@@ -114,6 +113,12 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
 
  params.error === "invalid_name" ? "Entre un prénom et un nom RP valides, entre 2 et 32 caractères."
 
+ : params.error === "invalid_phone" ? "Le numéro de téléphone contient des caractères invalides."
+
+ : params.error === "invalid_address" ? "L’adresse renseignée est trop courte."
+
+ : params.error === "profile_setup" ? "Exécute le SQL V42.5 pour activer le téléphone et l’adresse dans le profil."
+
  : params.error === "save_failed" ? "Le profil n’a pas pu être sauvegardé. Réessaie dans un instant." : null;
 
  return (
@@ -157,29 +162,19 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
 
  <div className={styles.rightColumn}>
 
- <section className="profile-card profile-form-card">
-
- <div className="profile-form-title">
-
- <div><span className="eyebrow">IDENTITÉ RP</span><h2>{complete ? "Modifier mon identité" : "Créer mon identité RP"}</h2></div>
-
- {!complete && <span className="required-badge">Obligatoire</span>}
-
- </div>
- <p className="profile-help">Discord sert uniquement à sécuriser la connexion. Le site utilise ton prénom et ton nom RP.</p>
-
- {errorMessage && <p className="form-error">{errorMessage}</p>}
-
- <form action={saveRpProfile} className="profile-form">
-
- <label><span>Prénom RP</span><input name="rp_first_name" required minLength={2} maxLength={32} defaultValue={typeof metadata.rp_first_name === "string" ? metadata.rp_first_name : ""} placeholder="Exemple : Liam" autoComplete="off" /></label>
- <label><span>Nom RP</span><input name="rp_last_name" required minLength={2} maxLength={32} defaultValue={typeof metadata.rp_last_name === "string" ? metadata.rp_last_name : ""} placeholder="Exemple : Nostra" autoComplete="off" /></label>
-
- <button className="btn profile-submit" type="submit">{complete ? "Enregistrer les modifications" : "Valider mon profil"}</button>
-
- </form>
-
- </section>
+ <IdentityCard
+ complete={complete}
+ firstName={typeof metadata.rp_first_name === "string" ? metadata.rp_first_name : ""}
+ lastName={typeof metadata.rp_last_name === "string" ? metadata.rp_last_name : ""}
+ phone={typeof metadata.phone === "string" ? metadata.phone : ""}
+ address={typeof metadata.address === "string" ? metadata.address : ""}
+ discordName={getDiscordName(data.user)}
+ discordId={getDiscordId(data.user) ?? "Non détecté"}
+ email={data.user.email ?? "Non communiqué"}
+ role={role}
+ errorMessage={errorMessage}
+ saved={params.profile_saved === "1"}
+ />
 
  <MailboxLauncher
 
@@ -198,6 +193,8 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
 
  <ProfileNavigation orders={commerce.orders.length} homologations={homologations.length} teams={teamRegistrations.length} documents={commerce.invoices.length} games={wheelSpins.length + tombolaTickets.length + bingoCards.length} />
  {!commerce.configured && <div className="dashboard-feedback">Les rubriques commerciales seront disponibles dès que le script SQL du Dashboard aura été exécuté.</div>}
+
+ {params.vehicle_added && <div className="dashboard-feedback dashboard-feedback-success">Le véhicule et son mode de livraison ont été ajoutés à ton panier.</div>}
 
  {params.order_sent && <div className="dashboard-feedback dashboard-feedback-success">Commande <strong>{params.order_sent}</strong> envoyée à Nostra Motors. Le stock a été réservé automatiquement.</div>}
 

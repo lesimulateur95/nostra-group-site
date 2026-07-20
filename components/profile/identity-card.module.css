@@ -1,0 +1,252 @@
+.card {
+  overflow: hidden;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at top right, rgba(212, 175, 55, 0.08), transparent 38%),
+    rgba(11, 12, 12, 0.96);
+}
+
+.summary {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  min-height: 92px;
+  padding: 18px 20px;
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+}
+
+.summary::-webkit-details-marker {
+  display: none;
+}
+
+.summaryIcon {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  border-radius: 14px;
+  color: #f0c94e;
+}
+
+.summaryCopy {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.summaryCopy strong {
+  color: #fff;
+  font-size: 1.12rem;
+}
+
+.summaryCopy small {
+  overflow: hidden;
+  color: #aeb2b8;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.eyebrow {
+  color: #e7c13f;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+}
+
+.chevron {
+  color: #d8b83d;
+  font-size: 1.45rem;
+  transition: transform 180ms ease;
+}
+
+.card[open] .chevron {
+  transform: rotate(180deg);
+}
+
+.content {
+  display: grid;
+  gap: 18px;
+  padding: 0 20px 22px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.readonlyGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 11px;
+  padding-top: 18px;
+}
+
+.readonlyGrid > div {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  padding: 14px 15px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.readonlyGrid span {
+  color: #969ba3;
+  font-size: 0.76rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.readonlyGrid strong {
+  overflow-wrap: anywhere;
+  color: #f7f7f5;
+}
+
+.fullWidth {
+  grid-column: 1 / -1;
+}
+
+.addressValue {
+  white-space: pre-line;
+  line-height: 1.55;
+}
+
+.editRow,
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.editButton,
+.saveButton,
+.cancelButton {
+  min-height: 44px;
+  border-radius: 999px;
+  padding: 0.75rem 1rem;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.editButton,
+.saveButton {
+  border: 1px solid #d7b331;
+  background: linear-gradient(135deg, #e4bf38, #aa8011);
+  color: #090909;
+}
+
+.cancelButton {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.04);
+  color: #f4f4f2;
+}
+
+.saveButton:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 13px;
+  padding: 17px;
+  border: 1px solid rgba(212, 175, 55, 0.24);
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.form label {
+  display: grid;
+  gap: 7px;
+}
+
+.form label > span {
+  color: #d7d9dd;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.form input,
+.form textarea {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 12px;
+  outline: none;
+  background: #080909;
+  color: #fff;
+  padding: 12px 13px;
+  font: inherit;
+}
+
+.form textarea {
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.form input:focus,
+.form textarea:focus {
+  border-color: #d4af37;
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+}
+
+.form small {
+  color: #969a9f;
+  line-height: 1.45;
+}
+
+.formActions {
+  grid-column: 1 / -1;
+}
+
+.success,
+.error {
+  margin-top: 18px;
+  padding: 12px 14px;
+  border-radius: 12px;
+}
+
+.success {
+  border: 1px solid rgba(75, 210, 137, 0.38);
+  background: rgba(34, 122, 76, 0.16);
+  color: #acf0c8;
+}
+
+.error {
+  border: 1px solid rgba(255, 93, 93, 0.42);
+  background: rgba(124, 26, 26, 0.2);
+  color: #ffc0c0;
+}
+
+@media (max-width: 680px) {
+  .summary {
+    padding: 16px;
+  }
+
+  .content {
+    padding: 0 16px 18px;
+  }
+
+  .readonlyGrid,
+  .form {
+    grid-template-columns: 1fr;
+  }
+
+  .fullWidth,
+  .formActions {
+    grid-column: auto;
+  }
+
+  .formActions {
+    flex-direction: column-reverse;
+  }
+
+  .editButton,
+  .saveButton,
+  .cancelButton {
+    width: 100%;
+  }
+}

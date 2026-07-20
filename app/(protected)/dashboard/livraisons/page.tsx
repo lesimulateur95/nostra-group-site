@@ -145,7 +145,7 @@ export default async function DashboardDeliveriesPage({
 
           {deliveries.map((order) => {
             const address = text(order, "delivery_address", "address");
-            const phone = text(order, "customer_phone", "phone");
+            const phone = text(order, "delivery_phone", "customer_phone", "phone");
             const customerNote = text(order, "customer_note");
 
             return (
