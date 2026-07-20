@@ -34,11 +34,6 @@ import { BACKOFFICE_SETUP_SQL } from "@/lib/backoffice/setup-sql";
 import { createClient } from "@/lib/supabase/server";
 import { getUnreadTeamMailCount } from "@/lib/mail/data";
 import { getDealDashboardState, getDealModuleConfigured } from "@/lib/deal/data";
-import {
-  getRaceControlDashboardState,
-  getRaceControlModuleConfigured,
-} from "@/lib/race-control/data";
-import { getSpecialRankingsConfigured } from "@/lib/special-rankings/data";
 import { getMotorsV41Overview } from "@/lib/nostra-motors/v41-data";
 
 export default async function DashboardPage() {
@@ -48,11 +43,17 @@ export default async function DashboardPage() {
 
   const roles = await getUserRoleKeys(data.user);
   const managerAccess = roles.includes("manager");
-  const commissionerAccess = managerAccess || roles.includes("commissioner");
-  const ordersAccess = managerAccess || roles.includes("employee") || roles.includes("commercial");
-  if (!managerAccess && !commissionerAccess && !ordersAccess) redirect("/accueil");
+  const commissionerRole = roles.includes("commissioner");
+  const ordersAccess =
+    managerAccess ||
+    roles.includes("employee") ||
+    roles.includes("commercial");
 
-  const [configured, ordersConfigured, teamRegistrationsConfigured, roleAccessConfigured, wheelConfigured, tombolaConfigured, bingoConfigured, teamMailOverview, dealConfigured, raceControlConfigured, specialRankingsConfigured] = await Promise.all([
+  if (!managerAccess && !ordersAccess) {
+    redirect(commissionerRole ? "/commissaires" : "/accueil");
+  }
+
+  const [configured, ordersConfigured, teamRegistrationsConfigured, roleAccessConfigured, wheelConfigured, tombolaConfigured, bingoConfigured, teamMailOverview, dealConfigured] = await Promise.all([
     managerAccess ? getBackofficeConfigured() : Promise.resolve(false),
     ordersAccess ? getOrderModuleConfigured() : Promise.resolve(false),
     managerAccess ? getTeamRegistrationModuleConfigured() : Promise.resolve(false),
@@ -62,8 +63,6 @@ export default async function DashboardPage() {
     managerAccess ? getBingoModuleConfigured() : Promise.resolve(false),
     ordersAccess ? getUnreadTeamMailCount() : Promise.resolve({ configured: false, unread: 0 }),
     managerAccess ? getDealModuleConfigured() : Promise.resolve(false),
-    commissionerAccess ? getRaceControlModuleConfigured() : Promise.resolve(false),
-    commissionerAccess ? getSpecialRankingsConfigured() : Promise.resolve(false),
   ]);
 
   const [setting, motorsSetting, motorsStatusConfigured, stock, accounting, events, requests, reservationRequests, catalogVehicles] = managerAccess && configured
@@ -87,7 +86,6 @@ export default async function DashboardPage() {
     tombolaRound,
     bingoRound,
     dealState,
-    raceControlState,
   ] = await Promise.all([
     ordersConfigured ? getOrders() : Promise.resolve([]),
     managerAccess && teamRegistrationsConfigured
@@ -105,9 +103,6 @@ export default async function DashboardPage() {
     managerAccess && dealConfigured
       ? getDealDashboardState()
       : Promise.resolve({ edition: null, sessions: [] }),
-    commissionerAccess && raceControlConfigured
-      ? getRaceControlDashboardState()
-      : Promise.resolve({ configured: false, events: [] }),
   ]);
 
   const motorsV41Overview = ordersAccess
@@ -128,9 +123,6 @@ export default async function DashboardPage() {
       session.status,
     ),
   ).length;
-  const activeRaceEvent = raceControlState.events.find(
-    (event) => event.status === "running",
-  );
   const unusedWheelGains = wheelSpins.filter((spin) => spin.redemption_status === "unused").length;
   const pendingOrders = orders.filter((order) => order.status === "pending").length;
   const pendingTeamRegistrations = teamRegistrations.filter((request) => request.status === "pending" || request.status === "reviewing").length;
@@ -139,13 +131,16 @@ export default async function DashboardPage() {
   const lowStock = stock.filter((item) => item.quantity <= item.minimum_quantity).length;
   const currentBalance = accounting.reduce((total, entry) => total + (entry.entry_type === "income" ? Number(entry.amount) : -Number(entry.amount)), 0);
   const generalEventsCount = events.filter((event) => !event.championship || event.championship === "general").length;
-  const accessLabel = managerAccess ? "GÉRANT" : commissionerAccess ? "COMMISSAIRE" : roles.includes("commercial") ? "COMMERCIAL" : "EMPLOYÉ";
+  const accessLabel = managerAccess
+    ? "GÉRANT"
+    : roles.includes("commercial")
+      ? "COMMERCIAL"
+      : "EMPLOYÉ";
   const totalPending =
     pending +
     pendingReservations +
     pendingTeamRegistrations +
-    pendingOrders +
-    motorsV41Overview.pendingAppointments;
+    pendingOrders;
 
   return (
     <DashboardShell>
@@ -235,22 +230,6 @@ export default async function DashboardPage() {
           </DashboardModuleGroup>
         )}
 
-        {commissionerAccess && (
-          <DashboardModuleGroup
-            icon="🚦"
-            eyebrow="DIRECTION DE COURSE"
-            title="Commissaires"
-            description="Modifier en temps réel le planning visible par les citoyens sur Nostra Circuit."
-            defaultOpen={!managerAccess}
-          >
-            <div className="dashboard-module-grid dashboard-module-grid-grouped dashboard-module-grid-two">
-              <DashboardCard href="/dashboard/commissaires" icon="🏁" title="Planning course en direct" description="Renseigner l’ouverture des stands, les qualifications, le départ, la météo et les annonces en direct." badge={!roleAccessConfigured ? "V30 à activer" : "En direct"} />
-              <DashboardCard href="/dashboard/commissaires/chronometrage" icon="⏱️" title="Chronométrage et tours" description="Noter les pilotes et écuries au départ, lancer les chronomètres, enregistrer chaque tour et publier les résultats." badge={!raceControlConfigured ? "V37 à activer" : activeRaceEvent ? `${activeRaceEvent.active_count} en piste` : undefined} />
-              <DashboardCard href="/dashboard/commissaires/classements-speciaux" icon="🏆" title="Classements spéciaux" description="Gérer le classement événements, les chronos contre la montre et les records du tour circuit." badge={!specialRankingsConfigured ? "V38 à activer" : undefined} />
-              <DashboardCard href="/commissaires/incidents-circuit" icon="🚨" title="Rapports d’incident" description="Créer et consulter les rapports des incidents survenus pendant les sessions." />
-            </div>
-          </DashboardModuleGroup>
-        )}
 
         {managerAccess && (
           <DashboardModuleGroup icon="🎮" eyebrow="ANIMATIONS" title="Jeux" description="Suivre les tirages et gérer les bonus gagnés par les citoyens.">
@@ -271,7 +250,7 @@ export default async function DashboardPage() {
             description={managerAccess
               ? "Messagerie officielle, état des activités, finances et événements du groupe."
               : "Accès à la messagerie officielle de l’équipe Nostra Group."}
-            defaultOpen={!managerAccess}
+            defaultOpen
           >
             <div className="dashboard-module-grid dashboard-module-grid-grouped">
               <DashboardCard
