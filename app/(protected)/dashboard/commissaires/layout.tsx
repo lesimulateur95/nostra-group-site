@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
+import { CommissionerBackLinkFix } from "@/components/commissaires/commissioner-back-link-fix";
 import { hasCommissionerAccess } from "@/lib/auth/access";
 import { createClient } from "@/lib/supabase/server";
 
@@ -15,5 +16,10 @@ export default async function CommissionerToolsLayout({
     redirect("/accueil");
   }
 
-  return children;
+  return (
+    <>
+      <CommissionerBackLinkFix />
+      {children}
+    </>
+  );
 }
