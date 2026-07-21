@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 import { DashboardAuctionCard } from "@/components/auctions/dashboard-auction-card";
 import { DirectionMotorsCards } from "@/components/dashboard/direction-motors-cards";
+import { DashboardFortuneCard } from "@/components/fortune/dashboard-fortune-card";
 
 export function DashboardModuleGroup({
   icon,
@@ -20,6 +21,7 @@ export function DashboardModuleGroup({
 }) {
   const groupName = `${eyebrow} ${title}`.trim().toUpperCase();
   const isDirectionGroup = groupName.includes("DIRECTION");
+
   const isEventsGroup =
     groupName.includes("ÉVÉNEMENT") ||
     groupName.includes("EVENEMENT") ||
@@ -31,7 +33,10 @@ export function DashboardModuleGroup({
       open={defaultOpen}
     >
       <summary className="dashboard-module-group-heading dashboard-module-group-summary">
-        <span className="dashboard-module-group-icon" aria-hidden="true">
+        <span
+          className="dashboard-module-group-icon"
+          aria-hidden="true"
+        >
           {icon}
         </span>
 
@@ -41,14 +46,24 @@ export function DashboardModuleGroup({
           <span>{description}</span>
         </span>
 
-        <span className="dashboard-module-group-chevron" aria-hidden="true">
+        <span
+          className="dashboard-module-group-chevron"
+          aria-hidden="true"
+        >
           ⌄
         </span>
       </summary>
 
       <div className="dashboard-module-group-content">
         {isDirectionGroup && <DirectionMotorsCards />}
-        {isEventsGroup && <DashboardAuctionCard />}
+
+        {isEventsGroup && (
+          <>
+            <DashboardFortuneCard />
+            <DashboardAuctionCard />
+          </>
+        )}
+
         {children}
       </div>
     </details>
