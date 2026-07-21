@@ -37,7 +37,7 @@ export function FortunePortalCardClient({
         <span className={styles.portalCopy}>
           <span className={styles.eyebrow}>JEU EN DIRECT</span>
           <strong>La Roue de la Fortune</strong>
-          <span>Trois joueurs, quatre manches, énigmes et jackpot persistant.</span>
+          <span>De 1 à 6 joueurs, quatre manches, énigmes et jackpot persistant.</span>
         </span>
         <span className={styles.portalStatus}>
           <strong>{label}</strong>

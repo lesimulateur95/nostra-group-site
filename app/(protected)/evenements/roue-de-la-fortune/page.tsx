@@ -21,7 +21,7 @@ type PageProps = {
 
 function successLabel(value: string | undefined): string | null {
   if (value === "game-created") {
-    return "La partie a été créée avec trois joueurs.";
+    return "La partie a été créée avec le nombre de joueurs choisi.";
   }
   if (value?.startsWith("round-") && value.endsWith("-saved")) {
     return "L’énigme de la manche a été enregistrée.";
@@ -84,7 +84,7 @@ function errorLabel(value: string | undefined): string | null {
     return "La cagnotte de manche est insuffisante pour cette voyelle.";
   }
   if (decoded.includes("players")) {
-    return "Sélectionne trois citoyens différents.";
+    return "Sélectionne entre 1 et 6 citoyens différents.";
   }
 
   return "L’action n’a pas pu être enregistrée. Vérifie l’état de la partie.";

@@ -66,12 +66,17 @@ export type FortuneRound = {
 export type FortuneGame = {
   id: string;
   status: FortuneGameStatus;
+  player_count: number;
   current_round: number;
   active_player_position: number | null;
   turn_phase: FortuneTurnPhase;
   last_spin_label: string | null;
   last_spin_type: FortuneSegmentType | null;
   last_spin_value: number;
+  last_spin_position: number | null;
+  spin_sequence: number;
+  spin_started_at: string | null;
+  spin_duration_ms: number;
   jackpot_armed: boolean;
   final_category: string | null;
   final_masked_puzzle: string | null;
@@ -101,7 +106,10 @@ export type FortuneManagerRound = {
   winner_position: number | null;
 };
 
-export type FortuneCitizen = { user_id: string; name: string };
+export type FortuneCitizen = {
+  user_id: string;
+  name: string;
+};
 
 const emptyState: FortuneState = {
   configured: false,
@@ -130,7 +138,10 @@ function segment(value: unknown): FortuneSegment | null {
   const row = record(value);
   const id = Number(row.id);
   const position = Number(row.position);
-  if (!Number.isFinite(id) || !Number.isFinite(position)) return null;
+
+  if (!Number.isFinite(id) || !Number.isFinite(position)) {
+    return null;
+  }
 
   const allowed: FortuneSegmentType[] = [
     "cash",
@@ -140,7 +151,10 @@ function segment(value: unknown): FortuneSegment | null {
     "free_turn",
     "prize",
   ];
-  const kind = allowed.includes(row.segment_type as FortuneSegmentType)
+
+  const kind = allowed.includes(
+    row.segment_type as FortuneSegmentType,
+  )
     ? (row.segment_type as FortuneSegmentType)
     : "cash";
 
@@ -162,6 +176,7 @@ export async function getFortunePublicState(): Promise<FortuneState> {
     const { data, error } = await (supabase as any).rpc(
       "fortune_get_public_state",
     );
+
     if (error || !data) return emptyState;
 
     const source = record(data);
@@ -178,27 +193,44 @@ export async function getFortunePublicState(): Promise<FortuneState> {
     const settings: FortuneSettings = {
       enabled: settingsSource.enabled === true,
       visible_wheel: visibleWheel,
-      jackpot_amount: Math.max(0, Number(settingsSource.jackpot_amount) || 0),
+      jackpot_amount: Math.max(
+        0,
+        Number(settingsSource.jackpot_amount) || 0,
+      ),
       jackpot_increment: Math.max(
         0,
         Number(settingsSource.jackpot_increment) || 100,
       ),
-      vowel_cost: Math.max(0, Number(settingsSource.vowel_cost) || 250),
+      vowel_cost: Math.max(
+        0,
+        Number(settingsSource.vowel_cost) || 250,
+      ),
     };
 
     const players: FortunePlayer[] = Array.isArray(source.players)
       ? source.players.flatMap((value) => {
           const row = record(value);
           const position = Number(row.position);
+
           if (!Number.isFinite(position)) return [];
+
           return [
             {
               position,
               user_id: String(row.user_id ?? ""),
               player_name: String(row.player_name ?? "Joueur"),
-              round_bank: Math.max(0, Number(row.round_bank) || 0),
-              secured_bank: Math.max(0, Number(row.secured_bank) || 0),
-              free_turns: Math.max(0, Number(row.free_turns) || 0),
+              round_bank: Math.max(
+                0,
+                Number(row.round_bank) || 0,
+              ),
+              secured_bank: Math.max(
+                0,
+                Number(row.secured_bank) || 0,
+              ),
+              free_turns: Math.max(
+                0,
+                Number(row.free_turns) || 0,
+              ),
               is_active: row.is_active === true,
             },
           ];
@@ -208,13 +240,18 @@ export async function getFortunePublicState(): Promise<FortuneState> {
     const normalWheel = Array.isArray(source.normal_wheel)
       ? source.normal_wheel
           .map(segment)
-          .filter((value): value is FortuneSegment => value !== null)
+          .filter(
+            (value): value is FortuneSegment => value !== null,
+          )
           .sort((a, b) => a.position - b.position)
       : [];
+
     const finalWheel = Array.isArray(source.final_wheel)
       ? source.final_wheel
           .map(segment)
-          .filter((value): value is FortuneSegment => value !== null)
+          .filter(
+            (value): value is FortuneSegment => value !== null,
+          )
           .sort((a, b) => a.position - b.position)
       : [];
 
@@ -222,8 +259,22 @@ export async function getFortunePublicState(): Promise<FortuneState> {
       source.game && Object.keys(gameSource).length > 0
         ? {
             id: String(gameSource.id ?? ""),
-            status: String(gameSource.status ?? "setup") as FortuneGameStatus,
-            current_round: Math.max(1, Number(gameSource.current_round) || 1),
+            status: String(
+              gameSource.status ?? "setup",
+            ) as FortuneGameStatus,
+            player_count: Math.min(
+              6,
+              Math.max(
+                1,
+                Number(gameSource.player_count) ||
+                  players.length ||
+                  1,
+              ),
+            ),
+            current_round: Math.max(
+              1,
+              Number(gameSource.current_round) || 1,
+            ),
             active_player_position:
               gameSource.active_player_position == null
                 ? null
@@ -242,6 +293,22 @@ export async function getFortunePublicState(): Promise<FortuneState> {
             last_spin_value: Math.max(
               0,
               Number(gameSource.last_spin_value) || 0,
+            ),
+            last_spin_position:
+              gameSource.last_spin_position == null
+                ? null
+                : Number(gameSource.last_spin_position),
+            spin_sequence: Math.max(
+              0,
+              Number(gameSource.spin_sequence) || 0,
+            ),
+            spin_started_at:
+              typeof gameSource.spin_started_at === "string"
+                ? gameSource.spin_started_at
+                : null,
+            spin_duration_ms: Math.max(
+              500,
+              Number(gameSource.spin_duration_ms) || 3600,
             ),
             jackpot_armed: gameSource.jackpot_armed === true,
             final_category:
@@ -276,14 +343,22 @@ export async function getFortunePublicState(): Promise<FortuneState> {
     const round: FortuneRound | null =
       source.round && Object.keys(roundSource).length > 0
         ? {
-            round_number: Math.max(1, Number(roundSource.round_number) || 1),
+            round_number: Math.max(
+              1,
+              Number(roundSource.round_number) || 1,
+            ),
             category: String(roundSource.category ?? ""),
-            masked_puzzle: String(roundSource.masked_puzzle ?? ""),
-            revealed_letters: Array.isArray(roundSource.revealed_letters)
+            masked_puzzle: String(
+              roundSource.masked_puzzle ?? "",
+            ),
+            revealed_letters: Array.isArray(
+              roundSource.revealed_letters,
+            )
               ? roundSource.revealed_letters.map(String)
               : [],
             status:
-              roundSource.status === "active" || roundSource.status === "won"
+              roundSource.status === "active" ||
+              roundSource.status === "won"
                 ? roundSource.status
                 : "waiting",
             starting_position:
@@ -319,6 +394,7 @@ export async function getFortuneManagerRounds(
   gameId: string | null,
 ): Promise<FortuneManagerRound[]> {
   if (!gameId) return [];
+
   try {
     const supabase = await createClient();
     const { data, error } = await (supabase as any)
@@ -328,6 +404,7 @@ export async function getFortuneManagerRounds(
       )
       .eq("game_id", gameId)
       .order("round_number", { ascending: true });
+
     if (error || !data) return [];
 
     return data.map(
@@ -340,9 +417,13 @@ export async function getFortuneManagerRounds(
             ? row.status
             : "waiting",
         starting_position:
-          row.starting_position == null ? null : Number(row.starting_position),
+          row.starting_position == null
+            ? null
+            : Number(row.starting_position),
         winner_position:
-          row.winner_position == null ? null : Number(row.winner_position),
+          row.winner_position == null
+            ? null
+            : Number(row.winner_position),
       }),
     );
   } catch {
@@ -355,24 +436,35 @@ export async function getFortuneCitizens(): Promise<FortuneCitizen[]> {
     const supabase = await createClient();
     const { data, error } = await (supabase as any)
       .from("member_profiles")
-      .select("user_id,rp_first_name,rp_last_name,discord_name")
+      .select(
+        "user_id,rp_first_name,rp_last_name,discord_name",
+      )
       .order("rp_first_name", { ascending: true })
       .order("rp_last_name", { ascending: true });
+
     if (error || !data) return [];
 
     return data.flatMap((row: Record<string, unknown>) => {
       const userId = String(row.user_id ?? "");
       if (!userId) return [];
+
       const rpName = [
-        typeof row.rp_first_name === "string" ? row.rp_first_name.trim() : "",
-        typeof row.rp_last_name === "string" ? row.rp_last_name.trim() : "",
+        typeof row.rp_first_name === "string"
+          ? row.rp_first_name.trim()
+          : "",
+        typeof row.rp_last_name === "string"
+          ? row.rp_last_name.trim()
+          : "",
       ]
         .filter(Boolean)
         .join(" ");
+
       return [
         {
           user_id: userId,
-          name: rpName || String(row.discord_name ?? "Citoyen Nostra"),
+          name:
+            rpName ||
+            String(row.discord_name ?? "Citoyen Nostra"),
         },
       ];
     });

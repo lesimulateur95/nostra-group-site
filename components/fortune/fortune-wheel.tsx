@@ -38,6 +38,7 @@ export function FortuneWheel({
   segments,
   rotation,
   spinning = false,
+  transitionMs = 3600,
   compact = false,
   selectedSegmentId = null,
   onSegmentClick,
@@ -45,6 +46,7 @@ export function FortuneWheel({
   segments: FortuneSegment[];
   rotation: number;
   spinning?: boolean;
+  transitionMs?: number;
   compact?: boolean;
   selectedSegmentId?: number | null;
   onSegmentClick?: (segment: FortuneSegment) => void;
@@ -61,7 +63,10 @@ export function FortuneWheel({
       <svg
         viewBox="0 0 500 500"
         className={`${styles.wheelSvg} ${spinning ? styles.wheelSpinning : ""}`}
-        style={{ "--fortune-rotation": `${rotation}deg` } as CSSProperties}
+        style={{
+          "--fortune-rotation": `${rotation}deg`,
+          "--fortune-duration": `${Math.max(0, transitionMs)}ms`,
+        } as CSSProperties}
         aria-label="Roue de la Fortune"
       >
         {active.map((segment, index) => {
