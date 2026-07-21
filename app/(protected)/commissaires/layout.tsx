@@ -45,7 +45,6 @@ export default async function CommissionersLayout({
   return (
     <SectionLayout
       title="Espace Commissaire"
-      subtitle="Accès réservé"
       items={commissionerNavigation}
     >
       {children}
