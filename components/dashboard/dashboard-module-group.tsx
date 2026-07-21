@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { DashboardAuctionCard } from "@/components/auctions/dashboard-auction-card";
 import { DirectionMotorsCards } from "@/components/dashboard/direction-motors-cards";
 import { DashboardFortuneCard } from "@/components/fortune/dashboard-fortune-card";
+import { DashboardLoyaltyCard } from "@/components/loyalty/dashboard-loyalty-card";
 
 export function DashboardModuleGroup({
   icon,
@@ -55,7 +56,12 @@ export function DashboardModuleGroup({
       </summary>
 
       <div className="dashboard-module-group-content">
-        {isDirectionGroup && <DirectionMotorsCards />}
+        {isDirectionGroup && (
+          <>
+            <DirectionMotorsCards />
+            <DashboardLoyaltyCard />
+          </>
+        )}
 
         {isEventsGroup && (
           <>

@@ -1,0 +1,260 @@
+.page {
+  display: grid;
+  gap: 22px;
+  width: min(1480px, 100%);
+  margin: 0 auto;
+  padding-bottom: 60px;
+}
+
+.hero,
+.settings,
+.section {
+  border: 1px solid rgba(212, 175, 55, 0.32);
+  border-radius: 24px;
+  background: #090a0a;
+}
+
+.hero {
+  padding: clamp(28px, 5vw, 48px);
+  background:
+    radial-gradient(
+      circle at 88% 20%,
+      rgba(212, 175, 55, 0.15),
+      transparent 32%
+    ),
+    #090a0a;
+}
+
+.hero > span,
+.settings span,
+.section header > span,
+.orderHeading span {
+  color: #e9c747;
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0.14em;
+}
+
+.hero h1 {
+  margin: 8px 0 12px;
+  font-size: clamp(2.8rem, 6vw, 5.5rem);
+  font-weight: 560;
+  letter-spacing: -0.05em;
+  line-height: 0.95;
+}
+
+.hero p,
+.section header p {
+  max-width: 850px;
+  margin: 0;
+  color: #b9bdc5;
+  line-height: 1.7;
+}
+
+.settings,
+.section {
+  padding: clamp(20px, 4vw, 32px);
+}
+
+.settings {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(480px, 0.8fr);
+  gap: 22px;
+  align-items: end;
+}
+
+.settings h2,
+.section h2 {
+  margin: 7px 0 0;
+  font-size: clamp(1.8rem, 4vw, 3rem);
+}
+
+.settings form {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.settings label,
+.citizen form {
+  display: grid;
+  gap: 7px;
+}
+
+.settings input,
+.settings select,
+.citizen select,
+.order select {
+  min-height: 47px;
+  padding: 0 12px;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 10px;
+  background: #050606;
+  color: #fff;
+  font: inherit;
+}
+
+.settings button,
+.citizen button,
+.order button {
+  min-height: 47px;
+  padding: 0 13px;
+  border: 1px solid rgba(226, 190, 65, 0.45);
+  border-radius: 10px;
+  background: rgba(212, 175, 55, 0.09);
+  color: #f0cf61;
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.citizenList,
+.orderList {
+  display: grid;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.citizen {
+  display: grid;
+  grid-template-columns: minmax(230px, 1fr) minmax(360px, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 15px;
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.citizen > div {
+  display: grid;
+  gap: 4px;
+}
+
+.citizen span {
+  color: #aeb2b9;
+}
+
+.citizen b {
+  color: #e9c747;
+}
+
+.citizen form:nth-of-type(1) {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.danger {
+  border-color: rgba(255, 88, 88, 0.42) !important;
+  background: rgba(130, 24, 24, 0.2) !important;
+  color: #ffb9b9 !important;
+}
+
+.order {
+  display: grid;
+  gap: 15px;
+  padding: 18px;
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.orderHeading {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.orderHeading h3 {
+  margin: 5px 0;
+  font-size: 1.7rem;
+}
+
+.orderHeading p {
+  margin: 0;
+  color: #b7bbc2;
+}
+
+.orderHeading > strong {
+  color: #f0cf61;
+  font-size: 1.6rem;
+}
+
+.order dl {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  margin: 0;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.order dl > div {
+  display: grid;
+  gap: 5px;
+  padding: 13px;
+  background: #0b0c0c;
+}
+
+.order dt {
+  color: #a78f3c;
+  font-size: 0.7rem;
+  font-weight: 900;
+}
+
+.order form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
+.success,
+.error,
+.empty {
+  padding: 15px 17px;
+  border-radius: 12px;
+}
+
+.success {
+  border: 1px solid rgba(65, 204, 126, 0.38);
+  background: rgba(31, 118, 70, 0.14);
+  color: #aeeac8;
+}
+
+.error {
+  border: 1px solid rgba(255, 88, 88, 0.42);
+  background: rgba(130, 24, 24, 0.18);
+  color: #ffb9b9;
+}
+
+.empty {
+  border: 1px dashed rgba(212, 175, 55, 0.25);
+  color: #aeb2b9;
+  text-align: center;
+}
+
+@media (max-width: 1000px) {
+  .settings,
+  .citizen {
+    grid-template-columns: 1fr;
+  }
+
+  .settings form {
+    grid-template-columns: 1fr;
+  }
+
+  .order dl {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .citizen form:nth-of-type(1),
+  .order form,
+  .order dl {
+    grid-template-columns: 1fr;
+  }
+
+  .orderHeading {
+    flex-direction: column;
+  }
+}
