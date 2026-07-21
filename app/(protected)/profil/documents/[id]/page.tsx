@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
+import { replacePilotLicenseCertificate } from "@/app/actions/licenses";
 import { PrintDocumentButton } from "@/components/documents/print-document-button";
 import { createClient } from "@/lib/supabase/server";
 import styles from "./page.module.css";
@@ -28,6 +29,7 @@ type OrderDocumentPayload = {
 };
 
 type LicenseDocumentPayload = {
+  application_id: number;
   application_number: string;
   applicant_name: string;
   phone: string;
@@ -38,6 +40,8 @@ type LicenseDocumentPayload = {
   medical_certificate_path: string;
   medical_certificate_name: string;
   paid_at: string | null;
+  license_status: string;
+  review_note: string | null;
 };
 
 function money(value: number | string) {
@@ -118,6 +122,7 @@ function licensePayload(value: unknown): LicenseDocumentPayload {
       : {};
 
   return {
+    application_id: Math.max(0, Number(source.application_id) || 0),
     application_number:
       typeof source.application_number === "string"
         ? source.application_number
@@ -155,15 +160,31 @@ function licensePayload(value: unknown): LicenseDocumentPayload {
       typeof source.paid_at === "string"
         ? source.paid_at
         : null,
+    license_status:
+      typeof source.license_status === "string"
+        ? source.license_status
+        : "under_review",
+    review_note:
+      typeof source.review_note === "string"
+        ? source.review_note
+        : null,
   };
 }
 
 export default async function ProfileDocumentDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{
+    certificate_replaced?: string;
+    certificate_error?: string;
+  }>;
 }) {
-  const route = await params;
+  const [route, query] = await Promise.all([
+    params,
+    searchParams,
+  ]);
   const id = Number.parseInt(route.id, 10);
 
   if (!Number.isFinite(id) || id <= 0) notFound();
@@ -176,7 +197,7 @@ export default async function ProfileDocumentDetailPage({
   const { data: document, error } = await (supabase as any)
     .from("invoices")
     .select(
-      "id,invoice_number,status,amount,issued_at,order_id,document_type,document_title,document_payload",
+      "id,invoice_number,status,amount,issued_at,order_id,document_type,document_title,document_payload,license_status",
     )
     .eq("id", id)
     .eq("user_id", authData.user.id)
@@ -189,6 +210,30 @@ export default async function ProfileDocumentDetailPage({
 
   if (isLicense) {
     const details = licensePayload(document.document_payload);
+    const licenseStatus =
+      typeof document.license_status === "string"
+        ? document.license_status
+        : details.license_status;
+
+    const licenseStatusLabel =
+      licenseStatus === "approved"
+        ? "Licence acceptée"
+        : licenseStatus === "rejected"
+          ? "Licence refusée"
+          : licenseStatus === "new_certificate_requested"
+            ? "Nouveau certificat demandé"
+            : "Payée · à examiner";
+
+    const certificateError =
+      query.certificate_error === "missing"
+        ? "Ajoute obligatoirement le nouveau certificat."
+        : query.certificate_error === "type"
+          ? "Le fichier doit être au format PDF, JPG ou PNG."
+          : query.certificate_error === "size"
+            ? "Le fichier dépasse la taille maximale de 10 Mo."
+            : query.certificate_error
+              ? "Le nouveau certificat n’a pas pu être envoyé."
+              : null;
 
     let certificateUrl: string | null = null;
 
@@ -253,9 +298,29 @@ export default async function ProfileDocumentDetailPage({
 
             <div>
               <span>STATUT</span>
-              <strong>Payée · à examiner</strong>
+              <strong>{licenseStatusLabel}</strong>
             </div>
           </section>
+
+          {query.certificate_replaced === "1" && (
+            <div className={styles.licenseSuccess}>
+              Le nouveau certificat médical a bien été transmis à la
+              Direction. Le dossier repasse en cours d’examen.
+            </div>
+          )}
+
+          {certificateError && (
+            <div className={styles.licenseError}>
+              {certificateError}
+            </div>
+          )}
+
+          {details.review_note && (
+            <section className={styles.licenseDecision}>
+              <span>MESSAGE DE LA DIRECTION</span>
+              <p>{details.review_note}</p>
+            </section>
+          )}
 
           <section className={styles.items}>
             <table>
@@ -318,6 +383,42 @@ export default async function ProfileDocumentDetailPage({
               )}
             </div>
           </section>
+
+          {licenseStatus === "new_certificate_requested" && (
+            <section className={styles.replacement}>
+              <span>NOUVEAU CERTIFICAT DEMANDÉ</span>
+              <h2>Remplacer mon certificat médical</h2>
+              <p>
+                La Direction a demandé un nouveau document. Le certificat
+                actuel sera remplacé après l’envoi.
+              </p>
+
+              <form
+                action={replacePilotLicenseCertificate}
+                encType="multipart/form-data"
+              >
+                <input
+                  type="hidden"
+                  name="application_id"
+                  value={details.application_id}
+                />
+                <input
+                  type="hidden"
+                  name="document_id"
+                  value={document.id}
+                />
+                <input
+                  name="medical_certificate"
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                  required
+                />
+                <button type="submit">
+                  Envoyer le nouveau certificat
+                </button>
+              </form>
+            </section>
+          )}
 
           <footer className={styles.footer}>
             <p>

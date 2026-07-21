@@ -7,6 +7,7 @@ import {
   getPilotLicenseTypes,
 } from "@/lib/licenses/data";
 import { getRpName } from "@/lib/auth/user-profile";
+import { getMyMailboxOverview } from "@/lib/mail/data";
 import { createClient } from "@/lib/supabase/server";
 import styles from "./page.module.css";
 
@@ -35,17 +36,23 @@ export default async function PayPilotLicensePage({
 
   if (!authData.user) redirect("/");
 
-  const [licenseTypes, currentCart, profileResult, params] =
-    await Promise.all([
-      getPilotLicenseTypes(),
-      getOwnPilotLicenseCart(authData.user.id),
-      (supabase as any)
-        .from("member_profiles")
-        .select("rp_first_name,rp_last_name,phone")
-        .eq("user_id", authData.user.id)
-        .maybeSingle(),
-      searchParams,
-    ]);
+  const [
+    licenseTypes,
+    currentCart,
+    profileResult,
+    mailboxOverview,
+    params,
+  ] = await Promise.all([
+    getPilotLicenseTypes(),
+    getOwnPilotLicenseCart(authData.user.id),
+    (supabase as any)
+      .from("member_profiles")
+      .select("rp_first_name,rp_last_name,phone")
+      .eq("user_id", authData.user.id)
+      .maybeSingle(),
+    getMyMailboxOverview(),
+    searchParams,
+  ]);
 
   const metadata = authData.user.user_metadata ?? {};
   const profile = profileResult.data ?? {};
@@ -72,7 +79,8 @@ export default async function PayPilotLicensePage({
         ? metadata.phone
         : "";
 
-  const profileEmail = authData.user.email ?? "";
+  const internalEmail =
+    mailboxOverview.mailbox?.address ?? "";
 
   const errorMessage =
     params.error === "identity"
@@ -87,6 +95,8 @@ export default async function PayPilotLicensePage({
               ? "Le certificat médical n’a pas pu être envoyé."
               : params.error === "setup"
                 ? "Le module des licences pilotes doit d’abord être activé avec le SQL V44."
+                : params.error === "mailbox"
+                ? "La messagerie interne doit être activée avant de déposer une demande."
                 : params.error
                   ? "La demande n’a pas pu être ajoutée au panier."
                   : null;
@@ -141,13 +151,21 @@ export default async function PayPilotLicensePage({
         </div>
       )}
 
-      {licenseTypes.length > 0 && (
+      {licenseTypes.length > 0 && internalEmail && (
         <PilotLicenseForm
           licenseTypes={licenseTypes}
           profileName={profileName}
           profilePhone={profilePhone}
-          profileEmail={profileEmail}
+          internalEmail={internalEmail}
         />
+      )}
+
+      {licenseTypes.length > 0 && !internalEmail && (
+        <div className={styles.error}>
+          La boîte de messagerie interne du citoyen n’a pas pu être
+          récupérée. Ouvre une première fois Profil → Messagerie, puis
+          recharge cette page.
+        </div>
       )}
 
       <section className={styles.steps}>

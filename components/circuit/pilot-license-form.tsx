@@ -31,21 +31,19 @@ export function PilotLicenseForm({
   licenseTypes,
   profileName,
   profilePhone,
-  profileEmail,
+  internalEmail,
 }: {
   licenseTypes: PilotLicenseType[];
   profileName: string;
   profilePhone: string;
-  profileEmail: string;
+  internalEmail: string;
 }) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
 
   const fillFromProfile = () => {
     setName(profileName);
     setPhone(profilePhone);
-    setEmail(profileEmail);
   };
 
   return (
@@ -114,16 +112,17 @@ export function PilotLicenseForm({
         </label>
 
         <label>
-          <span>Adresse e-mail</span>
+          <span>Adresse de messagerie interne</span>
           <input
-            name="email"
-            type="email"
-            maxLength={180}
-            required
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            placeholder="pilote@exemple.fr"
+            type="text"
+            value={internalEmail}
+            readOnly
+            aria-readonly="true"
           />
+          <small>
+            Cette adresse est fournie automatiquement par la messagerie
+            Nostra Group et ne peut pas être remplacée dans le formulaire.
+          </small>
         </label>
 
         <label className={styles.certificate}>

@@ -22,6 +22,7 @@ type DocumentRow = {
   order_id: number | null;
   document_type: DocumentType;
   document_title: string | null;
+  license_status: string | null;
 };
 
 function money(value: number | string) {
@@ -40,11 +41,18 @@ function documentLabel(type: DocumentType) {
   return "Facture";
 }
 
-function statusLabel(status: string, type: DocumentType) {
+function statusLabel(
+  status: string,
+  type: DocumentType,
+  licenseStatus: string | null,
+) {
   if (type === "license_application") {
-    if (status === "paid") return "Payée · à examiner";
-    if (status === "approved") return "Validée";
-    if (status === "rejected") return "Refusée";
+    if (licenseStatus === "approved") return "Validée";
+    if (licenseStatus === "rejected") return "Refusée";
+    if (licenseStatus === "new_certificate_requested") {
+      return "Nouveau certificat demandé";
+    }
+    return "Payée · à examiner";
   }
 
   if (status === "available") return "Disponible";
@@ -66,7 +74,7 @@ export default async function ProfileDocumentsPage() {
   const modern = await (supabase as any)
     .from("invoices")
     .select(
-      "id,invoice_number,status,amount,issued_at,download_url,order_id,document_type,document_title",
+      "id,invoice_number,status,amount,issued_at,download_url,order_id,document_type,document_title,license_status",
     )
     .eq("user_id", authData.user.id)
     .order("issued_at", { ascending: false });
@@ -89,6 +97,7 @@ export default async function ProfileDocumentsPage() {
       order_id: null,
       document_type: "invoice" as const,
       document_title: "Facture Nostra Group",
+      license_status: null,
     }));
   }
 
@@ -158,6 +167,7 @@ export default async function ProfileDocumentsPage() {
                     {statusLabel(
                       document.status,
                       document.document_type,
+                      document.license_status,
                     )}
                   </td>
 

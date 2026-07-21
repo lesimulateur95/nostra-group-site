@@ -1,4 +1,3 @@
-
 .page {
   display: grid;
   gap: 18px;
@@ -52,7 +51,9 @@
 .reference span,
 .informationGrid span,
 .delivery span,
-.notes span {
+.notes span,
+.licenseDecision span,
+.replacement > span {
   color: #8c7a31;
   font-size: 0.7rem;
   font-weight: 900;
@@ -159,10 +160,82 @@
   white-space: pre-wrap;
 }
 
+.licenseSuccess,
+.licenseError,
+.licenseDecision,
+.replacement {
+  margin: 22px 26px 0;
+  padding: 16px 18px;
+  border-radius: 13px;
+}
+
+.licenseSuccess {
+  border: 1px solid #70b78c;
+  background: #e6f6ec;
+  color: #245e39;
+}
+
+.licenseError {
+  border: 1px solid #d58888;
+  background: #fdeaea;
+  color: #7b2828;
+}
+
+.licenseDecision {
+  border: 1px solid #d9c369;
+  background: #fff8d9;
+}
+
+.licenseDecision p {
+  margin: 7px 0 0;
+  white-space: pre-wrap;
+}
+
+.replacement {
+  border: 1px solid #d8bd52;
+  background: #fff9de;
+}
+
+.replacement h2 {
+  margin: 6px 0 8px;
+}
+
+.replacement p {
+  margin: 0 0 14px;
+  line-height: 1.55;
+}
+
+.replacement form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+}
+
+.replacement input {
+  min-height: 48px;
+  padding: 10px;
+  border: 1px solid #c8b45a;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.replacement button {
+  min-height: 48px;
+  padding: 0 17px;
+  border: 1px solid #9b7817;
+  border-radius: 10px;
+  background: #b9901b;
+  color: #fff;
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+}
+
 .footer {
   display: flex;
   justify-content: space-between;
   gap: 20px;
+  margin-top: 24px;
   padding: 20px 26px;
   background: #11120f;
   color: #aaa;
@@ -213,10 +286,15 @@
   .footer strong {
     white-space: normal;
   }
+
+  .replacement form {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media print {
-  .toolbar {
+  .toolbar,
+  .replacement {
     display: none;
   }
 

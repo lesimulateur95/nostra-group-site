@@ -1,6 +1,9 @@
 import { DashboardCard } from "@/components/dashboard/dashboard-card";
+import { getPendingPilotLicenseCount } from "@/lib/licenses/data";
 
-export function DirectionMotorsCards() {
+export async function DirectionMotorsCards() {
+  const pendingLicenses = await getPendingPilotLicenseCount();
+
   return (
     <div
       className="dashboard-module-grid dashboard-module-grid-grouped"
@@ -11,6 +14,18 @@ export function DirectionMotorsCards() {
         icon="★"
         title="Véhicules en top vente"
         description="Ajouter ou retirer les véhicules affichés sur l’accueil."
+      />
+
+      <DashboardCard
+        href="/dashboard/licences-pilotes"
+        icon="🏁"
+        title="Demandes de licences pilotes"
+        description="Examiner les dossiers, accepter ou refuser une licence et demander un nouveau certificat médical."
+        badge={
+          pendingLicenses > 0
+            ? `${pendingLicenses} à traiter`
+            : undefined
+        }
       />
     </div>
   );
