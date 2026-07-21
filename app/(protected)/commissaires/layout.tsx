@@ -10,7 +10,7 @@ const commissionerNavigation = [
     label: "Gestion de course",
   },
   {
-    href: "/dashboard/commissaires/chronometrage",
+    href: "/commissaires/chronometrage",
     label: "Chronométrage et tours",
   },
   {
