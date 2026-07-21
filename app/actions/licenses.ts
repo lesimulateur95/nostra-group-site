@@ -319,7 +319,27 @@ export async function reviewPilotLicenseApplication(
   );
 
   if (error) {
-    redirect(`${DIRECTION_PATH}?error=save`);
+    const message = `${error.code ?? ""} ${error.message ?? ""} ${
+      error.details ?? ""
+    } ${error.hint ?? ""}`.toLowerCase();
+
+    const errorCode =
+      message.includes("manager_required")
+        ? "manager"
+        : message.includes("application_not_reviewable")
+          ? "status"
+          : message.includes("application_not_found")
+            ? "missing"
+            : message.includes("document_type") ||
+                message.includes("pilot_license_card") ||
+                message.includes("invoices_document_type_check")
+              ? "document"
+              : message.includes("nostra_mail") ||
+                  message.includes("mailbox")
+                ? "mail"
+                : "save";
+
+    redirect(`${DIRECTION_PATH}?error=${errorCode}`);
   }
 
   revalidateLicensePages();

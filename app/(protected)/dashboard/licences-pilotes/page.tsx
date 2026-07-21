@@ -88,9 +88,19 @@ export default async function PilotLicensesDashboardPage({
   const errorMessage =
     params.error === "note"
       ? "Un motif est obligatoire pour refuser une demande ou réclamer un nouveau certificat."
-      : params.error
-        ? "La décision n’a pas pu être enregistrée."
-        : null;
+      : params.error === "manager"
+        ? "La base de données ne reconnaissait pas correctement ton accès Gérant. Le correctif SQL V46.1.3 doit être exécuté."
+        : params.error === "status"
+          ? "Cette demande a déjà été traitée ou n’est plus dans l’état À examiner."
+          : params.error === "missing"
+            ? "Cette demande n’existe plus dans la base de données."
+            : params.error === "document"
+              ? "La création du document officiel était bloquée par la contrainte des types de documents. Exécute le SQL V46.1.3."
+              : params.error === "mail"
+                ? "La décision a rencontré un problème avec la messagerie interne. Exécute le SQL V46.1.3."
+                : params.error
+                  ? "La décision n’a pas pu être enregistrée."
+                  : null;
 
   return (
     <DashboardShell>
