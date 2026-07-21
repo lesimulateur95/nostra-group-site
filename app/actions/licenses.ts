@@ -334,6 +334,53 @@ export async function reviewPilotLicenseApplication(
   redirect(`${DIRECTION_PATH}?success=${success}`);
 }
 
+export async function deletePilotLicenseApplication(
+  formData: FormData,
+) {
+  const { supabase } = await requireManager();
+
+  const applicationId = Number(
+    text(formData.get("application_id"), 30),
+  );
+
+  if (
+    !Number.isFinite(applicationId) ||
+    applicationId <= 0
+  ) {
+    redirect(`${DIRECTION_PATH}?error=invalid`);
+  }
+
+  const { data: result, error } = await (supabase as any).rpc(
+    "delete_pilot_license_application",
+    {
+      p_application_id: applicationId,
+    },
+  );
+
+  if (error) {
+    redirect(`${DIRECTION_PATH}?error=delete`);
+  }
+
+  const response =
+    result && typeof result === "object"
+      ? (result as Record<string, unknown>)
+      : {};
+
+  const certificatePath =
+    typeof response.certificate_path === "string"
+      ? response.certificate_path
+      : null;
+
+  if (certificatePath) {
+    await supabase.storage
+      .from("license-medical-certificates")
+      .remove([certificatePath]);
+  }
+
+  revalidateLicensePages();
+  redirect(`${DIRECTION_PATH}?success=deleted`);
+}
+
 export async function replacePilotLicenseCertificate(
   formData: FormData,
 ) {

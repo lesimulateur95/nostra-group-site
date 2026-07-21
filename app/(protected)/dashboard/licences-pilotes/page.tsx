@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { reviewPilotLicenseApplication } from "@/app/actions/licenses";
+import { deletePilotLicenseApplication, reviewPilotLicenseApplication } from "@/app/actions/licenses";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { getUserRoleKeys } from "@/lib/auth/access";
 import {
@@ -78,14 +78,18 @@ export default async function PilotLicensesDashboardPage({
         ? "La demande a été refusée. Le citoyen a reçu le motif dans sa messagerie interne."
         : params.success === "certificate"
           ? "La demande d’un nouveau certificat a été envoyée au citoyen."
-          : null;
+          : params.success === "deleted"
+            ? "La demande de licence a été supprimée avec son document, son écriture comptable et son certificat médical."
+            : null;
 
   const errorMessage =
     params.error === "note"
       ? "Un motif est obligatoire pour refuser une demande ou réclamer un nouveau certificat."
-      : params.error
-        ? "La décision n’a pas pu être enregistrée."
-        : null;
+      : params.error === "delete"
+        ? "La demande de licence n’a pas pu être supprimée."
+        : params.error
+          ? "La décision n’a pas pu être enregistrée."
+          : null;
 
   return (
     <DashboardShell>
@@ -259,15 +263,29 @@ export default async function PilotLicensesDashboardPage({
                 </div>
               )}
 
-              {application.document_id && (
-                <footer className={styles.cardFooter}>
+              <footer className={styles.cardFooter}>
+                {application.document_id && (
                   <Link
                     href={`/profil/documents/${application.document_id}`}
                   >
                     Référence du document : #{application.document_id}
                   </Link>
-                </footer>
-              )}
+                )}
+
+                <form action={deletePilotLicenseApplication}>
+                  <input
+                    type="hidden"
+                    name="application_id"
+                    value={application.id}
+                  />
+                  <button
+                    className={styles.deleteApplication}
+                    type="submit"
+                  >
+                    Supprimer la demande
+                  </button>
+                </form>
+              </footer>
             </article>
           ))}
         </section>
