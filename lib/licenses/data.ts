@@ -144,8 +144,12 @@ export async function getPilotLicenseApplications(): Promise<
 
     const rows = data as Array<Record<string, unknown>>;
 
-    const withUrls = await Promise.all(
-      rows.map(async (row) => {
+    const withUrls: PilotLicenseApplication[] =
+      await Promise.all(
+        rows.map(
+          async (
+            row,
+          ): Promise<PilotLicenseApplication> => {
         const certificatePath = String(
           row.medical_certificate_path ?? "",
         );
@@ -180,8 +184,10 @@ export async function getPilotLicenseApplications(): Promise<
             row.medical_certificate_size ?? 0,
           ),
           amount: Number(row.amount ?? 0),
-          payment_status:
-            row.payment_status === "refunded" ? "refunded" : "paid",
+              payment_status:
+                row.payment_status === "refunded"
+                  ? ("refunded" as const)
+                  : ("paid" as const),
           status: String(
             row.status ?? "under_review",
           ) as PilotLicenseApplicationStatus,
@@ -213,9 +219,10 @@ export async function getPilotLicenseApplications(): Promise<
           created_at: String(row.created_at ?? ""),
           updated_at: String(row.updated_at ?? ""),
           certificateUrl,
-        };
-      }),
-    );
+            };
+          },
+        ),
+      );
 
     const priority: Record<PilotLicenseApplicationStatus, number> = {
       under_review: 0,
