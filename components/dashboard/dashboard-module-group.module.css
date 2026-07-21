@@ -1,0 +1,97 @@
+.directionGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  align-items: stretch;
+}
+
+/*
+ * Les trois anciens blocs de cartes deviennent transparents pour la
+ * grille. Toutes les cartes Direction participent donc à une seule
+ * disposition, sans trous ni lignes séparées.
+ */
+.directionGrid > :global(.dashboard-module-grid) {
+  display: contents;
+  margin: 0 !important;
+}
+
+.directionGrid :global(.dashboard-card) {
+  min-width: 0;
+  min-height: 210px;
+  height: 100%;
+}
+
+/* Première ligne : outils de gestion quotidiens. */
+.directionGrid
+  > :global(.dashboard-module-grid:last-child)
+  > :global(.dashboard-card:nth-child(1)) {
+  order: 1;
+}
+
+.directionGrid
+  > :global(.dashboard-module-grid:last-child)
+  > :global(.dashboard-card:nth-child(2)) {
+  order: 2;
+}
+
+.directionGrid
+  > :global(.dashboard-module-grid:last-child)
+  > :global(.dashboard-card:nth-child(3)) {
+  order: 3;
+}
+
+/* Deuxième ligne : visibilité Motors, licences et fidélité. */
+.directionGrid
+  > :global(.dashboard-module-grid:first-child)
+  > :global(.dashboard-card:nth-child(1)) {
+  order: 4;
+}
+
+.directionGrid
+  > :global(.dashboard-module-grid:first-child)
+  > :global(.dashboard-card:nth-child(2)) {
+  order: 5;
+}
+
+.directionGrid
+  > :global(.dashboard-module-grid:nth-child(2))
+  > :global(.dashboard-card) {
+  order: 6;
+}
+
+/* Gestion des événements : grande carte lisible en bas. */
+.directionGrid
+  > :global(.dashboard-module-grid:last-child)
+  > :global(.dashboard-card:nth-child(4)) {
+  order: 7;
+  grid-column: 1 / -1;
+  min-height: 150px;
+}
+
+@media (max-width: 1100px) {
+  .directionGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .directionGrid
+    > :global(.dashboard-module-grid:last-child)
+    > :global(.dashboard-card:nth-child(4)) {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 700px) {
+  .directionGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .directionGrid
+    > :global(.dashboard-module-grid:last-child)
+    > :global(.dashboard-card:nth-child(4)) {
+    grid-column: auto;
+  }
+
+  .directionGrid :global(.dashboard-card) {
+    min-height: 0;
+  }
+}

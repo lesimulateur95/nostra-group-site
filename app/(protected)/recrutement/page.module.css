@@ -1,0 +1,289 @@
+.page {
+  display: grid;
+  gap: 28px;
+  width: min(1480px, calc(100% - 36px));
+  margin: 0 auto;
+  padding: 32px 0 70px;
+}
+
+.hero,
+.departments,
+.application {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(212, 175, 55, 0.34);
+  border-radius: 28px;
+  background: #080909;
+}
+
+.hero {
+  min-height: 470px;
+  display: grid;
+  align-content: center;
+  padding: clamp(34px, 7vw, 86px);
+  background:
+    linear-gradient(
+      110deg,
+      rgba(6, 7, 7, 0.99) 0 58%,
+      rgba(6, 7, 7, 0.72)
+    ),
+    radial-gradient(
+      circle at 83% 28%,
+      rgba(212, 175, 55, 0.24),
+      transparent 32%
+    ),
+    #080909;
+}
+
+.hero::before {
+  position: absolute;
+  top: -30%;
+  right: -7%;
+  width: 46%;
+  height: 170%;
+  border: 1px solid rgba(230, 195, 70, 0.22);
+  background:
+    repeating-linear-gradient(
+      135deg,
+      rgba(230, 195, 70, 0.07) 0 18px,
+      transparent 18px 36px
+    );
+  content: "";
+  transform: rotate(9deg);
+}
+
+.hero::after {
+  position: absolute;
+  right: 4%;
+  bottom: -22px;
+  color: rgba(235, 200, 74, 0.07);
+  content: "NOSTRA";
+  font-size: clamp(5rem, 14vw, 13rem);
+  font-weight: 950;
+  letter-spacing: -0.07em;
+}
+
+.hero > * {
+  position: relative;
+  z-index: 1;
+}
+
+.hero > span,
+.sectionHeader > span,
+.application > div:first-child > span,
+.department > span {
+  color: #ebc94d;
+  font-size: 0.73rem;
+  font-weight: 950;
+  letter-spacing: 0.17em;
+}
+
+.hero h1 {
+  max-width: 900px;
+  margin: 16px 0 20px;
+  font-size: clamp(3.2rem, 8vw, 7.5rem);
+  font-weight: 550;
+  letter-spacing: -0.065em;
+  line-height: 0.88;
+}
+
+.hero > p {
+  max-width: 760px;
+  margin: 0;
+  color: #c2c6cd;
+  font-size: 1.08rem;
+  line-height: 1.75;
+}
+
+.heroActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.heroActions a,
+.profileLink {
+  min-height: 50px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 18px;
+  border: 1px solid rgba(230, 195, 69, 0.46);
+  border-radius: 12px;
+  color: #f0cf61;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.heroActions a:first-child {
+  background: linear-gradient(135deg, #e6bf3a, #987008);
+  color: #080808;
+}
+
+.departments,
+.application {
+  padding: clamp(24px, 5vw, 48px);
+}
+
+.sectionHeader {
+  max-width: 920px;
+}
+
+.sectionHeader h2,
+.application h2 {
+  margin: 9px 0 12px;
+  font-size: clamp(2.2rem, 5vw, 4.3rem);
+  font-weight: 560;
+  letter-spacing: -0.045em;
+  line-height: 1;
+}
+
+.sectionHeader p,
+.application > div:first-child > p {
+  color: #b9bec6;
+  line-height: 1.7;
+}
+
+.departmentGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 28px;
+}
+
+.department {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  min-height: 100%;
+  padding: 25px;
+  border: 1px solid rgba(212, 175, 55, 0.22);
+  border-radius: 20px;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(212, 175, 55, 0.07),
+      transparent 42%
+    ),
+    rgba(255, 255, 255, 0.018);
+}
+
+.departmentIcon {
+  display: grid;
+  width: 58px;
+  height: 58px;
+  place-items: center;
+  margin-bottom: 4px;
+  border: 1px solid rgba(231, 196, 69, 0.42);
+  border-radius: 15px;
+  background: rgba(212, 175, 55, 0.07);
+  color: #f0cf61;
+  font-size: 1.5rem;
+}
+
+.department h3 {
+  margin: 0;
+  font-size: 1.65rem;
+  line-height: 1.1;
+}
+
+.department p {
+  margin: 0;
+  color: #b9bdc5;
+  line-height: 1.62;
+}
+
+.department ul {
+  display: grid;
+  gap: 8px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.department li {
+  position: relative;
+  padding-left: 18px;
+  color: #e0e2e6;
+}
+
+.department li::before {
+  position: absolute;
+  left: 0;
+  color: #e7c746;
+  content: "◆";
+  font-size: 0.65rem;
+}
+
+.application {
+  display: grid;
+  gap: 25px;
+}
+
+.steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.steps article {
+  display: grid;
+  gap: 8px;
+  padding: 20px;
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.steps strong {
+  color: #e9c747;
+  font-size: 1.7rem;
+}
+
+.steps span {
+  color: #fff;
+  font-weight: 900;
+}
+
+.steps p {
+  margin: 0;
+  color: #b4b9c1;
+  line-height: 1.55;
+}
+
+.profileLink {
+  justify-self: start;
+}
+
+@media (max-width: 950px) {
+  .departmentGrid,
+  .steps {
+    grid-template-columns: 1fr;
+  }
+
+  .hero {
+    min-height: 0;
+  }
+}
+
+@media (max-width: 620px) {
+  .page {
+    width: min(100% - 20px, 1480px);
+    padding-top: 18px;
+  }
+
+  .hero,
+  .departments,
+  .application {
+    border-radius: 20px;
+  }
+
+  .heroActions {
+    flex-direction: column;
+  }
+
+  .heroActions a {
+    width: 100%;
+  }
+}

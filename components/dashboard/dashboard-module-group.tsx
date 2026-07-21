@@ -5,6 +5,8 @@ import { DirectionMotorsCards } from "@/components/dashboard/direction-motors-ca
 import { DashboardFortuneCard } from "@/components/fortune/dashboard-fortune-card";
 import { DashboardLoyaltyCard } from "@/components/loyalty/dashboard-loyalty-card";
 
+import styles from "./dashboard-module-group.module.css";
+
 export function DashboardModuleGroup({
   icon,
   eyebrow,
@@ -20,8 +22,11 @@ export function DashboardModuleGroup({
   children: ReactNode;
   defaultOpen?: boolean;
 }) {
-  const groupName = `${eyebrow} ${title}`.trim().toUpperCase();
-  const isDirectionGroup = groupName.includes("DIRECTION");
+  const groupName =
+    `${eyebrow} ${title}`.trim().toUpperCase();
+
+  const isDirectionGroup =
+    groupName.includes("DIRECTION");
 
   const isEventsGroup =
     groupName.includes("ÉVÉNEMENT") ||
@@ -56,21 +61,24 @@ export function DashboardModuleGroup({
       </summary>
 
       <div className="dashboard-module-group-content">
-        {isDirectionGroup && (
-          <>
+        {isDirectionGroup ? (
+          <div className={styles.directionGrid}>
             <DirectionMotorsCards />
             <DashboardLoyaltyCard />
-          </>
-        )}
-
-        {isEventsGroup && (
+            {children}
+          </div>
+        ) : (
           <>
-            <DashboardFortuneCard />
-            <DashboardAuctionCard />
+            {isEventsGroup && (
+              <>
+                <DashboardFortuneCard />
+                <DashboardAuctionCard />
+              </>
+            )}
+
+            {children}
           </>
         )}
-
-        {children}
       </div>
     </details>
   );

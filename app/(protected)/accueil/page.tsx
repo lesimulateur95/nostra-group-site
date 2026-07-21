@@ -1,10 +1,10 @@
 import Link from "next/link";
 
+import { HomeReviews } from "@/components/reviews/home-reviews";
 import { Topbar } from "@/components/site/topbar";
 import { getUserRoleKeys } from "@/lib/auth/access";
-import { createClient } from "@/lib/supabase/server";
-import { HomeReviews } from "@/components/reviews/home-reviews";
 import { getHomeReviewsData } from "@/lib/reviews/data";
+import { createClient } from "@/lib/supabase/server";
 
 const publicPortals = [
   {
@@ -27,6 +27,13 @@ const publicPortals = [
     title: "ÉVÉNEMENTS & JEUX",
     description:
       "Agenda, inscriptions et animations organisées par Nostra Group.",
+  },
+  {
+    href: "/recrutement",
+    kicker: "REJOINDRE LE GROUPE",
+    title: "RECRUTEMENT",
+    description:
+      "Découvrir les métiers proposés par Nostra Motors, Nostra Circuit et Nostra Group.",
   },
 ];
 
@@ -74,31 +81,50 @@ export default async function HomePage({
   ]);
 
   const hasCommissionerPortal =
-    roles.includes("manager") || roles.includes("commissioner");
+    roles.includes("manager") ||
+    roles.includes("commissioner");
 
-  // Sur une grille de trois colonnes :
-  // ligne 1 : Motors / Circuit / Événements
-  // ligne 2 : Commissaires / Rendez-vous / Top ventes
   const portals = hasCommissionerPortal
-    ? [...publicPortals, commissionerPortal, ...motorsServicePortals]
+    ? [
+        ...publicPortals,
+        commissionerPortal,
+        ...motorsServicePortals,
+      ]
     : [...publicPortals, ...motorsServicePortals];
 
   return (
     <div className="site-shell">
       <Topbar />
+
       <main className="home-main">
-        <p className="eyebrow">Universe Life · Saint-Martin V2</p>
+        <p className="eyebrow">
+          Universe Life · Saint-Martin V2
+        </p>
+
         <h1 className="home-title">Nostra Group</h1>
+
         <p className="home-sub">
           Choisissez l’espace que vous souhaitez ouvrir.
         </p>
 
         <section className="portal-grid">
           {portals.map((portal) => (
-            <Link href={portal.href} className="portal-card" key={portal.href}>
-              <span className="portal-kicker">{portal.kicker}</span>
-              <h2 className="portal-title">{portal.title}</h2>
-              <p className="portal-desc">{portal.description}</p>
+            <Link
+              href={portal.href}
+              className="portal-card"
+              key={portal.href}
+            >
+              <span className="portal-kicker">
+                {portal.kicker}
+              </span>
+
+              <h2 className="portal-title">
+                {portal.title}
+              </h2>
+
+              <p className="portal-desc">
+                {portal.description}
+              </p>
             </Link>
           ))}
         </section>
