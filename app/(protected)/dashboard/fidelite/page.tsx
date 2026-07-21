@@ -71,8 +71,9 @@ export default async function LoyaltyDashboardPage({
           <span>DIRECTION · NOSTRA MOTORS</span>
           <h1>Programme de fidélité</h1>
           <p>
-            Attribue les grades aux citoyens, retire-les lorsque
-            nécessaire et gère les nouvelles commandes de plaques.
+            Attribue ou retire un grade de fidélité à n’importe quel
+            compte du site, y compris le Gérant, les Commissaires,
+            les Employés et les Commerciaux.
           </p>
         </section>
 
@@ -136,18 +137,18 @@ export default async function LoyaltyDashboardPage({
 
         <section className={styles.section}>
           <header>
-            <span>CITOYENS</span>
+            <span>TOUS LES COMPTES</span>
             <h2>Ajouter ou retirer un grade fidélité</h2>
             <p>
-              Seuls les profils reconnus comme Citoyen ou Membre
-              apparaissent ici.
+              Tous les comptes enregistrés apparaissent ici. Ton compte
+              Gérant est placé en premier dans la liste.
             </p>
           </header>
 
           <div className={styles.citizenList}>
             {state.citizens.length === 0 && (
               <div className={styles.empty}>
-                Aucun citoyen trouvé.
+                Aucun compte trouvé.
               </div>
             )}
 
@@ -160,6 +161,12 @@ export default async function LoyaltyDashboardPage({
                   <strong>{citizen.name}</strong>
                   <span>
                     {citizen.email ?? "Adresse non renseignée"}
+                  </span>
+                  <span>
+                    Rôle :{" "}
+                    {citizen.roles?.length
+                      ? citizen.roles.join(" · ")
+                      : citizen.role ?? "Non renseigné"}
                   </span>
                   <b>
                     {citizen.tier_label ??
