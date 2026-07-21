@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { DashboardAuctionCard } from "@/components/auctions/dashboard-auction-card";
 import { DirectionMotorsCards } from "@/components/dashboard/direction-motors-cards";
 
 export function DashboardModuleGroup({
@@ -17,7 +18,12 @@ export function DashboardModuleGroup({
   children: ReactNode;
   defaultOpen?: boolean;
 }) {
-  const isDirectionGroup = eyebrow.trim().toUpperCase() === "DIRECTION";
+  const groupName = `${eyebrow} ${title}`.trim().toUpperCase();
+  const isDirectionGroup = groupName.includes("DIRECTION");
+  const isEventsGroup =
+    groupName.includes("ÉVÉNEMENT") ||
+    groupName.includes("EVENEMENT") ||
+    groupName.includes("JEUX");
 
   return (
     <details
@@ -42,6 +48,7 @@ export function DashboardModuleGroup({
 
       <div className="dashboard-module-group-content">
         {isDirectionGroup && <DirectionMotorsCards />}
+        {isEventsGroup && <DashboardAuctionCard />}
         {children}
       </div>
     </details>

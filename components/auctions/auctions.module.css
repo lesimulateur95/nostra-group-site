@@ -1,0 +1,533 @@
+.page,
+.dashboardPage {
+  display: grid;
+  gap: 1.5rem;
+  width: min(1500px, 100%);
+  margin: 0 auto;
+  padding: 0.5rem 0 4rem;
+}
+
+.hero,
+.section,
+.managementPanel,
+.managementList {
+  border: 1px solid rgba(212, 175, 55, 0.32);
+  border-radius: 26px;
+  background:
+    radial-gradient(circle at top right, rgba(212, 175, 55, 0.1), transparent 38%),
+    rgba(10, 11, 11, 0.96);
+}
+
+.hero {
+  padding: clamp(1.5rem, 4vw, 3rem);
+}
+
+.hero h1 {
+  margin: 0.5rem 0 0.75rem;
+  font-size: clamp(2.4rem, 6vw, 5rem);
+  font-weight: 500;
+  line-height: 0.98;
+}
+
+.hero p {
+  max-width: 850px;
+  margin: 0;
+  color: #c1c5cc;
+  line-height: 1.7;
+}
+
+.eyebrow {
+  color: #edc83f;
+  font-size: 0.75rem;
+  font-weight: 850;
+  letter-spacing: 0.17em;
+  text-transform: uppercase;
+}
+
+.success,
+.error {
+  padding: 1rem 1.15rem;
+  border-radius: 14px;
+}
+
+.success {
+  border: 1px solid rgba(78, 211, 139, 0.4);
+  background: rgba(33, 126, 74, 0.17);
+  color: #acf0c8;
+}
+
+.error {
+  border: 1px solid rgba(255, 94, 94, 0.42);
+  background: rgba(128, 28, 28, 0.2);
+  color: #ffc2c2;
+}
+
+.portalSection {
+  margin-bottom: 1.5rem;
+}
+
+.portalCard {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 1.2rem;
+  align-items: center;
+  min-height: 145px;
+  padding: 1.5rem;
+  border: 1px solid rgba(212, 175, 55, 0.36);
+  border-radius: 24px;
+  background:
+    linear-gradient(135deg, rgba(212, 175, 55, 0.09), transparent 48%),
+    rgba(12, 13, 13, 0.96);
+  color: inherit;
+  text-decoration: none;
+  transition: transform 160ms ease, border-color 160ms ease;
+}
+
+.portalCard:hover {
+  transform: translateY(-2px);
+  border-color: rgba(237, 200, 63, 0.72);
+}
+
+.portalIcon {
+  display: grid;
+  width: 62px;
+  height: 62px;
+  place-items: center;
+  border: 1px solid rgba(212, 175, 55, 0.42);
+  border-radius: 19px;
+  font-size: 1.55rem;
+}
+
+.portalCopy {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.portalCopy strong {
+  color: #fff;
+  font-size: 1.35rem;
+}
+
+.portalCopy > span:last-child {
+  color: #bec3ca;
+  line-height: 1.55;
+}
+
+.portalBadge {
+  border: 1px solid rgba(212, 175, 55, 0.42);
+  border-radius: 999px;
+  padding: 0.65rem 0.85rem;
+  color: #f0cf64;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.section,
+.managementPanel,
+.managementList {
+  display: grid;
+  gap: 1rem;
+  padding: clamp(1.25rem, 3vw, 2rem);
+}
+
+.sectionTitle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.sectionTitle h2,
+.managementPanel h2 {
+  margin: 0.3rem 0 0;
+  font-size: clamp(1.7rem, 3vw, 2.5rem);
+  font-weight: 550;
+}
+
+.sectionTitle > strong {
+  display: grid;
+  min-width: 42px;
+  height: 42px;
+  place-items: center;
+  border: 1px solid rgba(212, 175, 55, 0.34);
+  border-radius: 50%;
+  color: #f0cf64;
+}
+
+.empty {
+  padding: 1.6rem;
+  border: 1px dashed rgba(212, 175, 55, 0.28);
+  border-radius: 17px;
+  color: #b8bdc5;
+  text-align: center;
+}
+
+.auctionList {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.auctionCard {
+  overflow: hidden;
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  border-radius: 23px;
+  background: rgba(0, 0, 0, 0.24);
+}
+
+.auctionTop {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.85fr) minmax(0, 1.15fr);
+  gap: 1.5rem;
+  padding: 1.35rem;
+}
+
+.vehicleMedia {
+  display: grid;
+  min-height: 290px;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 17px;
+  background:
+    radial-gradient(circle at center, rgba(212, 175, 55, 0.14), transparent 55%),
+    #060707;
+  color: #ddb83a;
+  font-size: 2.4rem;
+  font-weight: 900;
+}
+
+.vehicleMedia img {
+  width: 100%;
+  height: 100%;
+  min-height: 290px;
+  object-fit: cover;
+}
+
+.auctionSummary {
+  display: grid;
+  align-content: center;
+  gap: 0.85rem;
+}
+
+.auctionSummary h2 {
+  margin: 0;
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  font-weight: 530;
+}
+
+.auctionSummary > p {
+  margin: 0;
+  color: #bfc4cc;
+  line-height: 1.65;
+}
+
+.priceGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.priceGrid > div {
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.95rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.priceGrid span {
+  color: #9fa4ac;
+  font-size: 0.8rem;
+}
+
+.priceGrid strong {
+  color: #fff;
+  overflow-wrap: anywhere;
+}
+
+.timer {
+  color: #f0cf64 !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.leading {
+  padding: 0.85rem 1rem;
+  border: 1px solid rgba(75, 211, 140, 0.35);
+  border-radius: 13px;
+  background: rgba(32, 121, 74, 0.16);
+  color: #adf2ca;
+}
+
+.bidPanel {
+  display: grid;
+  gap: 0.9rem;
+  padding: 1.35rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.bidPanel h3,
+.history h3 {
+  margin: 0;
+}
+
+.bidButtons {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.bidButtons form,
+.bidButtons button {
+  width: 100%;
+}
+
+.bidButtons button,
+.formActions button {
+  min-height: 46px;
+  border: 1px solid #d6af31;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #e3bd37, #a77c0f);
+  color: #090909;
+  font: inherit;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.abandonForm button {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid rgba(255, 102, 102, 0.42);
+  border-radius: 12px;
+  background: rgba(126, 26, 26, 0.2);
+  color: #ffb9b9;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.abandonedState {
+  padding: 1rem 1.35rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  color: #d3a9a9;
+}
+
+.history {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1.35rem;
+}
+
+.historyHead {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.historyHead span {
+  color: #aeb3bb;
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.tableWrap table {
+  width: 100%;
+  min-width: 680px;
+  border-collapse: collapse;
+}
+
+.tableWrap th,
+.tableWrap td {
+  padding: 0.85rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  text-align: left;
+}
+
+.tableWrap th {
+  color: #e8c447;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tableWrap td {
+  color: #d3d6dc;
+}
+
+.endedGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.endedCard {
+  padding: 1.2rem;
+  border: 1px solid rgba(212, 175, 55, 0.23);
+  border-radius: 17px;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.endedCard h3 {
+  margin: 0.4rem 0 0.7rem;
+}
+
+.endedCard p {
+  color: #bdc1c8;
+}
+
+.finalPrice {
+  color: #f0cf64;
+  font-size: 1.25rem;
+}
+
+.createForm {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.createForm label {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.createForm label > span {
+  color: #d8dbe0;
+  font-weight: 750;
+}
+
+.createForm input,
+.createForm select,
+.createForm textarea {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 12px;
+  background: #080909;
+  color: #fff;
+  padding: 0.85rem 0.95rem;
+  font: inherit;
+}
+
+.createForm small {
+  color: #9da2aa;
+  line-height: 1.45;
+}
+
+.fullField,
+.formActions {
+  grid-column: 1 / -1;
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.formActions button {
+  min-width: 230px;
+  padding: 0.7rem 1rem;
+}
+
+.managementList {
+  gap: 1rem;
+}
+
+.managementCard {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+  padding: 1.1rem 1.2rem;
+  border: 1px solid rgba(212, 175, 55, 0.22);
+  border-radius: 17px;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.managementCard h3 {
+  margin: 0.35rem 0;
+}
+
+.managementCard p {
+  margin: 0.25rem 0;
+  color: #b9bec6;
+}
+
+.managementActions button {
+  min-height: 43px;
+  border-radius: 12px;
+  padding: 0.7rem 0.9rem;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.cancelButton {
+  border: 1px solid rgba(255, 166, 76, 0.42);
+  background: rgba(132, 74, 20, 0.2);
+  color: #ffd09c;
+}
+
+.deleteButton {
+  border: 1px solid rgba(255, 93, 93, 0.42);
+  background: rgba(128, 24, 24, 0.2);
+  color: #ffb8b8;
+}
+
+@media (max-width: 1250px) {
+  .bidButtons {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .endedGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .auctionTop {
+    grid-template-columns: 1fr;
+  }
+
+  .createForm {
+    grid-template-columns: 1fr;
+  }
+
+  .fullField,
+  .formActions {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 700px) {
+  .portalCard {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .portalBadge {
+    grid-column: 1 / -1;
+    text-align: center;
+  }
+
+  .priceGrid,
+  .endedGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .bidButtons {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .managementCard {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .managementActions button,
+  .formActions button {
+    width: 100%;
+  }
+}
