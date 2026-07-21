@@ -1,0 +1,815 @@
+.page {
+  display: grid;
+  gap: 22px;
+  width: min(1540px, 100%);
+  margin: 0 auto;
+  padding: 8px 0 60px;
+}
+
+.hero,
+.puzzlePanel,
+.playerControls,
+.rules,
+.waitingRoom,
+.managerPanel {
+  border: 1px solid rgba(212, 175, 55, 0.34);
+  border-radius: 26px;
+  background:
+    radial-gradient(circle at top right, rgba(212, 175, 55, 0.13), transparent 38%),
+    rgba(10, 11, 10, 0.98);
+}
+
+.hero {
+  padding: clamp(25px, 5vw, 46px);
+}
+
+.eyebrow {
+  color: #edc94a;
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.17em;
+  text-transform: uppercase;
+}
+
+.hero h1 {
+  margin: 8px 0 12px;
+  font-size: clamp(2.8rem, 7vw, 6rem);
+  font-weight: 500;
+  line-height: 0.94;
+}
+
+.hero > p {
+  max-width: 940px;
+  margin: 0;
+  color: #c1c5cc;
+  line-height: 1.7;
+}
+
+.jackpotBanner {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+  margin-top: 25px;
+  padding: 17px 19px;
+  border: 1px solid rgba(255, 207, 65, 0.48);
+  border-radius: 16px;
+  background:
+    linear-gradient(110deg, rgba(160, 96, 0, 0.25), transparent 56%),
+    rgba(255, 194, 28, 0.07);
+}
+
+.jackpotBanner span {
+  color: #f1d166;
+  font-size: 0.74rem;
+  font-weight: 900;
+  letter-spacing: 0.13em;
+}
+
+.jackpotBanner strong {
+  color: #ffe589;
+  font-size: clamp(1.6rem, 4vw, 2.5rem);
+  white-space: nowrap;
+}
+
+.jackpotBanner small {
+  color: #d9cda7;
+  line-height: 1.5;
+}
+
+.success,
+.error,
+.controlError {
+  padding: 15px 18px;
+  border-radius: 14px;
+}
+
+.success {
+  border: 1px solid rgba(64, 204, 126, 0.42);
+  background: rgba(27, 119, 70, 0.16);
+  color: #aeefca;
+}
+
+.error,
+.controlError {
+  border: 1px solid rgba(255, 91, 91, 0.42);
+  background: rgba(127, 28, 28, 0.18);
+  color: #ffc0c0;
+}
+
+.waitingRoom {
+  padding: 32px;
+  text-align: center;
+}
+
+.waitingRoom > span {
+  color: #eaca4b;
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+}
+
+.waitingRoom h2 {
+  margin: 8px 0;
+}
+
+.waitingRoom p {
+  color: #b8bdc5;
+}
+
+.portalSection {
+  margin-bottom: 20px;
+}
+
+.portalCard {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  min-height: 142px;
+  padding: 22px;
+  border: 1px solid rgba(212, 175, 55, 0.36);
+  border-radius: 23px;
+  background:
+    linear-gradient(130deg, rgba(212, 175, 55, 0.09), transparent 48%),
+    rgba(11, 12, 11, 0.97);
+  color: inherit;
+  text-decoration: none;
+  transition: transform 160ms ease, border-color 160ms ease;
+}
+
+.portalCard:hover {
+  transform: translateY(-2px);
+  border-color: rgba(237, 201, 73, 0.72);
+}
+
+.portalIcon {
+  display: grid;
+  width: 64px;
+  height: 64px;
+  place-items: center;
+  border: 1px solid rgba(212, 175, 55, 0.43);
+  border-radius: 20px;
+  font-size: 1.65rem;
+}
+
+.portalCopy {
+  display: grid;
+  gap: 5px;
+}
+
+.portalCopy strong {
+  color: #fff;
+  font-size: 1.35rem;
+}
+
+.portalCopy > span:last-child {
+  color: #bec2ca;
+}
+
+.portalStatus {
+  display: grid;
+  gap: 4px;
+  justify-items: end;
+  color: #f0d165;
+}
+
+.portalStatus small {
+  color: #bfc2c8;
+}
+
+.gameStatus {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  border-radius: 18px;
+  background: rgba(212, 175, 55, 0.25);
+}
+
+.gameStatus > div {
+  display: grid;
+  gap: 7px;
+  padding: 18px;
+  background: #101110;
+}
+
+.gameStatus span {
+  color: #9f8b3d;
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.11em;
+}
+
+.gameStatus strong {
+  color: #f0f1f3;
+}
+
+.scoreboard {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.playerCard {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 14px;
+  padding: 19px;
+  border: 1px solid rgba(212, 175, 55, 0.24);
+  border-radius: 19px;
+  background: rgba(10, 11, 10, 0.97);
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.playerActive {
+  transform: translateY(-3px);
+  border-color: rgba(241, 205, 77, 0.78);
+  box-shadow:
+    0 0 0 1px rgba(241, 205, 77, 0.22),
+    0 14px 35px rgba(0, 0, 0, 0.3);
+}
+
+.playerPosition {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border: 1px solid rgba(212, 175, 55, 0.42);
+  border-radius: 50%;
+  color: #f0cf60;
+  font-weight: 900;
+}
+
+.playerIdentity {
+  display: grid;
+  align-content: center;
+  gap: 4px;
+}
+
+.playerIdentity strong {
+  font-size: 1.18rem;
+}
+
+.playerIdentity span {
+  color: #9d8a3c;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+}
+
+.playerMoney {
+  display: grid;
+  gap: 5px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.playerMoney span {
+  color: #9fa4ac;
+  font-size: 0.75rem;
+}
+
+.playerMoney strong {
+  color: #f1d36e;
+  font-size: 1.12rem;
+}
+
+.finalRoundWarning {
+  padding: 17px 19px;
+  border: 1px solid rgba(255, 94, 94, 0.5);
+  border-radius: 15px;
+  background:
+    linear-gradient(110deg, rgba(164, 26, 26, 0.28), transparent 70%),
+    rgba(117, 23, 23, 0.18);
+  color: #ffc3c3;
+  font-weight: 850;
+  line-height: 1.6;
+}
+
+.puzzlePanel {
+  overflow: hidden;
+}
+
+.puzzleHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 18px 24px;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.26);
+}
+
+.puzzleHeader span {
+  color: #eaca4c;
+  font-size: 0.74rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+}
+
+.puzzleHeader strong {
+  color: #fff;
+  font-size: 1.12rem;
+}
+
+.puzzleBoard {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 14px 18px;
+  min-height: 188px;
+  padding: clamp(24px, 5vw, 48px);
+  background:
+    radial-gradient(circle at center, rgba(51, 142, 90, 0.2), transparent 55%),
+    linear-gradient(155deg, #0b4e32, #06301f);
+}
+
+.puzzleWord {
+  display: flex;
+  gap: 5px;
+}
+
+.puzzleTile {
+  display: grid;
+  width: clamp(30px, 4vw, 52px);
+  height: clamp(42px, 5.5vw, 68px);
+  place-items: center;
+  border: 2px solid rgba(255, 255, 255, 0.64);
+  border-radius: 5px;
+  font-size: clamp(1.25rem, 3vw, 2.35rem);
+  font-weight: 950;
+  text-transform: uppercase;
+  box-shadow:
+    inset 0 0 0 2px rgba(0, 0, 0, 0.14),
+    0 4px 9px rgba(0, 0, 0, 0.22);
+}
+
+.puzzleHidden {
+  background: #eef2e9;
+  color: transparent;
+}
+
+.puzzleRevealed {
+  background: #fff;
+  color: #111;
+}
+
+.wheelPublicSection {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: clamp(18px, 4vw, 35px);
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  border-radius: 25px;
+  background:
+    radial-gradient(circle at center, rgba(212, 175, 55, 0.1), transparent 52%),
+    rgba(7, 8, 8, 0.98);
+}
+
+.hiddenWheel,
+.wheelEmpty {
+  display: grid;
+  min-height: 230px;
+  place-items: center;
+  color: #aaaeb5;
+  text-align: center;
+}
+
+.visibleWheelLabel {
+  color: #d9bb4e;
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+}
+
+.wheelStage {
+  position: relative;
+  width: min(720px, 92vw);
+  aspect-ratio: 1;
+}
+
+.wheelStageCompact {
+  width: min(430px, 82vw);
+}
+
+.wheelPointer {
+  position: absolute;
+  z-index: 4;
+  top: -9px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #fff4ae;
+  font-size: clamp(2.2rem, 5vw, 4rem);
+  line-height: 1;
+  filter:
+    drop-shadow(0 2px 0 #6e5110)
+    drop-shadow(0 5px 8px rgba(0, 0, 0, 0.65));
+}
+
+.wheelSvg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(var(--fortune-rotation));
+  transition: transform 3.6s cubic-bezier(0.13, 0.76, 0.16, 1);
+  filter: drop-shadow(0 22px 34px rgba(0, 0, 0, 0.42));
+}
+
+.wheelSpinning {
+  pointer-events: none;
+}
+
+.wheelText {
+  fill: #fff;
+  stroke: rgba(0, 0, 0, 0.58);
+  stroke-width: 3px;
+  paint-order: stroke fill;
+  font-size: 15px;
+  font-weight: 950;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.wheelCenter {
+  fill: #0b0c0b;
+  stroke: #ecd064;
+  stroke-width: 8px;
+}
+
+.wheelCenterTitle,
+.wheelCenterSubtitle {
+  fill: #f1d56f;
+  font-weight: 950;
+  letter-spacing: 0.11em;
+}
+
+.wheelCenterTitle {
+  font-size: 22px;
+}
+
+.wheelCenterSubtitle {
+  font-size: 15px;
+}
+
+.editableSegment {
+  cursor: pointer;
+  outline: none;
+}
+
+.editableSegment:hover path,
+.editableSegment:focus path {
+  stroke: #fff;
+  stroke-width: 7px;
+}
+
+.playerControls {
+  display: grid;
+  gap: 17px;
+  padding: clamp(20px, 4vw, 32px);
+}
+
+.playerControlHeading {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  align-items: center;
+}
+
+.playerControlHeading span {
+  color: #dcbc48;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.13em;
+}
+
+.playerControlHeading h2 {
+  margin: 4px 0 0;
+}
+
+.playerControlHeading > strong {
+  padding: 9px 12px;
+  border: 1px solid rgba(212, 175, 55, 0.34);
+  border-radius: 999px;
+  color: #f0d065;
+}
+
+.spinButton {
+  min-height: 58px;
+  border: 1px solid #e0ba35;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #f0ca48, #a8780a);
+  color: #090909;
+  font: inherit;
+  font-size: 1.08rem;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.spinButton:disabled,
+.controlCard button:disabled,
+.solutionForm button:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+
+.controlGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 13px;
+}
+
+.controlCard,
+.solutionForm {
+  display: grid;
+  gap: 11px;
+  padding: 17px;
+  border: 1px solid rgba(212, 175, 55, 0.23);
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.controlCard label,
+.solutionForm label {
+  display: grid;
+  gap: 7px;
+}
+
+.controlCard label span,
+.solutionForm label span {
+  color: #d1d4da;
+  font-weight: 800;
+}
+
+.controlCard input,
+.solutionForm input {
+  min-height: 48px;
+  padding: 0 13px;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 11px;
+  background: #070808;
+  color: #fff;
+  font: inherit;
+}
+
+.controlCard button,
+.solutionForm button {
+  min-height: 45px;
+  border: 1px solid rgba(212, 175, 55, 0.48);
+  border-radius: 11px;
+  background: rgba(212, 175, 55, 0.1);
+  color: #f0d06a;
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.solutionForm {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+}
+
+.solutionForm button {
+  min-width: 210px;
+}
+
+.jackpotArmed {
+  padding: 15px;
+  border: 1px solid rgba(255, 210, 69, 0.48);
+  border-radius: 13px;
+  background: rgba(171, 112, 10, 0.18);
+  color: #ffe38b;
+  font-weight: 900;
+  text-align: center;
+}
+
+.spectatorPanel {
+  padding: 20px;
+  border: 1px solid rgba(212, 175, 55, 0.24);
+  border-radius: 15px;
+  background: rgba(10, 11, 10, 0.96);
+  color: #b7bbc2;
+  text-align: center;
+}
+
+.rules {
+  padding: clamp(20px, 4vw, 32px);
+}
+
+.rules h2 {
+  margin-top: 0;
+}
+
+.ruleGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 13px;
+}
+
+.ruleGrid article {
+  padding: 17px;
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.ruleGrid strong {
+  color: #f0d16a;
+}
+
+.ruleGrid p {
+  margin-bottom: 0;
+  color: #b7bbc2;
+  line-height: 1.6;
+}
+
+.managerPanel {
+  overflow: hidden;
+  border-color: rgba(239, 75, 75, 0.58);
+  background:
+    radial-gradient(circle at top right, rgba(191, 29, 29, 0.2), transparent 35%),
+    #180b0b;
+}
+
+.managerHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: center;
+  padding: 24px;
+  border-bottom: 1px solid rgba(255, 91, 91, 0.28);
+  background: rgba(110, 18, 18, 0.24);
+}
+
+.managerHeader span,
+.managerEyebrow {
+  color: #ff9a9a;
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0.14em;
+}
+
+.managerHeader h2 {
+  margin: 5px 0 0;
+}
+
+.managerSection {
+  display: grid;
+  gap: 13px;
+  padding: 22px 24px;
+  border-bottom: 1px solid rgba(255, 91, 91, 0.17);
+}
+
+.managerSection h3 {
+  margin: 0;
+}
+
+.managerGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.managerGrid label {
+  display: grid;
+  gap: 7px;
+}
+
+.managerGrid label > span {
+  color: #d9b3b3;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.managerGrid input,
+.managerGrid select,
+.managerInline select {
+  min-height: 46px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 115, 115, 0.29);
+  border-radius: 10px;
+  background: #0b0707;
+  color: #fff;
+  font: inherit;
+}
+
+.managerGrid input[type="color"] {
+  padding: 5px;
+}
+
+.managerFull {
+  grid-column: 1 / -1;
+}
+
+.managerGrid > button,
+.managerSection form > button,
+.managerInline button,
+.visibilityButtons button,
+.managerActionRow button {
+  min-height: 45px;
+  padding: 9px 13px;
+  border: 1px solid rgba(255, 128, 128, 0.38);
+  border-radius: 10px;
+  background: rgba(120, 28, 28, 0.26);
+  color: #ffd2d2;
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.managerGrid > button {
+  grid-column: 1 / -1;
+}
+
+.managerSuccess {
+  border-color: rgba(65, 204, 126, 0.45) !important;
+  background: rgba(29, 124, 72, 0.25) !important;
+  color: #aff0ca !important;
+}
+
+.managerDanger {
+  border-color: rgba(255, 88, 88, 0.55) !important;
+  background: rgba(132, 22, 22, 0.34) !important;
+  color: #ffb4b4 !important;
+}
+
+.visibilityButtons,
+.managerActionRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.managerSelected {
+  border-color: #ffd068 !important;
+  background: rgba(198, 140, 15, 0.29) !important;
+  color: #ffe8a5 !important;
+}
+
+.managerInline {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
+.wheelEditor {
+  display: grid;
+  justify-items: center;
+  padding: 12px;
+  border: 1px solid rgba(255, 105, 105, 0.18);
+  border-radius: 15px;
+  background: #090606;
+}
+
+@media (max-width: 1050px) {
+  .scoreboard,
+  .ruleGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .portalCard,
+  .jackpotBanner,
+  .gameStatus,
+  .controlGrid,
+  .managerGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .portalStatus {
+    justify-items: start;
+  }
+
+  .scoreboard,
+  .ruleGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .solutionForm {
+    grid-template-columns: 1fr;
+  }
+
+  .solutionForm button {
+    min-width: 0;
+  }
+
+  .managerHeader,
+  .playerControlHeading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .managerFull,
+  .managerGrid > button {
+    grid-column: auto;
+  }
+
+  .managerInline {
+    grid-template-columns: 1fr;
+  }
+
+  .puzzleHeader {
+    flex-direction: column;
+  }
+}
