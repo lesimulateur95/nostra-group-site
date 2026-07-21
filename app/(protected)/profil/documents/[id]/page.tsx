@@ -1,6 +1,6 @@
-
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+
 import { PrintDocumentButton } from "@/components/documents/print-document-button";
 import { createClient } from "@/lib/supabase/server";
 import styles from "./page.module.css";
@@ -16,7 +16,7 @@ type PayloadItem = {
   delivery_address: string | null;
 };
 
-type DocumentPayload = {
+type OrderDocumentPayload = {
   order_number: string;
   customer_name: string;
   customer_note: string | null;
@@ -27,6 +27,19 @@ type DocumentPayload = {
   delivered_at: string | null;
 };
 
+type LicenseDocumentPayload = {
+  application_number: string;
+  applicant_name: string;
+  phone: string;
+  email: string;
+  license_code: string;
+  license_label: string;
+  amount: number;
+  medical_certificate_path: string;
+  medical_certificate_name: string;
+  paid_at: string | null;
+};
+
 function money(value: number | string) {
   return Number(value).toLocaleString("fr-FR", {
     style: "currency",
@@ -35,15 +48,17 @@ function money(value: number | string) {
   });
 }
 
-function payload(value: unknown): DocumentPayload {
+function orderPayload(value: unknown): OrderDocumentPayload {
   const source =
     value && typeof value === "object"
       ? (value as Record<string, unknown>)
       : {};
 
   const rawItems = Array.isArray(source.items) ? source.items : [];
+
   const items = rawItems.flatMap((item) => {
     if (!item || typeof item !== "object") return [];
+
     const row = item as Record<string, unknown>;
     if (typeof row.name !== "string") return [];
 
@@ -96,6 +111,53 @@ function payload(value: unknown): DocumentPayload {
   };
 }
 
+function licensePayload(value: unknown): LicenseDocumentPayload {
+  const source =
+    value && typeof value === "object"
+      ? (value as Record<string, unknown>)
+      : {};
+
+  return {
+    application_number:
+      typeof source.application_number === "string"
+        ? source.application_number
+        : "Demande de licence",
+    applicant_name:
+      typeof source.applicant_name === "string"
+        ? source.applicant_name
+        : "Pilote",
+    phone:
+      typeof source.phone === "string"
+        ? source.phone
+        : "Non communiqué",
+    email:
+      typeof source.email === "string"
+        ? source.email
+        : "Non communiqué",
+    license_code:
+      typeof source.license_code === "string"
+        ? source.license_code
+        : "",
+    license_label:
+      typeof source.license_label === "string"
+        ? source.license_label
+        : "Licence pilote",
+    amount: Math.max(0, Number(source.amount) || 0),
+    medical_certificate_path:
+      typeof source.medical_certificate_path === "string"
+        ? source.medical_certificate_path
+        : "",
+    medical_certificate_name:
+      typeof source.medical_certificate_name === "string"
+        ? source.medical_certificate_name
+        : "Certificat médical",
+    paid_at:
+      typeof source.paid_at === "string"
+        ? source.paid_at
+        : null,
+  };
+}
+
 export default async function ProfileDocumentDetailPage({
   params,
 }: {
@@ -103,13 +165,15 @@ export default async function ProfileDocumentDetailPage({
 }) {
   const route = await params;
   const id = Number.parseInt(route.id, 10);
+
   if (!Number.isFinite(id) || id <= 0) notFound();
 
   const supabase = await createClient();
   const { data: authData } = await supabase.auth.getUser();
+
   if (!authData.user) redirect("/");
 
-  const { data: document, error } = await supabase
+  const { data: document, error } = await (supabase as any)
     .from("invoices")
     .select(
       "id,invoice_number,status,amount,issued_at,order_id,document_type,document_title,document_payload",
@@ -120,8 +184,158 @@ export default async function ProfileDocumentDetailPage({
 
   if (error || !document) notFound();
 
-  const details = payload(document.document_payload);
+  const isLicense =
+    document.document_type === "license_application";
+
+  if (isLicense) {
+    const details = licensePayload(document.document_payload);
+
+    let certificateUrl: string | null = null;
+
+    if (details.medical_certificate_path) {
+      const signed = await supabase.storage
+        .from("license-medical-certificates")
+        .createSignedUrl(
+          details.medical_certificate_path,
+          15 * 60,
+        );
+
+      certificateUrl = signed.data?.signedUrl ?? null;
+    }
+
+    return (
+      <main className={styles.page}>
+        <div className={styles.toolbar}>
+          <Link
+            className="btn btn-secondary"
+            href="/profil/documents"
+          >
+            ← Mes documents
+          </Link>
+
+          <PrintDocumentButton />
+        </div>
+
+        <article className={styles.document}>
+          <header className={styles.header}>
+            <div>
+              <span className={styles.brand}>NOSTRA CIRCUIT</span>
+              <p>Administration sportive</p>
+            </div>
+
+            <div className={styles.reference}>
+              <span>DEMANDE DE LICENCE</span>
+              <strong>{document.invoice_number}</strong>
+            </div>
+          </header>
+
+          <section className={styles.informationGrid}>
+            <div>
+              <span>PILOTE</span>
+              <strong>{details.applicant_name}</strong>
+            </div>
+
+            <div>
+              <span>LICENCE</span>
+              <strong>{details.license_label}</strong>
+            </div>
+
+            <div>
+              <span>DATE DU PAIEMENT</span>
+              <strong>
+                {new Date(
+                  details.paid_at ?? document.issued_at,
+                ).toLocaleDateString("fr-FR", {
+                  dateStyle: "long",
+                })}
+              </strong>
+            </div>
+
+            <div>
+              <span>STATUT</span>
+              <strong>Payée · à examiner</strong>
+            </div>
+          </section>
+
+          <section className={styles.items}>
+            <table>
+              <thead>
+                <tr>
+                  <th>Désignation</th>
+                  <th>Qté</th>
+                  <th>Prix unitaire</th>
+                  <th>Total</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                <tr>
+                  <td>
+                    <strong>{details.license_label}</strong>
+                    {details.license_code && (
+                      <small>Catégorie : {details.license_code}</small>
+                    )}
+                  </td>
+                  <td>1</td>
+                  <td>{money(document.amount)}</td>
+                  <td>{money(document.amount)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+
+          <section className={styles.total}>
+            <span>TOTAL PAYÉ</span>
+            <strong>{money(document.amount)}</strong>
+          </section>
+
+          <section className={styles.notes}>
+            <div>
+              <span>COORDONNÉES DU PILOTE</span>
+              <p>
+                Téléphone : {details.phone}
+                {"\n"}
+                E-mail : {details.email}
+              </p>
+            </div>
+
+            <div>
+              <span>CERTIFICAT MÉDICAL</span>
+              <p>{details.medical_certificate_name}</p>
+
+              {certificateUrl ? (
+                <p>
+                  <a
+                    href={certificateUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Ouvrir le certificat médical ↗
+                  </a>
+                </p>
+              ) : (
+                <p>Le fichier n’est pas disponible actuellement.</p>
+              )}
+            </div>
+          </section>
+
+          <footer className={styles.footer}>
+            <p>
+              Ce document confirme le paiement et le dépôt de la
+              demande. La licence reste soumise à l’examen du dossier
+              médical par le Nostra Circuit.
+            </p>
+
+            <strong>Nostra Circuit · Bell-Île-en-Mer · 2026</strong>
+          </footer>
+        </article>
+      </main>
+    );
+  }
+
+  const details = orderPayload(document.document_payload);
   const isOrderForm = document.document_type === "order_form";
+
   const deliveryAddresses = [
     ...new Set(
       details.items
@@ -133,9 +347,13 @@ export default async function ProfileDocumentDetailPage({
   return (
     <main className={styles.page}>
       <div className={styles.toolbar}>
-        <Link className="btn btn-secondary" href="/profil/documents">
+        <Link
+          className="btn btn-secondary"
+          href="/profil/documents"
+        >
           ← Mes documents
         </Link>
+
         <PrintDocumentButton />
       </div>
 
@@ -145,6 +363,7 @@ export default async function ProfileDocumentDetailPage({
             <span className={styles.brand}>NOSTRA MOTORS</span>
             <p>L’exclusivité prend la route.</p>
           </div>
+
           <div className={styles.reference}>
             <span>
               {isOrderForm ? "BON DE COMMANDE" : "FACTURE"}
@@ -158,23 +377,29 @@ export default async function ProfileDocumentDetailPage({
             <span>CLIENT</span>
             <strong>{details.customer_name}</strong>
           </div>
+
           <div>
             <span>COMMANDE</span>
             <strong>{details.order_number}</strong>
           </div>
+
           <div>
             <span>DATE DU DOCUMENT</span>
             <strong>
-              {new Date(document.issued_at).toLocaleDateString(
-                "fr-FR",
-                { dateStyle: "long" },
-              )}
+              {new Date(
+                document.issued_at,
+              ).toLocaleDateString("fr-FR", {
+                dateStyle: "long",
+              })}
             </strong>
           </div>
+
           <div>
             <span>STATUT</span>
             <strong>
-              {isOrderForm ? "Commande confirmée" : "Véhicule livré"}
+              {isOrderForm
+                ? "Commande confirmée"
+                : "Véhicule livré"}
             </strong>
           </div>
         </section>
@@ -198,6 +423,7 @@ export default async function ProfileDocumentDetailPage({
                 <th>Total</th>
               </tr>
             </thead>
+
             <tbody>
               {details.items.map((item, index) => (
                 <tr key={`${item.name}-${index}`}>
@@ -233,6 +459,7 @@ export default async function ProfileDocumentDetailPage({
                 <p>{details.customer_note}</p>
               </div>
             )}
+
             {details.admin_note && (
               <div>
                 <span>MESSAGE DE NOSTRA MOTORS</span>
@@ -248,6 +475,7 @@ export default async function ProfileDocumentDetailPage({
               ? "Ce bon de commande confirme la prise en charge de la commande par Nostra Motors."
               : "Cette facture est générée automatiquement à la livraison du véhicule."}
           </p>
+
           <strong>Nostra Motors · Bell-Île-en-Mer · 2026</strong>
         </footer>
       </article>

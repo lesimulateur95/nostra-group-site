@@ -1,0 +1,137 @@
+.page {
+  display: grid;
+  gap: 22px;
+  padding-bottom: 50px;
+}
+
+.hero {
+  padding: clamp(25px, 5vw, 45px);
+  border: 1px solid rgba(212, 175, 55, 0.34);
+  border-radius: 26px;
+  background:
+    radial-gradient(circle at top right, rgba(212, 175, 55, 0.14), transparent 38%),
+    rgba(17, 17, 14, 0.98);
+}
+
+.eyebrow {
+  color: #edca48;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.17em;
+}
+
+.hero h1 {
+  margin: 8px 0 12px;
+  font-size: clamp(2.6rem, 6vw, 5.3rem);
+  font-weight: 500;
+  line-height: 0.98;
+}
+
+.hero p {
+  max-width: 850px;
+  margin: 0;
+  color: #c1c5cb;
+  line-height: 1.65;
+}
+
+.prices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.prices article {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 13px;
+  align-items: center;
+  padding: 19px;
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  border-radius: 17px;
+  background: rgba(10, 11, 10, 0.96);
+}
+
+.prices span {
+  display: grid;
+  min-width: 54px;
+  height: 42px;
+  place-items: center;
+  border-radius: 11px;
+  background: rgba(212, 175, 55, 0.11);
+  color: #eccb53;
+  font-weight: 900;
+}
+
+.prices b {
+  color: #efcf60;
+  white-space: nowrap;
+}
+
+.error,
+.cartNotice {
+  padding: 16px 18px;
+  border-radius: 15px;
+}
+
+.error {
+  border: 1px solid rgba(255, 93, 93, 0.42);
+  background: rgba(128, 25, 25, 0.18);
+  color: #ffc0c0;
+}
+
+.cartNotice {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: center;
+  border: 1px solid rgba(212, 175, 55, 0.36);
+  background: rgba(212, 175, 55, 0.07);
+}
+
+.cartNotice p {
+  margin: 5px 0 0;
+  color: #c5c8ce;
+}
+
+.steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.steps > div {
+  padding: 20px;
+  border: 1px solid rgba(212, 175, 55, 0.22);
+  border-radius: 17px;
+  background: rgba(10, 11, 10, 0.94);
+}
+
+.steps span {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  margin-bottom: 13px;
+  place-items: center;
+  border: 1px solid rgba(212, 175, 55, 0.42);
+  border-radius: 50%;
+  color: #edca48;
+  font-weight: 900;
+}
+
+.steps p {
+  margin-bottom: 0;
+  color: #afb4bc;
+  line-height: 1.55;
+}
+
+@media (max-width: 800px) {
+  .prices,
+  .steps {
+    grid-template-columns: 1fr;
+  }
+
+  .cartNotice {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

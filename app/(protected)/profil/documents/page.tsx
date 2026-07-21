@@ -1,11 +1,16 @@
-
 import Link from "next/link";
 import { redirect } from "next/navigation";
+
 import { ProfileSectionHeader } from "@/components/profile/profile-section-header";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+
+type DocumentType =
+  | "order_form"
+  | "invoice"
+  | "license_application";
 
 type DocumentRow = {
   id: number;
@@ -15,7 +20,7 @@ type DocumentRow = {
   issued_at: string;
   download_url: string | null;
   order_id: number | null;
-  document_type: "order_form" | "invoice";
+  document_type: DocumentType;
   document_title: string | null;
 };
 
@@ -27,15 +32,27 @@ function money(value: number | string) {
   });
 }
 
-function documentLabel(type: DocumentRow["document_type"]) {
-  return type === "order_form" ? "Bon de commande" : "Facture";
+function documentLabel(type: DocumentType) {
+  if (type === "order_form") return "Bon de commande";
+  if (type === "license_application") {
+    return "Demande de licence";
+  }
+  return "Facture";
 }
 
-function statusLabel(status: string, type: DocumentRow["document_type"]) {
+function statusLabel(status: string, type: DocumentType) {
+  if (type === "license_application") {
+    if (status === "paid") return "Payée · à examiner";
+    if (status === "approved") return "Validée";
+    if (status === "rejected") return "Refusée";
+  }
+
   if (status === "available") return "Disponible";
+
   if (status === "issued") {
     return type === "order_form" ? "Confirmé" : "Émise";
   }
+
   if (status === "paid") return "Payée";
   return status;
 }
@@ -43,9 +60,10 @@ function statusLabel(status: string, type: DocumentRow["document_type"]) {
 export default async function ProfileDocumentsPage() {
   const supabase = await createClient();
   const { data: authData } = await supabase.auth.getUser();
+
   if (!authData.user) redirect("/");
 
-  const modern = await supabase
+  const modern = await (supabase as any)
     .from("invoices")
     .select(
       "id,invoice_number,status,amount,issued_at,download_url,order_id,document_type,document_title",
@@ -79,7 +97,7 @@ export default async function ProfileDocumentsPage() {
       <ProfileSectionHeader
         eyebrow="ESPACE DOCUMENTAIRE"
         title="Documents & factures"
-        description="Le bon de commande apparaît automatiquement quand Nostra Motors confirme la commande. La facture apparaît dès que le véhicule est livré."
+        description="Retrouve les bons de commande, les factures et les demandes de licence pilote payées depuis le site."
       />
 
       <section className="profile-data-section profile-standalone-section">
@@ -88,6 +106,7 @@ export default async function ProfileDocumentsPage() {
             <p className="eyebrow">DOCUMENTS AUTOMATIQUES</p>
             <h2>Mes documents</h2>
           </div>
+
           <span>{documents.length}</span>
         </div>
 
@@ -103,13 +122,12 @@ export default async function ProfileDocumentsPage() {
                 <th>Document</th>
               </tr>
             </thead>
+
             <tbody>
               {documents.length === 0 && (
                 <tr>
                   <td colSpan={6} className="empty-table-cell">
-                    Aucun document disponible. Le premier bon de
-                    commande sera créé lors de la confirmation d’une
-                    commande.
+                    Aucun document disponible.
                   </td>
                 </tr>
               )}
@@ -120,29 +138,36 @@ export default async function ProfileDocumentsPage() {
                     <strong>
                       {documentLabel(document.document_type)}
                     </strong>
+
                     {document.document_title && (
                       <small className="order-client-note">
                         {document.document_title}
                       </small>
                     )}
                   </td>
+
                   <td>{document.invoice_number}</td>
+
                   <td>
-                    {new Date(document.issued_at).toLocaleDateString(
-                      "fr-FR",
-                    )}
+                    {new Date(
+                      document.issued_at,
+                    ).toLocaleDateString("fr-FR")}
                   </td>
+
                   <td>
                     {statusLabel(
                       document.status,
                       document.document_type,
                     )}
                   </td>
+
                   <td>{money(document.amount)}</td>
+
                   <td>
                     <Link href={`/profil/documents/${document.id}`}>
                       Ouvrir →
                     </Link>
+
                     {document.download_url?.startsWith("http") && (
                       <>
                         {" · "}

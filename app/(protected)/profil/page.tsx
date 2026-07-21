@@ -6,6 +6,7 @@ import { placeCartOrder, removeCartItem } from "@/app/actions/orders";
 
 import { checkoutTombolaCart, removeTombolaCart } from "@/app/actions/tombola";
 import { checkoutBingoCart, removeBingoCart } from "@/app/actions/bingo";
+import { checkoutPilotLicenseCart, removePilotLicenseCart } from "@/app/actions/licenses";
 
 import { ProfileNavigation } from "@/components/profile/profile-navigation";
 import { IdentityCard } from "@/components/profile/identity-card";
@@ -28,6 +29,7 @@ import {
 
 } from "@/lib/auth/user-profile";
 import { getOwnBingoCards, getOwnBingoCart, getOwnHomologationRequests, getOwnTeamRegistrationRequests, getOwnTombolaCart, getOwnTombolaTickets, getOwnWheelSpins, getProfileCommerceData } from "@/lib/backoffice/data";
+import { getOwnPilotLicenseCart } from "@/lib/licenses/data";
 
 import { getUnreadNotificationCount } from "@/lib/notifications/data";
 
@@ -40,7 +42,7 @@ import styles from "./profile-top-layout.module.css";
 
 type ProfilePageProps = {
 
- searchParams: Promise<{ error?: string; profile_saved?: string; vehicle_added?: string; order_sent?: string; order_error?: string; cart_removed?: string; cart_error?: string; tombola_added?: string; tombola_removed?: string; tombola_cart_error?: string; tombola_order_error?: string; bingo_added?: string; bingo_removed?: string; bingo_cart_error?: string; bingo_order_error?: string }>;
+ searchParams: Promise<{ error?: string; profile_saved?: string; vehicle_added?: string; order_sent?: string; order_error?: string; cart_removed?: string; cart_error?: string; tombola_added?: string; tombola_removed?: string; tombola_cart_error?: string; tombola_order_error?: string; bingo_added?: string; bingo_removed?: string; bingo_cart_error?: string; bingo_order_error?: string; license_added?: string; license_removed?: string; license_paid?: string; license_order_error?: string }>;
 
 };
 
@@ -66,7 +68,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
  const rpName = getRpName(data.user);
 
  const complete = hasRpProfile(data.user);
- const [role, commerce, homologations, teamRegistrations, wheelSpins, tombolaCart, tombolaTickets, bingoCart, bingoCards, unreadNotifications, mailboxOverview] = await Promise.all([
+ const [role, commerce, homologations, teamRegistrations, wheelSpins, tombolaCart, tombolaTickets, bingoCart, bingoCards, licenseCart, unreadNotifications, mailboxOverview] = await Promise.all([
 
  getUserRoleLabel(data.user),
 
@@ -85,6 +87,8 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
  getOwnBingoCart(data.user.id),
  getOwnBingoCards(data.user.id),
 
+ getOwnPilotLicenseCart(data.user.id),
+
  getUnreadNotificationCount(data.user.id),
 
  getMyMailboxOverview(),
@@ -96,6 +100,8 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
  const tombolaCartTotal = tombolaCart ? Number(tombolaCart.unit_price) * Number(tombolaCart.quantity) : 0;
 
  const bingoCartTotal = bingoCart ? Number(bingoCart.unit_price) * Number(bingoCart.quantity) : 0;
+
+ const licenseCartTotal = licenseCart ? Number(licenseCart.unit_price) : 0;
 
  const orderErrorMessage =
  params.order_error === "empty" ? "Ton panier est vide."
@@ -214,6 +220,14 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
  {params.bingo_cart_error && <div className="dashboard-feedback dashboard-feedback-error">Impossible de modifier le panier du Bingo.</div>}
 
  {params.bingo_order_error && <div className="dashboard-feedback dashboard-feedback-error">La commande de grilles n’a pas pu être validée. Vérifie que les ventes sont encore ouvertes.</div>}
+ {params.license_added && <div className="dashboard-feedback dashboard-feedback-success">La demande de licence et le certificat médical ont été ajoutés à ton panier.</div>}
+
+ {params.license_removed && <div className="dashboard-feedback dashboard-feedback-success">La demande de licence a été retirée de ton panier.</div>}
+
+ {params.license_paid && <div className="dashboard-feedback dashboard-feedback-success">Paiement enregistré. La demande <strong>{params.license_paid}</strong> est disponible dans Profil → Documents & factures.</div>}
+
+ {params.license_order_error && <div className="dashboard-feedback dashboard-feedback-error">La demande de licence n’a pas pu être payée. Vérifie que le dossier est toujours présent dans ton panier.</div>}
+
  {orderErrorMessage && <div className="dashboard-feedback dashboard-feedback-error">{orderErrorMessage}</div>}
 
  <section className="profile-commerce-grid">
@@ -235,10 +249,10 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
 
  <article className="profile-commerce-card">
 
- <div className="profile-commerce-head"><span></span><div><p>MON PANIER</p><h2>{commerce.cart.length + (tombolaCart ? 1 : 0) + (bingoCart ? 1 : 0)} article(s)</h2></div></div>
+ <div className="profile-commerce-head"><span></span><div><p>MON PANIER</p><h2>{commerce.cart.length + (tombolaCart ? 1 : 0) + (bingoCart ? 1 : 0) + (licenseCart ? 1 : 0)} article(s)</h2></div></div>
 
  <div className="profile-mini-list">
- {commerce.cart.length === 0 && !tombolaCart && !bingoCart && <p className="empty-state">Ton panier est vide.</p>}
+ {commerce.cart.length === 0 && !tombolaCart && !bingoCart && !licenseCart && <p className="empty-state">Ton panier est vide.</p>}
 
  {commerce.cart.map((item) => (
 
@@ -279,10 +293,24 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
  </div>
 
  )}
+ {licenseCart && (
+
+ <div className="profile-cart-row profile-cart-row-license">
+
+ <span>1 × {licenseCart.license_label}</span>
+
+ <strong>{money(licenseCartTotal)}</strong>
+
+ <form action={removePilotLicenseCart}><button type="submit">Supprimer</button></form>
 
  </div>
 
- <footer><span>Total du panier</span><strong>{money(cartTotal + tombolaCartTotal + bingoCartTotal)}</strong></footer>
+ )}
+
+
+ </div>
+
+ <footer><span>Total du panier</span><strong>{money(cartTotal + tombolaCartTotal + bingoCartTotal + licenseCartTotal)}</strong></footer>
 
  {commerce.cart.length > 0 && (
 
@@ -318,6 +346,18 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
  </form>
 
  )}
+ {licenseCart && (
+
+ <form action={checkoutPilotLicenseCart} className="profile-order-form profile-license-checkout">
+
+ <p className="commerce-hint">Le paiement enregistre immédiatement ta demande de {licenseCart.license_label}. Le dossier sera ajouté à Profil → Documents & factures et la transaction apparaîtra dans la comptabilité.</p>
+
+ <button className="btn" type="submit">Payer ma licence pilote</button>
+
+ </form>
+
+ )}
+
 
  </article>
 
