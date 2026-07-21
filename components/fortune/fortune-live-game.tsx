@@ -10,7 +10,7 @@ import { FortuneWheel } from "@/components/fortune/fortune-wheel";
 import type {
   FortuneCitizen,
   FortuneManagerRound,
-  FortunePublicState,
+  FortuneState,
 } from "@/lib/fortune/data";
 import styles from "@/components/fortune/fortune.module.css";
 
@@ -47,7 +47,7 @@ export function FortuneLiveGame({
   successMessage,
   errorMessage,
 }: {
-  state: FortunePublicState;
+  state: FortuneState;
   isManager: boolean;
   citizens: FortuneCitizen[];
   managerRounds: FortuneManagerRound[];
