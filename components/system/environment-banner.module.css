@@ -1,0 +1,77 @@
+.banner {
+  position: sticky;
+  top: 0;
+  z-index: 10000;
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: center;
+  min-height: 58px;
+  padding: 10px clamp(15px, 4vw, 34px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.36);
+}
+
+.preview {
+  background:
+    repeating-linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.045) 0 12px,
+      transparent 12px 24px
+    ),
+    #6f4d00;
+  color: #fff6d3;
+}
+
+.danger {
+  background:
+    repeating-linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.045) 0 12px,
+      transparent 12px 24px
+    ),
+    #7a1111;
+  color: #ffe2e2;
+}
+
+.copy,
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px 15px;
+  align-items: center;
+}
+
+.copy strong {
+  font-size: 0.78rem;
+  font-weight: 950;
+  letter-spacing: 0.13em;
+}
+
+.copy span,
+.meta span {
+  font-size: 0.82rem;
+}
+
+.meta {
+  justify-content: flex-end;
+}
+
+.meta a {
+  color: inherit;
+  font-size: 0.82rem;
+  font-weight: 950;
+  text-decoration: none;
+}
+
+@media (max-width: 760px) {
+  .banner {
+    position: relative;
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .meta {
+    justify-content: flex-start;
+  }
+}

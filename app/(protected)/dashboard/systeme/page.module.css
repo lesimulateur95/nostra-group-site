@@ -1,0 +1,211 @@
+.page {
+  display: grid;
+  gap: 22px;
+  width: min(1420px, 100%);
+  margin: 0 auto;
+  padding-bottom: 64px;
+}
+
+.hero,
+.release,
+.section {
+  border: 1px solid rgba(212, 175, 55, 0.32);
+  border-radius: 24px;
+  background: #080909;
+}
+
+.hero {
+  padding: clamp(28px, 6vw, 58px);
+  background:
+    radial-gradient(
+      circle at 88% 22%,
+      rgba(212, 175, 55, 0.16),
+      transparent 32%
+    ),
+    #080909;
+}
+
+.hero > span,
+.section header > span,
+.release span {
+  color: #e9c747;
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0.15em;
+}
+
+.hero h1 {
+  margin: 10px 0 14px;
+  font-size: clamp(2.7rem, 6vw, 5.7rem);
+  font-weight: 560;
+  letter-spacing: -0.055em;
+  line-height: 0.94;
+}
+
+.hero p {
+  max-width: 780px;
+  margin: 0;
+  color: #bdc1c8;
+  line-height: 1.7;
+}
+
+.release {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  overflow: hidden;
+}
+
+.release > div {
+  display: grid;
+  gap: 7px;
+  padding: 19px;
+  border-right: 1px solid rgba(212, 175, 55, 0.16);
+}
+
+.release > div:last-child {
+  border-right: 0;
+}
+
+.release strong {
+  overflow-wrap: anywhere;
+  color: #f3f4f5;
+}
+
+.section {
+  display: grid;
+  gap: 20px;
+  padding: clamp(22px, 4vw, 34px);
+}
+
+.section h2 {
+  margin: 7px 0 0;
+  font-size: clamp(1.8rem, 4vw, 3rem);
+}
+
+.checks {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.check {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 12px;
+  padding: 15px;
+  border: 1px solid;
+  border-radius: 13px;
+}
+
+.check > span {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border-radius: 50%;
+  font-weight: 950;
+}
+
+.check p {
+  margin: 5px 0 0;
+  color: #bbc0c7;
+  line-height: 1.5;
+}
+
+.success {
+  border-color: rgba(70, 204, 129, 0.34);
+  background: rgba(32, 121, 72, 0.1);
+}
+
+.success > span {
+  background: rgba(70, 204, 129, 0.16);
+  color: #aeeac8;
+}
+
+.warning {
+  border-color: rgba(231, 193, 68, 0.35);
+  background: rgba(126, 91, 8, 0.11);
+}
+
+.warning > span {
+  background: rgba(231, 193, 68, 0.15);
+  color: #f1d06a;
+}
+
+.error {
+  border-color: rgba(255, 82, 82, 0.42);
+  background: rgba(126, 23, 23, 0.15);
+}
+
+.error > span {
+  background: rgba(255, 82, 82, 0.17);
+  color: #ffb5b5;
+}
+
+.steps {
+  display: grid;
+  gap: 11px;
+  margin: 0;
+  padding-left: 24px;
+  color: #d7d9dd;
+  line-height: 1.6;
+}
+
+.steps code {
+  color: #efcd5f;
+}
+
+.rollback {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 13px;
+}
+
+.rollback > div {
+  padding: 18px;
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.rollback p {
+  margin: 8px 0 0;
+  color: #b9bec5;
+  line-height: 1.55;
+}
+
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.links a {
+  display: inline-flex;
+  min-height: 47px;
+  align-items: center;
+  padding: 0 15px;
+  border: 1px solid rgba(228, 192, 68, 0.4);
+  border-radius: 11px;
+  background: rgba(212, 175, 55, 0.07);
+  color: #efcd5f;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+@media (max-width: 900px) {
+  .release,
+  .checks,
+  .rollback {
+    grid-template-columns: 1fr;
+  }
+
+  .release > div {
+    border-right: 0;
+    border-bottom: 1px solid rgba(212, 175, 55, 0.16);
+  }
+
+  .release > div:last-child {
+    border-bottom: 0;
+  }
+}
