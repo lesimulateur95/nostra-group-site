@@ -10,7 +10,8 @@ export const revalidate = 0;
 type DocumentType =
   | "order_form"
   | "invoice"
-  | "license_application";
+  | "license_application"
+  | "pilot_license_card";
 
 type DocumentRow = {
   id: number;
@@ -38,6 +39,9 @@ function documentLabel(type: DocumentType) {
   if (type === "license_application") {
     return "Demande de licence";
   }
+  if (type === "pilot_license_card") {
+    return "Licence pilote";
+  }
   return "Facture";
 }
 
@@ -46,6 +50,12 @@ function statusLabel(
   type: DocumentType,
   licenseStatus: string | null,
 ) {
+  if (type === "pilot_license_card") {
+    return licenseStatus === "approved"
+      ? "Licence active"
+      : "Disponible";
+  }
+
   if (type === "license_application") {
     if (licenseStatus === "approved") return "Validée";
     if (licenseStatus === "rejected") return "Refusée";
@@ -106,7 +116,7 @@ export default async function ProfileDocumentsPage() {
       <ProfileSectionHeader
         eyebrow="ESPACE DOCUMENTAIRE"
         title="Documents & factures"
-        description="Retrouve les bons de commande, les factures et les demandes de licence pilote payées depuis le site."
+        description="Retrouve les bons de commande, les factures, les demandes de licence pilote payées depuis le site et ta licence officielle si elle a été validée."
       />
 
       <section className="profile-data-section profile-standalone-section">
@@ -171,7 +181,11 @@ export default async function ProfileDocumentsPage() {
                     )}
                   </td>
 
-                  <td>{money(document.amount)}</td>
+                  <td>
+                    {document.document_type === "pilot_license_card"
+                      ? "—"
+                      : money(document.amount)}
+                  </td>
 
                   <td>
                     <Link href={`/profil/documents/${document.id}`}>

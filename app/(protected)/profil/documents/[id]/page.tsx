@@ -3,6 +3,10 @@ import { notFound, redirect } from "next/navigation";
 
 import { replacePilotLicenseCertificate } from "@/app/actions/licenses";
 import { PrintDocumentButton } from "@/components/documents/print-document-button";
+import {
+  OfficialPilotLicenseCard,
+  type OfficialPilotLicensePayload,
+} from "@/components/licenses/official-pilot-license-card";
 import { createClient } from "@/lib/supabase/server";
 import styles from "./page.module.css";
 
@@ -42,6 +46,7 @@ type LicenseDocumentPayload = {
   paid_at: string | null;
   license_status: string;
   review_note: string | null;
+  official_license_document_id: number | null;
 };
 
 function money(value: number | string) {
@@ -168,6 +173,71 @@ function licensePayload(value: unknown): LicenseDocumentPayload {
       typeof source.review_note === "string"
         ? source.review_note
         : null,
+    official_license_document_id:
+      source.official_license_document_id == null
+        ? null
+        : Number(source.official_license_document_id),
+  };
+}
+
+function officialLicensePayload(
+  value: unknown,
+): OfficialPilotLicensePayload {
+  const source =
+    value && typeof value === "object"
+      ? (value as Record<string, unknown>)
+      : {};
+
+  return {
+    application_id: Math.max(0, Number(source.application_id) || 0),
+    application_number:
+      typeof source.application_number === "string"
+        ? source.application_number
+        : "Demande de licence",
+    license_number:
+      typeof source.license_number === "string"
+        ? source.license_number
+        : "LICENCE NOSTRA",
+    applicant_name:
+      typeof source.applicant_name === "string"
+        ? source.applicant_name
+        : "Pilote",
+    phone:
+      typeof source.phone === "string"
+        ? source.phone
+        : "Non communiqué",
+    email:
+      typeof source.email === "string"
+        ? source.email
+        : "Non communiqué",
+    license_code:
+      typeof source.license_code === "string"
+        ? source.license_code
+        : "",
+    license_label:
+      typeof source.license_label === "string"
+        ? source.license_label
+        : "Licence pilote",
+    status:
+      typeof source.status === "string"
+        ? source.status
+        : "approved",
+    issued_at:
+      typeof source.issued_at === "string"
+        ? source.issued_at
+        : null,
+    approved_at:
+      typeof source.approved_at === "string"
+        ? source.approved_at
+        : null,
+    season_year: Math.max(
+      2026,
+      Number(source.season_year) || 2026,
+    ),
+    review_note:
+      typeof source.review_note === "string"
+        ? source.review_note
+        : null,
   };
 }
 
@@ -205,8 +275,31 @@ export default async function ProfileDocumentDetailPage({
 
   if (error || !document) notFound();
 
+  const isOfficialLicense =
+    document.document_type === "pilot_license_card";
   const isLicense =
     document.document_type === "license_application";
+
+  if (isOfficialLicense) {
+    const details = officialLicensePayload(document.document_payload);
+
+    return (
+      <main className={styles.page}>
+        <div className={styles.toolbar}>
+          <Link
+            className="btn btn-secondary"
+            href="/profil/documents"
+          >
+            ← Mes documents
+          </Link>
+
+          <PrintDocumentButton />
+        </div>
+
+        <OfficialPilotLicenseCard data={details} />
+      </main>
+    );
+  }
 
   if (isLicense) {
     const details = licensePayload(document.document_payload);
@@ -321,6 +414,19 @@ export default async function ProfileDocumentDetailPage({
               <p>{details.review_note}</p>
             </section>
           )}
+
+          {details.official_license_document_id &&
+            licenseStatus === "approved" && (
+              <section className={styles.licenseSuccess}>
+                La licence officielle a été générée.
+                {' '}
+                <Link
+                  href={`/profil/documents/${details.official_license_document_id}`}
+                >
+                  Ouvrir ma licence pilote →
+                </Link>
+              </section>
+            )}
 
           <section className={styles.items}>
             <table>

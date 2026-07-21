@@ -5,8 +5,18 @@ import { hasCommissionerAccess } from "@/lib/auth/access";
 import { createClient } from "@/lib/supabase/server";
 
 const commissionerNavigation = [
-  { href: "/commissaires", label: "Gestion de course" },
-  { href: "/commissaires/reglement", label: "Règlement des commissaires" },
+  {
+    href: "/commissaires",
+    label: "Gestion de course",
+  },
+  {
+    href: "/dashboard/commissaires/chronometrage",
+    label: "Chronométrage et tours",
+  },
+  {
+    href: "/commissaires/reglement",
+    label: "Règlement des commissaires",
+  },
   {
     href: "/commissaires/briefing-avant-course",
     label: "Planning visible par les citoyens",
@@ -25,12 +35,19 @@ export default async function CommissionersLayout({
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
 
-  if (!data.user || !(await hasCommissionerAccess(data.user))) {
+  if (
+    !data.user ||
+    !(await hasCommissionerAccess(data.user))
+  ) {
     redirect("/accueil");
   }
 
   return (
-    <SectionLayout title="COMMISSAIRES" items={commissionerNavigation}>
+    <SectionLayout
+      title="Espace Commissaire"
+      subtitle="Accès réservé"
+      items={commissionerNavigation}
+    >
       {children}
     </SectionLayout>
   );

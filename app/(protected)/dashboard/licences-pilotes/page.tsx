@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { deletePilotLicenseApplication, reviewPilotLicenseApplication } from "@/app/actions/licenses";
+import {
+  deletePilotLicenseApplication,
+  reviewPilotLicenseApplication,
+} from "@/app/actions/licenses";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { getUserRoleKeys } from "@/lib/auth/access";
 import {
@@ -73,23 +76,21 @@ export default async function PilotLicensesDashboardPage({
 
   const successMessage =
     params.success === "approved"
-      ? "La demande a été acceptée. Le citoyen a reçu la décision dans sa messagerie interne."
+      ? "La demande a été acceptée. Le citoyen a reçu sa licence officielle via la messagerie interne et dans ses documents."
       : params.success === "rejected"
         ? "La demande a été refusée. Le citoyen a reçu le motif dans sa messagerie interne."
         : params.success === "certificate"
           ? "La demande d’un nouveau certificat a été envoyée au citoyen."
           : params.success === "deleted"
-            ? "La demande de licence a été supprimée avec son document, son écriture comptable et son certificat médical."
+            ? "La demande de licence a bien été supprimée."
             : null;
 
   const errorMessage =
     params.error === "note"
       ? "Un motif est obligatoire pour refuser une demande ou réclamer un nouveau certificat."
-      : params.error === "delete"
-        ? "La demande de licence n’a pas pu être supprimée."
-        : params.error
-          ? "La décision n’a pas pu être enregistrée."
-          : null;
+      : params.error
+        ? "La décision n’a pas pu être enregistrée."
+        : null;
 
   return (
     <DashboardShell>
@@ -141,8 +142,7 @@ export default async function PilotLicensesDashboardPage({
                   </span>
                   <h2>{application.applicant_name}</h2>
                   <p>
-                    {application.license_label} ·{" "}
-                    {money(application.amount)}
+                    {application.license_label} · {money(application.amount)}
                   </p>
                 </div>
 
@@ -198,7 +198,7 @@ export default async function PilotLicensesDashboardPage({
 
               {application.certificate_replaced_at && (
                 <div className={styles.replaced}>
-                  Nouveau certificat déposé le{" "}
+                  Nouveau certificat déposé le{' '}
                   {dateTime(application.certificate_replaced_at)}.
                 </div>
               )}
@@ -264,13 +264,22 @@ export default async function PilotLicensesDashboardPage({
               )}
 
               <footer className={styles.cardFooter}>
-                {application.document_id && (
-                  <Link
-                    href={`/profil/documents/${application.document_id}`}
-                  >
-                    Référence du document : #{application.document_id}
-                  </Link>
-                )}
+                <div>
+                  Dossier créé le {dateTime(application.created_at)}
+                  {application.reviewed_at && (
+                    <> · Dernière décision {dateTime(application.reviewed_at)}</>
+                  )}
+                  {application.document_id && (
+                    <>
+                      {' '}·{' '}
+                      <Link
+                        href={`/profil/documents/${application.document_id}`}
+                      >
+                        Voir le document côté citoyen →
+                      </Link>
+                    </>
+                  )}
+                </div>
 
                 <form action={deletePilotLicenseApplication}>
                   <input

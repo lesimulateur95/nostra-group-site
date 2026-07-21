@@ -1,5 +1,5 @@
-
 import type { User } from "@supabase/supabase-js";
+
 import {
   getDiscordId,
   MANAGER_DISCORD_IDS,
@@ -27,22 +27,35 @@ const ROLE_PRIORITY: RoleKey[] = [
 const ROLE_ALIASES: Record<string, RoleKey> = {
   citizen: "citizen",
   citoyen: "citizen",
+  citoyens: "citizen",
   member: "citizen",
   membre: "citizen",
+  membres: "citizen",
 
   employee: "employee",
   employe: "employee",
+  employes: "employee",
   staff: "employee",
   administrator: "employee",
 
   commercial: "commercial",
+  commerciale: "commercial",
+  commerciaux: "commercial",
   vendeur: "commercial",
+  vendeurs: "commercial",
 
   commissioner: "commissioner",
+  commissioners: "commissioner",
   commissaire: "commissioner",
+  commissaires: "commissioner",
+  "commissaire de course": "commissioner",
+  "commissaires de course": "commissioner",
+  steward: "commissioner",
+  stewards: "commissioner",
 
   manager: "manager",
   gerant: "manager",
+  gerants: "manager",
   direction: "manager",
 };
 
@@ -55,14 +68,54 @@ function normalizedText(value: string): string {
 }
 
 export function isRoleKey(value: string): value is RoleKey {
-  return Object.prototype.hasOwnProperty.call(ROLE_LABELS, value);
+  return Object.prototype.hasOwnProperty.call(
+    ROLE_LABELS,
+    value,
+  );
 }
 
 export function normalizeRoleKey(value: unknown): RoleKey {
   if (typeof value !== "string") return "citizen";
 
   const normalized = normalizedText(value);
-  return ROLE_ALIASES[normalized] ?? "citizen";
+  const exact = ROLE_ALIASES[normalized];
+
+  if (exact) return exact;
+
+  // Les rôles Discord ou Supabase peuvent contenir un intitulé
+  // plus long : « Commissaire Nostra Circuit », par exemple.
+  if (
+    normalized.includes("commissaire") ||
+    normalized.includes("commissioner") ||
+    normalized.includes("steward")
+  ) {
+    return "commissioner";
+  }
+
+  if (
+    normalized.includes("gerant") ||
+    normalized.includes("manager") ||
+    normalized.includes("direction")
+  ) {
+    return "manager";
+  }
+
+  if (
+    normalized.includes("commercial") ||
+    normalized.includes("vendeur")
+  ) {
+    return "commercial";
+  }
+
+  if (
+    normalized.includes("employe") ||
+    normalized.includes("employee") ||
+    normalized.includes("staff")
+  ) {
+    return "employee";
+  }
+
+  return "citizen";
 }
 
 export function normalizeRoleKeys(
@@ -104,14 +157,12 @@ export async function getUserRoleKeys(
   user: User | null | undefined,
 ): Promise<RoleKey[]> {
   const discordId = getDiscordId(user);
+
   if (!user) return ["citizen"];
 
   try {
     const supabase = await createClient();
 
-    // La fonction SQL nostra_roles() est SECURITY DEFINER :
-    // elle peut lire les rôles du compte même lorsque les règles RLS
-    // empêchent une lecture directe de member_profiles.
     const rpcResult = await supabase.rpc("nostra_roles");
 
     let roles: RoleKey[] =
@@ -119,8 +170,6 @@ export async function getUserRoleKeys(
         ? normalizeRoleKeys(rpcResult.data)
         : ["citizen"];
 
-    // Compatibilité avec les installations plus anciennes où
-    // nostra_roles() n'existe pas encore.
     if (rpcResult.error) {
       const completeResult = await supabase
         .from("member_profiles")
@@ -162,7 +211,8 @@ export async function getUserRoleKeys(
 
     return roles;
   } catch {
-    return discordId && MANAGER_DISCORD_IDS.has(discordId)
+    return discordId &&
+      MANAGER_DISCORD_IDS.has(discordId)
       ? ["manager"]
       : ["citizen"];
   }
