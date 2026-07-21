@@ -1,11 +1,11 @@
-
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { DashboardShell } from "@/components/dashboard/dashboard-shell";
+
 import {
   deleteRaceControlEvent,
   resetRaceControlStandings,
 } from "@/app/actions/race-control";
+import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { RaceEventSetup } from "@/components/race-control/race-event-setup";
 import { getUserRoleKeys } from "@/lib/auth/access";
 import {
@@ -44,15 +44,26 @@ export default async function RaceControlSetupPage({
 }) {
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
+
   if (!data.user) redirect("/");
 
   const roles = await getUserRoleKeys(data.user);
+
   if (
     !roles.includes("manager") &&
     !roles.includes("commissioner")
   ) {
     redirect("/accueil");
   }
+
+  const isManager = roles.includes("manager");
+  const basePath = isManager
+    ? "/dashboard/commissaires/chronometrage"
+    : "/commissaires/chronometrage";
+  const backPath = isManager ? "/dashboard" : "/commissaires";
+  const backLabel = isManager
+    ? "Retour au Dashboard"
+    : "Retour à l’espace Commissaire";
 
   const params = await searchParams;
   const configured = await getRaceControlModuleConfigured();
@@ -61,19 +72,28 @@ export default async function RaceControlSetupPage({
     : { configured: false, events: [] };
 
   return (
-    <DashboardShell>
+    <DashboardShell
+      allowedRoles={["manager", "commissioner"]}
+    >
       <main className="dashboard-stack">
         <header className="dashboard-page-header">
           <div>
-            <span className="eyebrow">DIRECTION DE COURSE</span>
+            <span className="eyebrow">
+              DIRECTION DE COURSE
+            </span>
             <h1>Chronométrage et tours</h1>
+
             <p>
               Prépare la grille de départ, lance tous les
               chronomètres et enregistre chaque passage sur la ligne.
             </p>
           </div>
-          <Link className="btn btn-secondary" href="/dashboard">
-            ← Retour au Dashboard
+
+          <Link
+            className="btn btn-secondary"
+            href={backPath}
+          >
+            ← {backLabel}
           </Link>
         </header>
 
@@ -82,11 +102,16 @@ export default async function RaceControlSetupPage({
             <span className="module-status">
               Activation V37 nécessaire
             </span>
-            <h2>Activer le chronométrage en base de données</h2>
+
+            <h2>
+              Activer le chronométrage en base de données
+            </h2>
+
             <p>
-              Copie tout le SQL ci-dessous dans Supabase → SQL Editor
-              → New query, puis clique sur Run.
+              Copie tout le SQL ci-dessous dans Supabase → SQL
+              Editor → New query, puis clique sur Run.
             </p>
+
             <details>
               <summary>Afficher le SQL V37</summary>
               <pre>{RACE_CONTROL_SETUP_SQL}</pre>
@@ -99,6 +124,7 @@ export default async function RaceControlSetupPage({
             {params.reset === "all"
               ? "Tous les classements F1 et GT3 RS ont été réinitialisés."
               : `Le classement ${params.reset.toUpperCase()} a été réinitialisé.`}
+            {" "}
             Les courses et tous les chronos restent sauvegardés.
           </div>
         )}
@@ -123,13 +149,16 @@ export default async function RaceControlSetupPage({
           <>
             <RaceEventSetup />
 
-
             <section className={styles.resetPanel}>
               <div>
                 <span className={styles.sectionLabel}>
                   GESTION DES CLASSEMENTS
                 </span>
-                <h2>Réinitialiser les classements publiés</h2>
+
+                <h2>
+                  Réinitialiser les classements publiés
+                </h2>
+
                 <p>
                   La réinitialisation retire les courses concernées
                   des résultats publics et remet les points à zéro.
@@ -145,7 +174,9 @@ export default async function RaceControlSetupPage({
                 <label>
                   Classement à réinitialiser
                   <select name="scope" defaultValue="f1">
-                    <option value="f1">Championnat F1</option>
+                    <option value="f1">
+                      Championnat F1
+                    </option>
                     <option value="gt3rs">
                       Championnat GT3 RS
                     </option>
@@ -179,7 +210,7 @@ export default async function RaceControlSetupPage({
 
             <section className="backoffice-panel">
               <div className="panel-heading">
-                <span className="panel-icon">🏁</span>
+                <span className="panel-icon" />
                 <div>
                   <h2>Courses enregistrées</h2>
                   <p>
@@ -209,24 +240,34 @@ export default async function RaceControlSetupPage({
                   >
                     <Link
                       className={`dashboard-card ${styles.savedRaceLink}`}
-                      href={`/dashboard/commissaires/chronometrage/${event.id}`}
+                      href={`${basePath}/${event.id}`}
                     >
-                      <span className="dashboard-card-icon">⏱️</span>
+                      <span className="dashboard-card-icon">
+                        ⏱️
+                      </span>
+
                       <span className="dashboard-card-content">
                         <strong>{event.title}</strong>
                         <small>
-                          {competitionLabels[event.competition_type]} ·{" "}
-                          {event.target_laps} tour(s) ·{" "}
+                          {competitionLabels[
+                            event.competition_type
+                          ]}{" "}
+                          · {event.target_laps} tour(s) ·{" "}
                           {event.participant_count} pilote(s)
                         </small>
+
                         <small>
-                          {statusLabels[event.status] ?? event.status}
+                          {statusLabels[event.status] ??
+                            event.status}
                           {event.active_count > 0
                             ? ` · ${event.active_count} encore en piste`
                             : ""}
                         </small>
                       </span>
-                      <span className="dashboard-card-arrow">→</span>
+
+                      <span className="dashboard-card-arrow">
+                        →
+                      </span>
                     </Link>
 
                     <form action={deleteRaceControlEvent}>
@@ -235,6 +276,7 @@ export default async function RaceControlSetupPage({
                         name="event_id"
                         value={event.id}
                       />
+
                       <button
                         className={styles.deleteRaceButton}
                         type="submit"

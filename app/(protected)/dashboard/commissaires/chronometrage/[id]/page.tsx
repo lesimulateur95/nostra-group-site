@@ -1,6 +1,6 @@
-
 import Link from "next/link";
 import { redirect } from "next/navigation";
+
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { RaceTimingConsole } from "@/components/race-control/race-timing-console";
 import { getUserRoleKeys } from "@/lib/auth/access";
@@ -24,9 +24,11 @@ export default async function RaceControlLivePage({
 }) {
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
+
   if (!data.user) redirect("/");
 
   const roles = await getUserRoleKeys(data.user);
+
   if (
     !roles.includes("manager") &&
     !roles.includes("commissioner")
@@ -34,23 +36,30 @@ export default async function RaceControlLivePage({
     redirect("/accueil");
   }
 
+  const isManager = roles.includes("manager");
+  const basePath = isManager
+    ? "/dashboard/commissaires/chronometrage"
+    : "/commissaires/chronometrage";
+
   const route = await params;
   const query = await searchParams;
   const eventId = Number.parseInt(route.id, 10);
 
   if (!Number.isFinite(eventId) || eventId <= 0) {
-    redirect("/dashboard/commissaires/chronometrage");
+    redirect(basePath);
   }
 
   const state = await getRaceControlEventState(eventId);
 
   return (
-    <DashboardShell>
+    <DashboardShell
+      allowedRoles={["manager", "commissioner"]}
+    >
       <main className="dashboard-stack">
         <div>
           <Link
             className="btn btn-secondary"
-            href="/dashboard/commissaires/chronometrage"
+            href={basePath}
           >
             ← Courses et grilles de départ
           </Link>
