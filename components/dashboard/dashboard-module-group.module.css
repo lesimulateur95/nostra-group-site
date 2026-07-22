@@ -18,7 +18,7 @@
   height: 100%;
 }
 
-/* Ligne 1 : véhicules, licences, fidélité. */
+/* Ligne 1 : véhicules, licences pilotes, fidélité. */
 .directionGrid
   > :global(.dashboard-module-grid:first-child)
   > :global(.dashboard-card:nth-child(1)) {
@@ -56,35 +56,40 @@
   order: 6;
 }
 
-/* Ligne 3 : messagerie, état, comptabilité. */
+/* Ligne 3 : nouvelle administration des licences, messagerie, état. */
 .directionGrid
-  > :global(.dashboard-module-grid:nth-child(4))
-  > :global(.dashboard-card:nth-child(1)) {
+  > :global(.dashboard-license-admin-card-grid)
+  > :global(.dashboard-card) {
   order: 7;
 }
 
 .directionGrid
-  > :global(.dashboard-module-grid:nth-child(4))
-  > :global(.dashboard-card:nth-child(2)) {
+  > :global(.dashboard-module-grid:last-child)
+  > :global(.dashboard-card:nth-child(1)) {
   order: 8;
 }
 
 .directionGrid
-  > :global(.dashboard-module-grid:nth-child(4))
-  > :global(.dashboard-card:nth-child(3)) {
+  > :global(.dashboard-module-grid:last-child)
+  > :global(.dashboard-card:nth-child(2)) {
   order: 9;
 }
 
-/* Dernière ligne : gestion des événements sur toute la largeur pour éviter le trou. */
+/* Dernière ligne : comptabilité + événements sans trou. */
 .directionGrid
-  > :global(.dashboard-module-grid:nth-child(4))
-  > :global(.dashboard-card:nth-child(4)) {
+  > :global(.dashboard-module-grid:last-child)
+  > :global(.dashboard-card:nth-child(3)) {
   order: 10;
-  grid-column: 1 / -1;
-  min-height: 150px;
 }
 
-/* Jeux : les six cartes sont rangées en trois lignes de deux cartes. */
+.directionGrid
+  > :global(.dashboard-module-grid:last-child)
+  > :global(.dashboard-card:nth-child(4)) {
+  order: 11;
+  grid-column: span 2;
+}
+
+/* Jeux : les six cartes restent rangées en trois lignes de deux cartes. */
 .gamesGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -127,9 +132,9 @@
   }
 
   .directionGrid
-    > :global(.dashboard-module-grid:nth-child(4))
+    > :global(.dashboard-module-grid:last-child)
     > :global(.dashboard-card:nth-child(4)) {
-    grid-column: 1 / -1;
+    grid-column: span 1;
   }
 }
 
@@ -138,12 +143,6 @@
   .gamesGrid,
   .siteMembersGrid {
     grid-template-columns: 1fr;
-  }
-
-  .directionGrid
-    > :global(.dashboard-module-grid:nth-child(4))
-    > :global(.dashboard-card:nth-child(4)) {
-    grid-column: auto;
   }
 
   .directionGrid :global(.dashboard-card) {

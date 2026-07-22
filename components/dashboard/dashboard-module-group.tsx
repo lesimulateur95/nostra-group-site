@@ -6,6 +6,7 @@ import { DirectionMotorsCards } from "@/components/dashboard/direction-motors-ca
 import { DashboardOperationsV50Cards } from "@/components/dashboard/dashboard-operations-v50-cards";
 import { DashboardFortuneCard } from "@/components/fortune/dashboard-fortune-card";
 import { DashboardLoyaltyCard } from "@/components/loyalty/dashboard-loyalty-card";
+import { DashboardLicenseAdminCard } from "@/components/licenses/dashboard-license-admin-card";
 
 import styles from "./dashboard-module-group.module.css";
 
@@ -66,6 +67,7 @@ export function DashboardModuleGroup({
             <DirectionMotorsCards />
             <DashboardLoyaltyCard />
             <DashboardOperationsV50Cards />
+            <DashboardLicenseAdminCard />
             {children}
           </div>
         ) : (
