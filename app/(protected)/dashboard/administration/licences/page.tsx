@@ -34,6 +34,7 @@ type SearchParams = Promise<{
   error?: string;
   licence?: string;
   sent?: string;
+  deleted?: string;
 }>;
 
 function stringValue(value: FormDataEntryValue | null): string {
@@ -49,6 +50,43 @@ function formatDate(value: string | null): string {
     year: "numeric",
     timeZone: "Europe/Paris",
   }).format(new Date(`${value}T12:00:00`));
+}
+
+async function deleteLicence(formData: FormData) {
+  "use server";
+
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getUser();
+
+  if (!data.user) redirect("/");
+
+  const roles = await getUserRoleKeys(data.user);
+  if (!roles.includes("manager")) redirect("/accueil");
+
+  const licenceId = stringValue(formData.get("licence_id"));
+
+  if (!licenceId) {
+    redirect(
+      "/dashboard/administration/licences?error=" +
+        encodeURIComponent("La licence à supprimer est introuvable."),
+    );
+  }
+
+  const { error } = await supabase.rpc("delete_nostra_licence", {
+    p_licence_id: licenceId,
+  });
+
+  if (error) {
+    redirect(
+      "/dashboard/administration/licences?error=" +
+        encodeURIComponent(error.message),
+    );
+  }
+
+  revalidatePath("/dashboard/administration/licences");
+  revalidatePath("/profil/documents");
+
+  redirect("/dashboard/administration/licences?deleted=1");
 }
 
 async function issueLicence(formData: FormData) {
@@ -182,6 +220,12 @@ export default async function LicenceAdministrationPage({
                 </Link>
               </>
             ) : null}
+          </div>
+        )}
+        {params.deleted && (
+          <div className={styles.success}>
+            Licence supprimée du registre. Sa copie éventuelle a aussi été retirée
+            des Documents & factures du citoyen.
           </div>
         )}
 
@@ -361,7 +405,7 @@ export default async function LicenceAdministrationPage({
                         <th>Licence</th>
                         <th>Validité</th>
                         <th>Statut</th>
-                        <th>Document</th>
+                        <th>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -380,12 +424,24 @@ export default async function LicenceAdministrationPage({
                           </td>
                           <td><span className={styles.status}>{licence.status}</span></td>
                           <td>
-                            <Link
-                              className={styles.printLink}
-                              href={`/dashboard/administration/licences/${licence.id}/imprimer`}
-                            >
-                              Ouvrir
-                            </Link>
+                            <div className={styles.actions}>
+                              <Link
+                                className={styles.printLink}
+                                href={`/dashboard/administration/licences/${licence.id}/imprimer`}
+                              >
+                                Ouvrir
+                              </Link>
+                              <form className={styles.deleteForm} action={deleteLicence}>
+                                <input type="hidden" name="licence_id" value={licence.id} />
+                                <button
+                                  className={styles.deleteButton}
+                                  type="submit"
+                                  aria-label={`Supprimer la licence ${licence.licence_number}`}
+                                >
+                                  Supprimer
+                                </button>
+                              </form>
+                            </div>
                           </td>
                         </tr>
                       ))}

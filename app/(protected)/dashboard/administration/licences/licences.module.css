@@ -353,3 +353,35 @@
   color: rgba(255, 255, 255, 0.62);
   line-height: 1.45;
 }
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  align-items: center;
+}
+
+.deleteForm {
+  margin: 0;
+}
+
+.deleteButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid rgba(255, 92, 92, 0.52);
+  border-radius: 12px;
+  background: rgba(255, 92, 92, 0.08);
+  color: #ffaaaa;
+  font: inherit;
+  font-weight: 780;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.deleteButton:hover {
+  background: rgba(255, 92, 92, 0.16);
+  border-color: rgba(255, 116, 116, 0.78);
+}
