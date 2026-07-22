@@ -1,0 +1,298 @@
+.page {
+  display: grid;
+  gap: 22px;
+  width: min(1480px, 100%);
+  margin: 0 auto;
+  padding: 32px clamp(18px, 4vw, 46px) 70px;
+}
+
+.hero,
+.panel,
+.badgeCard,
+.formCard,
+.awardRow {
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  background: #080909;
+}
+
+.hero,
+.panel,
+.formCard {
+  border-radius: 22px;
+}
+
+.hero {
+  display: grid;
+  gap: 12px;
+  padding: clamp(28px, 6vw, 56px);
+  background:
+    radial-gradient(circle at 88% 20%, rgba(212, 175, 55, 0.16), transparent 32%),
+    #080909;
+}
+
+.eyebrow {
+  margin: 0;
+  color: #e9c747;
+  font-size: 0.75rem;
+  font-weight: 950;
+  letter-spacing: 0.15em;
+}
+
+.hero h1,
+.panel h2,
+.formCard h2 {
+  margin: 0;
+}
+
+.hero h1 {
+  font-size: clamp(2.6rem, 6vw, 5.2rem);
+  font-weight: 560;
+  letter-spacing: -0.055em;
+  line-height: 0.96;
+}
+
+.hero p,
+.panel p,
+.formCard p,
+.badgeCard p,
+.awardRow small {
+  color: #b9bec6;
+  line-height: 1.6;
+}
+
+.backLink,
+.actionLink,
+.primaryButton,
+.secondaryButton,
+.dangerButton {
+  display: inline-flex;
+  min-height: 46px;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  padding: 0 15px;
+  border: 1px solid rgba(230, 194, 68, 0.48);
+  border-radius: 11px;
+  background: rgba(212, 175, 55, 0.09);
+  color: #efcd5f;
+  font: inherit;
+  font-weight: 900;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.primaryButton {
+  background: linear-gradient(135deg, #e6bf3a, #987008);
+  color: #080808;
+}
+
+.secondaryButton {
+  background: rgba(212, 175, 55, 0.08);
+}
+
+.dangerButton {
+  min-height: 38px;
+  border-color: rgba(255, 87, 87, 0.46);
+  background: rgba(137, 25, 25, 0.18);
+  color: #ffbcbc;
+}
+
+.panel,
+.formCard {
+  display: grid;
+  gap: 16px;
+  padding: 22px;
+}
+
+.panelHeader,
+.heroActions,
+.rowActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.counter {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  padding: 0 12px;
+  border: 1px solid rgba(212, 175, 55, 0.32);
+  border-radius: 999px;
+  color: #e9c747;
+  font-weight: 900;
+}
+
+.badgeGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.badgeCard {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 14px;
+  padding: 18px;
+  border-radius: 17px;
+  min-width: 0;
+}
+
+.badgeCardLocked {
+  opacity: 0.48;
+  filter: grayscale(0.85);
+}
+
+.badgeIcon {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  border: 1px solid rgba(212, 175, 55, 0.38);
+  border-radius: 16px;
+  background: rgba(212, 175, 55, 0.08);
+  font-size: 1.7rem;
+}
+
+.badgeCard strong,
+.awardRow strong {
+  display: block;
+  font-size: 1.05rem;
+}
+
+.badgeMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.tag,
+.earnedTag,
+.lockedTag {
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  padding: 0 9px;
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  border-radius: 999px;
+  color: #e9c747;
+  font-size: 0.75rem;
+  font-weight: 850;
+}
+
+.earnedTag {
+  border-color: rgba(64, 204, 126, 0.35);
+  color: #afeaca;
+}
+
+.lockedTag {
+  border-color: rgba(255, 255, 255, 0.18);
+  color: #aeb3bb;
+}
+
+.twoColumns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  align-items: start;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.formGrid label,
+.fullField {
+  display: grid;
+  gap: 7px;
+  color: #fff;
+  font-weight: 750;
+}
+
+.fullField {
+  grid-column: 1 / -1;
+}
+
+.formGrid input,
+.formGrid select,
+.formGrid textarea {
+  width: 100%;
+  min-height: 48px;
+  padding: 11px 13px;
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  border-radius: 11px;
+  background: #050606;
+  color: #fff;
+  font: inherit;
+}
+
+.formGrid textarea {
+  min-height: 112px;
+  resize: vertical;
+}
+
+.awardList,
+.catalogList {
+  display: grid;
+  gap: 10px;
+}
+
+.awardRow {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 13px;
+  align-items: center;
+  padding: 14px;
+  border-radius: 14px;
+}
+
+.empty,
+.error {
+  padding: 22px;
+  border-radius: 14px;
+  color: #b9bec6;
+}
+
+.empty {
+  border: 1px dashed rgba(212, 175, 55, 0.24);
+}
+
+.error {
+  border: 1px solid rgba(255, 88, 88, 0.42);
+  background: rgba(130, 24, 24, 0.18);
+  color: #ffb9b9;
+}
+
+@media (max-width: 1050px) {
+  .badgeGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .twoColumns {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 680px) {
+  .badgeGrid,
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .fullField {
+    grid-column: auto;
+  }
+
+  .awardRow {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .awardRow form {
+    grid-column: 1 / -1;
+  }
+}
