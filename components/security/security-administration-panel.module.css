@@ -78,7 +78,7 @@
 .permissionCard { padding: 18px; display: grid; gap: 15px; }
 .permissionHeader { display: flex; justify-content: space-between; gap: 16px; align-items: center; }
 .permissionHeader strong { display: block; font-size: 1.05rem; margin-bottom: 5px; }
-.permissionHeader code, td code { color: #f0cb4c; }
+.permissionHeader code, .tableWrap td code { color: #f0cb4c; }
 .switchLabel { display: flex; align-items: center; gap: 8px; color: #ddd; font-weight: 700; }
 .compactFields { display: grid; grid-template-columns: 1.2fr 1fr 1.7fr .55fr; gap: 12px; }
 .roleMatrix { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
@@ -114,7 +114,7 @@
 .memberIdentity { display: grid; gap: 5px; }
 .memberIdentity strong { font-size: 1.04rem; }
 .memberIdentity span { color: #e4c34e; font-weight: 700; }
-.memberIdentity small, td small { display: block; color: #9ea2ac; margin-top: 4px; }
+.memberIdentity small, .tableWrap td small { display: block; color: #9ea2ac; margin-top: 4px; }
 .memberActions { display: flex; justify-content: end; align-items: center; gap: 10px; flex-wrap: wrap; }
 .inlineForm { display: grid; grid-template-columns: auto minmax(180px, 1fr) auto; gap: 8px; }
 
@@ -125,10 +125,10 @@
 .twoColumns { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
 
 .tableWrap { overflow: auto; border: 1px solid rgba(212,168,31,.28); border-radius: 18px; background: rgba(5,5,5,.86); }
-table { width: 100%; border-collapse: collapse; min-width: 900px; }
-th { color: #f1cc4c; text-align: left; font-size: .76rem; letter-spacing: .08em; text-transform: uppercase; }
-th, td { padding: 14px 13px; border-bottom: 1px solid rgba(255,255,255,.075); vertical-align: top; }
-td { color: #d6d8de; }
+.tableWrap table { width: 100%; border-collapse: collapse; min-width: 900px; }
+.tableWrap th { color: #f1cc4c; text-align: left; font-size: .76rem; letter-spacing: .08em; text-transform: uppercase; }
+.tableWrap th, .tableWrap td { padding: 14px 13px; border-bottom: 1px solid rgba(255,255,255,.075); vertical-align: top; }
+.tableWrap td { color: #d6d8de; }
 .rowActions { display: grid; gap: 8px; min-width: 330px; }
 .miniAction { display: grid; grid-template-columns: 1fr auto; gap: 7px; }
 .counter { white-space: nowrap; border: 1px solid rgba(212,168,31,.4); padding: 11px 15px; border-radius: 12px; }
