@@ -21,12 +21,6 @@ export function DashboardOperationsV50Cards() {
         title="Candidatures"
         description="Examiner, accepter, refuser et attribuer un rôle."
       />
-      <DashboardCard
-        href="/dashboard/journal"
-        icon="📜"
-        title="Journal des actions"
-        description="Voir les modifications importantes et leur auteur."
-      />
     </div>
   );
 }

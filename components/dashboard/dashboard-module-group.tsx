@@ -80,14 +80,24 @@ export function DashboardModuleGroup({
             {children}
 
             {isSiteMembersGroup && (
-              <div className="dashboard-module-grid dashboard-module-grid-grouped">
-                <DashboardCard
-                  href="/dashboard/securite"
-                  icon="🛡️"
-                  title="Sécurité & sauvegardes"
-                  description="Contrôler les protections et créer des sauvegardes JSON."
-                />
-              </div>
+              <>
+                <div className="dashboard-module-grid dashboard-module-grid-grouped">
+                  <DashboardCard
+                    href="/dashboard/journal"
+                    icon="📜"
+                    title="Journal des actions"
+                    description="Voir les modifications importantes et leur auteur."
+                  />
+                </div>
+                <div className="dashboard-module-grid dashboard-module-grid-grouped">
+                  <DashboardCard
+                    href="/dashboard/securite"
+                    icon="🛡️"
+                    title="Sécurité & sauvegardes"
+                    description="Contrôler les protections et créer des sauvegardes JSON."
+                  />
+                </div>
+              </>
             )}
           </>
         )}
