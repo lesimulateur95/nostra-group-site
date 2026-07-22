@@ -5,11 +5,8 @@
   align-items: stretch;
 }
 
-/*
- * Les trois anciens blocs de cartes deviennent transparents pour la
- * grille. Toutes les cartes Direction participent donc à une seule
- * disposition, sans trous ni lignes séparées.
- */
+/* Les blocs internes deviennent transparents pour que toutes les cartes
+   Direction participent à une seule grille régulière. */
 .directionGrid > :global(.dashboard-module-grid) {
   display: contents;
   margin: 0 !important;
@@ -21,7 +18,7 @@
   height: 100%;
 }
 
-/* Première ligne : outils de gestion quotidiens. */
+/* Première ligne : fiches citoyens, SAV et candidatures. */
 .directionGrid
   > :global(.dashboard-module-grid:last-child)
   > :global(.dashboard-card:nth-child(1)) {
@@ -40,7 +37,7 @@
   order: 3;
 }
 
-/* Deuxième ligne : visibilité Motors, licences et fidélité. */
+/* Deuxième ligne : outils Motors, licences et fidélité. */
 .directionGrid
   > :global(.dashboard-module-grid:first-child)
   > :global(.dashboard-card:nth-child(1)) {
@@ -59,7 +56,7 @@
   order: 6;
 }
 
-/* Gestion des événements : grande carte lisible en bas. */
+/* Le journal reste lisible sur toute la largeur en bas de Direction. */
 .directionGrid
   > :global(.dashboard-module-grid:last-child)
   > :global(.dashboard-card:nth-child(4)) {
@@ -68,8 +65,45 @@
   min-height: 150px;
 }
 
+/* Jeux : les six cartes sont rangées en trois lignes de deux cartes. */
+.gamesGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  align-items: stretch;
+}
+
+.gamesGrid > :global(.dashboard-module-grid) {
+  display: contents;
+  margin: 0 !important;
+}
+
+.gamesGrid :global(.dashboard-card) {
+  min-width: 0;
+  height: 100%;
+}
+
+/* Site et membres : contenu, membres et sécurité sur une grille uniforme. */
+.siteMembersGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  align-items: stretch;
+}
+
+.siteMembersGrid > :global(.dashboard-module-grid) {
+  display: contents;
+  margin: 0 !important;
+}
+
+.siteMembersGrid :global(.dashboard-card) {
+  min-width: 0;
+  height: 100%;
+}
+
 @media (max-width: 1100px) {
-  .directionGrid {
+  .directionGrid,
+  .siteMembersGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -81,7 +115,9 @@
 }
 
 @media (max-width: 700px) {
-  .directionGrid {
+  .directionGrid,
+  .gamesGrid,
+  .siteMembersGrid {
     grid-template-columns: 1fr;
   }
 

@@ -1,65 +1,13 @@
-import {
-  Children,
-  cloneElement,
-  isValidElement,
-  type ReactElement,
-  type ReactNode,
-} from "react";
+import type { ReactNode } from "react";
 
 import { DashboardAuctionCard } from "@/components/auctions/dashboard-auction-card";
 import { DashboardCard } from "@/components/dashboard/dashboard-card";
 import { DirectionMotorsCards } from "@/components/dashboard/direction-motors-cards";
+import { DashboardOperationsV50Cards } from "@/components/dashboard/dashboard-operations-v50-cards";
 import { DashboardFortuneCard } from "@/components/fortune/dashboard-fortune-card";
 import { DashboardLoyaltyCard } from "@/components/loyalty/dashboard-loyalty-card";
-import styles from "./dashboard-module-group-v53.module.css";
 
-type ElementWithChildren = ReactElement<{
-  children?: ReactNode;
-  href?: string;
-}>;
-
-function containsSecurityCard(node: ReactNode): boolean {
-  let found = false;
-
-  Children.forEach(node, (child) => {
-    if (found || !isValidElement(child)) return;
-
-    const element = child as ElementWithChildren;
-
-    if (element.props.href === "/dashboard/securite") {
-      found = true;
-      return;
-    }
-
-    if (element.props.children !== undefined) {
-      found = containsSecurityCard(element.props.children);
-    }
-  });
-
-  return found;
-}
-
-function removeSecurityCard(node: ReactNode): ReactNode {
-  return Children.map(node, (child) => {
-    if (!isValidElement(child)) return child;
-
-    const element = child as ElementWithChildren;
-
-    if (element.props.href === "/dashboard/securite") {
-      return null;
-    }
-
-    if (element.props.children === undefined) {
-      return element;
-    }
-
-    return cloneElement(
-      element,
-      undefined,
-      removeSecurityCard(element.props.children),
-    );
-  });
-}
+import styles from "./dashboard-module-group.module.css";
 
 export function DashboardModuleGroup({
   icon,
@@ -83,22 +31,12 @@ export function DashboardModuleGroup({
     groupName.includes("EVENEMENT") ||
     groupName.includes("JEUX");
   const isGamesGroup = groupName.includes("JEUX");
-  const isSiteMembersGroup = title.trim().toLowerCase() === "site et membres";
+  const isSiteMembersGroup = groupName.includes("SITE ET MEMBRES");
 
-  const visibleChildren = isDirectionGroup
-    ? removeSecurityCard(children)
-    : children;
-  const securityAlreadyInSite = isSiteMembersGroup
-    ? containsSecurityCard(children)
-    : false;
-  const displayedDescription = isSiteMembersGroup
-    ? "Modifier les pages du site, gérer les membres, la sécurité et les sauvegardes."
-    : description;
   const contentClassName = [
     "dashboard-module-group-content",
-    isGamesGroup ? styles.gamesContent : "",
-    isSiteMembersGroup ? styles.siteMembersContent : "",
-    isDirectionGroup ? styles.directionContent : "",
+    isGamesGroup ? styles.gamesGrid : "",
+    isSiteMembersGroup ? styles.siteMembersGrid : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -107,54 +45,51 @@ export function DashboardModuleGroup({
     <details
       className="dashboard-module-group dashboard-module-group-collapsible"
       open={defaultOpen}
-      data-dashboard-group={title}
     >
       <summary className="dashboard-module-group-heading dashboard-module-group-summary">
-        <span
-          className="dashboard-module-group-icon"
-          aria-hidden="true"
-        >
+        <span className="dashboard-module-group-icon" aria-hidden="true">
           {icon}
         </span>
         <span className="dashboard-module-group-copy">
           <span className="eyebrow">{eyebrow}</span>
           <strong>{title}</strong>
-          <span>{displayedDescription}</span>
+          <span>{description}</span>
         </span>
-        <span
-          className="dashboard-module-group-chevron"
-          aria-hidden="true"
-        >
+        <span className="dashboard-module-group-chevron" aria-hidden="true">
           ⌄
         </span>
       </summary>
 
       <div className={contentClassName}>
-        {isDirectionGroup && (
-          <>
+        {isDirectionGroup ? (
+          <div className={styles.directionGrid}>
             <DirectionMotorsCards />
             <DashboardLoyaltyCard />
-          </>
-        )}
-
-        {isEventsGroup && (
-          <>
-            <DashboardFortuneCard />
-            <DashboardAuctionCard />
-          </>
-        )}
-
-        {visibleChildren}
-
-        {isSiteMembersGroup && !securityAlreadyInSite && (
-          <div className="dashboard-module-grid dashboard-module-grid-grouped">
-            <DashboardCard
-              href="/dashboard/securite"
-              icon="🛡️"
-              title="Sécurité et sauvegardes"
-              description="Gérer les sauvegardes du site, contrôler la sécurité et restaurer les données si nécessaire."
-            />
+            <DashboardOperationsV50Cards />
+            {children}
           </div>
+        ) : (
+          <>
+            {isEventsGroup && (
+              <>
+                <DashboardFortuneCard />
+                <DashboardAuctionCard />
+              </>
+            )}
+
+            {children}
+
+            {isSiteMembersGroup && (
+              <div className="dashboard-module-grid dashboard-module-grid-grouped">
+                <DashboardCard
+                  href="/dashboard/securite"
+                  icon="🛡️"
+                  title="Sécurité & sauvegardes"
+                  description="Contrôler les protections et créer des sauvegardes JSON."
+                />
+              </div>
+            )}
+          </>
         )}
       </div>
     </details>
