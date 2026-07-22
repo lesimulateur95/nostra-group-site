@@ -1,19 +1,27 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import { GlobalNotificationPopup } from "@/components/notifications/global-notification-popup";
-import { AutoRefresh } from "@/components/site/auto-refresh";
 
-export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
+import { StaffNotificationCenter } from "@/components/notifications/staff-notification-center";
+import { getUserRoleKeys } from "@/lib/auth/access";
+import { hasStaffNotificationAccess } from "@/lib/notifications/staff-data";
+import { createClient } from "@/lib/supabase/server";
+
+export default async function ProtectedLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
 
   if (!data.user) redirect("/");
 
+  const roles = await getUserRoleKeys(data.user);
+  const showStaffNotifications = hasStaffNotificationAccess(roles);
+
   return (
     <>
-      <AutoRefresh />
       {children}
-      <GlobalNotificationPopup />
+      {showStaffNotifications && <StaffNotificationCenter />}
     </>
   );
 }
