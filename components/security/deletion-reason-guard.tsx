@@ -9,6 +9,7 @@ export function DeletionReasonGuard() {
 
   useEffect(() => {
     let active = true;
+
     fetch("/api/security/settings", { cache: "no-store" })
       .then((response) => response.json())
       .then((payload: { required?: boolean }) => {
@@ -27,24 +28,40 @@ export function DeletionReasonGuard() {
     if (!required) return;
 
     const handler = async (event: MouseEvent) => {
-      const target = event.target instanceof Element
-        ? event.target.closest<HTMLElement>("button, a, [role='button'], input[type='submit']")
-        : null;
+      const target =
+        event.target instanceof Element
+          ? event.target.closest<HTMLElement>(
+              "button, a, [role='button'], input[type='submit']",
+            )
+          : null;
+
       if (!target || target.dataset.deletionReasonReady === "true") return;
 
-      const text = target instanceof HTMLInputElement
-        ? target.value
-        : target.textContent ?? target.getAttribute("aria-label") ?? "";
-      if (!DELETE_WORDS.test(text)) return;
+      const explicitDeletionAction =
+        target.dataset.deletionReasonRequired === "true";
+
+      // Un lien sert à naviguer vers une page. Son texte peut contenir le mot
+      // « supprimer » dans une description sans être une action de suppression.
+      // On ne protège donc un lien que s'il est explicitement marqué comme tel.
+      if (target instanceof HTMLAnchorElement && !explicitDeletionAction) return;
+
+      const text =
+        target instanceof HTMLInputElement
+          ? target.value
+          : target.textContent ?? target.getAttribute("aria-label") ?? "";
+
+      if (!explicitDeletionAction && !DELETE_WORDS.test(text)) return;
 
       event.preventDefault();
       event.stopPropagation();
       event.stopImmediatePropagation();
 
-      const reason = window.prompt(
-        "Motif obligatoire : pourquoi cet élément doit-il être supprimé ?",
-      )?.trim();
+      const reason = window
+        .prompt("Motif obligatoire : pourquoi cet élément doit-il être supprimé ?")
+        ?.trim();
+
       if (!reason) return;
+
       if (reason.length < 4) {
         window.alert("Le motif doit contenir au moins 4 caractères.");
         return;
@@ -55,7 +72,11 @@ export function DeletionReasonGuard() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ reason }),
       });
-      const payload = (await response.json().catch(() => ({}))) as { error?: string };
+
+      const payload = (await response.json().catch(() => ({}))) as {
+        error?: string;
+      };
+
       if (!response.ok) {
         window.alert(payload.error ?? "Impossible d’enregistrer le motif.");
         return;
@@ -63,6 +84,7 @@ export function DeletionReasonGuard() {
 
       target.dataset.deletionReasonReady = "true";
       target.click();
+
       window.setTimeout(() => {
         delete target.dataset.deletionReasonReady;
       }, 1000);
