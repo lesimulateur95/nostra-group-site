@@ -33,6 +33,7 @@ type SearchParams = Promise<{
   success?: string;
   error?: string;
   licence?: string;
+  sent?: string;
 }>;
 
 function stringValue(value: FormDataEntryValue | null): string {
@@ -64,16 +65,20 @@ async function issueLicence(formData: FormData) {
   const holderUserId = stringValue(formData.get("holder_user_id"));
   const licenceName = stringValue(formData.get("licence_name"));
   const category = stringValue(formData.get("category"));
-  const authority = stringValue(formData.get("authority")) || "Direction Nostra Group";
+  const authority =
+    stringValue(formData.get("authority")) || "Direction Nostra Group";
   const validFrom = stringValue(formData.get("valid_from"));
   const validUntil = stringValue(formData.get("valid_until"));
   const permissions = stringValue(formData.get("permissions"));
   const notes = stringValue(formData.get("notes"));
+  const sendToCitizen = formData.get("send_to_citizen") === "on";
 
   if (!holderUserId || !licenceName || !validFrom) {
     redirect(
       "/dashboard/administration/licences?error=" +
-        encodeURIComponent("Le citoyen, le nom de la licence et la date de début sont obligatoires."),
+        encodeURIComponent(
+          "Le citoyen, le nom de la licence et la date de début sont obligatoires.",
+        ),
     );
   }
 
@@ -88,6 +93,7 @@ async function issueLicence(formData: FormData) {
       p_valid_until: validUntil || null,
       p_permissions: permissions || null,
       p_notes: notes || null,
+      p_send_to_citizen: sendToCitizen,
     },
   );
 
@@ -99,9 +105,16 @@ async function issueLicence(formData: FormData) {
   }
 
   revalidatePath("/dashboard/administration/licences");
-  redirect(
-    `/dashboard/administration/licences?success=1&licence=${encodeURIComponent(String(licenceId ?? ""))}`,
-  );
+  revalidatePath("/profil/documents");
+
+  const query = new URLSearchParams({
+    success: "1",
+    licence: String(licenceId ?? ""),
+  });
+
+  if (sendToCitizen) query.set("sent", "1");
+
+  redirect(`/dashboard/administration/licences?${query.toString()}`);
 }
 
 export default async function LicenceAdministrationPage({
@@ -157,6 +170,7 @@ export default async function LicenceAdministrationPage({
         {params.success && (
           <div className={styles.success}>
             Licence générée et enregistrée avec succès.
+            {params.sent ? " Elle a aussi été envoyée dans les documents du citoyen." : ""}
             {params.licence ? (
               <>
                 {" "}
@@ -176,12 +190,8 @@ export default async function LicenceAdministrationPage({
             <span className={styles.eyebrow}>ACTIVATION SUPABASE REQUISE</span>
             <h2>Le module des licences n’est pas encore activé</h2>
             <p className={styles.panelIntro}>
-              Envoie d’abord le ZIP Supabase V55 dans ton projet Supabase. Il crée le registre,
-              les numéros automatiques et la liste sécurisée des citoyens. Recharge ensuite cette page.
+              Exécute les migrations Supabase du générateur de licences, puis recharge cette page.
             </p>
-            <div className={styles.activationCode}>
-              Migration attendue : 20260722_v55_nostra_licences.sql
-            </div>
           </section>
         ) : (
           <>
@@ -197,15 +207,18 @@ export default async function LicenceAdministrationPage({
                 <form className={styles.form} action={issueLicence}>
                   <div className={styles.field}>
                     <label htmlFor="holder_user_id">Citoyen bénéficiaire *</label>
-                    <select id="holder_user_id" name="holder_user_id" required defaultValue="">
+                    <select
+                      id="holder_user_id"
+                      name="holder_user_id"
+                      required
+                      defaultValue=""
+                    >
                       <option value="" disabled>
                         Sélectionner un citoyen
                       </option>
                       {citizens.map((citizen) => (
                         <option key={citizen.user_id} value={citizen.user_id}>
                           {citizen.display_name}
-                          {citizen.discord_name ? ` · ${citizen.discord_name}` : ""}
-                          {citizen.email ? ` · ${citizen.email}` : ""}
                         </option>
                       ))}
                     </select>
@@ -292,6 +305,19 @@ export default async function LicenceAdministrationPage({
                     />
                   </div>
 
+                  <label className={styles.deliveryOption}>
+                    <input
+                      type="checkbox"
+                      name="send_to_citizen"
+                    />
+                    <span>
+                      <strong>Envoyer cette licence au citoyen</strong>
+                      <small>
+                        La licence sera ajoutée immédiatement dans la section Documents & factures de son profil.
+                      </small>
+                    </span>
+                  </label>
+
                   <button className={styles.submit} type="submit">
                     Générer automatiquement la licence
                   </button>
@@ -306,11 +332,11 @@ export default async function LicenceAdministrationPage({
                   ressaisie de leur identité.
                 </p>
                 <ol className={styles.steps}>
-                  <li><span>1</span><div>Sélection du citoyen depuis la liste des comptes inscrits.</div></li>
+                  <li><span>1</span><div>Sélection du citoyen depuis les profils du site.</div></li>
                   <li><span>2</span><div>Choix libre du type, de la catégorie et de la durée.</div></li>
                   <li><span>3</span><div>Création automatique d’un numéro officiel unique.</div></li>
                   <li><span>4</span><div>Enregistrement dans le registre sécurisé de la Direction.</div></li>
-                  <li><span>5</span><div>Ouverture du document prêt à imprimer ou enregistrer en PDF.</div></li>
+                  <li><span>5</span><div>Envoi facultatif dans les documents du citoyen.</div></li>
                 </ol>
               </aside>
             </section>
@@ -342,10 +368,7 @@ export default async function LicenceAdministrationPage({
                       {licences.map((licence) => (
                         <tr key={licence.id}>
                           <td className={styles.number}>{licence.licence_number}</td>
-                          <td>
-                            <strong>{licence.holder_name}</strong>
-                            {licence.holder_email ? <><br />{licence.holder_email}</> : null}
-                          </td>
+                          <td><strong>{licence.holder_name}</strong></td>
                           <td>
                             <strong>{licence.licence_name}</strong>
                             {licence.category ? <><br />Catégorie {licence.category}</> : null}

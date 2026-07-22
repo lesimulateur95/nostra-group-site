@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { DeleteProfileDocumentButton } from "@/components/profile/delete-profile-document-button";
 import { ProfileSectionHeader } from "@/components/profile/profile-section-header";
 import { createClient } from "@/lib/supabase/server";
 
@@ -34,13 +35,13 @@ function money(value: number | string) {
   });
 }
 
-function documentLabel(type: DocumentType) {
-  if (type === "order_form") return "Bon de commande";
-  if (type === "license_application") {
+function documentLabel(document: DocumentRow) {
+  if (document.document_type === "order_form") return "Bon de commande";
+  if (document.document_type === "license_application") {
     return "Demande de licence";
   }
-  if (type === "pilot_license_card") {
-    return "Licence pilote";
+  if (document.document_type === "pilot_license_card") {
+    return document.document_title || "Licence officielle";
   }
   return "Facture";
 }
@@ -51,11 +52,8 @@ function statusLabel(
   licenseStatus: string | null,
 ) {
   if (type === "pilot_license_card") {
-    return licenseStatus === "approved"
-      ? "Licence active"
-      : "Disponible";
+    return licenseStatus === "approved" ? "Licence active" : "Disponible";
   }
-
   if (type === "license_application") {
     if (licenseStatus === "approved") return "Validée";
     if (licenseStatus === "rejected") return "Refusée";
@@ -64,13 +62,10 @@ function statusLabel(
     }
     return "Payée · à examiner";
   }
-
   if (status === "available") return "Disponible";
-
   if (status === "issued") {
     return type === "order_form" ? "Confirmé" : "Émise";
   }
-
   if (status === "paid") return "Payée";
   return status;
 }
@@ -96,9 +91,7 @@ export default async function ProfileDocumentsPage() {
   } else {
     const legacy = await supabase
       .from("invoices")
-      .select(
-        "id,invoice_number,status,amount,issued_at,download_url",
-      )
+      .select("id,invoice_number,status,amount,issued_at,download_url")
       .eq("user_id", authData.user.id)
       .order("issued_at", { ascending: false });
 
@@ -116,7 +109,7 @@ export default async function ProfileDocumentsPage() {
       <ProfileSectionHeader
         eyebrow="ESPACE DOCUMENTAIRE"
         title="Documents & factures"
-        description="Retrouve les bons de commande, les factures, les demandes de licence pilote payées depuis le site et ta licence officielle si elle a été validée."
+        description="Retrouve tes bons de commande, factures, demandes et licences officielles. Tu peux supprimer individuellement les documents que tu ne souhaites plus conserver."
       />
 
       <section className="profile-data-section profile-standalone-section">
@@ -125,7 +118,6 @@ export default async function ProfileDocumentsPage() {
             <p className="eyebrow">DOCUMENTS AUTOMATIQUES</p>
             <h2>Mes documents</h2>
           </div>
-
           <span>{documents.length}</span>
         </div>
 
@@ -139,74 +131,71 @@ export default async function ProfileDocumentsPage() {
                 <th>Statut</th>
                 <th>Montant</th>
                 <th>Document</th>
+                <th>Actions</th>
               </tr>
             </thead>
-
             <tbody>
               {documents.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="empty-table-cell">
+                  <td colSpan={7} className="empty-table-cell">
                     Aucun document disponible.
                   </td>
                 </tr>
               )}
 
-              {documents.map((document) => (
-                <tr key={document.id}>
-                  <td>
-                    <strong>
-                      {documentLabel(document.document_type)}
-                    </strong>
+              {documents.map((document) => {
+                const documentHref = document.download_url?.startsWith("/")
+                  ? document.download_url
+                  : `/profil/documents/${document.id}`;
 
-                    {document.document_title && (
-                      <small className="order-client-note">
-                        {document.document_title}
-                      </small>
-                    )}
-                  </td>
-
-                  <td>{document.invoice_number}</td>
-
-                  <td>
-                    {new Date(
-                      document.issued_at,
-                    ).toLocaleDateString("fr-FR")}
-                  </td>
-
-                  <td>
-                    {statusLabel(
-                      document.status,
-                      document.document_type,
-                      document.license_status,
-                    )}
-                  </td>
-
-                  <td>
-                    {document.document_type === "pilot_license_card"
-                      ? "—"
-                      : money(document.amount)}
-                  </td>
-
-                  <td>
-                    <Link href={`/profil/documents/${document.id}`}>
-                      Ouvrir →
-                    </Link>
-
-                    {document.download_url?.startsWith("http") && (
-                      <>
-                        {" · "}
-                        <a
-                          href={document.download_url}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          Fichier externe ↗
-                        </a>
-                      </>
-                    )}
-                  </td>
-                </tr>
-              ))}
+                return (
+                  <tr key={document.id}>
+                    <td>
+                      <strong>{documentLabel(document)}</strong>
+                      {document.document_title &&
+                      document.document_title !== documentLabel(document) ? (
+                        <small className="order-client-note">
+                          {document.document_title}
+                        </small>
+                      ) : null}
+                    </td>
+                    <td>{document.invoice_number}</td>
+                    <td>
+                      {new Date(document.issued_at).toLocaleDateString("fr-FR")}
+                    </td>
+                    <td>
+                      {statusLabel(
+                        document.status,
+                        document.document_type,
+                        document.license_status,
+                      )}
+                    </td>
+                    <td>
+                      {document.document_type === "pilot_license_card"
+                        ? "—"
+                        : money(document.amount)}
+                    </td>
+                    <td>
+                      <Link href={documentHref}>Ouvrir →</Link>
+                      {document.download_url?.startsWith("http") && (
+                        <>
+                          {" · "}
+                          <a
+                            href={document.download_url}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            Fichier externe ↗
+                          </a>
+                        </>
+                      )}
+                    </td>
+                    <td>
+                      <DeleteProfileDocumentButton documentId={document.id} />
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

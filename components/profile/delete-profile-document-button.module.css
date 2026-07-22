@@ -1,0 +1,26 @@
+.form {
+  display: inline-flex;
+  margin: 0;
+}
+
+.button {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 100, 100, 0.48);
+  border-radius: 9px;
+  background: rgba(130, 20, 20, 0.16);
+  color: #ffb5b5;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.button:hover:not(:disabled) {
+  background: rgba(170, 30, 30, 0.28);
+}
+
+.button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
