@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 import { DashboardAuctionCard } from "@/components/auctions/dashboard-auction-card";
 import { DirectionMotorsCards } from "@/components/dashboard/direction-motors-cards";
+import { DashboardOperationsV50Cards } from "@/components/dashboard/dashboard-operations-v50-cards";
 import { DashboardFortuneCard } from "@/components/fortune/dashboard-fortune-card";
 import { DashboardLoyaltyCard } from "@/components/loyalty/dashboard-loyalty-card";
 
@@ -65,6 +66,7 @@ export function DashboardModuleGroup({
           <div className={styles.directionGrid}>
             <DirectionMotorsCards />
             <DashboardLoyaltyCard />
+            <DashboardOperationsV50Cards />
             {children}
           </div>
         ) : (

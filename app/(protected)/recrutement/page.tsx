@@ -64,8 +64,8 @@ export default function RecruitmentPage() {
           </p>
 
           <div className={styles.heroActions}>
+            <Link href="/recrutement/candidature">Déposer ma candidature</Link>
             <a href="#postes">Découvrir les métiers</a>
-            <Link href="/profil">Accéder à mon profil</Link>
           </div>
         </section>
 
@@ -155,9 +155,9 @@ export default function RecruitmentPage() {
 
           <Link
             className={styles.profileLink}
-            href="/profil"
+            href="/recrutement/candidature"
           >
-            Ouvrir mon espace personnel →
+            Déposer ou suivre ma candidature →
           </Link>
         </section>
       </main>

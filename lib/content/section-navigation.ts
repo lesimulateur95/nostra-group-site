@@ -47,6 +47,12 @@ export const BUILT_IN_SECTION_CATEGORIES: Record<
       href: "/motors/plaques",
       editableSlug: "motors-plaques",
     },
+    {
+      key: "sav",
+      label: "SAV & assistance",
+      href: "/motors/sav",
+      editableSlug: "motors-sav",
+    },
   ],
   evenements: [
     {
