@@ -2,7 +2,7 @@ import {
   CatalogueViewV51,
 } from "@/components/motors/catalogue-view-v51";
 
-export default function CataloguePage({
+export default function ExclusiveCataloguePage({
   searchParams,
 }: {
   searchParams: Promise<{
@@ -12,10 +12,9 @@ export default function CataloguePage({
 }) {
   return (
     <CatalogueViewV51
-      catalogType="standard"
-      title="Catalogue principal"
-      description="Les véhicules du catalogue principal sélectionnés par la Direction."
-      sitePageSlug="motors-catalogue"
+      catalogType="exclusive"
+      title="Catalogue véhicules exclusifs"
+      description="Les véhicules rares et exclusifs sélectionnés par la Direction Nostra Motors."
       searchParams={searchParams}
     />
   );

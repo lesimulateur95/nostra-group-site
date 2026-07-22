@@ -1,0 +1,52 @@
+.tabs,
+.adminTabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 20px 0 26px;
+}
+
+.tab,
+.activeTab,
+.adminTab,
+.activeAdminTab {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 15px;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 11px;
+  background: rgba(212, 175, 55, 0.045);
+  color: #d7d9dd;
+  font-weight: 850;
+  text-decoration: none;
+}
+
+.activeTab,
+.activeAdminTab {
+  border-color: rgba(235, 201, 73, 0.75);
+  background: rgba(212, 175, 55, 0.16);
+  color: #f1d36c;
+}
+
+.catalogType {
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  padding: 0 9px;
+  border: 1px solid rgba(88, 145, 255, 0.35);
+  border-radius: 999px;
+  background: rgba(43, 84, 157, 0.13);
+  color: #a9c7ff;
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+@media (max-width: 650px) {
+  .tabs,
+  .adminTabs {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+}
