@@ -1,0 +1,310 @@
+.hero {
+  align-items: center;
+}
+
+.serviceBadge,
+.orderCount,
+.statusBadge,
+.orderNumber {
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.serviceBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 210px;
+  padding: 13px 18px;
+  border: 1px solid rgba(225, 184, 58, 0.5);
+  border-radius: 999px;
+  font-size: 0.78rem;
+}
+
+.serviceOpen {
+  background: rgba(44, 163, 93, 0.14);
+  color: #73e5a2;
+}
+
+.serviceClosed {
+  background: rgba(190, 57, 57, 0.14);
+  color: #ff8d8d;
+}
+
+.successMessage,
+.errorMessage {
+  margin: 0 0 18px;
+  padding: 14px 18px;
+  border-radius: 12px;
+  font-weight: 700;
+}
+
+.successMessage {
+  border: 1px solid rgba(44, 163, 93, 0.48);
+  background: rgba(44, 163, 93, 0.12);
+}
+
+.errorMessage {
+  border: 1px solid rgba(211, 70, 70, 0.45);
+  background: rgba(211, 70, 70, 0.11);
+}
+
+.servicePanel,
+.ordersSection {
+  border: 1px solid rgba(225, 184, 58, 0.28);
+  background:
+    linear-gradient(135deg, rgba(225, 184, 58, 0.06), transparent 42%),
+    rgba(10, 10, 10, 0.9);
+  border-radius: 24px;
+}
+
+.servicePanel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  padding: 28px;
+  margin-bottom: 24px;
+}
+
+.servicePanel h2,
+.sectionHeading h2 {
+  margin: 7px 0 8px;
+}
+
+.servicePanel p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.serviceActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.openButton,
+.closeButton,
+.statusForm button,
+.deleteButton {
+  min-height: 44px;
+  padding: 10px 16px;
+  border-radius: 11px;
+  border: 1px solid transparent;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.openButton {
+  background: #d8b33f;
+  color: #090909;
+}
+
+.closeButton {
+  border-color: rgba(255, 104, 104, 0.5);
+  background: rgba(170, 39, 39, 0.18);
+  color: #ff9d9d;
+}
+
+.openButton:disabled,
+.closeButton:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.ordersSection {
+  padding: 28px;
+}
+
+.sectionHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 22px;
+}
+
+.orderCount {
+  padding: 9px 13px;
+  border: 1px solid rgba(225, 184, 58, 0.35);
+  border-radius: 999px;
+  color: #e4c258;
+  white-space: nowrap;
+}
+
+.emptyState {
+  padding: 34px;
+  text-align: center;
+  border: 1px dashed rgba(225, 184, 58, 0.32);
+  border-radius: 16px;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.ordersGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.orderCard {
+  min-width: 0;
+  padding: 22px;
+  border: 1px solid rgba(225, 184, 58, 0.25);
+  border-radius: 18px;
+  background: rgba(18, 17, 14, 0.86);
+}
+
+.orderHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.orderHeader h3 {
+  margin: 5px 0 0;
+  font-size: 1.55rem;
+}
+
+.orderNumber {
+  color: #dfbe56;
+  font-size: 0.74rem;
+}
+
+.statusBadge {
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: rgba(225, 184, 58, 0.11);
+  color: #efcf66;
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.orderIdentity {
+  display: grid;
+  gap: 4px;
+  margin: 17px 0;
+}
+
+.orderIdentity span {
+  color: rgba(255, 255, 255, 0.67);
+}
+
+.orderDetails {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 11px;
+  margin: 0;
+}
+
+.orderDetails div {
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.orderDetails dt {
+  margin-bottom: 4px;
+  color: rgba(255, 255, 255, 0.54);
+  font-size: 0.78rem;
+}
+
+.orderDetails dd {
+  margin: 0;
+  font-weight: 800;
+}
+
+.notes {
+  margin: 15px 0 0;
+  padding: 13px;
+  border-left: 3px solid rgba(225, 184, 58, 0.58);
+  background: rgba(225, 184, 58, 0.05);
+  color: rgba(255, 255, 255, 0.73);
+}
+
+.orderActions {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.statusForm {
+  display: grid;
+  gap: 8px;
+}
+
+.statusForm label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.statusForm > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 9px;
+}
+
+.statusForm select {
+  min-width: 0;
+  min-height: 44px;
+  padding: 9px 12px;
+  border: 1px solid rgba(225, 184, 58, 0.35);
+  border-radius: 11px;
+  background: #0c0c0c;
+  color: #fff;
+}
+
+.statusForm button {
+  background: #d8b33f;
+  color: #090909;
+}
+
+.deleteForm {
+  display: flex;
+}
+
+.deleteButton {
+  width: 100%;
+  border-color: rgba(255, 100, 100, 0.42);
+  background: rgba(165, 38, 38, 0.14);
+  color: #ff9090;
+}
+
+@media (max-width: 980px) {
+  .ordersGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .servicePanel,
+  .sectionHeading,
+  .orderHeader {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .serviceActions {
+    justify-content: stretch;
+  }
+
+  .serviceActions form,
+  .openButton,
+  .closeButton {
+    width: 100%;
+  }
+
+  .serviceBadge,
+  .orderCount {
+    align-self: flex-start;
+  }
+
+  .statusForm > div,
+  .orderDetails {
+    grid-template-columns: 1fr;
+  }
+}
