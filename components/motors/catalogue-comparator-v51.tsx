@@ -2,6 +2,7 @@
 
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -9,9 +10,11 @@ import {
   type ReactNode,
 } from "react";
 
-import type { CatalogType } from "@/lib/catalogues-v51/data";
+import type {
+  CatalogType,
+} from "@/lib/catalogues-v51/data";
 
-import styles from "./catalogue-v51.module.css";
+import styles from "./catalogue-comparator-v51.module.css";
 
 export type ComparableVehicleV51 = {
   id: string;
@@ -35,41 +38,67 @@ const LIMIT = 5;
 const ComparatorContext =
   createContext<ComparatorContextValue | null>(null);
 
-function storageKey(catalogType: CatalogType): string {
+function storageKey(
+  catalogType: CatalogType,
+): string {
   return `nostra_motors_comparator_v51_${catalogType}`;
+}
+
+function isComparableVehicle(
+  value: unknown,
+): value is ComparableVehicleV51 {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const row =
+    value as Record<string, unknown>;
+
+  return (
+    typeof row.id === "string" &&
+    typeof row.label === "string" &&
+    typeof row.price === "string" &&
+    (
+      typeof row.imageUrl === "string" ||
+      row.imageUrl === null
+    ) &&
+    Array.isArray(row.notes)
+  );
 }
 
 function loadVehicles(
   catalogType: CatalogType,
 ): ComparableVehicleV51[] {
-  if (typeof window === "undefined") return [];
+  if (typeof window === "undefined") {
+    return [];
+  }
 
   try {
-    const raw = window.localStorage.getItem(
-      storageKey(catalogType),
-    );
+    const raw =
+      window.localStorage.getItem(
+        storageKey(catalogType),
+      );
 
     if (!raw) return [];
 
-    const parsed = JSON.parse(raw) as unknown;
+    const parsed: unknown =
+      JSON.parse(raw);
 
-    if (!Array.isArray(parsed)) return [];
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
 
     return parsed
-      .filter(
-        (item): item is ComparableVehicleV51 =>
-          Boolean(item) &&
-          typeof item === "object" &&
-          typeof (item as ComparableVehicleV51).id ===
-            "string" &&
-          typeof (item as ComparableVehicleV51).label ===
-            "string" &&
-          typeof (item as ComparableVehicleV51).price ===
-            "string" &&
-          Array.isArray(
-            (item as ComparableVehicleV51).notes,
-          ),
-      )
+      .filter(isComparableVehicle)
+      .map((vehicle) => ({
+        ...vehicle,
+        notes: vehicle.notes
+          .filter(
+            (note): note is string =>
+              typeof note === "string",
+          )
+          .slice(0, 5),
+      }))
       .slice(0, LIMIT);
   } catch {
     return [];
@@ -83,18 +112,23 @@ export function CatalogueComparatorProviderV51({
   catalogType: CatalogType;
   children: ReactNode;
 }) {
-  const [vehicles, setVehicles] = useState<
-    ComparableVehicleV51[]
-  >([]);
-  const [hydrated, setHydrated] = useState(false);
+  const [vehicles, setVehicles] =
+    useState<ComparableVehicleV51[]>([]);
+  const [hydrated, setHydrated] =
+    useState(false);
 
   useEffect(() => {
-    setVehicles(loadVehicles(catalogType));
+    setVehicles(
+      loadVehicles(catalogType),
+    );
     setHydrated(true);
   }, [catalogType]);
 
   useEffect(() => {
-    if (!hydrated || typeof window === "undefined") {
+    if (
+      !hydrated ||
+      typeof window === "undefined"
+    ) {
       return;
     }
 
@@ -102,60 +136,113 @@ export function CatalogueComparatorProviderV51({
       storageKey(catalogType),
       JSON.stringify(vehicles),
     );
-  }, [catalogType, hydrated, vehicles]);
+  }, [
+    catalogType,
+    hydrated,
+    vehicles,
+  ]);
 
   const selectedIds = useMemo(
-    () => new Set(vehicles.map((vehicle) => vehicle.id)),
+    () =>
+      new Set(
+        vehicles.map(
+          (vehicle) => vehicle.id,
+        ),
+      ),
     [vehicles],
   );
 
-  const value = useMemo<ComparatorContextValue>(
-    () => ({
-      vehicles,
-      isSelected: (id) => selectedIds.has(id),
-      isLimitReached: vehicles.length >= LIMIT,
-      toggle: (vehicle) => {
-        setVehicles((current) => {
-          const exists = current.some(
-            (item) => item.id === vehicle.id,
+  const isSelected = useCallback(
+    (id: string) =>
+      selectedIds.has(id),
+    [selectedIds],
+  );
+
+  const toggle = useCallback(
+    (
+      vehicle: ComparableVehicleV51,
+    ) => {
+      setVehicles((current) => {
+        const alreadySelected =
+          current.some(
+            (item) =>
+              item.id === vehicle.id,
           );
 
-          if (exists) {
-            return current.filter(
-              (item) => item.id !== vehicle.id,
-            );
-          }
+        if (alreadySelected) {
+          return current.filter(
+            (item) =>
+              item.id !== vehicle.id,
+          );
+        }
 
-          if (current.length >= LIMIT) {
-            return current;
-          }
+        if (
+          current.length >= LIMIT
+        ) {
+          return current;
+        }
 
-          return [...current, vehicle];
-        });
-      },
-      remove: (id) => {
-        setVehicles((current) =>
-          current.filter((vehicle) => vehicle.id !== id),
-        );
-      },
-      clear: () => setVehicles([]),
+        return [
+          ...current,
+          vehicle,
+        ];
+      });
+    },
+    [],
+  );
+
+  const remove = useCallback(
+    (id: string) => {
+      setVehicles((current) =>
+        current.filter(
+          (vehicle) =>
+            vehicle.id !== id,
+        ),
+      );
+    },
+    [],
+  );
+
+  const clear = useCallback(() => {
+    setVehicles([]);
+  }, []);
+
+  const value = useMemo(
+    () => ({
+      vehicles,
+      isSelected,
+      isLimitReached:
+        vehicles.length >= LIMIT,
+      toggle,
+      remove,
+      clear,
     }),
-    [selectedIds, vehicles],
+    [
+      clear,
+      isSelected,
+      remove,
+      toggle,
+      vehicles,
+    ],
   );
 
   return (
-    <ComparatorContext.Provider value={value}>
+    <ComparatorContext.Provider
+      value={value}
+    >
       {children}
     </ComparatorContext.Provider>
   );
 }
 
-function useComparator(): ComparatorContextValue {
-  const context = useContext(ComparatorContext);
+function useComparator():
+  ComparatorContextValue {
+  const context =
+    useContext(ComparatorContext);
 
   if (!context) {
     throw new Error(
-      "CatalogueComparatorV51 doit être utilisé dans son provider.",
+      "Le comparateur V51 doit être utilisé dans son provider.",
     );
   }
 
@@ -167,22 +254,37 @@ export function CatalogueCompareButtonV51({
 }: {
   vehicle: ComparableVehicleV51;
 }) {
-  const comparator = useComparator();
-  const selected = comparator.isSelected(vehicle.id);
+  const comparator =
+    useComparator();
+
+  const selected =
+    comparator.isSelected(
+      vehicle.id,
+    );
+
   const disabled =
-    comparator.isLimitReached && !selected;
+    comparator.isLimitReached &&
+    !selected;
 
   return (
     <button
-      className={styles.compareButton}
+      className={
+        selected
+          ? styles.removeButton
+          : styles.compareButton
+      }
       type="button"
       disabled={disabled}
       aria-pressed={selected}
-      onClick={() => comparator.toggle(vehicle)}
+      onClick={() =>
+        comparator.toggle(vehicle)
+      }
     >
       {selected
         ? "Retirer du comparateur"
-        : "Ajouter au comparateur"}
+        : disabled
+          ? "Comparateur complet"
+          : "Ajouter au comparateur"}
     </button>
   );
 }
@@ -192,32 +294,59 @@ export function CatalogueComparatorPanelV51({
 }: {
   title: string;
 }) {
-  const comparator = useComparator();
+  const comparator =
+    useComparator();
 
   return (
     <section
-      className={styles.comparatorPanel}
-      aria-label={`Comparateur ${title}`}
+      className={
+        styles.comparatorPanel
+      }
+      data-v51-comparator-panel="true"
     >
-      <header className={styles.comparatorHeader}>
+      <header
+        className={
+          styles.comparatorHeader
+        }
+      >
         <div>
-          <span>COMPARATEUR DU CATALOGUE</span>
+          <span
+            className={
+              styles.eyebrow
+            }
+          >
+            COMPARATEUR DU CATALOGUE
+          </span>
+
           <h2>{title}</h2>
+
           <p>
-            Ce comparateur contient uniquement les véhicules de ce
-            catalogue.
+            Ce comparateur contient
+            uniquement les véhicules de
+            ce catalogue.
           </p>
         </div>
 
-        <div className={styles.comparatorCounter}>
+        <div
+          className={
+            styles.counterBlock
+          }
+        >
           <strong>
-            {comparator.vehicles.length} / {LIMIT}
+            {
+              comparator.vehicles
+                .length
+            }{" "}
+            / {LIMIT}
           </strong>
 
-          {comparator.vehicles.length > 0 && (
+          {comparator.vehicles
+            .length > 0 && (
             <button
               type="button"
-              onClick={comparator.clear}
+              onClick={
+                comparator.clear
+              }
             >
               Vider
             </button>
@@ -225,48 +354,95 @@ export function CatalogueComparatorPanelV51({
         </div>
       </header>
 
-      {comparator.vehicles.length === 0 ? (
-        <div className={styles.comparatorEmpty}>
-          Aucun véhicule sélectionné dans ce catalogue.
+      {comparator.vehicles.length ===
+      0 ? (
+        <div
+          className={
+            styles.empty
+          }
+        >
+          Aucun véhicule sélectionné
+          dans ce catalogue.
         </div>
       ) : (
-        <div className={styles.comparatorGrid}>
-          {comparator.vehicles.map((vehicle) => (
-            <article
-              className={styles.comparatorCard}
-              key={vehicle.id}
-            >
-              <div className={styles.comparatorImage}>
-                {vehicle.imageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={vehicle.imageUrl}
-                    alt={vehicle.label}
-                  />
-                ) : (
-                  <span>NM</span>
-                )}
-              </div>
-
-              <div className={styles.comparatorBody}>
-                <h3>{vehicle.label}</h3>
-                <strong>{vehicle.price}</strong>
-
-                <ul>
-                  {vehicle.notes.map((note) => (
-                    <li key={note}>{note}</li>
-                  ))}
-                </ul>
-
-                <button
-                  type="button"
-                  onClick={() => comparator.remove(vehicle.id)}
+        <div
+          className={
+            styles.vehicleGrid
+          }
+        >
+          {comparator.vehicles.map(
+            (vehicle) => (
+              <article
+                className={
+                  styles.vehicleCard
+                }
+                key={vehicle.id}
+              >
+                <div
+                  className={
+                    styles.vehicleMedia
+                  }
                 >
-                  Retirer
-                </button>
-              </div>
-            </article>
-          ))}
+                  {vehicle.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={
+                        vehicle.imageUrl
+                      }
+                      alt={
+                        vehicle.label
+                      }
+                    />
+                  ) : (
+                    <span>NM</span>
+                  )}
+                </div>
+
+                <div
+                  className={
+                    styles.vehicleCopy
+                  }
+                >
+                  <h3>
+                    {vehicle.label}
+                  </h3>
+
+                  <strong>
+                    {vehicle.price}
+                  </strong>
+
+                  {vehicle.notes.length >
+                    0 && (
+                    <ul>
+                      {vehicle.notes.map(
+                        (
+                          note,
+                          index,
+                        ) => (
+                          <li
+                            key={`${vehicle.id}-${index}`}
+                          >
+                            {note}
+                          </li>
+                        ),
+                      )}
+                    </ul>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      comparator.remove(
+                        vehicle.id,
+                      )
+                    }
+                  >
+                    Retirer
+                  </button>
+                </div>
+              </article>
+            ),
+          )}
         </div>
       )}
     </section>
