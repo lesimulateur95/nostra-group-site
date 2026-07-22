@@ -190,7 +190,7 @@ export async function updateSession(request: NextRequest) {
     (isDashboardPage || isCommissionerPage) &&
     !isManager(user)
   ) {
-    let roles = securityGate?.roles?.map(normalizeRole) ?? [];
+    let roles: string[] = [];
 
     if (roles.length === 0) {
       const rpcResult = await supabase.rpc("nostra_roles");
