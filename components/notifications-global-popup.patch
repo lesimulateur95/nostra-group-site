@@ -1,0 +1,7 @@
+--- a/components/notifications/global-notification-popup.tsx
++++ b/components/notifications/global-notification-popup.tsx
+@@
+-  const interval = window.setInterval(refresh, 12_000);
++  // Verification espacee : les notifications restent rapides sans interroger
++  // l'API toutes les 12 secondes sur chaque page protegee.
++  const interval = window.setInterval(refresh, 30_000);
