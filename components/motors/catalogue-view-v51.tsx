@@ -14,7 +14,10 @@ import {
 import {
   getStockCommerceConfigured,
 } from "@/lib/backoffice/data";
-import { getSitePage } from "@/lib/content/site-content";
+import {
+  getSitePage,
+  type EditablePageSlug,
+} from "@/lib/content/site-content";
 
 import styles from "./catalogue-v51.module.css";
 
@@ -52,7 +55,7 @@ export async function CatalogueViewV51({
     cart_added?: string;
     cart_error?: string;
   }>;
-  sitePageSlug?: string;
+  sitePageSlug?: EditablePageSlug;
 }) {
   const params = await searchParams;
 
