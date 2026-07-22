@@ -144,9 +144,9 @@ export default async function CitizenDetailPage({
           </p>
           <Link
             className={styles.actionLink}
-            href="/dashboard/citoyens"
+            href="/dashboard"
           >
-            ← Retour
+            ← Retour au Dashboard
           </Link>
         </section>
 
