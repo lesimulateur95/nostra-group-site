@@ -1,0 +1,45 @@
+.gamesContent,
+.siteMembersContent {
+  display: grid;
+  align-items: stretch;
+  gap: 18px;
+}
+
+.gamesContent {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.siteMembersContent {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.gamesContent > :global(.dashboard-module-grid),
+.siteMembersContent > :global(.dashboard-module-grid) {
+  display: contents;
+}
+
+.gamesContent :global(.dashboard-module-card),
+.siteMembersContent :global(.dashboard-module-card) {
+  min-width: 0;
+  height: 100%;
+  margin: 0;
+}
+
+/* Sécurité n'apparaît plus dans Direction, même si une ancienne version
+   de la page la fournit encore dans ses enfants. */
+.directionContent :global(.dashboard-module-card[href="/dashboard/securite"]) {
+  display: none;
+}
+
+@media (max-width: 1100px) {
+  .siteMembersContent {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .gamesContent,
+  .siteMembersContent {
+    grid-template-columns: 1fr;
+  }
+}
