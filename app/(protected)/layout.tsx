@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { StaffNotificationCenter } from "@/components/notifications/staff-notification-center";
+import { DeletionReasonGuard } from "@/components/security/deletion-reason-guard";
 import { getUserRoleKeys } from "@/lib/auth/access";
 import { hasStaffNotificationAccess } from "@/lib/notifications/staff-data";
 import { createClient } from "@/lib/supabase/server";
@@ -22,6 +23,7 @@ export default async function ProtectedLayout({
     <>
       {children}
       {showStaffNotifications && <StaffNotificationCenter />}
+      <DeletionReasonGuard />
     </>
   );
 }

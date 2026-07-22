@@ -1,0 +1,9 @@
+.page { min-height: 100vh; display: grid; place-items: center; padding: 24px; background: radial-gradient(circle at top, #181305, #030303 58%); color: white; }
+.card { width: min(680px, 100%); text-align: center; padding: clamp(30px, 6vw, 58px); border: 1px solid rgba(214,170,35,.48); border-radius: 28px; background: rgba(8,8,8,.92); box-shadow: 0 35px 100px rgba(0,0,0,.55); }
+.logo { width: 72px; height: 72px; margin: 0 auto 18px; display: grid; place-items: center; border: 2px solid #d6aa23; border-radius: 50%; color: #f4d75f; font-size: 2rem; font-weight: 900; }
+.card > span { color: #f0c943; letter-spacing: .2em; font-weight: 900; font-size: .8rem; }
+.card h1 { font-size: clamp(2.1rem, 6vw, 4rem); margin: 16px 0 14px; }
+.card p { color: #c5c7cd; line-height: 1.65; font-size: 1.05rem; }
+.actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+.actions a { padding: 12px 17px; border: 1px solid #d6aa23; border-radius: 12px; color: #f2d15b; text-decoration: none; font-weight: 850; }
+.actions a:hover { background: rgba(214,170,35,.13); }

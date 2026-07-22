@@ -1,2 +1,51 @@
-import Link from "next/link"; import {DashboardShell} from "@/components/dashboard/dashboard-shell"; import {createBackup,deleteBackup} from "@/app/actions/operations-v50"; import {backups,securityOverview,JsonRow} from "@/lib/operations-v50/data"; import styles from "@/components/operations-v50/operations.module.css";
-export const dynamic="force-dynamic"; export default async function Page({searchParams}:{searchParams:Promise<{success?:string;error?:string}>}){const [o,b,q]=await Promise.all([securityOverview(),backups(),searchParams]);const tables=Array.isArray(o?.tables)?o.tables as JsonRow[]:[],buckets=Array.isArray(o?.buckets)?o.buckets as JsonRow[]:[];return <DashboardShell><main className={styles.page}><section className={styles.hero}><Link className={styles.backLink} href="/dashboard">← Retour au Dashboard</Link><span>DIRECTION · SÉCURITÉ</span><h1>Sécurité et sauvegardes</h1><p>Contrôle RLS, fichiers privés et copies JSON.</p></section>{q.success&&<div className={styles.success}>Action terminée.</div>}{q.error&&<div className={styles.error}>Action impossible.</div>}<section className={styles.gridTwo}><section className={styles.section}><header><span>TABLES</span><h2>Protection RLS</h2></header>{tables.map(t=><article className={styles.row} key={String(t.table)}><strong>{String(t.table)}</strong><span className={`${styles.badge} ${t.rls_enabled?styles.green:styles.red}`}>{t.rls_enabled?'RLS actif':'RLS inactif'}</span></article>)}</section><section className={styles.section}><header><span>STOCKAGE</span><h2>Buckets</h2></header>{buckets.map(x=><article className={styles.row} key={String(x.id)}><strong>{String(x.id)}</strong><span className={`${styles.badge} ${x.public?styles.red:styles.green}`}>{x.public?'Public':'Privé'}</span></article>)}</section></section><section className={styles.section}><header><span>SAUVEGARDES</span><h2>{b.length} copie(s)</h2></header><form className={styles.search} action={createBackup}><label><span>Nom</span><input name="label" placeholder="Avant mise à jour"/></label><button className={styles.primary}>Créer maintenant</button></form><div className={styles.list}>{b.map(x=><article className={styles.row} key={String(x.id)}><div><h3>{String(x.label)}</h3><p>{new Date(String(x.created_at)).toLocaleString('fr-FR')} · {Math.round(Number(x.payload_size)/1024)} Ko</p></div><div className={styles.actions}><a className={styles.actionLink} href={`/api/admin/backups/${x.id}`}>Télécharger</a><form action={deleteBackup}><input type="hidden" name="id" value={String(x.id)}/><button className={styles.danger}>Supprimer</button></form></div></article>)}</div></section></main></DashboardShell>}
+import Link from "next/link";
+
+import { DashboardShell } from "@/components/dashboard/dashboard-shell";
+import { SecurityAdministrationPanel } from "@/components/security/security-administration-panel";
+import { getSecurityOverview } from "@/lib/security/data";
+
+import styles from "./page.module.css";
+
+export default async function SecurityAdministrationPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ onglet?: string }>;
+}) {
+  const params = await searchParams;
+  const overview = await getSecurityOverview();
+
+  return (
+    <DashboardShell allowedRoles={["manager", "commercial", "employee", "commissioner", "citizen"]}>
+      <div className={styles.page}>
+        <header className={styles.hero}>
+          <div>
+            <span>DASHBOARD · SITE ET MEMBRES</span>
+            <h1>Sécurité & administration</h1>
+            <p>
+              Contrôle les accès par rôle, le mode maintenance, les comptes bloqués,
+              les sauvegardes, la corbeille et tous les journaux de sécurité.
+            </p>
+          </div>
+          <Link href="/dashboard" className={styles.back}>← Retour au Dashboard</Link>
+        </header>
+
+        {!overview.configured || !overview.data ? (
+          <section className={styles.activation}>
+            <span>ACTIVATION SUPABASE REQUISE</span>
+            <h2>Le centre de sécurité n’est pas encore activé</h2>
+            <p>
+              Exécute d’abord la migration Supabase V64, puis recharge cette page avec Ctrl + F5.
+            </p>
+            <code>20260722_v64_security_administration.sql</code>
+            {overview.error && <small>{overview.error}</small>}
+          </section>
+        ) : (
+          <SecurityAdministrationPanel
+            overview={overview.data}
+            initialTab={params.onglet}
+          />
+        )}
+      </div>
+    </DashboardShell>
+  );
+}

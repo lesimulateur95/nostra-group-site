@@ -93,10 +93,18 @@ export function DashboardModuleGroup({
                 </div>
                 <div className="dashboard-module-grid dashboard-module-grid-grouped">
                   <DashboardCard
+                    href="/dashboard/securite?onglet=permissions"
+                    icon="🔐"
+                    title="Permissions des pages"
+                    description="Choisir directement les pages accessibles à chaque rôle du site."
+                  />
+                </div>
+                <div className="dashboard-module-grid dashboard-module-grid-grouped">
+                  <DashboardCard
                     href="/dashboard/securite"
                     icon="🛡️"
-                    title="Sécurité & sauvegardes"
-                    description="Contrôler les protections et créer des sauvegardes JSON."
+                    title="Sécurité & administration"
+                    description="Gérer la maintenance, les comptes bloqués, la corbeille, les sauvegardes et les historiques."
                   />
                 </div>
               </>

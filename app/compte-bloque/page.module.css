@@ -1,0 +1,11 @@
+.page { min-height: 100vh; display: grid; place-items: center; padding: 24px; background: radial-gradient(circle at top, #1b0909, #030303 58%); color: white; }
+.card { width: min(680px, 100%); text-align: center; padding: clamp(30px, 6vw, 56px); border: 1px solid rgba(222,78,78,.5); border-radius: 28px; background: rgba(9,7,7,.94); box-shadow: 0 35px 100px rgba(0,0,0,.55); }
+.icon { font-size: 3rem; margin-bottom: 14px; }
+.card > span { color: #ff8585; letter-spacing: .18em; font-weight: 900; font-size: .78rem; }
+.card h1 { font-size: clamp(2rem, 6vw, 3.8rem); margin: 16px 0; }
+.card p { color: #c6c7cc; line-height: 1.6; }
+.reason { margin: 24px 0; padding: 18px; border: 1px solid rgba(222,78,78,.35); border-radius: 14px; background: rgba(170,25,25,.1); display: grid; gap: 7px; }
+.reason small { color: #d6a2a2; }
+.reason strong { color: #ffaaaa; }
+.note { font-size: .92rem; }
+.card a { display: inline-block; margin-top: 14px; padding: 12px 17px; border: 1px solid rgba(222,78,78,.65); border-radius: 12px; color: #ffaaaa; text-decoration: none; font-weight: 850; }
