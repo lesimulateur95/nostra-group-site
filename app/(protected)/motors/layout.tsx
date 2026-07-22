@@ -10,7 +10,7 @@ import {
   getSectionNavigation,
 } from "@/lib/content/section-navigation";
 
-const catalogChildren: SidebarNavItem[] = [
+const catalogChildren: SidebarNavItem["children"] = [
   {
     key: "catalog-standard",
     href: "/motors/catalogue",
@@ -23,8 +23,7 @@ const catalogChildren: SidebarNavItem[] = [
   },
   {
     key: "catalog-exclusive",
-    href:
-      "/motors/catalogue/vehicules-exclusifs",
+    href: "/motors/catalogue/vehicules-exclusifs",
     label: "Catalogue véhicules exclusifs",
   },
 ];
@@ -37,19 +36,19 @@ function addCatalogChildren(
       return item;
     }
 
-    const customChildren = (
-      item.children ?? []
-    ).filter(
+    const customChildren = (item.children ?? []).filter(
       (child) =>
-        child.key !==
-        "builtin-catalogue",
+        child.key !== "builtin-catalogue" &&
+        child.key !== "catalog-standard" &&
+        child.key !== "catalog-heavy" &&
+        child.key !== "catalog-exclusive",
     );
 
     return {
       ...item,
       href: "/motors/catalogue",
       children: [
-        ...catalogChildren,
+        ...(catalogChildren ?? []),
         ...customChildren,
       ],
     };
@@ -67,9 +66,7 @@ export default async function MotorsLayout({
   return (
     <SectionLayout
       title="NOSTRA MOTORS"
-      items={addCatalogChildren(
-        navigation,
-      )}
+      items={addCatalogChildren(navigation)}
     >
       <MotorsStatusBanner />
       {children}

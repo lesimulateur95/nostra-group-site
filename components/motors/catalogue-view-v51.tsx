@@ -2,7 +2,11 @@
 
 import Link from "next/link";
 
-import { CatalogueComparatorEnhancer } from "@/components/motors/catalogue-comparator-enhancer";
+import {
+  CatalogueComparatorPanelV51,
+  CatalogueComparatorProviderV51,
+  CatalogueCompareButtonV51,
+} from "@/components/motors/catalogue-comparator-v51";
 import {
   CATALOG_LABELS,
   CATALOG_PATHS,
@@ -22,14 +26,11 @@ import {
 import styles from "./catalogue-v51.module.css";
 
 function formatPrice(value: number): string {
-  return Number(value).toLocaleString(
-    "fr-FR",
-    {
-      style: "currency",
-      currency: "EUR",
-      maximumFractionDigits: 0,
-    },
-  );
+  return Number(value).toLocaleString("fr-FR", {
+    style: "currency",
+    currency: "EUR",
+    maximumFractionDigits: 0,
+  });
 }
 
 function brandAnchor(brand: string): string {
@@ -66,155 +67,144 @@ export async function CatalogueViewV51({
     customPage,
   ] = await Promise.all([
     getCataloguesV51Configured(),
-    getCatalogVehiclesV51({
-      catalogType,
-    }),
+    getCatalogVehiclesV51({ catalogType }),
     getStockCommerceConfigured(),
     sitePageSlug
       ? getSitePage(sitePageSlug)
       : Promise.resolve(null),
   ]);
 
-  const grouped = new Map<
-    string,
-    typeof vehicles
-  >();
+  const grouped = new Map<string, typeof vehicles>();
 
   for (const vehicle of vehicles) {
-    const current =
-      grouped.get(vehicle.brand) ?? [];
-
+    const current = grouped.get(vehicle.brand) ?? [];
     current.push(vehicle);
     grouped.set(vehicle.brand, current);
   }
 
   return (
-    <article className="motors-catalogue-page">
-      <header className="document-hero">
-        <p className="eyebrow">
-          NOSTRA MOTORS
-        </p>
+    <CatalogueComparatorProviderV51
+      key={catalogType}
+      catalogType={catalogType}
+    >
+      <article className="motors-catalogue-page">
+        <header className="document-hero">
+          <p className="eyebrow">NOSTRA MOTORS</p>
 
-        <h1 className="page-title">
-          {customPage?.title || title}
-        </h1>
+          <h1 className="page-title">
+            {customPage?.title || title}
+          </h1>
 
-        <p className="lead">{description}</p>
-      </header>
+          <p className="lead">{description}</p>
+        </header>
 
-      <nav
-        className={styles.tabs}
-        aria-label="Catalogues Nostra Motors"
-      >
-        {CATALOG_TYPES.map((type) => (
-          <Link
-            className={
-              type === catalogType
-                ? styles.activeTab
-                : styles.tab
-            }
-            href={CATALOG_PATHS[type]}
-            key={type}
-          >
-            {CATALOG_LABELS[type]}
-          </Link>
-        ))}
-      </nav>
+        <nav
+          className={styles.tabs}
+          aria-label="Catalogues Nostra Motors"
+        >
+          {CATALOG_TYPES.map((type) => (
+            <Link
+              className={
+                type === catalogType
+                  ? styles.activeTab
+                  : styles.tab
+              }
+              href={CATALOG_PATHS[type]}
+              key={type}
+              prefetch={false}
+            >
+              {CATALOG_LABELS[type]}
+            </Link>
+          ))}
+        </nav>
 
-      {customPage?.content?.trim() && (
-        <section className="catalogue-intro editable-document-copy">
-          {customPage.content}
-        </section>
-      )}
+        <CatalogueComparatorPanelV51
+          title={CATALOG_LABELS[catalogType]}
+        />
 
-      {params.cart_added && (
-        <div className="catalogue-feedback catalogue-feedback-success">
-          Le véhicule a bien été ajouté à ton panier.{" "}
-          <Link href="/profil">
-            Voir mon panier
-          </Link>
-        </div>
-      )}
+        {customPage?.content?.trim() && (
+          <section className="catalogue-intro editable-document-copy">
+            {customPage.content}
+          </section>
+        )}
 
-      {params.cart_error && (
-        <div className="catalogue-feedback catalogue-feedback-error">
-          {params.cart_error === "stock"
-            ? "Ce véhicule n’est plus disponible dans cette quantité."
-            : params.cart_error === "setup"
-              ? "La liaison entre le catalogue et le stock doit encore être activée."
-              : "Impossible d’ajouter ce véhicule au panier."}
-        </div>
-      )}
+        {params.cart_added && (
+          <div className="catalogue-feedback catalogue-feedback-success">
+            Le véhicule a bien été ajouté à ton panier.{" "}
+            <Link href="/profil">Voir mon panier</Link>
+          </div>
+        )}
 
-      {!configured && (
-        <section className="catalogue-empty">
-          <h2>Activation nécessaire</h2>
-          <p>
-            Exécute le SQL V51 pour activer les trois catalogues séparés.
-          </p>
-        </section>
-      )}
+        {params.cart_error && (
+          <div className="catalogue-feedback catalogue-feedback-error">
+            {params.cart_error === "stock"
+              ? "Ce véhicule n’est plus disponible dans cette quantité."
+              : params.cart_error === "setup"
+                ? "La liaison entre le catalogue et le stock doit encore être activée."
+                : "Impossible d’ajouter ce véhicule au panier."}
+          </div>
+        )}
 
-      {configured &&
-        vehicles.length === 0 && (
+        {!configured && (
           <section className="catalogue-empty">
-            <h2>
-              Aucun véhicule dans ce catalogue
-            </h2>
+            <h2>Activation nécessaire</h2>
             <p>
-              La Direction choisit depuis le Dashboard quels véhicules apparaissent ici.
+              Exécute le SQL V51 pour activer les trois catalogues
+              séparés.
             </p>
           </section>
         )}
 
-      {configured &&
-        vehicles.length > 0 && (
+        {configured && vehicles.length === 0 && (
+          <section className="catalogue-empty">
+            <h2>Aucun véhicule dans ce catalogue</h2>
+            <p>
+              La Direction choisit depuis le Dashboard quels
+              véhicules apparaissent ici.
+            </p>
+          </section>
+        )}
+
+        {configured && vehicles.length > 0 && (
           <>
             <nav
               className="catalogue-brand-nav"
               aria-label="Marques du catalogue"
             >
-              {[...grouped.keys()].map(
-                (brand) => (
-                  <a
-                    href={`#${brandAnchor(
-                      brand,
-                    )}`}
-                    key={brand}
-                  >
-                    {brand}
-                  </a>
-                ),
-              )}
+              {[...grouped.keys()].map((brand) => (
+                <a
+                  href={`#${brandAnchor(brand)}`}
+                  key={brand}
+                >
+                  {brand}
+                </a>
+              ))}
             </nav>
 
             <div className="catalogue-brand-sections">
               {[...grouped.entries()].map(
-                ([
-                  brand,
-                  brandVehicles,
-                ]) => (
+                ([brand, brandVehicles]) => (
                   <section
                     className="catalogue-brand-section"
                     id={brandAnchor(brand)}
                     key={brand}
                   >
                     <div className="catalogue-brand-heading">
-                      <p className="eyebrow">
-                        MARQUE
-                      </p>
+                      <p className="eyebrow">MARQUE</p>
                       <h2>{brand}</h2>
                       <span>
                         {brandVehicles.length} véhicule
-                        {brandVehicles.length > 1
-                          ? "s"
-                          : ""}
+                        {brandVehicles.length > 1 ? "s" : ""}
                       </span>
                     </div>
 
                     <div className="catalogue-vehicle-grid">
-                      {brandVehicles.map(
-                        (vehicle) => (
+                      {brandVehicles.map((vehicle) => {
+                        const formattedPrice = formatPrice(
+                          vehicle.price,
+                        );
+
+                        return (
                           <article
                             className="catalogue-vehicle-card"
                             key={vehicle.id}
@@ -237,19 +227,14 @@ export async function CatalogueViewV51({
                               <div className="catalogue-photo-strip">
                                 {vehicle.images
                                   .slice(1)
-                                  .map(
-                                    (
-                                      image,
-                                      index,
-                                    ) => (
-                                      <img
-                                        src={image.url}
-                                        alt={`${vehicle.brand} ${vehicle.model} — vue ${index + 2}`}
-                                        loading="lazy"
-                                        key={image.path}
-                                      />
-                                    ),
-                                  )}
+                                  .map((image, index) => (
+                                    <img
+                                      src={image.url}
+                                      alt={`${vehicle.brand} ${vehicle.model} — vue ${index + 2}`}
+                                      loading="lazy"
+                                      key={image.path}
+                                    />
+                                  ))}
                               </div>
                             )}
 
@@ -293,11 +278,7 @@ export async function CatalogueViewV51({
 
                                 <div className="catalogue-price">
                                   <dt>Prix</dt>
-                                  <dd>
-                                    {formatPrice(
-                                      vehicle.price,
-                                    )}
-                                  </dd>
+                                  <dd>{formattedPrice}</dd>
                                 </div>
                               </dl>
 
@@ -339,11 +320,32 @@ export async function CatalogueViewV51({
                                     Indisponible
                                   </button>
                                 )}
+
+                                <CatalogueCompareButtonV51
+                                  vehicle={{
+                                    id: String(vehicle.id),
+                                    label: `${vehicle.brand} ${vehicle.model}`,
+                                    price: formattedPrice,
+                                    imageUrl:
+                                      vehicle.images[0]?.url ?? null,
+                                    notes: [
+                                      vehicle.trunk_capacity
+                                        ? `Coffre : ${vehicle.trunk_capacity}`
+                                        : "Coffre non renseigné",
+                                      vehicle.top_speed
+                                        ? `Vitesse : ${vehicle.top_speed}`
+                                        : "Vitesse non renseignée",
+                                      vehicle.power
+                                        ? `Puissance : ${vehicle.power}`
+                                        : "Puissance non renseignée",
+                                    ],
+                                  }}
+                                />
                               </div>
                             </div>
                           </article>
-                        ),
-                      )}
+                        );
+                      })}
                     </div>
                   </section>
                 ),
@@ -351,8 +353,7 @@ export async function CatalogueViewV51({
             </div>
           </>
         )}
-
-      <CatalogueComparatorEnhancer />
-    </article>
+      </article>
+    </CatalogueComparatorProviderV51>
   );
 }

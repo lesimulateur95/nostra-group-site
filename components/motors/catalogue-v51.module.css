@@ -1,15 +1,20 @@
 .tabs,
 .adminTabs {
+  position: relative;
+  z-index: 20;
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
   margin: 20px 0 26px;
+  isolation: isolate;
 }
 
 .tab,
 .activeTab,
 .adminTab,
 .activeAdminTab {
+  position: relative;
+  z-index: 21;
   display: inline-flex;
   min-height: 44px;
   align-items: center;
@@ -17,10 +22,12 @@
   padding: 0 15px;
   border: 1px solid rgba(212, 175, 55, 0.3);
   border-radius: 11px;
-  background: rgba(212, 175, 55, 0.045);
+  background: #0b0c0c;
   color: #d7d9dd;
   font-weight: 850;
   text-decoration: none;
+  cursor: pointer;
+  pointer-events: auto;
 }
 
 .activeTab,
@@ -28,6 +35,153 @@
   border-color: rgba(235, 201, 73, 0.75);
   background: rgba(212, 175, 55, 0.16);
   color: #f1d36c;
+}
+
+.compareButton {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 14px;
+  border: 1px solid rgba(212, 175, 55, 0.42);
+  border-radius: 10px;
+  background: rgba(212, 175, 55, 0.09);
+  color: #f2d16a;
+  font: inherit;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.compareButton:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.comparatorPanel {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 16px;
+  width: 100%;
+  margin: 0 0 24px;
+  padding: 20px;
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  border-radius: 20px;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(212, 175, 55, 0.055),
+      transparent 40%
+    ),
+    #0a0b0b;
+  overflow: hidden;
+}
+
+.comparatorHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.comparatorHeader span {
+  color: #e7c447;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.13em;
+}
+
+.comparatorHeader h2 {
+  margin: 5px 0 7px;
+}
+
+.comparatorHeader p {
+  margin: 0;
+  color: #aeb3bb;
+}
+
+.comparatorCounter {
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+}
+
+.comparatorCounter strong {
+  color: #f0ce60;
+}
+
+.comparatorCounter button,
+.comparatorBody button {
+  min-height: 38px;
+  padding: 0 11px;
+  border: 1px solid rgba(255, 95, 95, 0.38);
+  border-radius: 9px;
+  background: rgba(128, 27, 27, 0.14);
+  color: #ffbbbb;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.comparatorEmpty {
+  padding: 14px;
+  border: 1px dashed rgba(212, 175, 55, 0.25);
+  border-radius: 12px;
+  color: #b9bec6;
+}
+
+.comparatorGrid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.comparatorCard {
+  overflow: hidden;
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.comparatorImage {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: #050606;
+  color: #d9b73e;
+  font-size: 1.6rem;
+  font-weight: 900;
+}
+
+.comparatorImage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.comparatorBody {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+}
+
+.comparatorBody h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.comparatorBody strong {
+  color: #f0ce60;
+}
+
+.comparatorBody ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: 16px;
+  color: #b8bdc5;
+  font-size: 0.84rem;
 }
 
 .catalogType {
@@ -43,10 +197,35 @@
   font-weight: 900;
 }
 
+@media (max-width: 1400px) {
+  .comparatorGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .comparatorGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 650px) {
   .tabs,
-  .adminTabs {
+  .adminTabs,
+  .comparatorGrid {
     display: grid;
     grid-template-columns: 1fr;
+  }
+
+  .comparatorHeader {
+    display: grid;
+  }
+
+  .comparatorCounter {
+    justify-items: start;
+  }
+
+  .compareButton {
+    width: 100%;
   }
 }
