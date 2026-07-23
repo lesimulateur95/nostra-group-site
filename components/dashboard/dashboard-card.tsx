@@ -1,5 +1,9 @@
 import Link from "next/link";
 
+const ICON_FALLBACKS: Record<string, string> = {
+  "/dashboard/licences-pilotes": "🏁",
+};
+
 export function DashboardCard({
   href,
   icon,
@@ -13,9 +17,13 @@ export function DashboardCard({
   description: string;
   badge?: string;
 }) {
+  const displayedIcon = icon.trim() || ICON_FALLBACKS[href] || "◆";
+
   return (
     <Link className="dashboard-module-card" href={href}>
-      <span className="dashboard-module-icon" aria-hidden="true">{icon}</span>
+      <span className="dashboard-module-icon" aria-hidden="true">
+        {displayedIcon}
+      </span>
       <span className="dashboard-module-copy">
         <span className="dashboard-module-title-row">
           <strong>{title}</strong>
@@ -23,7 +31,9 @@ export function DashboardCard({
         </span>
         <span>{description}</span>
       </span>
-      <span className="dashboard-module-arrow" aria-hidden="true">›</span>
+      <span className="dashboard-module-arrow" aria-hidden="true">
+        ›
+      </span>
     </Link>
   );
 }

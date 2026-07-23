@@ -97,34 +97,52 @@ export function ProfileNavigation({
   };
 
   return (
-    <section className="profile-navigation-section">
-      <div className="profile-data-heading">
-        <div>
-          <p className="eyebrow">MON ESPACE</p>
-          <h2>Accès rapides</h2>
-        </div>
-      </div>
+    <>
+      <style>{`
+        .profile-commerce-grid
+          > .profile-commerce-card:not(.loyalty-card)
+          .profile-commerce-head
+          > span:empty::before {
+          content: "🛒" !important;
+          display: block !important;
+          font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif !important;
+          font-size: 24px !important;
+          line-height: 1 !important;
+          color: initial !important;
+          opacity: 1 !important;
+          visibility: visible !important;
+        }
+      `}</style>
 
-      <div className="profile-navigation-grid">
-        {cards.map((card) => (
-          <Link
-            href={card.href}
-            className="profile-navigation-card"
-            key={card.href}
-          >
-            <span className="profile-navigation-icon" aria-hidden="true">
-              {card.icon}
-            </span>
-            <div>
-              <strong>{card.label}</strong>
-              <small>{card.description}</small>
-            </div>
-            <span className="profile-navigation-count">
-              {card.countKey ? counts[card.countKey] : "Voir"}
-            </span>
-          </Link>
-        ))}
-      </div>
-    </section>
+      <section className="profile-navigation-section">
+        <div className="profile-data-heading">
+          <div>
+            <p className="eyebrow">MON ESPACE</p>
+            <h2>Accès rapides</h2>
+          </div>
+        </div>
+
+        <div className="profile-navigation-grid">
+          {cards.map((card) => (
+            <Link
+              href={card.href}
+              className="profile-navigation-card"
+              key={card.href}
+            >
+              <span className="profile-navigation-icon" aria-hidden="true">
+                {card.icon}
+              </span>
+              <div>
+                <strong>{card.label}</strong>
+                <small>{card.description}</small>
+              </div>
+              <span className="profile-navigation-count">
+                {card.countKey ? counts[card.countKey] : "Voir"}
+              </span>
+            </Link>
+          ))}
+        </div>
+      </section>
+    </>
   );
 }
