@@ -45,4 +45,5 @@ export async function setServiceAvailability(formData: FormData) {
   revalidatePath("/dashboard/licences-pilotes");
   revalidatePath("/dashboard/homologations");
   revalidatePath("/dashboard/inscriptions-ecuries");
+  revalidatePath("/dashboard/circuit");
 }
