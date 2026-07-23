@@ -1,18 +1,14 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { ProfileDocumentActions } from "@/components/documents/profile-document-actions";
 import { DeleteProfileDocumentButton } from "@/components/profile/delete-profile-document-button";
 import { ProfileSectionHeader } from "@/components/profile/profile-section-header";
+import type { DocumentRegistryRow } from "@/lib/documents/types";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
-
-type DocumentType =
-  | "order_form"
-  | "invoice"
-  | "license_application"
-  | "pilot_license_card";
 
 type DocumentRow = {
   id: number;
@@ -22,7 +18,7 @@ type DocumentRow = {
   issued_at: string;
   download_url: string | null;
   order_id: number | null;
-  document_type: DocumentType;
+  document_type: string;
   document_title: string | null;
   license_status: string | null;
 };
@@ -36,19 +32,22 @@ function money(value: number | string) {
 }
 
 function documentLabel(document: DocumentRow) {
+  if (document.document_title?.trim()) return document.document_title.trim();
   if (document.document_type === "order_form") return "Bon de commande";
   if (document.document_type === "license_application") {
     return "Demande de licence";
   }
   if (document.document_type === "pilot_license_card") {
-    return document.document_title || "Licence officielle";
+    return "Licence officielle";
   }
+  if (document.document_type === "certificate") return "Certificat";
+  if (document.document_type === "contract") return "Contrat";
   return "Facture";
 }
 
 function statusLabel(
   status: string,
-  type: DocumentType,
+  type: string,
   licenseStatus: string | null,
 ) {
   if (type === "pilot_license_card") {
@@ -64,10 +63,17 @@ function statusLabel(
   }
   if (status === "available") return "Disponible";
   if (status === "issued") {
-    return type === "order_form" ? "Confirmé" : "Émise";
+    return type === "order_form" ? "Confirmé" : "Émis";
   }
   if (status === "paid") return "Payée";
   return status;
+}
+
+function invoiceIdFromRegistry(document: DocumentRegistryRow): string | null {
+  const value = document.metadata?.invoice_id;
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return String(value);
+  return document.source_table === "invoices" ? document.source_id : null;
 }
 
 export default async function ProfileDocumentsPage() {
@@ -76,13 +82,23 @@ export default async function ProfileDocumentsPage() {
 
   if (!authData.user) redirect("/");
 
-  const modern = await (supabase as any)
-    .from("invoices")
-    .select(
-      "id,invoice_number,status,amount,issued_at,download_url,order_id,document_type,document_title,license_status",
-    )
-    .eq("user_id", authData.user.id)
-    .order("issued_at", { ascending: false });
+  const [modern, registryResult] = await Promise.all([
+    (supabase as any)
+      .from("invoices")
+      .select(
+        "id,invoice_number,status,amount,issued_at,download_url,order_id,document_type,document_title,license_status",
+      )
+      .eq("user_id", authData.user.id)
+      .order("issued_at", { ascending: false }),
+    (supabase as any)
+      .from("nostra_document_registry")
+      .select(
+        "id,verification_code,document_number,owner_user_id,citizen_name,document_type,document_title,source_table,source_id,status,issued_at,expires_at,signable,signature_status,signed_at,signed_by,signer_name,metadata",
+      )
+      .eq("owner_user_id", authData.user.id)
+      .order("issued_at", { ascending: false })
+      .limit(1000),
+  ]);
 
   let documents: DocumentRow[] = [];
 
@@ -95,13 +111,32 @@ export default async function ProfileDocumentsPage() {
       .eq("user_id", authData.user.id)
       .order("issued_at", { ascending: false });
 
-    documents = (legacy.data ?? []).map((row) => ({
+    documents = (legacy.data ?? []).map((row: {
+      id: number;
+      invoice_number: string;
+      status: string;
+      amount: number | string;
+      issued_at: string;
+      download_url: string | null;
+    }) => ({
       ...row,
       order_id: null,
-      document_type: "invoice" as const,
+      document_type: "invoice",
       document_title: "Facture Nostra Group",
       license_status: null,
     }));
+  }
+
+  const registry = !registryResult.error
+    ? ((registryResult.data ?? []) as DocumentRegistryRow[])
+    : [];
+  const registryByInvoice = new Map<string, DocumentRegistryRow>();
+
+  for (const item of registry) {
+    const invoiceId = invoiceIdFromRegistry(item);
+    if (invoiceId && !registryByInvoice.has(invoiceId)) {
+      registryByInvoice.set(invoiceId, item);
+    }
   }
 
   return (
@@ -109,13 +144,13 @@ export default async function ProfileDocumentsPage() {
       <ProfileSectionHeader
         eyebrow="ESPACE DOCUMENTAIRE"
         title="Documents & factures"
-        description="Retrouve tes bons de commande, factures, demandes et licences officielles. Tu peux supprimer individuellement les documents que tu ne souhaites plus conserver."
+        description="Retrouve, vérifie et signe tes bons de commande, factures, certificats, contrats et licences officielles. Les achats gagnés dans les jeux ne demandent pas de signature."
       />
 
       <section className="profile-data-section profile-standalone-section">
         <div className="profile-data-heading">
           <div>
-            <p className="eyebrow">DOCUMENTS AUTOMATIQUES</p>
+            <p className="eyebrow">DOCUMENTS OFFICIELS</p>
             <h2>Mes documents</h2>
           </div>
           <span>{documents.length}</span>
@@ -131,13 +166,14 @@ export default async function ProfileDocumentsPage() {
                 <th>Statut</th>
                 <th>Montant</th>
                 <th>Document</th>
+                <th>QR & signature</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {documents.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="empty-table-cell">
+                  <td colSpan={8} className="empty-table-cell">
                     Aucun document disponible.
                   </td>
                 </tr>
@@ -147,17 +183,13 @@ export default async function ProfileDocumentsPage() {
                 const documentHref = document.download_url?.startsWith("/")
                   ? document.download_url
                   : `/profil/documents/${document.id}`;
+                const registryDocument =
+                  registryByInvoice.get(String(document.id)) ?? null;
 
                 return (
                   <tr key={document.id}>
                     <td>
                       <strong>{documentLabel(document)}</strong>
-                      {document.document_title &&
-                      document.document_title !== documentLabel(document) ? (
-                        <small className="order-client-note">
-                          {document.document_title}
-                        </small>
-                      ) : null}
                     </td>
                     <td>{document.invoice_number}</td>
                     <td>
@@ -189,6 +221,9 @@ export default async function ProfileDocumentsPage() {
                           </a>
                         </>
                       )}
+                    </td>
+                    <td>
+                      <ProfileDocumentActions document={registryDocument} />
                     </td>
                     <td>
                       <DeleteProfileDocumentButton documentId={document.id} />

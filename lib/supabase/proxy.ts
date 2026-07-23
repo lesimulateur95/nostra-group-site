@@ -106,6 +106,8 @@ export async function updateSession(request: NextRequest) {
   const isPublic =
     path === "/" ||
     path.startsWith("/auth/") ||
+    path === "/verification" ||
+    path.startsWith("/verification/") ||
     path === "/maintenance" ||
     path === "/compte-bloque";
   const isProfilePage = path === "/profil" || path.startsWith("/profil/");

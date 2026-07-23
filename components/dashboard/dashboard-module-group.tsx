@@ -4,6 +4,7 @@ import { DashboardAuctionCard } from "@/components/auctions/dashboard-auction-ca
 import { DashboardCard } from "@/components/dashboard/dashboard-card";
 import { DirectionMotorsCards } from "@/components/dashboard/direction-motors-cards";
 import { DashboardOperationsV50Cards } from "@/components/dashboard/dashboard-operations-v50-cards";
+import { DashboardSignedDocumentsCard } from "@/components/documents/dashboard-signed-documents-card";
 import { DashboardFortuneCard } from "@/components/fortune/dashboard-fortune-card";
 import { DashboardLoyaltyCard } from "@/components/loyalty/dashboard-loyalty-card";
 import { DashboardLicenseAdminCard } from "@/components/licenses/dashboard-license-admin-card";
@@ -69,6 +70,7 @@ export function DashboardModuleGroup({
             <DashboardOperationsV50Cards />
             <DashboardLicenseAdminCard />
             {children}
+            <DashboardSignedDocumentsCard />
           </div>
         ) : (
           <>
@@ -93,10 +95,10 @@ export function DashboardModuleGroup({
                 </div>
                 <div className="dashboard-module-grid dashboard-module-grid-grouped">
                   <DashboardCard
-                    href="/dashboard/securite?onglet=permissions"
+                    href="/dashboard/permissions"
                     icon="🔐"
                     title="Permissions des pages"
-                    description="Choisir directement les pages accessibles à chaque rôle du site."
+                    description="Modifier directement les pages accessibles à chaque rôle du site."
                   />
                 </div>
                 <div className="dashboard-module-grid dashboard-module-grid-grouped">
@@ -104,7 +106,7 @@ export function DashboardModuleGroup({
                     href="/dashboard/securite"
                     icon="🛡️"
                     title="Sécurité & administration"
-                    description="Gérer la maintenance, les comptes bloqués, la corbeille, les sauvegardes et les historiques."
+                    description="Corbeille, sauvegardes, connexions, comptes bloqués et mode maintenance."
                   />
                 </div>
               </>

@@ -1,0 +1,214 @@
+.page {
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 42px 0 70px;
+  color: #fff;
+}
+
+.topbar {
+  margin-bottom: 18px;
+}
+
+.topbar a {
+  color: #f3d35c;
+  text-decoration: none;
+  font-weight: 800;
+}
+
+.hero,
+.card,
+.qrCard {
+  border: 1px solid rgba(213, 173, 45, 0.45);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at top right, rgba(213, 173, 45, 0.12), transparent 43%),
+    #0a0a0a;
+}
+
+.hero {
+  padding: clamp(24px, 4vw, 42px);
+  margin-bottom: 22px;
+}
+
+.hero p,
+.qrCard > p {
+  margin: 0 0 7px;
+  color: #f3d35c;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.13em;
+}
+
+.hero h1 {
+  margin: 0 0 9px;
+  font-size: clamp(2rem, 5vw, 3.9rem);
+  line-height: 1;
+}
+
+.hero span {
+  color: #c9c9c9;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.error,
+.success {
+  margin-bottom: 20px;
+  padding: 15px 18px;
+  border-radius: 14px;
+  font-weight: 700;
+}
+
+.error {
+  border: 1px solid rgba(255, 82, 82, 0.65);
+  background: rgba(113, 18, 18, 0.38);
+  color: #ffb1b1;
+}
+
+.success {
+  border: 1px solid rgba(70, 205, 117, 0.65);
+  background: rgba(18, 95, 50, 0.35);
+  color: #9ef4bc;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(300px, 0.8fr);
+  gap: 22px;
+  align-items: start;
+}
+
+.card,
+.qrCard {
+  padding: clamp(22px, 3vw, 32px);
+}
+
+.card h2,
+.qrCard h2 {
+  margin: 0 0 22px;
+  font-size: 1.55rem;
+}
+
+.details {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.details > div {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.details dt {
+  color: #969696;
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.details dd {
+  margin: 5px 0 0;
+  font-weight: 750;
+  overflow-wrap: anywhere;
+}
+
+.signedBlock,
+.information {
+  margin-top: 18px;
+  padding: 16px;
+  border-radius: 14px;
+}
+
+.signedBlock {
+  display: grid;
+  gap: 4px;
+  border: 1px solid rgba(70, 205, 117, 0.45);
+  background: rgba(18, 95, 50, 0.28);
+  color: #a8f4c0;
+}
+
+.information {
+  border: 1px solid rgba(213, 173, 45, 0.34);
+  background: rgba(213, 173, 45, 0.08);
+  color: #e8ddba;
+}
+
+.form {
+  margin-top: 22px;
+  display: grid;
+  gap: 18px;
+}
+
+.form > label:not(.consent) {
+  display: grid;
+  gap: 8px;
+  font-weight: 800;
+}
+
+.form input[type="text"],
+.form input:not([type]) {
+  width: 100%;
+}
+
+.form input[type="text"],
+.form input[name="signer_name"] {
+  padding: 14px 15px;
+  border: 1px solid rgba(213, 173, 45, 0.42);
+  border-radius: 12px;
+  background: #050505;
+  color: #fff;
+  font: inherit;
+}
+
+.consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  color: #d1d1d1;
+  line-height: 1.45;
+}
+
+.consent input {
+  width: 19px;
+  height: 19px;
+  margin-top: 2px;
+  accent-color: #d5ad2d;
+  flex: 0 0 auto;
+}
+
+.form button {
+  min-height: 52px;
+  border: 0;
+  border-radius: 13px;
+  background: linear-gradient(135deg, #f6d764, #c99a16);
+  color: #070707;
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.qrCard small {
+  display: block;
+  margin-top: 18px;
+  color: #adadad;
+  line-height: 1.5;
+}
+
+@media (max-width: 860px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 580px) {
+  .details {
+    grid-template-columns: 1fr;
+  }
+}

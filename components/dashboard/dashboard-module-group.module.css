@@ -6,7 +6,9 @@
 }
 
 /* Tous les blocs internes participent à une seule grille Direction. */
-.directionGrid > :global(.dashboard-module-grid) {
+.directionGrid > :global(.dashboard-module-grid),
+.directionGrid > :global(.dashboard-license-admin-card-grid),
+.directionGrid > :global(.dashboard-signed-documents-card-grid) {
   display: contents;
   margin: 0 !important;
 }
@@ -69,28 +71,37 @@
 }
 
 .directionGrid
-  > :global(.dashboard-module-grid:last-child)
+  > :global(.dashboard-module-grid:nth-child(5))
   > :global(.dashboard-card:nth-child(1)) {
   order: 9;
 }
 
 /* Ligne 4 : état, comptabilité, événements. */
 .directionGrid
-  > :global(.dashboard-module-grid:last-child)
+  > :global(.dashboard-module-grid:nth-child(5))
   > :global(.dashboard-card:nth-child(2)) {
   order: 10;
 }
 
 .directionGrid
-  > :global(.dashboard-module-grid:last-child)
+  > :global(.dashboard-module-grid:nth-child(5))
   > :global(.dashboard-card:nth-child(3)) {
   order: 11;
 }
 
 .directionGrid
-  > :global(.dashboard-module-grid:last-child)
+  > :global(.dashboard-module-grid:nth-child(5))
   > :global(.dashboard-card:nth-child(4)) {
   order: 12;
+}
+
+/* Le stock signé termine la section sur toute la largeur, sans créer de trou. */
+.directionGrid
+  > :global(.dashboard-signed-documents-card-grid)
+  > :global(.dashboard-card) {
+  order: 13;
+  grid-column: 1 / -1;
+  min-height: 155px;
 }
 
 /* Jeux : les six cartes restent rangées en trois lignes de deux cartes. */
@@ -141,6 +152,12 @@
   .gamesGrid,
   .siteMembersGrid {
     grid-template-columns: 1fr;
+  }
+
+  .directionGrid
+    > :global(.dashboard-signed-documents-card-grid)
+    > :global(.dashboard-card) {
+    grid-column: auto;
   }
 
   .directionGrid :global(.dashboard-card) {

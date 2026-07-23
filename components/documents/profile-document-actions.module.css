@@ -1,0 +1,56 @@
+.root {
+  min-width: 138px;
+  display: grid;
+  justify-items: start;
+  gap: 7px;
+}
+
+.verify,
+.sign {
+  text-decoration: none;
+  font-weight: 850;
+}
+
+.verify {
+  color: #e4c457;
+}
+
+.sign {
+  padding: 7px 11px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #f0d15d, #bd8e13);
+  color: #080808;
+}
+
+.status,
+.signature,
+.pendingSetup {
+  display: inline-flex;
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.status[data-status="valid"],
+.signature[data-signature="signed"] {
+  background: rgba(56, 190, 101, 0.16);
+  color: #8cebad;
+}
+
+.status[data-status="expired"],
+.signature[data-signature="pending"] {
+  background: rgba(213, 173, 45, 0.14);
+  color: #e6cb70;
+}
+
+.status[data-status="cancelled"] {
+  background: rgba(220, 72, 72, 0.17);
+  color: #ff9d9d;
+}
+
+.signature[data-signature="not_required"],
+.pendingSetup {
+  background: rgba(255, 255, 255, 0.07);
+  color: #aaa;
+}
