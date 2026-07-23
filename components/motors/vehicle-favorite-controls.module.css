@@ -1,0 +1,79 @@
+.wrapper {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.favoriteButton {
+  display: inline-flex;
+  min-height: 42px;
+  width: fit-content;
+  max-width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 14px;
+  border: 1px solid rgba(222, 187, 59, 0.43);
+  border-radius: 10px;
+  background: rgba(212, 175, 55, 0.08);
+  color: #edce61;
+  font: inherit;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.favoriteButtonActive {
+  background: rgba(212, 175, 55, 0.2);
+  color: #ffe37a;
+}
+
+.favoriteButton:disabled {
+  cursor: wait;
+  opacity: 0.58;
+}
+
+.alertControl {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  gap: 9px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.025);
+  color: #c7cbd1;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.alertControl input {
+  width: 17px;
+  height: 17px;
+  accent-color: #d8b637;
+}
+
+.alertControl input:disabled {
+  cursor: wait;
+}
+
+.message {
+  margin: 0;
+  color: #c6cbd2;
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+@media (max-width: 700px) {
+  .actions,
+  .favoriteButton,
+  .alertControl {
+    width: 100%;
+  }
+}

@@ -1,4 +1,3 @@
-
 import { createClient } from "@/lib/supabase/server";
 
 export const DISPLAYED_NOTIFICATION_TYPES = [
@@ -10,6 +9,7 @@ export const DISPLAYED_NOTIFICATION_TYPES = [
   "reservation",
   "invoice",
   "loyalty",
+  "general",
   "mail",
 ] as const;
 
@@ -59,7 +59,6 @@ export async function getOwnNotifications(
   notifications: UserNotification[];
 }> {
   const supabase = await createClient();
-
   let query = supabase
     .from("user_notifications")
     .select(
@@ -73,7 +72,6 @@ export async function getOwnNotifications(
   if (unreadOnly) query = query.is("read_at", null);
 
   const { data, error } = await query;
-
   return {
     configured: !error,
     notifications: (data ?? []) as UserNotification[],
