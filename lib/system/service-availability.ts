@@ -2,9 +2,20 @@ import { createClient } from "@/lib/supabase/server";
 
 export const MASTER_SERVICE_KEY = "circuit_services_master" as const;
 
+export const PILOT_LICENSE_SERVICE_KEYS = [
+  "circuit_license_pilot",
+  "circuit_license_gt3rs",
+  "circuit_license_f1",
+] as const;
+
+export type PilotLicenseServiceKey =
+  (typeof PILOT_LICENSE_SERVICE_KEYS)[number];
+
 export const SERVICE_KEYS = [
   MASTER_SERVICE_KEY,
+  // Ancienne clé conservée pour compatibilité avec les anciennes pages/entrées SQL.
   "circuit_license_payments",
+  ...PILOT_LICENSE_SERVICE_KEYS,
   "circuit_vehicle_homologations",
   "circuit_team_homologations",
   "circuit_team_creation",
@@ -50,6 +61,9 @@ type ServiceRow = {
   reopens_at?: unknown;
 };
 
+const LICENSE_PUBLIC_PATH =
+  "/circuit/administration-sportive/payer-ma-licence";
+
 export const SERVICE_DEFINITIONS: Record<ServiceKey, ServiceDefinition> = {
   circuit_services_master: {
     serviceKey: "circuit_services_master",
@@ -61,9 +75,31 @@ export const SERVICE_DEFINITIONS: Record<ServiceKey, ServiceDefinition> = {
   },
   circuit_license_payments: {
     serviceKey: "circuit_license_payments",
-    label: "Paiement des licences",
+    label: "Paiement des licences — ancien réglage global",
     closedMessage: "Le paiement des licences est actuellement clôturé.",
-    publicPath: "/circuit/administration-sportive/payer-ma-licence",
+    publicPath: LICENSE_PUBLIC_PATH,
+    isMaster: false,
+  },
+  circuit_license_pilot: {
+    serviceKey: "circuit_license_pilot",
+    label: "Achat de la licence pilote / Circuit",
+    closedMessage:
+      "L’achat de la licence pilote / Circuit est actuellement clôturé.",
+    publicPath: LICENSE_PUBLIC_PATH,
+    isMaster: false,
+  },
+  circuit_license_gt3rs: {
+    serviceKey: "circuit_license_gt3rs",
+    label: "Achat de la licence GT3 RS",
+    closedMessage: "L’achat de la licence GT3 RS est actuellement clôturé.",
+    publicPath: LICENSE_PUBLIC_PATH,
+    isMaster: false,
+  },
+  circuit_license_f1: {
+    serviceKey: "circuit_license_f1",
+    label: "Achat de la licence F1",
+    closedMessage: "L’achat de la licence F1 est actuellement clôturé.",
+    publicPath: LICENSE_PUBLIC_PATH,
     isMaster: false,
   },
   circuit_vehicle_homologations: {
@@ -91,6 +127,19 @@ export const SERVICE_DEFINITIONS: Record<ServiceKey, ServiceDefinition> = {
   },
 };
 
+export function getPilotLicenseServiceKey(
+  licenseCode: string,
+): PilotLicenseServiceKey {
+  const normalizedCode = licenseCode
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "");
+
+  if (normalizedCode === "F1") return "circuit_license_f1";
+  if (normalizedCode.includes("GT3")) return "circuit_license_gt3rs";
+  return "circuit_license_pilot";
+}
+
 function stringValue(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
@@ -98,7 +147,6 @@ function stringValue(value: unknown): string | null {
 function nullableDateValue(value: unknown): string | null {
   const raw = stringValue(value);
   if (!raw) return null;
-
   const parsed = new Date(raw);
   return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
 }
@@ -142,7 +190,6 @@ export async function getServiceAvailabilities(
   const uniqueKeys = Array.from(
     new Set<ServiceKey>([MASTER_SERVICE_KEY, ...serviceKeys]),
   );
-
   const rows = new Map<ServiceKey, ServiceRow>();
 
   try {
@@ -160,8 +207,8 @@ export async function getServiceAvailabilities(
       }
     }
   } catch {
-    // Les valeurs par défaut gardent le site utilisable si la migration SQL
-    // n'a pas encore été exécutée.
+    // Les valeurs par défaut gardent le site utilisable si le SQL
+    // n'a pas encore été exécuté.
   }
 
   const masterDefinition = SERVICE_DEFINITIONS[MASTER_SERVICE_KEY];
@@ -258,7 +305,8 @@ export async function getServiceAvailabilityHistory(
             stringValue(row.closed_message) ?? definition.closedMessage,
           reopensAt: nullableDateValue(row.reopens_at),
           changedAt,
-          changedByName: stringValue(row.changed_by_name) ?? "Direction Nostra",
+          changedByName:
+            stringValue(row.changed_by_name) ?? "Direction Nostra",
         },
       ];
     });
