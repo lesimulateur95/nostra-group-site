@@ -1,3 +1,5 @@
+import { after } from "next/server";
+
 import { createClient } from "@/lib/supabase/server";
 
 export type DisciplineActionType =
@@ -77,10 +79,6 @@ function stringOrNull(value: unknown): string | null {
 }
 
 function actionFromRow(row: UnknownRow): CircuitDisciplinaryAction {
-  const actionType = String(row.action_type ?? "warning") as DisciplineActionType;
-  const severity = String(row.severity ?? "minor") as DisciplineSeverity;
-  const status = String(row.status ?? "active") as DisciplineStatus;
-
   return {
     id: Number(row.id ?? 0),
     caseNumber: String(row.case_number ?? ""),
@@ -89,8 +87,8 @@ function actionFromRow(row: UnknownRow): CircuitDisciplinaryAction {
     licenceName: String(row.licence_name ?? "Licence pilote"),
     holderUserId: String(row.holder_user_id ?? ""),
     holderName: String(row.holder_name ?? "Pilote"),
-    actionType,
-    severity,
+    actionType: String(row.action_type ?? "warning") as DisciplineActionType,
+    severity: String(row.severity ?? "minor") as DisciplineSeverity,
     reason: String(row.reason ?? ""),
     eventName: stringOrNull(row.event_name),
     note: stringOrNull(row.note),
@@ -98,7 +96,7 @@ function actionFromRow(row: UnknownRow): CircuitDisciplinaryAction {
     pointsRemoved: Number(row.points_removed ?? 0),
     suspensionStartsOn: stringOrNull(row.suspension_starts_on),
     suspensionEndsOn: stringOrNull(row.suspension_ends_on),
-    status,
+    status: String(row.status ?? "active") as DisciplineStatus,
     issuedByName: String(row.issued_by_name ?? "Direction Nostra Circuit"),
     issuedAt: String(row.issued_at ?? ""),
     completedAt: stringOrNull(row.completed_at),
@@ -117,7 +115,9 @@ function historyFromRow(row: UnknownRow): CircuitDisciplineHistoryEntry {
     holderUserId: String(row.holder_user_id ?? ""),
     holderName: String(row.holder_name ?? "Pilote"),
     actionType: String(row.action_type ?? "warning") as DisciplineActionType,
-    eventType: String(row.event_type ?? "created") as CircuitDisciplineHistoryEntry["eventType"],
+    eventType: String(
+      row.event_type ?? "created",
+    ) as CircuitDisciplineHistoryEntry["eventType"],
     reason: stringOrNull(row.reason),
     changedByName: String(row.changed_by_name ?? "Direction Nostra Circuit"),
     createdAt: String(row.created_at ?? ""),
@@ -138,25 +138,46 @@ function isCurrentSuspension(action: CircuitDisciplinaryAction): boolean {
   return today >= action.suspensionStartsOn && today <= action.suspensionEndsOn;
 }
 
+/**
+ * Ancienne version : chaque licence rescannait toute la liste des sanctions.
+ * Nouvelle version : les sanctions sont regroupées une seule fois par licence.
+ */
 function buildLicences(
   rows: UnknownRow[],
   actions: CircuitDisciplinaryAction[],
 ): CircuitDisciplineLicence[] {
+  const actionsByLicence = new Map<string, CircuitDisciplinaryAction[]>();
+
+  for (const action of actions) {
+    const current = actionsByLicence.get(action.licenceId);
+    if (current) current.push(action);
+    else actionsByLicence.set(action.licenceId, [action]);
+  }
+
   return rows.map((row) => {
     const id = String(row.id ?? "");
-    const licenceActions = actions.filter((action) => action.licenceId === id);
-    const pointsRemoved = licenceActions
-      .filter(
-        (action) =>
-          action.actionType === "points_deduction" &&
-          action.status !== "cancelled",
-      )
-      .reduce((total, action) => total + action.pointsRemoved, 0);
-    const currentSuspension =
-      licenceActions.find((action) => isCurrentSuspension(action)) ?? null;
-    const activeActions = licenceActions.filter(
-      (action) => action.status === "active" || isCurrentSuspension(action),
-    ).length;
+    const licenceActions = actionsByLicence.get(id) ?? [];
+    let pointsRemoved = 0;
+    let activeActions = 0;
+    let currentSuspension: CircuitDisciplinaryAction | null = null;
+
+    for (const action of licenceActions) {
+      if (
+        action.actionType === "points_deduction" &&
+        action.status !== "cancelled"
+      ) {
+        pointsRemoved += action.pointsRemoved;
+      }
+
+      const activeSuspension = isCurrentSuspension(action);
+      if (!currentSuspension && activeSuspension) {
+        currentSuspension = action;
+      }
+
+      if (action.status === "active" || activeSuspension) {
+        activeActions += 1;
+      }
+    }
 
     return {
       id,
@@ -174,13 +195,26 @@ function buildLicences(
   });
 }
 
-async function fetchDisciplineData(userId?: string): Promise<CircuitDisciplineData> {
+function scheduleExpiredSuspensionRefresh(supabase: any): void {
+  after(async () => {
+    try {
+      await supabase.rpc(
+        "nostra_refresh_expired_disciplinary_suspensions",
+      );
+    } catch {
+      // La maintenance ne doit jamais bloquer l'affichage d'une page.
+    }
+  });
+}
+
+async function fetchDisciplineData(
+  userId?: string,
+): Promise<CircuitDisciplineData> {
   try {
     const supabase = await createClient();
 
-    await (supabase as any).rpc(
-      "nostra_refresh_expired_disciplinary_suspensions",
-    );
+    // La clôture automatique est conservée, mais elle s'exécute après la réponse.
+    scheduleExpiredSuspensionRefresh(supabase);
 
     let actionsQuery = (supabase as any)
       .from("nostra_circuit_disciplinary_actions")
@@ -202,7 +236,7 @@ async function fetchDisciplineData(userId?: string): Promise<CircuitDisciplineDa
         "id,action_id,case_number,licence_number,holder_user_id,holder_name,action_type,event_type,reason,changed_by_name,created_at",
       )
       .order("created_at", { ascending: false })
-      .limit(300);
+      .limit(200);
 
     if (userId) {
       actionsQuery = actionsQuery.eq("holder_user_id", userId);
@@ -216,7 +250,7 @@ async function fetchDisciplineData(userId?: string): Promise<CircuitDisciplineDa
       historyQuery,
     ]);
 
-    if (actionsResult.error) {
+    if (actionsResult.error || licencesResult.error) {
       return { configured: false, licences: [], actions: [], history: [] };
     }
 

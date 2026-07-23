@@ -1,12 +1,18 @@
+import { Suspense } from "react";
 import Link from "next/link";
 
-import { HomeReviews } from "@/components/reviews/home-reviews";
+import { CommissionerPortalCard } from "@/components/home/commissioner-portal-card";
+import { HomeReviewsLoader } from "@/components/reviews/home-reviews-loader";
 import { Topbar } from "@/components/site/topbar";
-import { getUserRoleKeys } from "@/lib/auth/access";
-import { getHomeReviewsData } from "@/lib/reviews/data";
-import { createClient } from "@/lib/supabase/server";
 
-const publicPortals = [
+type Portal = {
+  href: string;
+  kicker: string;
+  title: string;
+  description: string;
+};
+
+const publicPortals: Portal[] = [
   {
     href: "/motors",
     kicker: "AUTOMOBILE",
@@ -37,7 +43,7 @@ const publicPortals = [
   },
 ];
 
-const motorsServicePortals = [
+const motorsServicePortals: Portal[] = [
   {
     href: "/motors/rendez-vous",
     kicker: "SERVICE CLIENT",
@@ -54,13 +60,19 @@ const motorsServicePortals = [
   },
 ];
 
-const commissionerPortal = {
-  href: "/commissaires",
-  kicker: "ACCÈS RÉSERVÉ",
-  title: "ESPACE COMMISSAIRES",
-  description:
-    "Règlement, planning de course en direct et rapports d’incident du Nostra Circuit.",
-};
+function PortalCard({
+  portal,
+}: {
+  portal: Portal;
+}) {
+  return (
+    <Link href={portal.href} className="portal-card">
+      <span className="portal-kicker">{portal.kicker}</span>
+      <h2 className="portal-title">{portal.title}</h2>
+      <p className="portal-desc">{portal.description}</p>
+    </Link>
+  );
+}
 
 export default async function HomePage({
   searchParams,
@@ -71,70 +83,39 @@ export default async function HomePage({
     review_error?: string;
   }>;
 }) {
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getUser();
-
-  const [roles, reviews, params] = await Promise.all([
-    getUserRoleKeys(data.user),
-    getHomeReviewsData(),
-    searchParams,
-  ]);
-
-  const hasCommissionerPortal =
-    roles.includes("manager") ||
-    roles.includes("commissioner");
-
-  const portals = hasCommissionerPortal
-    ? [
-        ...publicPortals,
-        commissionerPortal,
-        ...motorsServicePortals,
-      ]
-    : [...publicPortals, ...motorsServicePortals];
+  const params = await searchParams;
 
   return (
     <div className="site-shell">
       <Topbar />
-
       <main className="home-main">
-        <p className="eyebrow">
-          Universe Life · Saint-Martin V2
-        </p>
-
+        <p className="eyebrow">Universe Life · Saint-Martin V2</p>
         <h1 className="home-title">Nostra Group</h1>
-
         <p className="home-sub">
           Choisissez l’espace que vous souhaitez ouvrir.
         </p>
 
         <section className="portal-grid">
-          {portals.map((portal) => (
-            <Link
-              href={portal.href}
-              className="portal-card"
-              key={portal.href}
-            >
-              <span className="portal-kicker">
-                {portal.kicker}
-              </span>
+          {publicPortals.map((portal) => (
+            <PortalCard portal={portal} key={portal.href} />
+          ))}
 
-              <h2 className="portal-title">
-                {portal.title}
-              </h2>
+          <Suspense fallback={null}>
+            <CommissionerPortalCard />
+          </Suspense>
 
-              <p className="portal-desc">
-                {portal.description}
-              </p>
-            </Link>
+          {motorsServicePortals.map((portal) => (
+            <PortalCard portal={portal} key={portal.href} />
           ))}
         </section>
 
-        <HomeReviews
-          initialData={reviews}
-          saved={Boolean(params.review_saved)}
-          deleted={Boolean(params.review_deleted)}
-          error={params.review_error ?? null}
-        />
+        <Suspense fallback={null}>
+          <HomeReviewsLoader
+            saved={Boolean(params.review_saved)}
+            deleted={Boolean(params.review_deleted)}
+            error={params.review_error ?? null}
+          />
+        </Suspense>
       </main>
     </div>
   );

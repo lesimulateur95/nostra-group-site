@@ -1,28 +1,25 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 
-import { StaffNotificationCenter } from "@/components/notifications/staff-notification-center";
+import { StaffNotificationLoader } from "@/components/notifications/staff-notification-loader";
 import { DeletionReasonGuard } from "@/components/security/deletion-reason-guard";
-import { getUserRoleKeys } from "@/lib/auth/access";
-import { hasStaffNotificationAccess } from "@/lib/notifications/staff-data";
-import { createClient } from "@/lib/supabase/server";
+import { getRequestUser } from "@/lib/auth/request-context";
 
 export default async function ProtectedLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getUser();
+  const user = await getRequestUser();
 
-  if (!data.user) redirect("/");
-
-  const roles = await getUserRoleKeys(data.user);
-  const showStaffNotifications = hasStaffNotificationAccess(roles);
+  if (!user) redirect("/");
 
   return (
     <>
       {children}
-      {showStaffNotifications && <StaffNotificationCenter />}
+      <Suspense fallback={null}>
+        <StaffNotificationLoader />
+      </Suspense>
       <DeletionReasonGuard />
     </>
   );

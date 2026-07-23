@@ -1,22 +1,35 @@
-
 import { createClient } from "@/lib/supabase/server";
+
 import type {
   HomeReview,
   HomeReviewsData,
 } from "@/lib/reviews/types";
 
-export async function getHomeReviewsData(): Promise<HomeReviewsData> {
-  const supabase = await createClient();
-  const { data: authData } = await supabase.auth.getUser();
+const EMPTY_REVIEWS: HomeReviewsData = {
+  configured: false,
+  reviews: [],
+  total: 0,
+  average: 0,
+  current_user_review: null,
+};
 
-  if (!authData.user) {
-    return {
-      configured: false,
-      reviews: [],
-      total: 0,
-      average: 0,
-      current_user_review: null,
-    };
+/**
+ * userId est optionnel pour conserver la compatibilité avec les autres pages.
+ * Sur l'accueil, il est fourni afin d'éviter une nouvelle requête auth.getUser().
+ */
+export async function getHomeReviewsData(
+  userId?: string | null,
+): Promise<HomeReviewsData> {
+  const supabase = await createClient();
+  let resolvedUserId = userId ?? null;
+
+  if (!resolvedUserId) {
+    const { data: authData } = await supabase.auth.getUser();
+    resolvedUserId = authData.user?.id ?? null;
+  }
+
+  if (!resolvedUserId) {
+    return EMPTY_REVIEWS;
   }
 
   const { data, error } = await supabase
@@ -28,13 +41,7 @@ export async function getHomeReviewsData(): Promise<HomeReviewsData> {
     .limit(100);
 
   if (error) {
-    return {
-      configured: false,
-      reviews: [],
-      total: 0,
-      average: 0,
-      current_user_review: null,
-    };
+    return EMPTY_REVIEWS;
   }
 
   const reviews = (data ?? []) as HomeReview[];
@@ -53,8 +60,6 @@ export async function getHomeReviewsData(): Promise<HomeReviewsData> {
     total,
     average,
     current_user_review:
-      reviews.find(
-        (review) => review.user_id === authData.user.id,
-      ) ?? null,
+      reviews.find((review) => review.user_id === resolvedUserId) ?? null,
   };
 }
