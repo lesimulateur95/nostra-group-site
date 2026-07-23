@@ -1,34 +1,134 @@
 "use client";
 
-import { useState } from "react";
+import { type ChangeEvent, useMemo, useState } from "react";
 
 import { createCircuitDisciplinaryAction } from "@/app/actions/circuit-discipline";
-import type { CircuitDisciplineLicence, DisciplineActionType } from "@/lib/discipline/data";
+import type {
+  CircuitDisciplineLicence,
+  DisciplineActionType,
+} from "@/lib/discipline/data";
 
 import styles from "./discipline-form.module.css";
+
+type CitizenOption = {
+  id: string;
+  name: string;
+  licenceCount: number;
+};
+
+function citizenKey(licence: CircuitDisciplineLicence): string {
+  return licence.holderUserId || `licence:${licence.id}`;
+}
 
 export function DisciplineForm({
   licences,
 }: {
   licences: CircuitDisciplineLicence[];
 }) {
-  const [actionType, setActionType] = useState<DisciplineActionType>("warning");
+  const [actionType, setActionType] =
+    useState<DisciplineActionType>("warning");
+  const [selectedCitizenId, setSelectedCitizenId] = useState("");
+  const [selectedLicenceId, setSelectedLicenceId] = useState("");
+
+  const citizens = useMemo<CitizenOption[]>(() => {
+    const byCitizen = new Map<string, CitizenOption>();
+
+    for (const licence of licences) {
+      const id = citizenKey(licence);
+      const existing = byCitizen.get(id);
+
+      if (existing) {
+        existing.licenceCount += 1;
+        continue;
+      }
+
+      byCitizen.set(id, {
+        id,
+        name: licence.holderName,
+        licenceCount: 1,
+      });
+    }
+
+    return Array.from(byCitizen.values()).sort((first, second) =>
+      first.name.localeCompare(second.name, "fr", { sensitivity: "base" }),
+    );
+  }, [licences]);
+
+  const citizenLicences = useMemo(
+    () =>
+      licences.filter(
+        (licence) => citizenKey(licence) === selectedCitizenId,
+      ),
+    [licences, selectedCitizenId],
+  );
+
+  function handleCitizenChange(value: string) {
+    setSelectedCitizenId(value);
+
+    const matchingLicences = licences.filter(
+      (licence) => citizenKey(licence) === value,
+    );
+
+    setSelectedLicenceId(
+      matchingLicences.length === 1 ? matchingLicences[0].id : "",
+    );
+  }
 
   return (
     <form action={createCircuitDisciplinaryAction} className={styles.form}>
       <div className={styles.grid}>
         <label>
-          <span>Licence concernée</span>
-          <select name="licence_id" required defaultValue="">
+          <span>Citoyen concerné</span>
+          <select
+            name="holder_user_id"
+            required
+            value={selectedCitizenId}
+            onChange={(event: ChangeEvent<HTMLSelectElement>) =>
+              handleCitizenChange(event.target.value)
+            }
+          >
             <option value="" disabled>
-              Choisir une licence
+              Choisir un citoyen
             </option>
-            {licences.map((licence) => (
-              <option value={licence.id} key={licence.id}>
-                {licence.holderName} · {licence.licenceNumber} · {licence.licenceName}
+            {citizens.map((citizen) => (
+              <option value={citizen.id} key={citizen.id}>
+                {citizen.name} · {citizen.licenceCount} licence
+                {citizen.licenceCount > 1 ? "s" : ""}
               </option>
             ))}
           </select>
+          <small>
+            Seuls les citoyens possédant au moins une licence Nostra Circuit
+            apparaissent ici.
+          </small>
+        </label>
+
+        <label>
+          <span>Licence concernée</span>
+          <select
+            name="licence_id"
+            required
+            disabled={!selectedCitizenId}
+            value={selectedLicenceId}
+            onChange={(event: ChangeEvent<HTMLSelectElement>) =>
+              setSelectedLicenceId(event.target.value)
+            }
+          >
+            <option value="" disabled>
+              {selectedCitizenId
+                ? "Choisir la licence concernée"
+                : "Choisir d’abord un citoyen"}
+            </option>
+            {citizenLicences.map((licence) => (
+              <option value={licence.id} key={licence.id}>
+                {licence.licenceNumber} · {licence.licenceName}
+              </option>
+            ))}
+          </select>
+          <small>
+            La licence est sélectionnée automatiquement lorsque le citoyen
+            n’en possède qu’une seule.
+          </small>
         </label>
 
         <label>
@@ -36,7 +136,7 @@ export function DisciplineForm({
           <select
             name="action_type"
             value={actionType}
-            onChange={(event) =>
+            onChange={(event: ChangeEvent<HTMLSelectElement>) =>
               setActionType(event.target.value as DisciplineActionType)
             }
           >
@@ -56,7 +156,7 @@ export function DisciplineForm({
           </select>
         </label>
 
-        <label>
+        <label className={styles.fullWidthField}>
           <span>Course ou événement concerné</span>
           <input
             name="event_name"
@@ -76,7 +176,9 @@ export function DisciplineForm({
             step="1000"
             defaultValue="0"
           />
-          <small>Laisse 0 pour une pénalité sportive sans montant financier.</small>
+          <small>
+            Laisse 0 pour une pénalité sportive sans montant financier.
+          </small>
         </label>
       ) : null}
 
@@ -91,7 +193,9 @@ export function DisciplineForm({
             defaultValue="1"
             required
           />
-          <small>Chaque licence possède un capital disciplinaire de 12 points.</small>
+          <small>
+            Chaque licence possède un capital disciplinaire de 12 points.
+          </small>
         </label>
       ) : null}
 
@@ -132,10 +236,14 @@ export function DisciplineForm({
 
       <div className={styles.footer}>
         <p>
-          Le pilote recevra automatiquement une notification et la mesure sera
+          Le citoyen recevra automatiquement une notification et la mesure sera
           ajoutée à l’historique permanent de la Direction.
         </p>
-        <button type="submit" className="btn btn-primary">
+        <button
+          type="submit"
+          className="btn btn-primary"
+          disabled={!selectedCitizenId || !selectedLicenceId}
+        >
           Enregistrer la mesure
         </button>
       </div>

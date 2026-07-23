@@ -44,6 +44,12 @@
   outline: 2px solid rgba(212, 175, 55, 0.18);
 }
 
+.form select:disabled,
+.form button:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+}
+
 .form small {
   color: rgba(255, 255, 255, 0.58);
   line-height: 1.45;
@@ -51,6 +57,10 @@
 
 .singleField {
   width: 100%;
+}
+
+.fullWidthField {
+  grid-column: 1 / -1;
 }
 
 .footer {
@@ -72,6 +82,10 @@
 @media (max-width: 760px) {
   .grid {
     grid-template-columns: 1fr;
+  }
+
+  .fullWidthField {
+    grid-column: auto;
   }
 
   .footer {
