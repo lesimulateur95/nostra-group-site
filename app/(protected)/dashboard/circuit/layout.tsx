@@ -17,7 +17,9 @@ export default async function CircuitDashboardLayout({
   const [services, canManage, history] = await Promise.all([
     getServiceAvailabilities([
       "circuit_services_master",
-      "circuit_license_payments",
+      "circuit_license_pilot",
+      "circuit_license_gt3rs",
+      "circuit_license_f1",
       "circuit_vehicle_homologations",
       "circuit_team_homologations",
       "circuit_team_creation",
@@ -41,8 +43,9 @@ export default async function CircuitDashboardLayout({
               <span>GESTION DES SERVICES</span>
               <strong>Blocages et ouvertures Nostra Circuit</strong>
               <small>
-                Paiement des licences, homologations et création d’écurie se
-                bloquent ou se débloquent séparément.
+                Chaque licence possède maintenant son propre bouton : licence
+                pilote, licence GT3RS et licence F1. Les homologations et la
+                création d’écurie restent également indépendantes.
               </small>
             </div>
 
@@ -64,7 +67,7 @@ export default async function CircuitDashboardLayout({
           <div className={styles.content}>
             <ServiceAvailabilityPanel
               title="Ouverture des services Nostra Circuit"
-              description="La fermeture générale suspend tout en un clic sans effacer les réglages individuels. Le paiement des licences, les homologations et la création d’écurie gardent chacun leur propre bouton, message et date de réouverture."
+              description="La fermeture générale suspend tout en un clic sans effacer les réglages individuels. La licence pilote, la licence GT3RS, la licence F1, les homologations véhicules, les homologations d’écuries et la création d’écurie disposent chacune de leur propre bouton, message et date de réouverture."
               services={services}
               canManage={canManage}
               history={canManage ? history : undefined}
