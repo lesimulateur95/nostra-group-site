@@ -1,5 +1,23 @@
 import { createClient } from "@/lib/supabase/server";
 
+
+export type TreasureHuntSettings = {
+  is_enabled: boolean;
+};
+
+export async function getTreasureHuntSettings(): Promise<TreasureHuntSettings> {
+  const supabase = await createClient();
+  const result = await supabase
+    .from("treasure_hunt_settings")
+    .select("is_enabled")
+    .eq("id", 1)
+    .maybeSingle();
+
+  return {
+    is_enabled: result.error ? false : result.data?.is_enabled === true,
+  };
+}
+
 export type TreasureHuntStatus =
   | "draft"
   | "published"
@@ -122,12 +140,22 @@ export async function getAllTreasureHunts(): Promise<TreasureHunt[]> {
 export async function getPublishedTreasureHunts(): Promise<TreasureHunt[]> {
   const supabase = await createClient();
 
+  const settingsResult = await supabase
+    .from("treasure_hunt_settings")
+    .select("is_enabled")
+    .eq("id", 1)
+    .maybeSingle();
+
+  if (settingsResult.error || settingsResult.data?.is_enabled !== true) {
+    return [];
+  }
+
   const huntsResult = await supabase
     .from("treasure_hunts")
     .select(
       "id,title,description,prize,meeting_point,starts_at,ends_at,status,winner_name,winner_note,clue_count,revealed_clue_count,created_at,updated_at",
     )
-    .in("status", ["published", "completed"])
+    .eq("status", "published")
     .order("starts_at", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: false });
 

@@ -1,8 +1,12 @@
 import Link from "next/link";
 
 import { EditablePage } from "@/components/site/editable-page";
+import { getPublishedTreasureHunts } from "@/lib/treasure-hunt/data";
 
-export default function EventsPage() {
+export default async function EventsPage() {
+  const treasureHunts = await getPublishedTreasureHunts();
+  const showTreasureHunt = treasureHunts.length > 0;
+
   const fallback = (
     <article className="games-presentation-page">
       <header className="document-hero games-presentation-hero">
@@ -77,28 +81,30 @@ export default function EventsPage() {
           </Link>
         </article>
 
-        <article className="game-presentation-card game-presentation-card-featured">
-          <span className="game-presentation-icon">🗺️</span>
-          <div>
-            <p className="eyebrow">ÉVÉNEMENT À INDICES</p>
-            <h2>Chasse au trésor</h2>
-          </div>
-          <p>
-            La Direction prépare une chasse, publie les règles et révèle les
-            indices progressivement jusqu’à la découverte du trésor.
-          </p>
-          <ul>
-            <li>Les indices apparaissent dans leur ordre officiel.</li>
-            <li>Le lieu de départ et le lot sont annoncés avec l’événement.</li>
-            <li>Le gagnant est publié lorsque la chasse est terminée.</li>
-          </ul>
-          <Link
-            className="btn game-presentation-link"
-            href="/evenements/chasse-au-tresor"
-          >
-            Voir les chasses au trésor
-          </Link>
-        </article>
+        {showTreasureHunt && (
+          <article className="game-presentation-card game-presentation-card-featured">
+            <span className="game-presentation-icon">🗺️</span>
+            <div>
+              <p className="eyebrow">ÉVÉNEMENT À INDICES</p>
+              <h2>Chasse au trésor</h2>
+            </div>
+            <p>
+              Une chasse est actuellement en cours. Consulte les règles et les
+              indices révélés progressivement par la Direction.
+            </p>
+            <ul>
+              <li>Les indices apparaissent dans leur ordre officiel.</li>
+              <li>Le lieu de départ et le lot sont annoncés avec l’événement.</li>
+              <li>Le jeu disparaît automatiquement lorsqu’aucune chasse n’est active.</li>
+            </ul>
+            <Link
+              className="btn game-presentation-link"
+              href="/evenements/chasse-au-tresor"
+            >
+              Rejoindre la chasse au trésor
+            </Link>
+          </article>
+        )}
       </section>
     </article>
   );

@@ -5,6 +5,7 @@ import {
   deleteTreasureHuntClue,
   moveTreasureHuntClue,
   revealNextTreasureHuntClue,
+  setTreasureHuntEnabled,
   updateTreasureHunt,
   updateTreasureHuntClue,
 } from "@/app/actions/treasure-hunt";
@@ -33,10 +34,12 @@ function statusLabel(status: TreasureHunt["status"]): string {
 
 export function TreasureHuntAdmin({
   hunts,
+  enabled,
   success,
   error,
 }: {
   hunts: TreasureHunt[];
+  enabled: boolean;
   success?: string;
   error?: string;
 }) {
@@ -46,6 +49,27 @@ export function TreasureHuntAdmin({
         <div className={styles.notice}>La chasse au trésor a bien été mise à jour.</div>
       )}
       {error && <div className={styles.error}>{error}</div>}
+
+      <section className={`${styles.panel} ${styles.activationPanel}`}>
+        <div>
+          <p className="eyebrow">AFFICHAGE PUBLIC</p>
+          <h2>Chasse au trésor {enabled ? "activée" : "désactivée"}</h2>
+          <p className={styles.activationCopy}>
+            {enabled
+              ? "Les chasses publiées peuvent apparaître dans la partie publique."
+              : "Le jeu est entièrement masqué côté public, même si une ancienne chasse existe."}
+          </p>
+        </div>
+        <form action={setTreasureHuntEnabled}>
+          <input type="hidden" name="enabled" value={enabled ? "false" : "true"} />
+          <button
+            className={enabled ? styles.dangerButton : styles.primaryButton}
+            type="submit"
+          >
+            {enabled ? "Désactiver le jeu" : "Activer le jeu"}
+          </button>
+        </form>
+      </section>
 
       <section className={styles.panel}>
         <p className="eyebrow">NOUVEL ÉVÉNEMENT</p>

@@ -73,6 +73,28 @@ function failure(error: unknown): never {
   redirect(`${ADMIN_PATH}?error=${encodeURIComponent(message(error))}`);
 }
 
+export async function setTreasureHuntEnabled(formData: FormData) {
+  try {
+    const { supabase, user } = await requireManager();
+    const enabled = value(formData, "enabled") === "true";
+    const result = await supabase
+      .from("treasure_hunt_settings")
+      .upsert({
+        id: 1,
+        is_enabled: enabled,
+        updated_at: new Date().toISOString(),
+        updated_by: user.id,
+      }, { onConflict: "id" });
+
+    if (result.error) throw result.error;
+    refreshTreasureHunts();
+  } catch (error) {
+    failure(error);
+  }
+
+  success(value(formData, "enabled") === "true" ? "enabled" : "disabled");
+}
+
 export async function createTreasureHunt(formData: FormData) {
   try {
     const { supabase, user } = await requireManager();

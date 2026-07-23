@@ -1,4 +1,3 @@
-
 export type DealEdition = {
   id: number;
   title: string;
@@ -34,10 +33,14 @@ export type DealPublicSession = {
   updated_at: string;
 };
 
+export type DealViewerMode = "player" | "spectator" | "waiting";
+
 export type DealPublicState = {
   configured: boolean;
   edition: DealEdition | null;
   session: DealPublicSession | null;
+  viewer_mode: DealViewerMode;
+  selected_player_name: string | null;
 };
 
 export type DealDashboardBox = {

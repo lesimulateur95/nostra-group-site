@@ -1,0 +1,205 @@
+.managerPanel {
+  display: grid;
+  gap: 18px;
+  margin: 22px auto;
+  width: min(1180px, calc(100% - 32px));
+  padding: 22px;
+  border: 1px solid rgba(213, 169, 59, 0.26);
+  border-radius: 20px;
+  background: rgba(12, 12, 15, 0.92);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.28);
+}
+
+.managerPanel h2,
+.managerPanel p {
+  margin-top: 0;
+}
+
+.managerHeader,
+.managerActions,
+.launchForm {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.managerHeader {
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.managerHeader p {
+  max-width: 760px;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.55;
+}
+
+.liveBadge,
+.offlineBadge {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.liveBadge {
+  border: 1px solid rgba(255, 72, 72, 0.45);
+  background: rgba(190, 35, 35, 0.2);
+  color: #ffb0b0;
+}
+
+.offlineBadge {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.currentPlayer {
+  display: grid;
+  gap: 4px;
+  border-radius: 15px;
+  padding: 15px 17px;
+  background: rgba(213, 169, 59, 0.1);
+  border: 1px solid rgba(213, 169, 59, 0.25);
+}
+
+.currentPlayer span,
+.currentPlayer small {
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.currentPlayer strong {
+  color: #f4d57f;
+  font-size: 1.15rem;
+}
+
+.managerActions {
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.launchForm {
+  flex: 1 1 700px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.launchForm label {
+  display: grid;
+  gap: 7px;
+  flex: 1 1 320px;
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.launchForm select {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  color: inherit;
+  padding: 10px 12px;
+  font: inherit;
+}
+
+.primaryButton,
+.stopButton {
+  min-height: 44px;
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  padding: 10px 17px;
+  font: inherit;
+  font-weight: 900;
+}
+
+.primaryButton {
+  background: linear-gradient(135deg, #d5a93b, #f4d57f);
+  color: #171109;
+}
+
+.stopButton {
+  background: rgba(190, 39, 39, 0.22);
+  color: #ffb0b0;
+}
+
+.liveFrame {
+  display: grid;
+  gap: 14px;
+}
+
+.liveContent {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.spectatorBanner {
+  position: sticky;
+  top: 76px;
+  z-index: 20;
+  display: grid;
+  gap: 4px;
+  width: min(980px, calc(100% - 32px));
+  margin: 12px auto 0;
+  padding: 13px 16px;
+  border: 1px solid rgba(213, 169, 59, 0.38);
+  border-radius: 15px;
+  background: rgba(18, 15, 10, 0.96);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.3);
+  color: #f4d57f;
+}
+
+.spectatorBanner span {
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.09em;
+}
+
+.spectatorBanner strong {
+  color: #fff;
+}
+
+.spectatorBanner small {
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.spectatorLocked {
+  cursor: default;
+}
+
+.spectatorLocked :global(button),
+.spectatorLocked :global(input),
+.spectatorLocked :global(select),
+.spectatorLocked :global(textarea) {
+  cursor: not-allowed !important;
+}
+
+@media (max-width: 760px) {
+  .managerHeader,
+  .managerActions,
+  .launchForm {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .managerPanel {
+    width: min(100% - 20px, 1180px);
+    padding: 17px;
+  }
+
+  .primaryButton,
+  .stopButton {
+    width: 100%;
+  }
+
+  .spectatorBanner {
+    top: 64px;
+    width: calc(100% - 20px);
+  }
+}

@@ -1,5 +1,5 @@
-
 import { createClient } from "@/lib/supabase/server";
+
 import type {
   DealDashboardState,
   DealPublicState,
@@ -25,10 +25,19 @@ export async function getDealPublicState(): Promise<DealPublicState> {
       configured: false,
       edition: null,
       session: null,
+      viewer_mode: "waiting",
+      selected_player_name: null,
     };
   }
 
-  return data as DealPublicState;
+  const state = data as Partial<DealPublicState> | null;
+  return {
+    configured: state?.configured === true,
+    edition: state?.edition ?? null,
+    session: state?.session ?? null,
+    viewer_mode: state?.viewer_mode ?? "waiting",
+    selected_player_name: state?.selected_player_name ?? null,
+  };
 }
 
 export async function getDealDashboardState(): Promise<DealDashboardState> {

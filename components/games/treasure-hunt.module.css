@@ -264,3 +264,25 @@
     flex-direction: column;
   }
 }
+
+.activationPanel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  border-color: rgba(213, 169, 59, 0.28);
+}
+
+.activationCopy {
+  max-width: 720px;
+  margin: 8px 0 0;
+  color: rgba(255, 255, 255, 0.72);
+  line-height: 1.55;
+}
+
+@media (max-width: 760px) {
+  .activationPanel {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
