@@ -21,7 +21,7 @@ type NavigationCard = {
 const cards: NavigationCard[] = [
   {
     href: "/profil/commandes",
-    icon: "",
+    icon: "🚘",
     label: "Mes commandes",
     description:
       "Suivre les véhicules commandés et les messages de Nostra Motors.",
@@ -37,7 +37,7 @@ const cards: NavigationCard[] = [
   },
   {
     href: "/profil/ecuries",
-    icon: "",
+    icon: "🏁",
     label: "Mes écuries",
     description:
       "Retrouver les écuries inscrites en F1, GT3 RS ou dans les deux championnats.",
@@ -45,7 +45,7 @@ const cards: NavigationCard[] = [
   },
   {
     href: "/profil/documents",
-    icon: "",
+    icon: "📄",
     label: "Documents & factures",
     description:
       "Ouvrir les factures et documents disponibles dans ton espace personnel.",
@@ -67,7 +67,7 @@ const cards: NavigationCard[] = [
   },
   {
     href: "/profil/jeux",
-    icon: "",
+    icon: "🎮",
     label: "Jeux",
     description:
       "Retrouver les bonus de la roue, les tickets de tombola et leurs numéros.",
@@ -75,7 +75,7 @@ const cards: NavigationCard[] = [
   },
   {
     href: "/profil/badges",
-    icon: "",
+    icon: "🏅",
     label: "Mes badges",
     description: "Voir les succès et récompenses obtenus sur Nostra Group.",
   },
@@ -112,7 +112,9 @@ export function ProfileNavigation({
             className="profile-navigation-card"
             key={card.href}
           >
-            <span className="profile-navigation-icon">{card.icon}</span>
+            <span className="profile-navigation-icon" aria-hidden="true">
+              {card.icon}
+            </span>
             <div>
               <strong>{card.label}</strong>
               <small>{card.description}</small>
