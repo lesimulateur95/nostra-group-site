@@ -478,3 +478,37 @@
     flex-direction: column;
   }
 }
+
+.decisionPanel {
+  scroll-margin-top: 24px;
+}
+
+.pointsButton,
+.noPointsButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  margin-top: auto;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.pointsButton {
+  border: 1px solid rgba(212, 175, 55, 0.52);
+  color: #f3d46e;
+  background: rgba(212, 175, 55, 0.08);
+}
+
+.pointsButton:hover {
+  color: #090909;
+  background: #d4af37;
+}
+
+.noPointsButton {
+  border: 1px solid rgba(222, 72, 72, 0.35);
+  color: #ff9b9b;
+  background: rgba(222, 72, 72, 0.08);
+}

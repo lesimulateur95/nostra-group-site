@@ -53,6 +53,7 @@ function rpcErrorCode(error: unknown): string {
   const message = `${candidate?.code ?? ""} ${candidate?.message ?? ""} ${candidate?.details ?? ""} ${candidate?.hint ?? ""}`.toLowerCase();
 
   if (message.includes("licence_not_found")) return "licence";
+  if (message.includes("insufficient_points_remaining")) return "points_remaining";
   if (message.includes("invalid_points")) return "points";
   if (message.includes("invalid_suspension_dates")) return "dates";
   if (message.includes("reason_required")) return "reason";

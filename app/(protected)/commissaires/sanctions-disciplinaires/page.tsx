@@ -30,6 +30,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   invalid: "Sélectionne une licence et indique un motif complet.",
   licence: "La licence sélectionnée est introuvable.",
   points: "Le retrait doit être compris entre 1 et 12 points.",
+  points_remaining: "Tu ne peux pas retirer plus de points qu’il n’en reste sur cette licence.",
   dates: "Les dates de suspension sont incorrectes.",
   reason: "Le motif doit contenir au moins trois caractères.",
   permission: "Tu ne disposes pas de l’autorisation nécessaire.",
@@ -97,6 +98,7 @@ export default async function CircuitDisciplineCommissionersPage({
     status?: string;
     type?: string;
     q?: string;
+    licence?: string;
   }>;
 }) {
   const params = await searchParams;
@@ -161,6 +163,12 @@ export default async function CircuitDisciplineCommissionersPage({
     )
     .reduce((total, action) => total + action.pointsRemoved, 0);
 
+  const initialLicenceId = data.licences.some(
+    (licence) => licence.id === params.licence,
+  )
+    ? params.licence
+    : undefined;
+
   const successMessage =
     params.success === "created"
       ? `Mesure enregistrée${params.case ? ` — ${params.case}` : ""}. Le pilote a été notifié.`
@@ -221,7 +229,10 @@ export default async function CircuitDisciplineCommissionersPage({
         </article>
       </section>
 
-      <section className={styles.panel}>
+      <section
+        id="nouvelle-decision"
+        className={`${styles.panel} ${styles.decisionPanel}`}
+      >
         <div className={styles.panelHeading}>
           <div>
             <span>NOUVELLE DÉCISION</span>
@@ -232,7 +243,10 @@ export default async function CircuitDisciplineCommissionersPage({
             dans l’historique, même après son annulation.
           </p>
         </div>
-        <DisciplineForm licences={data.licences} />
+        <DisciplineForm
+          licences={data.licences}
+          initialLicenceId={initialLicenceId}
+        />
       </section>
 
       <section className={styles.panel}>
@@ -277,6 +291,19 @@ export default async function CircuitDisciplineCommissionersPage({
               <small>
                 {licence.activeActions} mesure(s) active(s) · {licence.pointsRemoved} point(s) retiré(s)
               </small>
+
+              {licence.pointsRemaining > 0 ? (
+                <Link
+                  href={`/commissaires/sanctions-disciplinaires?licence=${encodeURIComponent(licence.id)}#nouvelle-decision`}
+                  className={styles.pointsButton}
+                >
+                  Retirer des points
+                </Link>
+              ) : (
+                <span className={styles.noPointsButton}>
+                  Aucun point restant
+                </span>
+              )}
             </article>
           ))}
         </div>

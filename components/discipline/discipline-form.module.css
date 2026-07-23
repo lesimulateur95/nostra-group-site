@@ -14,7 +14,8 @@
   gap: 8px;
 }
 
-.form label > span {
+.form label > span,
+.measureFieldset legend {
   color: #f7f7f7;
   font-size: 0.82rem;
   font-weight: 800;
@@ -55,12 +56,170 @@
   line-height: 1.45;
 }
 
+.measureFieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.measureFieldset legend {
+  margin-bottom: 10px;
+}
+
+.measureChoices {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.measureChoice {
+  display: grid;
+  gap: 7px;
+  min-height: 94px;
+  padding: 14px;
+  border: 1px solid rgba(212, 175, 55, 0.24);
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.78);
+  background: rgba(255, 255, 255, 0.025);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    transform 160ms ease;
+}
+
+.measureChoice:hover {
+  border-color: rgba(212, 175, 55, 0.62);
+  transform: translateY(-1px);
+}
+
+.measureChoice strong {
+  color: #fff;
+  font-size: 0.88rem;
+}
+
+.measureChoice small {
+  font-size: 0.72rem;
+}
+
+.measureChoiceActive {
+  border-color: #d4af37;
+  background:
+    linear-gradient(135deg, rgba(212, 175, 55, 0.2), transparent),
+    rgba(212, 175, 55, 0.07);
+  box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.2);
+}
+
 .singleField {
   width: 100%;
 }
 
-.fullWidthField {
-  grid-column: 1 / -1;
+.pointsPanel {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+  border: 1px solid rgba(212, 175, 55, 0.52);
+  border-radius: 15px;
+  background:
+    linear-gradient(135deg, rgba(212, 175, 55, 0.13), transparent 55%),
+    rgba(7, 7, 7, 0.96);
+}
+
+.pointsPanelHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.pointsPanelHeader > div:first-child > span {
+  color: #d4af37;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+}
+
+.pointsPanelHeader h3 {
+  margin: 5px 0 0;
+  color: #fff;
+  font-size: 1.2rem;
+}
+
+.currentPoints {
+  display: grid;
+  justify-items: end;
+  gap: 3px;
+  flex-shrink: 0;
+  padding: 9px 13px;
+  border-radius: 11px;
+  background: rgba(212, 175, 55, 0.1);
+}
+
+.currentPoints strong {
+  color: #f4d569;
+  font-size: 1.25rem;
+}
+
+.pointButtons {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(52px, 1fr));
+  gap: 9px;
+}
+
+.pointButton {
+  min-height: 48px;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 10px;
+  color: #f3d46e;
+  background: rgba(212, 175, 55, 0.06);
+  font-size: 1rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.pointButton:hover,
+.pointButtonActive {
+  border-color: #d4af37;
+  color: #090909;
+  background: #d4af37;
+}
+
+.pointsResult {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 14px;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.pointsResult span {
+  color: rgba(255, 255, 255, 0.58);
+}
+
+.pointsResult strong {
+  color: #fff;
+}
+
+.pointsHelp,
+.noPoints {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  line-height: 1.45;
+}
+
+.pointsHelp {
+  color: #f0d274;
+  background: rgba(212, 175, 55, 0.08);
+}
+
+.noPoints {
+  color: #ff9c9c;
+  background: rgba(221, 66, 66, 0.1);
 }
 
 .footer {
@@ -79,17 +238,30 @@
   line-height: 1.5;
 }
 
+@media (max-width: 980px) {
+  .measureChoices {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 760px) {
-  .grid {
+  .grid,
+  .measureChoices {
     grid-template-columns: 1fr;
   }
 
-  .fullWidthField {
-    grid-column: auto;
-  }
-
+  .pointsPanelHeader,
+  .pointsResult,
   .footer {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .currentPoints {
+    justify-items: start;
+  }
+
+  .pointButtons {
+    grid-template-columns: repeat(3, minmax(52px, 1fr));
   }
 }
