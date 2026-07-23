@@ -1,0 +1,137 @@
+.panel {
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto 28px;
+  padding: 22px;
+  border: 1px solid rgba(201, 164, 92, 0.32);
+  border-radius: 20px;
+  background:
+    linear-gradient(135deg, rgba(201, 164, 92, 0.1), transparent 42%),
+    rgba(12, 12, 14, 0.88);
+}
+
+.heading {
+  display: flex;
+  gap: 24px;
+  align-items: end;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.eyebrow {
+  margin: 0 0 6px;
+  color: #c9a45c;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+}
+
+.heading h2 {
+  margin: 0;
+  font-size: clamp(1.35rem, 3vw, 2rem);
+}
+
+.heading > p {
+  max-width: 580px;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.66);
+  line-height: 1.5;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+  gap: 14px;
+}
+
+.card {
+  display: flex;
+  min-height: 190px;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.cardTop {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.card h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.card p {
+  margin: 9px 0 0;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.openStatus,
+.closedStatus {
+  flex: 0 0 auto;
+  padding: 6px 9px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.09em;
+}
+
+.openStatus {
+  border: 1px solid rgba(99, 214, 151, 0.35);
+  color: #82e3ac;
+  background: rgba(40, 147, 88, 0.12);
+}
+
+.closedStatus {
+  border: 1px solid rgba(240, 115, 115, 0.35);
+  color: #ff9d9d;
+  background: rgba(178, 53, 53, 0.13);
+}
+
+.closeButton,
+.openButton {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font: inherit;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.closeButton {
+  border: 1px solid rgba(240, 115, 115, 0.36);
+  color: #ffb0b0;
+  background: rgba(178, 53, 53, 0.12);
+}
+
+.openButton {
+  border: 1px solid rgba(201, 164, 92, 0.52);
+  color: #111;
+  background: #c9a45c;
+}
+
+.closeButton:hover,
+.openButton:hover {
+  filter: brightness(1.08);
+}
+
+@media (max-width: 760px) {
+  .panel {
+    width: min(100% - 20px, 1180px);
+    padding: 16px;
+  }
+
+  .heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-
 import { createClient } from "@/lib/supabase/server";
 
 function text(value: FormDataEntryValue | null, max = 2000): string {
@@ -24,8 +23,9 @@ function configuredCartErrorCode(
     | null
     | undefined,
 ): string {
-  const value =
-    `${error?.code ?? ""} ${error?.message ?? ""} ${error?.details ?? ""}`.toLowerCase();
+  const value = `${error?.code ?? ""} ${error?.message ?? ""} ${
+    error?.details ?? ""
+  }`.toLowerCase();
 
   if (
     value.includes("pgrst202") ||
@@ -38,11 +38,11 @@ function configuredCartErrorCode(
     return "setup";
   }
 
+  if (value.includes("heavy_home_delivery_disabled")) return "heavy-delivery";
   if (value.includes("insufficient_stock")) return "stock";
   if (value.includes("vehicle_unavailable")) return "not-found";
   if (value.includes("invalid_delivery_mode")) return "delivery";
   if (value.includes("invalid_delivery_address")) return "address";
-
   return "save";
 }
 
@@ -62,6 +62,26 @@ export async function addConfiguredVehicleWithProfileDelivery(
     redirect(`/motors/catalogue/${vehicleId}/commande?error=delivery`);
   }
 
+  const supabase = await createClient();
+  const { data: authData } = await supabase.auth.getUser();
+  if (!authData.user) redirect("/");
+
+  if (deliveryMode === "home") {
+    const { data: vehicle, error: vehicleError } = await (supabase as any)
+      .from("catalog_vehicles")
+      .select("id,catalog_type")
+      .eq("id", vehicleId)
+      .maybeSingle();
+
+    if (vehicleError || !vehicle) {
+      redirect(`/motors/catalogue/${vehicleId}/commande?error=not-found`);
+    }
+
+    if (vehicle.catalog_type === "heavy") {
+      redirect(`/motors/catalogue/${vehicleId}/commande?error=heavy-delivery`);
+    }
+  }
+
   if (deliveryMode === "home" && deliveryAddress.length < 5) {
     redirect(`/motors/catalogue/${vehicleId}/commande?error=address`);
   }
@@ -69,11 +89,6 @@ export async function addConfiguredVehicleWithProfileDelivery(
   if (deliveryMode === "home" && deliveryPhone.length < 3) {
     redirect(`/motors/catalogue/${vehicleId}/commande?error=phone`);
   }
-
-  const supabase = await createClient();
-  const { data: authData } = await supabase.auth.getUser();
-
-  if (!authData.user) redirect("/");
 
   const { error } = await supabase.rpc("add_configured_vehicle_to_cart", {
     p_vehicle_id: vehicleId,
@@ -83,7 +98,9 @@ export async function addConfiguredVehicleWithProfileDelivery(
 
   if (error) {
     redirect(
-      `/motors/catalogue/${vehicleId}/commande?error=${configuredCartErrorCode(error)}`,
+      `/motors/catalogue/${vehicleId}/commande?error=${configuredCartErrorCode(
+        error,
+      )}`,
     );
   }
 
@@ -108,6 +125,5 @@ export async function addConfiguredVehicleWithProfileDelivery(
   revalidatePath("/motors/catalogue");
   revalidatePath(`/motors/catalogue/${vehicleId}/commande`);
   revalidatePath("/profil");
-
   redirect("/profil?vehicle_added=1");
 }
