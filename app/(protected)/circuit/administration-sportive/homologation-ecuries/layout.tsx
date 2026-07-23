@@ -15,6 +15,7 @@ export default async function ServiceLayout({
       <ServiceClosedNotice
         title="Homologation des écuries"
         message={service.closedMessage}
+        reopensAt={service.reopensAt}
       />
     );
   }

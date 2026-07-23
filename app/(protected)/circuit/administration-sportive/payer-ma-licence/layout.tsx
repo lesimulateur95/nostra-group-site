@@ -15,6 +15,7 @@ export default async function ServiceLayout({
       <ServiceClosedNotice
         title="Payer ma licence"
         message={service.closedMessage}
+        reopensAt={service.reopensAt}
       />
     );
   }

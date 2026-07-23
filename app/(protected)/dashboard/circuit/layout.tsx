@@ -1,26 +1,37 @@
 import type { ReactNode } from "react";
 
 import { ServiceAvailabilityPanel } from "@/components/dashboard/service-availability-panel";
-import { getServiceAvailabilities } from "@/lib/system/service-availability";
+import {
+  canManageServiceAvailability,
+  getServiceAvailabilities,
+  getServiceAvailabilityHistory,
+} from "@/lib/system/service-availability";
 
 export default async function CircuitDashboardLayout({
   children,
 }: {
   children: ReactNode;
 }) {
-  const services = await getServiceAvailabilities([
-    "circuit_license_payments",
-    "circuit_vehicle_homologations",
-    "circuit_team_homologations",
-    "circuit_team_creation",
+  const [services, canManage, history] = await Promise.all([
+    getServiceAvailabilities([
+      "circuit_services_master",
+      "circuit_license_payments",
+      "circuit_vehicle_homologations",
+      "circuit_team_homologations",
+      "circuit_team_creation",
+    ]),
+    canManageServiceAvailability(),
+    getServiceAvailabilityHistory(20),
   ]);
 
   return (
     <>
       <ServiceAvailabilityPanel
         title="Ouverture des services Nostra Circuit"
-        description="Active ou clôture séparément le paiement des licences, les homologations de véhicules, les homologations d’écuries et la création d’écuries. Les pages publiques restent visibles lorsqu’un service est clôturé."
+        description="La fermeture générale suspend tout en un clic sans effacer les réglages individuels. Chaque service conserve aussi son propre message, sa date prévue de réouverture et son interrupteur."
         services={services}
+        canManage={canManage}
+        history={canManage ? history : undefined}
       />
       {children}
     </>
