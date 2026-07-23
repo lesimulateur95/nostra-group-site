@@ -59,6 +59,13 @@ const cards: NavigationCard[] = [
       "Retrouver les véhicules enregistrés et gérer les alertes de retour en stock.",
   },
   {
+    href: "/profil/garage",
+    icon: "🚘",
+    label: "Mon garage",
+    description:
+      "Suivre mes véhicules, leur livraison, leur historique et leurs documents.",
+  },
+  {
     href: "/profil/jeux",
     icon: "",
     label: "Jeux",

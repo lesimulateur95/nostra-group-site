@@ -30,6 +30,12 @@ export async function DirectionMotorsCards() {
         title="Favoris & alertes stock"
         description="Voir les véhicules les plus suivis et les citoyens qui attendent leur retour en stock."
       />
+      <DashboardCard
+        href="/dashboard/garage-vehicules"
+        icon="🚘"
+        title="Garage des citoyens"
+        description="Voir les véhicules possédés ou en cours de livraison, leur propriétaire et leur avancement."
+      />
     </div>
   );
 }
