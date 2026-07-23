@@ -12,13 +12,19 @@ export async function DashboardLicenseAdminCard() {
   if (!roles.includes("manager")) return null;
 
   return (
-    <div className="dashboard-module-grid dashboard-module-grid-grouped dashboard-license-admin-card-grid">
+    <>
       <DashboardCard
         href="/dashboard/administration/licences"
         icon="🪪"
-        title="Administration des licences"
-        description="Sélectionner un citoyen, créer n’importe quel type de licence et générer automatiquement son document officiel."
+        title="Licences officielles"
+        description="Créer, modifier et annuler les licences officielles des citoyens."
       />
-    </div>
+      <DashboardCard
+        href="/dashboard/discipline-circuit"
+        icon="⚖️"
+        title="Discipline Nostra Circuit"
+        description="Avertissements, pénalités, suspensions, points et historique complet."
+      />
+    </>
   );
 }

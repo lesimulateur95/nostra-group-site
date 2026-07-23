@@ -50,6 +50,13 @@ const cards: NavigationCard[] = [
       "Consulter leur validité, leur expiration et lancer un renouvellement.",
   },
   {
+    href: "/profil/discipline",
+    icon: "⚖️",
+    label: "Dossier disciplinaire",
+    description:
+      "Consulter les avertissements, pénalités, suspensions et points de licence.",
+  },
+  {
     href: "/profil/documents",
     icon: "📄",
     label: "Documents & factures",

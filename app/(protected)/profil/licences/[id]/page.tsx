@@ -22,6 +22,15 @@ type Licence = {
   created_at: string;
 };
 
+type DisciplineAction = {
+  action_type: string;
+  points_removed: number;
+  suspension_starts_on: string | null;
+  suspension_ends_on: string | null;
+  reason: string;
+  status: string;
+};
+
 function formatDate(value: string | null): string {
   if (!value) return "Sans expiration";
 
@@ -44,8 +53,12 @@ export default async function CitizenLicencePage({
 
   if (!data.user) redirect("/");
 
+  await (supabase as any).rpc(
+    "nostra_refresh_expired_disciplinary_suspensions",
+  );
+
   const documentUrl = `/profil/licences/${id}`;
-  const [documentResult, licenceResult] = await Promise.all([
+  const [documentResult, licenceResult, disciplineResult] = await Promise.all([
     (supabase as any)
       .from("invoices")
       .select("id")
@@ -61,6 +74,12 @@ export default async function CitizenLicencePage({
       .eq("id", id)
       .eq("holder_user_id", data.user.id)
       .maybeSingle(),
+    (supabase as any)
+      .from("nostra_circuit_disciplinary_actions")
+      .select(
+        "action_type,points_removed,suspension_starts_on,suspension_ends_on,reason,status",
+      )
+      .eq("licence_id", id),
   ]);
 
   if (
@@ -73,10 +92,30 @@ export default async function CitizenLicencePage({
   }
 
   const document = licenceResult.data as Licence;
-  const lifecycle = getLicenceLifecycle(
+  const actions = Array.isArray(disciplineResult.data)
+    ? (disciplineResult.data as DisciplineAction[])
+    : [];
+  const pointsRemoved = actions
+    .filter(
+      (action) =>
+        action.action_type === "points_deduction" &&
+        action.status !== "cancelled",
+    )
+    .reduce((total, action) => total + Number(action.points_removed ?? 0), 0);
+  const today = new Date().toISOString().slice(0, 10);
+  const suspension = actions.find(
+    (action) =>
+      action.action_type === "suspension" &&
+      action.status !== "cancelled" &&
+      Boolean(action.suspension_starts_on && action.suspension_ends_on) &&
+      today >= String(action.suspension_starts_on) &&
+      today <= String(action.suspension_ends_on),
+  );
+  const baseLifecycle = getLicenceLifecycle(
     document.valid_from,
     document.valid_until,
   );
+  const displayedStatus = suspension ? "Suspendue" : baseLifecycle.label;
 
   return (
     <main className={styles.page}>
@@ -125,7 +164,11 @@ export default async function CitizenLicencePage({
                 </div>
                 <div className={styles.detail}>
                   <span>Statut</span>
-                  <strong className={styles.status}>{lifecycle.label}</strong>
+                  <strong className={styles.status}>{displayedStatus}</strong>
+                </div>
+                <div className={styles.detail}>
+                  <span>Solde disciplinaire</span>
+                  <strong>{Math.max(0, 12 - pointsRemoved)}/12 points</strong>
                 </div>
               </div>
             </div>
@@ -141,14 +184,26 @@ export default async function CitizenLicencePage({
               <span className={styles.sectionLabel}>Période de validité</span>
               <strong>Du {formatDate(document.valid_from)}</strong>
               <strong>Au {formatDate(document.valid_until)}</strong>
-              <strong>Statut actuel : {lifecycle.label}</strong>
+              <strong>Statut actuel : {displayedStatus}</strong>
             </div>
+
+            {suspension ? (
+              <div className={styles.notes}>
+                <span className={styles.sectionLabel}>Suspension temporaire</span>
+                <p>
+                  Droits suspendus jusqu’au {formatDate(suspension.suspension_ends_on)} inclus.
+                  Motif : {suspension.reason}
+                </p>
+              </div>
+            ) : null}
 
             <div className={styles.permissions}>
               <span className={styles.sectionLabel}>Droits et autorisations</span>
               <p>
-                {document.permissions ||
-                  "Les droits liés à cette licence sont accordés conformément aux règlements Nostra Group en vigueur."}
+                {suspension
+                  ? "Les droits liés à cette licence sont temporairement suspendus par décision de la Direction du Nostra Circuit."
+                  : document.permissions ||
+                    "Les droits liés à cette licence sont accordés conformément aux règlements Nostra Group en vigueur."}
               </p>
             </div>
 

@@ -45,20 +45,26 @@ export default async function MyLicencesPage() {
     <main className={styles.page}>
       <div className={styles.topbar}>
         <Link href="/profil">← Retour au profil</Link>
-        <Link
-          className="btn btn-secondary"
-          href="/circuit/administration-sportive/payer-ma-licence"
-        >
-          Demander une licence
-        </Link>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <Link className="btn btn-secondary" href="/profil/discipline">
+            Dossier disciplinaire
+          </Link>
+          <Link
+            className="btn btn-secondary"
+            href="/circuit/administration-sportive/payer-ma-licence"
+          >
+            Demander une licence
+          </Link>
+        </div>
       </div>
 
       <header className={styles.hero}>
         <span>ESPACE PILOTE</span>
         <h1>Mes licences</h1>
         <p>
-          Consulte leur période de validité, repère celles qui arrivent à
-          expiration et lance un renouvellement sans perdre les jours restants.
+          Consulte leur période de validité, leur solde de points, les
+          suspensions éventuelles et lance un renouvellement sans perdre les
+          jours restants.
         </p>
       </header>
 
@@ -97,7 +103,16 @@ export default async function MyLicencesPage() {
                     <h2>{licence.licence_name}</h2>
                   </div>
                   <span
-                    className={`${styles.status} ${styles[licence.lifecycle.status]}`}
+                    className={`${styles.status} ${styles[licence.lifecycle.status] ?? ""}`}
+                    style={
+                      licence.lifecycle.status === "suspended"
+                        ? {
+                            color: "#ff9d9d",
+                            borderColor: "rgba(226,74,74,.45)",
+                            background: "rgba(226,74,74,.1)",
+                          }
+                        : undefined
+                    }
                   >
                     {licence.lifecycle.label}
                   </span>
@@ -115,7 +130,13 @@ export default async function MyLicencesPage() {
                 </div>
 
                 <div className={styles.remaining}>
-                  {remainingText(licence.lifecycle.daysRemaining)}
+                  {licence.lifecycle.status === "suspended"
+                    ? `Suspendue jusqu’au ${formatDate(licence.discipline.suspensionEndsOn)}`
+                    : remainingText(licence.lifecycle.daysRemaining)}
+                </div>
+
+                <div className={styles.remaining}>
+                  Solde disciplinaire : {licence.discipline.pointsRemaining}/12 points
                 </div>
 
                 {hasScheduledRenewal ? (
@@ -150,10 +171,10 @@ export default async function MyLicencesPage() {
       <section className={styles.info}>
         <strong>Fonctionnement du renouvellement</strong>
         <p>
-          Une licence est valable cinq mois. Le renouvellement devient disponible
-          60 jours avant son expiration. Lorsque la nouvelle demande est
-          validée avant la fin de la licence actuelle, sa validité démarre le
-          lendemain de l’ancienne : aucun jour n’est perdu.
+          Une licence est valable cinq mois. Le renouvellement devient
+          disponible 60 jours avant son expiration. Une licence temporairement
+          suspendue reste enregistrée, mais ses droits circuit sont bloqués
+          jusqu’à la fin de la suspension.
         </p>
       </section>
     </main>

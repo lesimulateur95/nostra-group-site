@@ -7,13 +7,22 @@ export type LicenceLifecycleStatus =
   | "upcoming"
   | "active"
   | "expiring_soon"
-  | "expired";
+  | "expired"
+  | "suspended";
 
 export type LicenceLifecycle = {
   status: LicenceLifecycleStatus;
   label: string;
   daysRemaining: number | null;
   canRenew: boolean;
+};
+
+export type LicenceDisciplineState = {
+  pointsRemaining: number;
+  pointsRemoved: number;
+  isSuspended: boolean;
+  suspensionEndsOn: string | null;
+  suspensionReason: string | null;
 };
 
 export type OfficialPilotLicence = {
@@ -29,6 +38,7 @@ export type OfficialPilotLicence = {
   created_at: string;
   renewalLicenseCode: string | null;
   lifecycle: LicenceLifecycle;
+  discipline: LicenceDisciplineState;
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -118,9 +128,7 @@ function matchLicenceCode(
   const exact = types.find((type) => normalize(type.label) === wanted);
   if (exact) return exact.code;
 
-  const byCode = types.find((type) =>
-    wanted.includes(normalize(type.code)),
-  );
+  const byCode = types.find((type) => wanted.includes(normalize(type.code)));
   if (byCode) return byCode.code;
 
   if (wanted.includes("gt3")) {
@@ -145,6 +153,56 @@ function matchLicenceCode(
   return null;
 }
 
+type DisciplineRow = {
+  licence_id?: unknown;
+  action_type?: unknown;
+  points_removed?: unknown;
+  suspension_starts_on?: unknown;
+  suspension_ends_on?: unknown;
+  reason?: unknown;
+  status?: unknown;
+};
+
+function disciplineForLicence(
+  licenceId: string,
+  rows: DisciplineRow[],
+): LicenceDisciplineState {
+  const related = rows.filter((row) => String(row.licence_id ?? "") === licenceId);
+  const pointsRemoved = related
+    .filter(
+      (row) =>
+        String(row.action_type ?? "") === "points_deduction" &&
+        String(row.status ?? "") !== "cancelled",
+    )
+    .reduce((total, row) => total + Number(row.points_removed ?? 0), 0);
+  const today = new Date().toISOString().slice(0, 10);
+  const suspension = related.find((row) => {
+    const start = typeof row.suspension_starts_on === "string" ? row.suspension_starts_on : "";
+    const end = typeof row.suspension_ends_on === "string" ? row.suspension_ends_on : "";
+    return (
+      String(row.action_type ?? "") === "suspension" &&
+      String(row.status ?? "") !== "cancelled" &&
+      Boolean(start && end) &&
+      today >= start &&
+      today <= end
+    );
+  });
+
+  return {
+    pointsRemaining: Math.max(0, 12 - pointsRemoved),
+    pointsRemoved,
+    isSuspended: Boolean(suspension),
+    suspensionEndsOn:
+      suspension && typeof suspension.suspension_ends_on === "string"
+        ? suspension.suspension_ends_on
+        : null,
+    suspensionReason:
+      suspension && typeof suspension.reason === "string"
+        ? suspension.reason
+        : null,
+  };
+}
+
 export async function getOwnOfficialPilotLicences(
   userId: string,
 ): Promise<OfficialPilotLicence[]> {
@@ -152,8 +210,11 @@ export async function getOwnOfficialPilotLicences(
     const supabase = await createClient();
 
     await (supabase as any).rpc("refresh_my_license_expiry_notifications");
+    await (supabase as any).rpc(
+      "nostra_refresh_expired_disciplinary_suspensions",
+    );
 
-    const [licencesResult, typesResult] = await Promise.all([
+    const [licencesResult, typesResult, disciplineResult] = await Promise.all([
       (supabase as any)
         .from("nostra_licences")
         .select(
@@ -165,6 +226,12 @@ export async function getOwnOfficialPilotLicences(
         .from("pilot_license_types")
         .select("code,label")
         .order("sort_order", { ascending: true }),
+      (supabase as any)
+        .from("nostra_circuit_disciplinary_actions")
+        .select(
+          "licence_id,action_type,points_removed,suspension_starts_on,suspension_ends_on,reason,status",
+        )
+        .eq("holder_user_id", userId),
     ]);
 
     if (licencesResult.error || !Array.isArray(licencesResult.data)) {
@@ -177,15 +244,29 @@ export async function getOwnOfficialPilotLicences(
           label: String(row.label ?? ""),
         }))
       : [];
+    const disciplineRows = Array.isArray(disciplineResult.data)
+      ? (disciplineResult.data as DisciplineRow[])
+      : [];
 
     return licencesResult.data.map((row: Record<string, unknown>) => {
+      const id = String(row.id ?? "");
       const validFrom = String(row.valid_from ?? "");
       const validUntil =
         typeof row.valid_until === "string" ? row.valid_until : null;
       const licenceName = String(row.licence_name ?? "Licence pilote");
+      const discipline = disciplineForLicence(id, disciplineRows);
+      const baseLifecycle = getLicenceLifecycle(validFrom, validUntil);
+      const lifecycle: LicenceLifecycle = discipline.isSuspended
+        ? {
+            ...baseLifecycle,
+            status: "suspended",
+            label: "Suspendue",
+            canRenew: false,
+          }
+        : baseLifecycle;
 
       return {
-        id: String(row.id ?? ""),
+        id,
         holder_name: String(row.holder_name ?? ""),
         licence_number: String(row.licence_number ?? ""),
         licence_name: licenceName,
@@ -199,7 +280,8 @@ export async function getOwnOfficialPilotLicences(
         stored_status: String(row.status ?? "Valide"),
         created_at: String(row.created_at ?? ""),
         renewalLicenseCode: matchLicenceCode(licenceName, types),
-        lifecycle: getLicenceLifecycle(validFrom, validUntil),
+        lifecycle,
+        discipline,
       } satisfies OfficialPilotLicence;
     });
   } catch {

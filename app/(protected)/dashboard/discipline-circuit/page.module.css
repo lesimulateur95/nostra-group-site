@@ -1,0 +1,480 @@
+.page {
+  width: min(1320px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 34px 0 90px;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.backLink {
+  color: #d9bd67;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.hero {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 30px;
+  padding: 34px;
+  border: 1px solid rgba(212, 175, 55, 0.38);
+  border-radius: 22px;
+  background:
+    linear-gradient(135deg, rgba(212, 175, 55, 0.13), transparent 55%),
+    rgba(9, 9, 9, 0.96);
+  box-shadow: 0 25px 70px rgba(0, 0, 0, 0.35);
+}
+
+.hero span,
+.panelHeading span,
+.setupCard > span {
+  color: #d4af37;
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.17em;
+}
+
+.hero h1,
+.setupCard h1 {
+  margin: 8px 0 10px;
+  color: #fff;
+  font-size: clamp(2rem, 5vw, 4.4rem);
+  line-height: 0.98;
+}
+
+.hero p,
+.setupCard p {
+  max-width: 760px;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.68);
+  line-height: 1.65;
+}
+
+.heroBadge {
+  flex-shrink: 0;
+  padding: 12px 16px;
+  border: 1px solid rgba(212, 175, 55, 0.48);
+  border-radius: 999px;
+  color: #f6d970;
+  background: rgba(212, 175, 55, 0.08);
+  font-weight: 900;
+}
+
+.success,
+.error {
+  margin-top: 18px;
+  padding: 14px 18px;
+  border-radius: 12px;
+  font-weight: 750;
+}
+
+.success {
+  border: 1px solid rgba(55, 190, 111, 0.45);
+  color: #8ce8b0;
+  background: rgba(55, 190, 111, 0.1);
+}
+
+.error {
+  border: 1px solid rgba(226, 76, 76, 0.5);
+  color: #ff9b9b;
+  background: rgba(226, 76, 76, 0.1);
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.stats article {
+  display: grid;
+  gap: 8px;
+  min-height: 116px;
+  padding: 20px;
+  border: 1px solid rgba(212, 175, 55, 0.22);
+  border-radius: 15px;
+  background: rgba(12, 12, 12, 0.92);
+}
+
+.stats span {
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.stats strong {
+  color: #fff;
+  font-size: 2rem;
+}
+
+.panel,
+.setupCard {
+  margin-top: 22px;
+  padding: 26px;
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  border-radius: 18px;
+  background: rgba(9, 9, 9, 0.96);
+}
+
+.panelHeading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 22px;
+  margin-bottom: 22px;
+}
+
+.panelHeading h2 {
+  margin: 6px 0 0;
+  color: #fff;
+  font-size: clamp(1.35rem, 3vw, 2rem);
+}
+
+.panelHeading p {
+  max-width: 580px;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.58);
+  line-height: 1.5;
+  text-align: right;
+}
+
+.licenceGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.licenceCard {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.licenceHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.licenceHead span,
+.caseNumber {
+  color: #d4af37;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.licenceHead h3,
+.actionTop h3 {
+  margin: 5px 0 3px;
+  color: #fff;
+}
+
+.licenceHead p,
+.actionTop p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.points,
+.suspended,
+.danger {
+  flex-shrink: 0;
+  padding: 7px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+}
+
+.points {
+  color: #86e9ae;
+  background: rgba(54, 190, 111, 0.12);
+}
+
+.danger,
+.suspended {
+  color: #ff9d9d;
+  background: rgba(220, 69, 69, 0.12);
+}
+
+.suspensionNotice,
+.validNotice,
+.cancelledNote {
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  font-weight: 750;
+}
+
+.suspensionNotice,
+.cancelledNote {
+  color: #ffabab;
+  background: rgba(224, 71, 71, 0.1);
+}
+
+.validNotice {
+  color: #80dea5;
+  background: rgba(52, 179, 105, 0.1);
+}
+
+.licenceCard small {
+  color: rgba(255, 255, 255, 0.52);
+}
+
+.filters {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) 190px 210px auto;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.filters input,
+.filters select,
+.actionControls input,
+.actionControls textarea {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  border-radius: 10px;
+  background: rgba(4, 4, 4, 0.84);
+  color: #fff;
+  padding: 10px 12px;
+  font: inherit;
+}
+
+.actionList {
+  display: grid;
+  gap: 14px;
+}
+
+.actionCard {
+  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.actionTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.actionBadges {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.severity,
+.status {
+  display: inline-flex;
+  padding: 6px 9px;
+  border-radius: 999px;
+  font-size: 0.67rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.minor,
+.completed {
+  color: #87d9a8;
+  background: rgba(54, 180, 105, 0.1);
+}
+
+.major,
+.active {
+  color: #f3d16b;
+  background: rgba(212, 175, 55, 0.11);
+}
+
+.critical,
+.cancelled {
+  color: #ff9696;
+  background: rgba(226, 74, 74, 0.11);
+}
+
+.actionBody {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.actionBody > div {
+  display: grid;
+  gap: 5px;
+  padding: 12px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.actionBody span {
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+}
+
+.actionBody strong {
+  color: #f5f5f5;
+  line-height: 1.45;
+}
+
+.notes {
+  margin-top: 14px;
+  padding: 13px;
+  border-left: 3px solid rgba(212, 175, 55, 0.6);
+  background: rgba(212, 175, 55, 0.05);
+}
+
+.notes p {
+  margin: 4px 0;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.actionControls {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.actionControls form {
+  display: flex;
+  gap: 9px;
+}
+
+.actionControls details {
+  min-width: 200px;
+}
+
+.actionControls summary {
+  cursor: pointer;
+  color: #ff9797;
+  font-weight: 800;
+}
+
+.actionControls details form {
+  display: grid;
+  margin-top: 10px;
+}
+
+.dangerButton {
+  min-height: 40px;
+  border: 1px solid rgba(226, 74, 74, 0.55);
+  border-radius: 9px;
+  color: #ffaaaa;
+  background: rgba(226, 74, 74, 0.1);
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.historyTable {
+  overflow-x: auto;
+}
+
+.historyHeader,
+.historyRow {
+  display: grid;
+  grid-template-columns: 160px 170px minmax(190px, 1fr) minmax(220px, 1.2fr) minmax(180px, 1fr);
+  gap: 12px;
+  min-width: 980px;
+  padding: 12px 14px;
+}
+
+.historyHeader {
+  color: #d4af37;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.historyRow {
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.82rem;
+}
+
+.historyRow span {
+  display: grid;
+  gap: 4px;
+  align-content: start;
+}
+
+.historyRow small {
+  color: rgba(255, 255, 255, 0.46);
+  line-height: 1.35;
+}
+
+.empty {
+  padding: 30px;
+  border: 1px dashed rgba(212, 175, 55, 0.28);
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.58);
+  text-align: center;
+}
+
+@media (max-width: 1050px) {
+  .stats,
+  .actionBody {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .licenceGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .filters {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .page {
+    width: min(100% - 20px, 1320px);
+    padding-top: 20px;
+  }
+
+  .topbar,
+  .hero,
+  .panelHeading,
+  .actionTop {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .hero,
+  .panel {
+    padding: 19px;
+  }
+
+  .panelHeading p {
+    text-align: left;
+  }
+
+  .stats,
+  .licenceGrid,
+  .filters,
+  .actionBody,
+  .actionControls {
+    grid-template-columns: 1fr;
+  }
+
+  .actionControls form {
+    flex-direction: column;
+  }
+}
