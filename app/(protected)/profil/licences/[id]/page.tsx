@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { PrintLicenceButton } from "@/components/licenses/print-licence-button";
+import { getLicenceLifecycle } from "@/lib/licenses/lifecycle";
 import { createClient } from "@/lib/supabase/server";
 
 import styles from "./licence.module.css";
@@ -44,7 +45,6 @@ export default async function CitizenLicencePage({
   if (!data.user) redirect("/");
 
   const documentUrl = `/profil/licences/${id}`;
-
   const [documentResult, licenceResult] = await Promise.all([
     (supabase as any)
       .from("invoices")
@@ -72,14 +72,16 @@ export default async function CitizenLicencePage({
     notFound();
   }
 
-  const licence = licenceResult.data;
-
-  const document = licence as Licence;
+  const document = licenceResult.data as Licence;
+  const lifecycle = getLicenceLifecycle(
+    document.valid_from,
+    document.valid_until,
+  );
 
   return (
     <main className={styles.page}>
       <div className={styles.toolbar}>
-        <Link href="/profil/documents">← Retour à mes documents</Link>
+        <Link href="/profil/licences">← Retour à mes licences</Link>
         <PrintLicenceButton />
       </div>
 
@@ -106,7 +108,6 @@ export default async function CitizenLicencePage({
               <span className={styles.sectionLabel}>Titulaire de la licence</span>
               <h2>{document.holder_name}</h2>
               <p>Citoyen Nostra Group</p>
-
               <div className={styles.details}>
                 <div className={styles.detail}>
                   <span>Type de licence</span>
@@ -124,7 +125,7 @@ export default async function CitizenLicencePage({
                 </div>
                 <div className={styles.detail}>
                   <span>Statut</span>
-                  <strong className={styles.status}>{document.status}</strong>
+                  <strong className={styles.status}>{lifecycle.label}</strong>
                 </div>
               </div>
             </div>
@@ -140,6 +141,7 @@ export default async function CitizenLicencePage({
               <span className={styles.sectionLabel}>Période de validité</span>
               <strong>Du {formatDate(document.valid_from)}</strong>
               <strong>Au {formatDate(document.valid_until)}</strong>
+              <strong>Statut actuel : {lifecycle.label}</strong>
             </div>
 
             <div className={styles.permissions}>

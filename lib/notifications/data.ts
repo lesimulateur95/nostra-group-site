@@ -36,10 +36,22 @@ export type UserNotification = {
   created_at: string;
 };
 
+async function refreshLicenceExpiryNotifications(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+): Promise<void> {
+  try {
+    await (supabase as any).rpc("refresh_my_license_expiry_notifications");
+  } catch {
+    // Le centre de notifications reste utilisable avant l'installation du SQL V59.
+  }
+}
+
 export async function getUnreadNotificationCount(
   userId: string,
 ): Promise<number> {
   const supabase = await createClient();
+  await refreshLicenceExpiryNotifications(supabase);
+
   const { count, error } = await supabase
     .from("user_notifications")
     .select("id", { count: "exact", head: true })
@@ -59,6 +71,8 @@ export async function getOwnNotifications(
   notifications: UserNotification[];
 }> {
   const supabase = await createClient();
+  await refreshLicenceExpiryNotifications(supabase);
+
   let query = supabase
     .from("user_notifications")
     .select(
@@ -72,6 +86,7 @@ export async function getOwnNotifications(
   if (unreadOnly) query = query.is("read_at", null);
 
   const { data, error } = await query;
+
   return {
     configured: !error,
     notifications: (data ?? []) as UserNotification[],

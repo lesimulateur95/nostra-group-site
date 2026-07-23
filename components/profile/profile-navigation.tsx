@@ -31,17 +31,23 @@ const cards: NavigationCard[] = [
     href: "/profil/homologations",
     icon: "✅",
     label: "Mes homologations",
-    description:
-      "Consulter l’état des demandes de véhicules et d’écuries.",
+    description: "Consulter l’état des demandes de véhicules et d’écuries.",
     countKey: "homologations",
   },
   {
     href: "/profil/ecuries",
-    icon: "🏁",
+    icon: "🏎️",
     label: "Mes écuries",
     description:
       "Retrouver les écuries inscrites en F1, GT3 RS ou dans les deux championnats.",
     countKey: "teams",
+  },
+  {
+    href: "/profil/licences",
+    icon: "🏁",
+    label: "Mes licences",
+    description:
+      "Consulter leur validité, leur expiration et lancer un renouvellement.",
   },
   {
     href: "/profil/documents",
@@ -60,7 +66,7 @@ const cards: NavigationCard[] = [
   },
   {
     href: "/profil/garage",
-    icon: "🚘",
+    icon: "🚗",
     label: "Mon garage",
     description:
       "Suivre mes véhicules, leur livraison, leur historique et leurs documents.",
@@ -75,7 +81,7 @@ const cards: NavigationCard[] = [
   },
   {
     href: "/profil/badges",
-    icon: "🏅",
+    icon: "🏆",
     label: "Mes badges",
     description: "Voir les succès et récompenses obtenus sur Nostra Group.",
   },
@@ -103,7 +109,7 @@ export function ProfileNavigation({
           > .profile-commerce-card:not(.loyalty-card)
           .profile-commerce-head
           > span:empty::before {
-          content: "🛒" !important;
+          content: "📦" !important;
           display: block !important;
           font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif !important;
           font-size: 24px !important;

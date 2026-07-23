@@ -1,0 +1,250 @@
+.page {
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 34px 0 80px;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 26px;
+}
+
+.topbar > a:first-child {
+  color: rgba(255, 255, 255, 0.72);
+  text-decoration: none;
+}
+
+.hero {
+  overflow: hidden;
+  position: relative;
+  padding: clamp(28px, 5vw, 54px);
+  border: 1px solid rgba(212, 175, 55, 0.36);
+  border-radius: 22px;
+  background:
+    linear-gradient(135deg, rgba(212, 175, 55, 0.12), transparent 48%),
+    rgba(9, 9, 9, 0.96);
+}
+
+.hero::after {
+  content: "LICENCE";
+  position: absolute;
+  right: -16px;
+  bottom: -28px;
+  color: rgba(212, 175, 55, 0.055);
+  font-size: clamp(4rem, 13vw, 10rem);
+  font-weight: 950;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.hero > span {
+  color: #d4af37;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+}
+
+.hero h1 {
+  position: relative;
+  z-index: 1;
+  margin: 10px 0 12px;
+  color: #fff;
+  font-size: clamp(2.2rem, 6vw, 4.8rem);
+  line-height: 0.98;
+}
+
+.hero p {
+  position: relative;
+  z-index: 1;
+  max-width: 720px;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.72);
+  line-height: 1.7;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 24px;
+}
+
+.card,
+.empty,
+.info {
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 18px;
+  background: rgba(12, 12, 12, 0.96);
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.28);
+}
+
+.card {
+  display: grid;
+  gap: 20px;
+  padding: 22px;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.cardHeader h2 {
+  margin: 5px 0 0;
+  color: #fff;
+  font-size: 1.28rem;
+}
+
+.number {
+  color: #d4af37;
+  font-size: 0.74rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 6px 10px;
+  border: 1px solid;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.active {
+  border-color: rgba(65, 210, 128, 0.46);
+  color: #74e6a7;
+  background: rgba(65, 210, 128, 0.1);
+}
+
+.expiring_soon {
+  border-color: rgba(241, 190, 54, 0.5);
+  color: #ffd86d;
+  background: rgba(241, 190, 54, 0.12);
+}
+
+.expired {
+  border-color: rgba(237, 87, 87, 0.52);
+  color: #ff9393;
+  background: rgba(237, 87, 87, 0.1);
+}
+
+.upcoming {
+  border-color: rgba(91, 157, 255, 0.48);
+  color: #9ec4ff;
+  background: rgba(91, 157, 255, 0.1);
+}
+
+.dates {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.dates > div {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.dates span {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.72rem;
+}
+
+.dates strong {
+  color: #fff;
+  font-size: 0.9rem;
+}
+
+.remaining {
+  padding: 11px 13px;
+  border-left: 3px solid #d4af37;
+  color: #f0d57e;
+  background: rgba(212, 175, 55, 0.06);
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.scheduledNotice {
+  margin: -8px 0 0;
+  color: #9ec4ff;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: auto;
+}
+
+.empty {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+  margin-top: 24px;
+  padding: 28px;
+}
+
+.empty strong {
+  color: #fff;
+  font-size: 1.15rem;
+}
+
+.empty p,
+.info p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.66);
+  line-height: 1.65;
+}
+
+.info {
+  margin-top: 24px;
+  padding: 22px;
+}
+
+.info strong {
+  display: block;
+  margin-bottom: 8px;
+  color: #f0d57e;
+}
+
+@media (max-width: 800px) {
+  .page {
+    width: min(100% - 20px, 1180px);
+    padding-top: 20px;
+  }
+
+  .topbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .grid,
+  .dates {
+    grid-template-columns: 1fr;
+  }
+
+  .cardHeader {
+    flex-direction: column;
+  }
+
+  .actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
