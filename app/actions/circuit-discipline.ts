@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { getUserRoleKeys } from "@/lib/auth/access";
 import { createClient } from "@/lib/supabase/server";
 
-const DASHBOARD_PATH = "/dashboard/discipline-circuit";
+const DISCIPLINE_PATH = "/commissaires/sanctions-disciplinaires";
 
 function text(value: FormDataEntryValue | null, max = 2000): string {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
@@ -35,7 +35,8 @@ async function requireManager() {
 }
 
 function revalidateDisciplinePages() {
-  revalidatePath(DASHBOARD_PATH);
+  revalidatePath(DISCIPLINE_PATH);
+  revalidatePath("/commissaires");
   revalidatePath("/dashboard");
   revalidatePath("/profil");
   revalidatePath("/profil/discipline");
@@ -77,7 +78,7 @@ export async function createCircuitDisciplinaryAction(formData: FormData) {
   const suspensionEndsOn = dateValue(formData.get("suspension_ends_on"));
 
   if (!licenceId || reason.length < 3) {
-    redirect(`${DASHBOARD_PATH}?error=invalid`);
+    redirect(`${DISCIPLINE_PATH}?error=invalid`);
   }
 
   const { data, error } = await (supabase as any).rpc(
@@ -97,14 +98,14 @@ export async function createCircuitDisciplinaryAction(formData: FormData) {
   );
 
   if (error) {
-    redirect(`${DASHBOARD_PATH}?error=${rpcErrorCode(error)}`);
+    redirect(`${DISCIPLINE_PATH}?error=${rpcErrorCode(error)}`);
   }
 
   const result = data && typeof data === "object" ? (data as Record<string, unknown>) : {};
   const caseNumber = String(result.case_number ?? "dossier");
 
   revalidateDisciplinePages();
-  redirect(`${DASHBOARD_PATH}?success=created&case=${encodeURIComponent(caseNumber)}`);
+  redirect(`${DISCIPLINE_PATH}?success=created&case=${encodeURIComponent(caseNumber)}`);
 }
 
 export async function cancelCircuitDisciplinaryAction(formData: FormData) {
@@ -113,7 +114,7 @@ export async function cancelCircuitDisciplinaryAction(formData: FormData) {
   const reason = text(formData.get("cancellation_reason"), 2000);
 
   if (actionId <= 0 || reason.length < 3) {
-    redirect(`${DASHBOARD_PATH}?error=cancel`);
+    redirect(`${DISCIPLINE_PATH}?error=cancel`);
   }
 
   const { error } = await (supabase as any).rpc(
@@ -125,11 +126,11 @@ export async function cancelCircuitDisciplinaryAction(formData: FormData) {
   );
 
   if (error) {
-    redirect(`${DASHBOARD_PATH}?error=${rpcErrorCode(error)}`);
+    redirect(`${DISCIPLINE_PATH}?error=${rpcErrorCode(error)}`);
   }
 
   revalidateDisciplinePages();
-  redirect(`${DASHBOARD_PATH}?success=cancelled`);
+  redirect(`${DISCIPLINE_PATH}?success=cancelled`);
 }
 
 export async function completeCircuitDisciplinaryAction(formData: FormData) {
@@ -138,7 +139,7 @@ export async function completeCircuitDisciplinaryAction(formData: FormData) {
   const reason = text(formData.get("completion_reason"), 2000);
 
   if (actionId <= 0) {
-    redirect(`${DASHBOARD_PATH}?error=complete`);
+    redirect(`${DISCIPLINE_PATH}?error=complete`);
   }
 
   const { error } = await (supabase as any).rpc(
@@ -150,9 +151,9 @@ export async function completeCircuitDisciplinaryAction(formData: FormData) {
   );
 
   if (error) {
-    redirect(`${DASHBOARD_PATH}?error=${rpcErrorCode(error)}`);
+    redirect(`${DISCIPLINE_PATH}?error=${rpcErrorCode(error)}`);
   }
 
   revalidateDisciplinePages();
-  redirect(`${DASHBOARD_PATH}?success=completed`);
+  redirect(`${DISCIPLINE_PATH}?success=completed`);
 }

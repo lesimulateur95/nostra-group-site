@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { SectionLayout } from "@/components/site/section-layout";
-import { hasCommissionerAccess } from "@/lib/auth/access";
+import { getUserRoleKeys } from "@/lib/auth/access";
 import { createClient } from "@/lib/supabase/server";
 
 const commissionerNavigation = [
@@ -27,6 +27,11 @@ const commissionerNavigation = [
   },
 ];
 
+const disciplineNavigationItem = {
+  href: "/commissaires/sanctions-disciplinaires",
+  label: "Sanctions disciplinaires",
+};
+
 export default async function CommissionersLayout({
   children,
 }: {
@@ -35,18 +40,24 @@ export default async function CommissionersLayout({
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
 
-  if (
-    !data.user ||
-    !(await hasCommissionerAccess(data.user))
-  ) {
+  if (!data.user) {
     redirect("/accueil");
   }
 
+  const roles = await getUserRoleKeys(data.user);
+  const hasAccess =
+    roles.includes("manager") || roles.includes("commissioner");
+
+  if (!hasAccess) {
+    redirect("/accueil");
+  }
+
+  const navigationItems = roles.includes("manager")
+    ? [...commissionerNavigation, disciplineNavigationItem]
+    : commissionerNavigation;
+
   return (
-    <SectionLayout
-      title="Espace Commissaire"
-      items={commissionerNavigation}
-    >
+    <SectionLayout title="Espace Commissaire" items={navigationItems}>
       {children}
     </SectionLayout>
   );
