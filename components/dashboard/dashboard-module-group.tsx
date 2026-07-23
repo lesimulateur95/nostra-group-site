@@ -4,11 +4,9 @@ import { DashboardAuctionCard } from "@/components/auctions/dashboard-auction-ca
 import { DashboardCard } from "@/components/dashboard/dashboard-card";
 import { DirectionMotorsCards } from "@/components/dashboard/direction-motors-cards";
 import { DashboardOperationsV50Cards } from "@/components/dashboard/dashboard-operations-v50-cards";
-import { DashboardSignedDocumentsCard } from "@/components/documents/dashboard-signed-documents-card";
 import { DashboardFortuneCard } from "@/components/fortune/dashboard-fortune-card";
 import { DashboardLoyaltyCard } from "@/components/loyalty/dashboard-loyalty-card";
 import { DashboardLicenseAdminCard } from "@/components/licenses/dashboard-license-admin-card";
-
 import styles from "./dashboard-module-group.module.css";
 
 export function DashboardModuleGroup({
@@ -70,7 +68,6 @@ export function DashboardModuleGroup({
             <DashboardOperationsV50Cards />
             <DashboardLicenseAdminCard />
             {children}
-            <DashboardSignedDocumentsCard />
           </div>
         ) : (
           <>
@@ -83,22 +80,33 @@ export function DashboardModuleGroup({
 
             {children}
 
+            {isGamesGroup && (
+              <div style={{ gridColumn: "1 / -1" }}>
+                <DashboardCard
+                  href="/dashboard/jeux/chasse-au-tresor"
+                  icon="🗺️"
+                  title="Chasses au trésor"
+                  description="Créer une chasse, préparer autant d’indices que nécessaire et les révéler progressivement."
+                />
+              </div>
+            )}
+
             {isSiteMembersGroup && (
               <>
                 <div className="dashboard-module-grid dashboard-module-grid-grouped">
                   <DashboardCard
                     href="/dashboard/journal"
-                    icon="📜"
+                    icon=""
                     title="Journal des actions"
                     description="Voir les modifications importantes et leur auteur."
                   />
                 </div>
                 <div className="dashboard-module-grid dashboard-module-grid-grouped">
                   <DashboardCard
-                    href="/dashboard/permissions"
-                    icon="🔐"
+                    href="/dashboard/securite?onglet=permissions"
+                    icon=""
                     title="Permissions des pages"
-                    description="Modifier directement les pages accessibles à chaque rôle du site."
+                    description="Choisir directement les pages accessibles à chaque rôle du site."
                   />
                 </div>
                 <div className="dashboard-module-grid dashboard-module-grid-grouped">
@@ -106,7 +114,7 @@ export function DashboardModuleGroup({
                     href="/dashboard/securite"
                     icon="🛡️"
                     title="Sécurité & administration"
-                    description="Corbeille, sauvegardes, connexions, comptes bloqués et mode maintenance."
+                    description="Gérer la maintenance, les comptes bloqués, la corbeille, les sauvegardes et les historiques."
                   />
                 </div>
               </>
