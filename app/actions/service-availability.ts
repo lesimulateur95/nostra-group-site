@@ -7,11 +7,19 @@ import { hasDashboardAccess } from "@/lib/auth/access";
 import {
   isServiceKey,
   SERVICE_DEFINITIONS,
+  type ServiceKey,
 } from "@/lib/system/service-availability";
 import { createClient } from "@/lib/supabase/server";
 
 const MAX_MESSAGE_LENGTH = 500;
 const PARIS_TIME_ZONE = "Europe/Paris";
+
+type SupabaseErrorLike = {
+  message?: string;
+  code?: string;
+  details?: string;
+  hint?: string;
+};
 
 function normalizeMessage(value: FormDataEntryValue | null): string {
   if (typeof value !== "string") return "";
@@ -30,7 +38,10 @@ function getParisOffsetMilliseconds(date: Date): number {
     hourCycle: "h23",
   }).formatToParts(date);
 
-  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  const values = Object.fromEntries(
+    parts.map((part) => [part.type, part.value]),
+  );
+
   const asUtc = Date.UTC(
     Number(values.year),
     Number(values.month) - 1,
@@ -43,12 +54,15 @@ function getParisOffsetMilliseconds(date: Date): number {
   return asUtc - date.getTime();
 }
 
-function parisLocalDateTimeToIso(value: FormDataEntryValue | null): string | null {
+function parisLocalDateTimeToIso(
+  value: FormDataEntryValue | null,
+): string | null {
   if (typeof value !== "string" || !value.trim()) return null;
 
   const match = value
     .trim()
     .match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/);
+
   if (!match) return null;
 
   const [, year, month, day, hour, minute] = match;
@@ -75,10 +89,11 @@ async function requireServiceManager() {
   if (!authData.user) redirect("/");
   if (!(await hasDashboardAccess(authData.user))) redirect("/accueil");
 
-  const { data: canManage, error: permissionError } = await (supabase as any).rpc(
-    "nostra_service_manager",
-    { p_user_id: authData.user.id },
-  );
+  const { data: canManage, error: permissionError } = await (
+    supabase as any
+  ).rpc("nostra_service_manager", {
+    p_user_id: authData.user.id,
+  });
 
   if (permissionError || canManage !== true) {
     throw new Error(
@@ -100,31 +115,102 @@ function revalidateServicePages() {
   revalidatePath("/dashboard/circuit");
 }
 
+function logServiceError(
+  action: string,
+  serviceKey: ServiceKey,
+  error: SupabaseErrorLike | null,
+) {
+  console.error(`[Nostra Circuit] ${action}`, {
+    serviceKey,
+    code: error?.code,
+    message: error?.message,
+    details: error?.details,
+    hint: error?.hint,
+  });
+}
+
+/**
+ * Met à jour le réglage existant. Si la ligne n'existe pas encore (cas des
+ * trois nouvelles licences après une migration SQL incomplète), elle est
+ * créée automatiquement au lieu de provoquer une page d'erreur Next.js.
+ */
+async function updateOrCreateService(
+  serviceKey: ServiceKey,
+  values: Record<string, unknown>,
+  userId: string,
+): Promise<boolean> {
+  const { supabase } = await requireServiceManager();
+
+  const updatePayload = {
+    ...values,
+    updated_at: new Date().toISOString(),
+    updated_by: userId,
+  };
+
+  const { data: updatedRow, error: updateError } = await (
+    supabase as any
+  )
+    .from("nostra_service_availability")
+    .update(updatePayload)
+    .eq("service_key", serviceKey)
+    .select("service_key")
+    .maybeSingle();
+
+  if (updateError) {
+    logServiceError("échec de mise à jour", serviceKey, updateError);
+    return false;
+  }
+
+  if (updatedRow) return true;
+
+  const definition = SERVICE_DEFINITIONS[serviceKey];
+  const insertPayload = {
+    service_key: serviceKey,
+    is_open: true,
+    closed_message: definition.closedMessage,
+    reopens_at: null,
+    ...updatePayload,
+  };
+
+  const { data: insertedRow, error: insertError } = await (
+    supabase as any
+  )
+    .from("nostra_service_availability")
+    .insert(insertPayload)
+    .select("service_key")
+    .maybeSingle();
+
+  if (insertError || !insertedRow) {
+    logServiceError(
+      "échec de création du réglage manquant",
+      serviceKey,
+      insertError,
+    );
+    return false;
+  }
+
+  return true;
+}
+
 export async function setServiceAvailability(formData: FormData) {
   const serviceKey = formData.get("service_key");
   const isOpen = formData.get("is_open") === "true";
 
   if (!isServiceKey(serviceKey)) {
-    throw new Error("Service Nostra Circuit invalide.");
+    console.error("[Nostra Circuit] Clé de service invalide", serviceKey);
+    return;
   }
 
-  const { supabase, userId } = await requireServiceManager();
-  const { data, error } = await (supabase as any)
-    .from("nostra_service_availability")
-    .update({
-      is_open: isOpen,
-      updated_at: new Date().toISOString(),
-      updated_by: userId,
-    })
-    .eq("service_key", serviceKey)
-    .select("service_key")
-    .maybeSingle();
+  const { userId } = await requireServiceManager();
+  const saved = await updateOrCreateService(
+    serviceKey,
+    { is_open: isOpen },
+    userId,
+  );
 
-  if (error || !data) {
-    throw new Error(
-      "Impossible de modifier l’ouverture du service. Vérifie que le SQL V55 a bien été exécuté.",
-    );
-  }
+  // Ne fait plus planter toute la page en cas de problème SQL. L'erreur
+  // détaillée reste visible dans les logs Vercel pour le diagnostic.
+  if (!saved) return;
 
   revalidateServicePages();
 }
@@ -135,31 +221,28 @@ export async function saveServiceAvailabilitySettings(formData: FormData) {
   const reopensAt = parisLocalDateTimeToIso(formData.get("reopens_at"));
 
   if (!isServiceKey(serviceKey)) {
-    throw new Error("Service Nostra Circuit invalide.");
+    console.error("[Nostra Circuit] Clé de service invalide", serviceKey);
+    return;
   }
 
   if (!closedMessage) {
-    throw new Error("Le message de fermeture ne peut pas être vide.");
+    console.error("[Nostra Circuit] Le message de fermeture est vide", {
+      serviceKey,
+    });
+    return;
   }
 
-  const { supabase, userId } = await requireServiceManager();
-  const { data, error } = await (supabase as any)
-    .from("nostra_service_availability")
-    .update({
+  const { userId } = await requireServiceManager();
+  const saved = await updateOrCreateService(
+    serviceKey,
+    {
       closed_message: closedMessage,
       reopens_at: reopensAt,
-      updated_at: new Date().toISOString(),
-      updated_by: userId,
-    })
-    .eq("service_key", serviceKey)
-    .select("service_key")
-    .maybeSingle();
+    },
+    userId,
+  );
 
-  if (error || !data) {
-    throw new Error(
-      "Impossible d’enregistrer le message ou la date. Vérifie que le SQL V55 a bien été exécuté.",
-    );
-  }
+  if (!saved) return;
 
   revalidateServicePages();
 }
