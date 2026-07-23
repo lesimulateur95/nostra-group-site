@@ -150,7 +150,7 @@ export default async function MyLicencesPage() {
       <section className={styles.info}>
         <strong>Fonctionnement du renouvellement</strong>
         <p>
-          Une licence est valable un an. Le renouvellement devient disponible
+          Une licence est valable cinq mois. Le renouvellement devient disponible
           60 jours avant son expiration. Lorsque la nouvelle demande est
           validée avant la fin de la licence actuelle, sa validité démarre le
           lendemain de l’ancienne : aucun jour n’est perdu.
