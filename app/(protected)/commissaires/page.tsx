@@ -8,7 +8,7 @@ import styles from "./commissaires-management.module.css";
 const managementTools = [
   {
     href: "/dashboard/commissaires",
-    icon: "",
+    icon: "🏁",
     title: "Planning course en direct",
     description:
       "Renseigner l’ouverture des stands, les qualifications, le départ, la météo et les annonces visibles par les citoyens.",
@@ -22,14 +22,14 @@ const managementTools = [
   },
   {
     href: "/dashboard/commissaires/classements-speciaux",
-    icon: "",
+    icon: "🏆",
     title: "Classements spéciaux",
     description:
       "Gérer les classements événements, les contre-la-montre et les records officiels du Nostra Circuit.",
   },
   {
     href: "/commissaires/incidents-circuit",
-    icon: "",
+    icon: "📋",
     title: "Rapports d’incident",
     description:
       "Créer et consulter les rapports des incidents survenus pendant les courses et les différentes sessions.",
@@ -63,6 +63,7 @@ export default async function CommissionersPage() {
           espace est réservé aux comptes autorisés Commissaire.
         </p>
       </section>
+
       <section className={styles.grid} aria-label="Outils des commissaires">
         {tools.map((tool) => (
           <Link className={styles.card} href={tool.href} key={tool.href}>
