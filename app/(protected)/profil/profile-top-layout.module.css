@@ -10,7 +10,7 @@
  * La présence de .rightColumn permet de ne pas modifier les sous-pages /profil/*.
  */
 :global(.profile-main):has(> :global(.profile-layout) .rightColumn) {
-  width: min(1160px, calc(100% - 32px));
+  width: min(880px, calc(100% - 32px));
   margin-inline: auto;
   padding-top: 42px;
   display: flex;
@@ -37,16 +37,16 @@
   > :global(.profile-layout) {
   order: 2;
   display: grid;
-  grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
-  gap: 16px;
+  grid-template-columns: minmax(250px, 300px) minmax(0, 1fr);
+  gap: 12px;
   align-items: stretch;
 }
 
 :global(.profile-main):has(> :global(.profile-layout) .rightColumn)
   :global(.profile-summary) {
   min-height: 100%;
-  padding: 22px;
-  gap: 18px;
+  padding: 16px;
+  gap: 12px;
   align-content: center;
   justify-items: center;
   text-align: center;
@@ -54,14 +54,14 @@
 
 :global(.profile-main):has(> :global(.profile-layout) .rightColumn)
   :global(.profile-summary .profile-avatar) {
-  width: 88px;
-  height: 88px;
+  width: 72px;
+  height: 72px;
   border-radius: 20px;
 }
 
 :global(.profile-main):has(> :global(.profile-layout) .rightColumn)
   :global(.profile-summary .profile-name) {
-  font-size: 1.4rem;
+  font-size: 1.2rem;
 }
 
 :global(.profile-main):has(> :global(.profile-layout) .rightColumn)
@@ -72,7 +72,7 @@
 
 :global(.profile-main):has(> :global(.profile-layout) .rightColumn)
   :global(.profile-summary .profile-details div) {
-  padding: 11px 0;
+  padding: 8px 0;
   gap: 5px;
 }
 
@@ -90,15 +90,15 @@
   order: 4;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+  gap: 12px;
   align-items: start;
-  margin-top: 18px;
+  margin-top: 14px;
 }
 
 :global(.profile-main):has(> :global(.profile-layout) .rightColumn)
   :global(.profile-commerce-card) {
-  padding: 18px;
-  border-radius: 18px;
+  padding: 14px;
+  border-radius: 16px;
 }
 
 :global(.profile-main):has(> :global(.profile-layout) .rightColumn)
@@ -108,14 +108,14 @@
 
 :global(.profile-main):has(> :global(.profile-layout) .rightColumn)
   :global(.profile-commerce-head > span) {
-  width: 40px;
-  height: 40px;
+  width: 34px;
+  height: 34px;
   border-radius: 12px;
 }
 
 :global(.profile-main):has(> :global(.profile-layout) .rightColumn)
   :global(.profile-commerce-head h2) {
-  font-size: 1.15rem;
+  font-size: 1.02rem;
 }
 
 :global(.profile-main):has(> :global(.profile-layout) .rightColumn)
@@ -163,8 +163,8 @@
   > :global(.profile-commerce-grid)
   ~ *:not(:global(.profile-navigation-section)) {
   order: 5;
-  width: min(960px, 100%);
-  max-width: 960px;
+  width: min(760px, 100%);
+  max-width: 760px;
   margin-left: auto !important;
   margin-right: auto !important;
 }
@@ -173,8 +173,8 @@
 :global(.profile-main):has(> :global(.profile-layout) .rightColumn)
   > :global(.profile-navigation-section) {
   order: 6;
-  margin-top: 18px;
-  padding: 20px;
+  margin-top: 14px;
+  padding: 16px;
   border-radius: 18px;
 }
 
@@ -191,15 +191,15 @@
 :global(.profile-main):has(> :global(.profile-layout) .rightColumn)
   :global(.profile-navigation-card) {
   gap: 12px;
-  padding: 14px;
-  border-radius: 14px;
+  padding: 11px;
+  border-radius: 13px;
 }
 
 :global(.profile-main):has(> :global(.profile-layout) .rightColumn)
   :global(.profile-navigation-icon) {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
 }
 
 @media (max-width: 900px) {
@@ -217,7 +217,7 @@
 
 @media (max-width: 720px) {
   :global(.profile-main):has(> :global(.profile-layout) .rightColumn) {
-    width: min(100% - 22px, 1160px);
+    width: min(100% - 22px, 880px);
     padding-top: 28px;
   }
 
