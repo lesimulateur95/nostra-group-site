@@ -59,6 +59,19 @@ const ROLE_ALIASES: Record<string, RoleKey> = {
   direction: "manager",
 };
 
+const ROLE_OBJECT_KEYS = new Set([
+  "role",
+  "roles",
+  "role_key",
+  "role_keys",
+  "role_name",
+  "role_names",
+  "key",
+  "name",
+  "label",
+  "value",
+]);
+
 function normalizedText(value: string): string {
   return value
     .trim()
@@ -68,10 +81,7 @@ function normalizedText(value: string): string {
 }
 
 export function isRoleKey(value: string): value is RoleKey {
-  return Object.prototype.hasOwnProperty.call(
-    ROLE_LABELS,
-    value,
-  );
+  return Object.prototype.hasOwnProperty.call(ROLE_LABELS, value);
 }
 
 export function normalizeRoleKey(value: unknown): RoleKey {
@@ -79,11 +89,10 @@ export function normalizeRoleKey(value: unknown): RoleKey {
 
   const normalized = normalizedText(value);
   const exact = ROLE_ALIASES[normalized];
-
   if (exact) return exact;
 
-  // Les rôles Discord ou Supabase peuvent contenir un intitulé
-  // plus long : « Commissaire Nostra Circuit », par exemple.
+  // Les rôles Discord ou Supabase peuvent contenir un intitulé plus long,
+  // par exemple « Commissaire Nostra Circuit » ou « Employé Nostra Motors ».
   if (
     normalized.includes("commissaire") ||
     normalized.includes("commissioner") ||
@@ -118,103 +127,172 @@ export function normalizeRoleKey(value: unknown): RoleKey {
   return "citizen";
 }
 
+function addRoleString(result: Set<RoleKey>, value: string): void {
+  const trimmed = value.trim();
+  if (!trimmed) return;
+
+  // Certaines anciennes fonctions renvoient du JSON encodé en texte.
+  if (
+    (trimmed.startsWith("[") && trimmed.endsWith("]")) ||
+    (trimmed.startsWith("{") && trimmed.endsWith("}"))
+  ) {
+    try {
+      collectRoleKeys(result, JSON.parse(trimmed), 1);
+      return;
+    } catch {
+      // Le texte n'est pas du JSON valide : traitement classique ci-dessous.
+    }
+  }
+
+  // Accepte les listes séparées par virgule, point-virgule ou barre verticale.
+  const parts = trimmed.split(/[,;|]/g).map((part) => part.trim()).filter(Boolean);
+  if (parts.length > 1) {
+    for (const part of parts) addRoleString(result, part);
+    return;
+  }
+
+  const role = normalizeRoleKey(trimmed);
+  if (role !== "citizen" || normalizedText(trimmed).match(/citoyen|citizen|membre|member/)) {
+    result.add(role);
+  }
+}
+
+function collectRoleKeys(
+  result: Set<RoleKey>,
+  value: unknown,
+  depth = 0,
+): void {
+  if (depth > 5 || value === null || value === undefined) return;
+
+  if (typeof value === "string") {
+    addRoleString(result, value);
+    return;
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) collectRoleKeys(result, item, depth + 1);
+    return;
+  }
+
+  if (typeof value !== "object") return;
+
+  const record = value as Record<string, unknown>;
+  let matchedKnownKey = false;
+
+  for (const [key, entry] of Object.entries(record)) {
+    if (!ROLE_OBJECT_KEYS.has(normalizedText(key))) continue;
+    matchedKnownKey = true;
+    collectRoleKeys(result, entry, depth + 1);
+  }
+
+  // Les RPC PostgreSQL peuvent renvoyer une ligne sous la forme
+  // { nostra_roles: [...] } ou { get_roles: [...] }.
+  if (!matchedKnownKey) {
+    for (const [key, entry] of Object.entries(record)) {
+      const normalizedKey = normalizedText(key);
+      if (normalizedKey.includes("role")) {
+        collectRoleKeys(result, entry, depth + 1);
+      }
+    }
+  }
+}
+
 export function normalizeRoleKeys(
   values: unknown,
   fallback?: unknown,
 ): RoleKey[] {
   const result = new Set<RoleKey>();
 
-  if (Array.isArray(values)) {
-    for (const value of values) {
-      if (typeof value !== "string") continue;
-      result.add(normalizeRoleKey(value));
-    }
-  } else if (typeof values === "string") {
-    for (const value of values.split(",")) {
-      if (!value.trim()) continue;
-      result.add(normalizeRoleKey(value));
-    }
-  }
-
-  if (
-    result.size === 0 &&
-    fallback !== undefined &&
-    fallback !== null
-  ) {
-    result.add(normalizeRoleKey(fallback));
-  }
+  collectRoleKeys(result, values);
+  if (result.size === 0) collectRoleKeys(result, fallback);
 
   if (result.size === 0) result.add("citizen");
-
-  if (result.size > 1) {
-    result.delete("citizen");
-  }
+  if (result.size > 1) result.delete("citizen");
 
   return ROLE_PRIORITY.filter((role) => result.has(role));
+}
+
+function mergeRoleSources(...sources: unknown[]): RoleKey[] {
+  const merged = new Set<RoleKey>();
+
+  for (const source of sources) {
+    for (const role of normalizeRoleKeys(source)) {
+      merged.add(role);
+    }
+  }
+
+  if (merged.size > 1) merged.delete("citizen");
+  if (merged.size === 0) merged.add("citizen");
+
+  return ROLE_PRIORITY.filter((role) => merged.has(role));
 }
 
 export async function getUserRoleKeys(
   user: User | null | undefined,
 ): Promise<RoleKey[]> {
   const discordId = getDiscordId(user);
-
   if (!user) return ["citizen"];
 
   try {
     const supabase = await createClient();
 
-    const rpcResult = await supabase.rpc("nostra_roles");
-
-    let roles: RoleKey[] =
-      !rpcResult.error && rpcResult.data
-        ? normalizeRoleKeys(rpcResult.data)
-        : ["citizen"];
-
-    if (rpcResult.error) {
-      const completeResult = await supabase
+    // Important : on ne dépend plus uniquement de nostra_roles().
+    // Une RPC peut réussir tout en renvoyant null, [] ou un format ancien.
+    const [rpcResult, completeResult] = await Promise.all([
+      supabase.rpc("nostra_roles"),
+      supabase
         .from("member_profiles")
         .select("roles,role")
         .eq("user_id", user.id)
+        .maybeSingle(),
+    ]);
+
+    let legacyRole: unknown = null;
+    if (completeResult.error) {
+      const legacyResult = await supabase
+        .from("member_profiles")
+        .select("role")
+        .eq("user_id", user.id)
         .maybeSingle();
 
-      roles =
-        !completeResult.error && completeResult.data
-          ? normalizeRoleKeys(
-              completeResult.data.roles,
-              completeResult.data.role,
-            )
-          : ["citizen"];
-
-      if (completeResult.error) {
-        const legacyResult = await supabase
-          .from("member_profiles")
-          .select("role")
-          .eq("user_id", user.id)
-          .maybeSingle();
-
-        if (!legacyResult.error && legacyResult.data) {
-          roles = normalizeRoleKeys(
-            null,
-            legacyResult.data.role,
-          );
-        }
+      if (!legacyResult.error && legacyResult.data) {
+        legacyRole = legacyResult.data.role;
       }
     }
+
+    const roles = mergeRoleSources(
+      !rpcResult.error ? rpcResult.data : null,
+      !completeResult.error ? completeResult.data?.roles : null,
+      !completeResult.error ? completeResult.data?.role : null,
+      legacyRole,
+      user.app_metadata?.roles,
+      user.app_metadata?.role,
+      user.user_metadata?.roles,
+      user.user_metadata?.role,
+    );
 
     if (
       discordId &&
       MANAGER_DISCORD_IDS.has(discordId) &&
       !roles.includes("manager")
     ) {
-      return normalizeRoleKeys([...roles, "manager"]);
+      return mergeRoleSources(roles, "manager");
     }
 
     return roles;
   } catch {
-    return discordId &&
-      MANAGER_DISCORD_IDS.has(discordId)
-      ? ["manager"]
-      : ["citizen"];
+    const metadataRoles = mergeRoleSources(
+      user.app_metadata?.roles,
+      user.app_metadata?.role,
+      user.user_metadata?.roles,
+      user.user_metadata?.role,
+    );
+
+    if (discordId && MANAGER_DISCORD_IDS.has(discordId)) {
+      return mergeRoleSources(metadataRoles, "manager");
+    }
+
+    return metadataRoles;
   }
 }
 
@@ -227,9 +305,7 @@ export async function getUserRoleKey(
 export async function getUserRoleLabels(
   user: User | null | undefined,
 ): Promise<string[]> {
-  return (await getUserRoleKeys(user)).map(
-    (role) => ROLE_LABELS[role],
-  );
+  return (await getUserRoleKeys(user)).map((role) => ROLE_LABELS[role]);
 }
 
 export async function getUserRoleLabel(
@@ -248,14 +324,8 @@ export async function hasStaffDashboardAccess(
   user: User | null | undefined,
 ): Promise<boolean> {
   const roles = await getUserRoleKeys(user);
-
   return roles.some((role) =>
-    [
-      "manager",
-      "commissioner",
-      "employee",
-      "commercial",
-    ].includes(role),
+    ["manager", "commissioner", "employee", "commercial"].includes(role),
   );
 }
 
@@ -263,9 +333,5 @@ export async function hasCommissionerAccess(
   user: User | null | undefined,
 ): Promise<boolean> {
   const roles = await getUserRoleKeys(user);
-
-  return (
-    roles.includes("manager") ||
-    roles.includes("commissioner")
-  );
+  return roles.includes("manager") || roles.includes("commissioner");
 }
