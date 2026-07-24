@@ -1,3 +1,4 @@
+import { normalizeCircuitLicenceName } from "@/lib/licenses/naming";
 import { createClient } from "@/lib/supabase/server";
 
 export const LICENCE_EXPIRY_WARNING_DAYS = 30;
@@ -253,7 +254,9 @@ export async function getOwnOfficialPilotLicences(
       const validFrom = String(row.valid_from ?? "");
       const validUntil =
         typeof row.valid_until === "string" ? row.valid_until : null;
-      const licenceName = String(row.licence_name ?? "Licence pilote");
+      const licenceName = normalizeCircuitLicenceName(
+        String(row.licence_name ?? "Licence Circuit"),
+      );
       const discipline = disciplineForLicence(id, disciplineRows);
       const baseLifecycle = getLicenceLifecycle(validFrom, validUntil);
       const lifecycle: LicenceLifecycle = discipline.isSuspended

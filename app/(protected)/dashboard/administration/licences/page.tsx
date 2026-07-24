@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { getUserRoleKeys } from "@/lib/auth/access";
+import { normalizeCircuitLicenceName } from "@/lib/licenses/naming";
 import { createClient } from "@/lib/supabase/server";
 
 import styles from "./licences.module.css";
@@ -110,7 +111,9 @@ async function issueLicence(formData: FormData) {
   if (!roles.includes("manager")) redirect("/accueil");
 
   const holderUserId = stringValue(formData.get("holder_user_id"));
-  const licenceName = stringValue(formData.get("licence_name"));
+  const licenceName = normalizeCircuitLicenceName(
+    stringValue(formData.get("licence_name")),
+  );
   const category = stringValue(formData.get("category"));
   const authority =
     stringValue(formData.get("authority")) || "Direction Nostra Group";
@@ -157,6 +160,7 @@ async function issueLicence(formData: FormData) {
 
   revalidatePath("/dashboard/administration/licences");
   revalidatePath("/profil/documents");
+  revalidatePath("/profil/licences");
 
   const query = new URLSearchParams({
     success: "1",
@@ -299,10 +303,11 @@ export default async function LicenceAdministrationPage({
                         id="licence_name"
                         name="licence_name"
                         list="licence-types"
-                        placeholder="Ex. Licence pilote F1"
+                        placeholder="Ex. Licence Circuit, GT3 RS ou F1"
                         required
                       />
                       <datalist id="licence-types">
+                        <option value="Licence Circuit" />
                         <option value="Licence pilote F1" />
                         <option value="Licence pilote GT3 RS" />
                         <option value="Licence pilote catégorie C" />
