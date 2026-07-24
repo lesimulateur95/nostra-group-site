@@ -1,67 +1,84 @@
 .rightColumn {
   display: grid;
   align-content: start;
-  gap: 12px;
+  gap: 10px;
   min-width: 0;
+  width: 100%;
 }
 
 /*
- * Page d'accueil du profil uniquement.
- * La présence de .rightColumn permet de ne pas modifier les sous-pages /profil/*.
+ * Page d'accueil Mon profil uniquement.
+ * Toute la page utilise désormais la même zone centrale compacte
+ * que le bloc Fidélité & plaques montré sur la capture.
  */
 :global(.profile-main):has(> :global(.profile-layout) .rightColumn) {
-  width: min(880px, calc(100% - 32px));
+  width: 100%;
+  max-width: none;
   margin-inline: auto;
-  padding-top: 42px;
+  padding-top: 32px;
   display: flex;
   flex-direction: column;
-  align-items: stretch;
+  align-items: center;
 }
 
-:global(.profile-main):has(> :global(.profile-layout) .rightColumn) > * {
-  width: 100%;
-  max-width: 100%;
-  margin-inline: auto;
-  order: 5;
+/* Tous les blocs principaux restent dans une zone de 760 px centrée. */
+:global(.profile-main):has(> :global(.profile-layout) .rightColumn)
+  > :global(.profile-heading),
+:global(.profile-main):has(> :global(.profile-layout) .rightColumn)
+  > :global(.profile-layout),
+:global(.profile-main):has(> :global(.profile-layout) .rightColumn)
+  > :global(.dashboard-feedback),
+:global(.profile-main):has(> :global(.profile-layout) .rightColumn)
+  > :global(.profile-commerce-grid),
+:global(.profile-main):has(> :global(.profile-layout) .rightColumn)
+  > :global(.profile-navigation-section),
+:global(.profile-main):has(> :global(.profile-layout) .rightColumn)
+  > :global(.profile-commerce-grid) ~ *:not(:global(.profile-navigation-section)) {
+  width: min(760px, calc(100% - 24px)) !important;
+  max-width: 760px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  box-sizing: border-box;
 }
 
 /* 1 — Titre */
 :global(.profile-main):has(> :global(.profile-layout) .rightColumn)
   > :global(.profile-heading) {
   order: 1;
-  margin-bottom: 20px;
+  margin-bottom: 14px;
 }
 
 /* 2 — Profil à gauche, identité/messagerie/centre personnel à droite */
 :global(.profile-main):has(> :global(.profile-layout) .rightColumn)
   > :global(.profile-layout) {
   order: 2;
-  display: grid;
-  grid-template-columns: minmax(250px, 300px) minmax(0, 1fr);
-  gap: 12px;
+  display: grid !important;
+  grid-template-columns: minmax(205px, 230px) minmax(0, 1fr) !important;
+  gap: 10px !important;
   align-items: stretch;
 }
 
 :global(.profile-main):has(> :global(.profile-layout) .rightColumn)
   :global(.profile-summary) {
   min-height: 100%;
-  padding: 16px;
-  gap: 12px;
+  padding: 13px !important;
+  gap: 9px !important;
   align-content: center;
   justify-items: center;
   text-align: center;
+  border-radius: 15px;
 }
 
 :global(.profile-main):has(> :global(.profile-layout) .rightColumn)
   :global(.profile-summary .profile-avatar) {
-  width: 72px;
-  height: 72px;
-  border-radius: 20px;
+  width: 58px !important;
+  height: 58px !important;
+  border-radius: 16px;
 }
 
 :global(.profile-main):has(> :global(.profile-layout) .rightColumn)
   :global(.profile-summary .profile-name) {
-  font-size: 1.2rem;
+  font-size: 1.05rem;
 }
 
 :global(.profile-main):has(> :global(.profile-layout) .rightColumn)
@@ -72,15 +89,23 @@
 
 :global(.profile-main):has(> :global(.profile-layout) .rightColumn)
   :global(.profile-summary .profile-details div) {
-  padding: 8px 0;
-  gap: 5px;
+  padding: 6px 0 !important;
+  gap: 4px;
+}
+
+/* Cartes de la colonne de droite plus fines. */
+:global(.profile-main):has(> :global(.profile-layout) .rightColumn)
+  .rightColumn > * {
+  min-width: 0;
+  padding: 11px 12px !important;
+  border-radius: 14px !important;
 }
 
 /* 3 — Messages de confirmation et d'erreur */
 :global(.profile-main):has(> :global(.profile-layout) .rightColumn)
   > :global(.dashboard-feedback) {
   order: 3;
-  margin-top: 12px;
+  margin-top: 10px;
   margin-bottom: 0;
 }
 
@@ -88,124 +113,121 @@
 :global(.profile-main):has(> :global(.profile-layout) .rightColumn)
   > :global(.profile-commerce-grid) {
   order: 4;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 10px !important;
   align-items: start;
-  margin-top: 14px;
+  margin-top: 12px;
 }
 
 :global(.profile-main):has(> :global(.profile-layout) .rightColumn)
   :global(.profile-commerce-card) {
-  padding: 14px;
-  border-radius: 16px;
+  padding: 12px !important;
+  border-radius: 15px !important;
+  min-width: 0;
 }
 
 :global(.profile-main):has(> :global(.profile-layout) .rightColumn)
   :global(.profile-commerce-head) {
-  gap: 11px;
+  gap: 9px !important;
 }
 
 :global(.profile-main):has(> :global(.profile-layout) .rightColumn)
   :global(.profile-commerce-head > span) {
-  width: 34px;
-  height: 34px;
-  border-radius: 12px;
+  width: 30px !important;
+  height: 30px !important;
+  border-radius: 10px !important;
 }
 
 :global(.profile-main):has(> :global(.profile-layout) .rightColumn)
   :global(.profile-commerce-head h2) {
-  font-size: 1.02rem;
+  font-size: 0.95rem !important;
 }
 
 :global(.profile-main):has(> :global(.profile-layout) .rightColumn)
   :global(.profile-commerce-card dl) {
-  gap: 10px;
-  margin-top: 14px;
+  gap: 8px !important;
+  margin-top: 11px !important;
 }
 
 :global(.profile-main):has(> :global(.profile-layout) .rightColumn)
   :global(.profile-commerce-card dl div) {
-  padding: 10px 11px;
+  padding: 8px 9px !important;
 }
 
 :global(.profile-main):has(> :global(.profile-layout) .rightColumn)
   :global(.commerce-hint) {
-  margin-top: 12px;
-  line-height: 1.45;
+  margin-top: 9px !important;
+  line-height: 1.4;
 }
 
 :global(.profile-main):has(> :global(.profile-layout) .rightColumn)
   :global(.profile-mini-list) {
-  gap: 7px;
-  margin-top: 13px;
+  gap: 6px !important;
+  margin-top: 10px !important;
 }
 
 :global(.profile-main):has(> :global(.profile-layout) .rightColumn)
   :global(.profile-mini-list > div),
 :global(.profile-main):has(> :global(.profile-layout) .rightColumn)
   :global(.profile-commerce-card > footer) {
-  padding: 9px 0;
+  padding: 7px 0 !important;
 }
 
 :global(.profile-main):has(> :global(.profile-layout) .rightColumn)
   :global(.profile-order-form) {
-  gap: 10px;
-  margin-top: 13px;
-  padding-top: 13px;
+  gap: 8px !important;
+  margin-top: 10px !important;
+  padding-top: 10px !important;
 }
 
-/*
- * 5 — Le bloc Fidélité & plaques, lorsqu'il est présent après les deux cartes,
- * reste centré et ne s'étale plus sur toute la page.
- */
+/* 5 — Fidélité & plaques : même largeur que tous les autres blocs. */
 :global(.profile-main):has(> :global(.profile-layout) .rightColumn)
   > :global(.profile-commerce-grid)
   ~ *:not(:global(.profile-navigation-section)) {
   order: 5;
-  width: min(760px, 100%);
-  max-width: 760px;
-  margin-left: auto !important;
-  margin-right: auto !important;
 }
 
-/* 6 — Mon espace revient à la fin, sur une ligne propre */
+/* 6 — Mon espace dans la même zone centrale. */
 :global(.profile-main):has(> :global(.profile-layout) .rightColumn)
   > :global(.profile-navigation-section) {
   order: 6;
-  margin-top: 14px;
-  padding: 16px;
-  border-radius: 18px;
+  margin-top: 12px !important;
+  padding: 13px !important;
+  border-radius: 16px !important;
 }
 
 :global(.profile-main):has(> :global(.profile-layout) .rightColumn)
   :global(.profile-navigation-section .profile-data-heading) {
-  margin-bottom: 14px;
+  margin-bottom: 11px !important;
 }
 
 :global(.profile-main):has(> :global(.profile-layout) .rightColumn)
   :global(.profile-navigation-grid) {
-  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 8px !important;
 }
 
 :global(.profile-main):has(> :global(.profile-layout) .rightColumn)
   :global(.profile-navigation-card) {
-  gap: 12px;
-  padding: 11px;
-  border-radius: 13px;
+  gap: 9px !important;
+  padding: 9px !important;
+  border-radius: 12px !important;
+  min-width: 0;
 }
 
 :global(.profile-main):has(> :global(.profile-layout) .rightColumn)
   :global(.profile-navigation-icon) {
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
+  width: 29px !important;
+  height: 29px !important;
+  border-radius: 9px !important;
+  flex: 0 0 29px;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 800px) {
   :global(.profile-main):has(> :global(.profile-layout) .rightColumn)
     > :global(.profile-layout) {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
   }
 
   :global(.profile-main):has(> :global(.profile-layout) .rightColumn)
@@ -215,20 +237,15 @@
   }
 }
 
-@media (max-width: 720px) {
+@media (max-width: 640px) {
   :global(.profile-main):has(> :global(.profile-layout) .rightColumn) {
-    width: min(100% - 22px, 880px);
-    padding-top: 28px;
+    padding-top: 24px;
   }
 
   :global(.profile-main):has(> :global(.profile-layout) .rightColumn)
-    > :global(.profile-commerce-grid) {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-
+    > :global(.profile-commerce-grid),
   :global(.profile-main):has(> :global(.profile-layout) .rightColumn)
-    > :global(.profile-navigation-section) {
-    padding: 16px;
+    :global(.profile-navigation-grid) {
+    grid-template-columns: 1fr !important;
   }
 }
