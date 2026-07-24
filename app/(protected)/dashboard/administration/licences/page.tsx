@@ -41,6 +41,16 @@ function stringValue(value: FormDataEntryValue | null): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
+/**
+ * La fonction Supabase issue_nostra_licence attend un paramètre JSON pour les
+ * droits. Le formulaire, lui, accepte volontairement du texte libre.
+ * JSON.stringify transforme ce texte en chaîne JSON valide sans demander à
+ * l'utilisateur d'écrire du JSON à la main.
+ */
+function jsonTextValue(value: string): string | null {
+  return value ? JSON.stringify(value) : null;
+}
+
 function formatDate(value: string | null): string {
   if (!value) return "Sans expiration";
 
@@ -85,7 +95,6 @@ async function deleteLicence(formData: FormData) {
 
   revalidatePath("/dashboard/administration/licences");
   revalidatePath("/profil/documents");
-
   redirect("/dashboard/administration/licences?deleted=1");
 }
 
@@ -129,7 +138,7 @@ async function issueLicence(formData: FormData) {
       p_authority: authority,
       p_valid_from: validFrom,
       p_valid_until: validUntil || null,
-      p_permissions: permissions || null,
+      p_permissions: jsonTextValue(permissions),
       p_notes: notes || null,
       p_send_to_citizen: sendToCitizen,
     },
@@ -194,21 +203,26 @@ export default async function LicenceAdministrationPage({
             <span className={styles.eyebrow}>DIRECTION · ADMINISTRATION</span>
             <h1>Générateur de licences</h1>
             <p>
-              Sélectionne un citoyen, choisis un modèle existant ou saisis librement
-              n’importe quel type de licence. Le numéro officiel est créé automatiquement,
-              la licence est enregistrée et un document imprimable est immédiatement disponible.
+              Sélectionne un citoyen, choisis un modèle existant ou saisis
+              librement n’importe quel type de licence. Le numéro officiel est
+              créé automatiquement, la licence est enregistrée et un document
+              imprimable est immédiatement disponible.
             </p>
           </div>
+
           <Link className={styles.backLink} href="/dashboard">
             ← Retour au Dashboard
           </Link>
         </section>
 
         {params.error && <div className={styles.error}>{params.error}</div>}
+
         {params.success && (
           <div className={styles.success}>
             Licence générée et enregistrée avec succès.
-            {params.sent ? " Elle a aussi été envoyée dans les documents du citoyen." : ""}
+            {params.sent
+              ? " Elle a aussi été envoyée dans les documents du citoyen."
+              : ""}
             {params.licence ? (
               <>
                 {" "}
@@ -222,10 +236,11 @@ export default async function LicenceAdministrationPage({
             ) : null}
           </div>
         )}
+
         {params.deleted && (
           <div className={styles.success}>
-            Licence supprimée du registre. Sa copie éventuelle a aussi été retirée
-            des Documents & factures du citoyen.
+            Licence supprimée du registre. Sa copie éventuelle a aussi été
+            retirée des Documents & factures du citoyen.
           </div>
         )}
 
@@ -234,7 +249,8 @@ export default async function LicenceAdministrationPage({
             <span className={styles.eyebrow}>ACTIVATION SUPABASE REQUISE</span>
             <h2>Le module des licences n’est pas encore activé</h2>
             <p className={styles.panelIntro}>
-              Exécute les migrations Supabase du générateur de licences, puis recharge cette page.
+              Exécute les migrations Supabase du générateur de licences, puis
+              recharge cette page.
             </p>
           </section>
         ) : (
@@ -244,13 +260,16 @@ export default async function LicenceAdministrationPage({
                 <span className={styles.eyebrow}>NOUVELLE LICENCE</span>
                 <h2>Générer un document officiel</h2>
                 <p className={styles.panelIntro}>
-                  Tous les champs restent modifiables pour pouvoir créer une licence pilote,
-                  professionnelle, temporaire ou totalement personnalisée.
+                  Tous les champs restent modifiables pour pouvoir créer une
+                  licence pilote, professionnelle, temporaire ou totalement
+                  personnalisée.
                 </p>
 
                 <form className={styles.form} action={issueLicence}>
                   <div className={styles.field}>
-                    <label htmlFor="holder_user_id">Citoyen bénéficiaire *</label>
+                    <label htmlFor="holder_user_id">
+                      Citoyen bénéficiaire *
+                    </label>
                     <select
                       id="holder_user_id"
                       name="holder_user_id"
@@ -324,15 +343,22 @@ export default async function LicenceAdministrationPage({
                         required
                       />
                     </div>
+
                     <div className={styles.field}>
                       <label htmlFor="valid_until">Date d’expiration</label>
-                      <input id="valid_until" name="valid_until" type="date" />
+                      <input
+                        id="valid_until"
+                        name="valid_until"
+                        type="date"
+                      />
                       <small>Laisse vide pour une licence sans expiration.</small>
                     </div>
                   </div>
 
                   <div className={styles.field}>
-                    <label htmlFor="permissions">Droits et autorisations accordés</label>
+                    <label htmlFor="permissions">
+                      Droits et autorisations accordés
+                    </label>
                     <textarea
                       id="permissions"
                       name="permissions"
@@ -350,14 +376,12 @@ export default async function LicenceAdministrationPage({
                   </div>
 
                   <label className={styles.deliveryOption}>
-                    <input
-                      type="checkbox"
-                      name="send_to_citizen"
-                    />
+                    <input type="checkbox" name="send_to_citizen" />
                     <span>
                       <strong>Envoyer cette licence au citoyen</strong>
                       <small>
-                        La licence sera ajoutée immédiatement dans la section Documents & factures de son profil.
+                        La licence sera ajoutée immédiatement dans la section
+                        Documents & factures de son profil.
                       </small>
                     </span>
                   </label>
@@ -372,15 +396,32 @@ export default async function LicenceAdministrationPage({
                 <span className={styles.eyebrow}>FONCTIONNEMENT</span>
                 <h2>Création automatique</h2>
                 <p className={styles.panelIntro}>
-                  Le module utilise directement les citoyens inscrits sur le site et évite toute
-                  ressaisie de leur identité.
+                  Le module utilise directement les citoyens inscrits sur le
+                  site et évite toute ressaisie de leur identité.
                 </p>
                 <ol className={styles.steps}>
-                  <li><span>1</span><div>Sélection du citoyen depuis les profils du site.</div></li>
-                  <li><span>2</span><div>Choix libre du type, de la catégorie et de la durée.</div></li>
-                  <li><span>3</span><div>Création automatique d’un numéro officiel unique.</div></li>
-                  <li><span>4</span><div>Enregistrement dans le registre sécurisé de la Direction.</div></li>
-                  <li><span>5</span><div>Envoi facultatif dans les documents du citoyen.</div></li>
+                  <li>
+                    <span>1</span>
+                    <div>Sélection du citoyen depuis les profils du site.</div>
+                  </li>
+                  <li>
+                    <span>2</span>
+                    <div>Choix libre du type, de la catégorie et de la durée.</div>
+                  </li>
+                  <li>
+                    <span>3</span>
+                    <div>Création automatique d’un numéro officiel unique.</div>
+                  </li>
+                  <li>
+                    <span>4</span>
+                    <div>
+                      Enregistrement dans le registre sécurisé de la Direction.
+                    </div>
+                  </li>
+                  <li>
+                    <span>5</span>
+                    <div>Envoi facultatif dans les documents du citoyen.</div>
+                  </li>
                 </ol>
               </aside>
             </section>
@@ -392,7 +433,9 @@ export default async function LicenceAdministrationPage({
                   <h2>Licences déjà générées</h2>
                   <p>Les 100 dernières licences sont affichées ici.</p>
                 </div>
-                <span className={styles.notice}>{licences.length} licence(s)</span>
+                <span className={styles.notice}>
+                  {licences.length} licence(s)
+                </span>
               </div>
 
               {licences.length ? (
@@ -411,18 +454,31 @@ export default async function LicenceAdministrationPage({
                     <tbody>
                       {licences.map((licence) => (
                         <tr key={licence.id}>
-                          <td className={styles.number}>{licence.licence_number}</td>
-                          <td><strong>{licence.holder_name}</strong></td>
+                          <td className={styles.number}>
+                            {licence.licence_number}
+                          </td>
+                          <td>
+                            <strong>{licence.holder_name}</strong>
+                          </td>
                           <td>
                             <strong>{licence.licence_name}</strong>
-                            {licence.category ? <><br />Catégorie {licence.category}</> : null}
+                            {licence.category ? (
+                              <>
+                                <br />
+                                Catégorie {licence.category}
+                              </>
+                            ) : null}
                           </td>
                           <td>
                             {formatDate(licence.valid_from)}
                             <br />
                             au {formatDate(licence.valid_until)}
                           </td>
-                          <td><span className={styles.status}>{licence.status}</span></td>
+                          <td>
+                            <span className={styles.status}>
+                              {licence.status}
+                            </span>
+                          </td>
                           <td>
                             <div className={styles.actions}>
                               <Link
@@ -431,8 +487,15 @@ export default async function LicenceAdministrationPage({
                               >
                                 Ouvrir
                               </Link>
-                              <form className={styles.deleteForm} action={deleteLicence}>
-                                <input type="hidden" name="licence_id" value={licence.id} />
+                              <form
+                                className={styles.deleteForm}
+                                action={deleteLicence}
+                              >
+                                <input
+                                  type="hidden"
+                                  name="licence_id"
+                                  value={licence.id}
+                                />
                                 <button
                                   className={styles.deleteButton}
                                   type="submit"
@@ -449,7 +512,9 @@ export default async function LicenceAdministrationPage({
                   </table>
                 </div>
               ) : (
-                <div className={styles.empty}>Aucune licence générée pour le moment.</div>
+                <div className={styles.empty}>
+                  Aucune licence générée pour le moment.
+                </div>
               )}
             </section>
           </>
