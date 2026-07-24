@@ -1,4 +1,7 @@
-import { normalizeCircuitLicenceName } from "@/lib/licenses/naming";
+import {
+  normalizeCircuitLicenceCategory,
+  normalizeCircuitLicenceName,
+} from "@/lib/licenses/naming";
 import { createClient } from "@/lib/supabase/server";
 
 export const LICENCE_EXPIRY_WARNING_DAYS = 30;
@@ -277,10 +280,10 @@ export async function getOwnOfficialPilotLicences(
         holder_name: String(row.holder_name ?? ""),
         licence_number: String(row.licence_number ?? ""),
         licence_name: licenceName,
-        category:
-          typeof row.category === "string" && row.category.trim()
-            ? row.category
-            : null,
+        category: normalizeCircuitLicenceCategory(
+          licenceName,
+          typeof row.category === "string" ? row.category : null,
+        ),
         authority: String(row.authority ?? "Nostra Circuit"),
         valid_from: validFrom,
         valid_until: validUntil,

@@ -4,7 +4,10 @@ import { redirect } from "next/navigation";
 
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { getUserRoleKeys } from "@/lib/auth/access";
-import { normalizeCircuitLicenceName } from "@/lib/licenses/naming";
+import {
+  normalizeCircuitLicenceCategory,
+  normalizeCircuitLicenceName,
+} from "@/lib/licenses/naming";
 import { createClient } from "@/lib/supabase/server";
 
 import styles from "./licences.module.css";
@@ -109,7 +112,10 @@ async function issueLicence(formData: FormData) {
   const licenceName = normalizeCircuitLicenceName(
     stringValue(formData.get("licence_name")),
   );
-  const category = stringValue(formData.get("category"));
+  const category = normalizeCircuitLicenceCategory(
+    licenceName,
+    stringValue(formData.get("category")),
+  );
   const authority =
     stringValue(formData.get("authority")) || "Direction Nostra Group";
   const validFrom = stringValue(formData.get("valid_from"));
@@ -132,7 +138,7 @@ async function issueLicence(formData: FormData) {
     {
       p_holder_user_id: holderUserId,
       p_licence_name: licenceName,
-      p_category: category || null,
+      p_category: category,
       p_authority: authority,
       p_valid_from: validFrom,
       p_valid_until: validUntil || null,
@@ -303,8 +309,8 @@ export default async function LicenceAdministrationPage({
                       />
                       <datalist id="licence-types">
                         <option value="Licence Circuit" />
-                        <option value="Licence pilote F1" />
-                        <option value="Licence pilote GT3 RS" />
+                        <option value="Licence F1" />
+                        <option value="Licence GT3 RS" />
                         <option value="Licence pilote catégorie C" />
                         <option value="Licence commissaire de piste" />
                         <option value="Licence directeur de course" />
