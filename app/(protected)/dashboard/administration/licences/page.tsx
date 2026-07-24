@@ -43,15 +43,10 @@ function stringValue(value: FormDataEntryValue | null): string {
 }
 
 /**
- * Supabase attend une vraie valeur JSON/JSONB pour p_permissions.
- * On envoie donc un objet JavaScript, et non du texte brut ni une chaîne déjà
- * sérialisée. Cela fonctionne aussi si la fonction SQL convertit ensuite ce
- * paramètre en jsonb.
+ * Le formulaire envoie du texte libre. Le wrapper SQL V74 détecte le type
+ * réel attendu par la fonction historique et effectue lui-même la conversion
+ * JSON sans jamais laisser PostgreSQL interpréter le texte utilisateur.
  */
-function permissionsJsonValue(value: string): { text: string } | null {
-  return value ? { text: value } : null;
-}
-
 function formatDate(value: string | null): string {
   if (!value) return "Sans expiration";
 
@@ -133,7 +128,7 @@ async function issueLicence(formData: FormData) {
   }
 
   const { data: licenceId, error } = await supabase.rpc(
-    "issue_nostra_licence",
+    "issue_nostra_licence_safe_v74",
     {
       p_holder_user_id: holderUserId,
       p_licence_name: licenceName,
@@ -141,7 +136,7 @@ async function issueLicence(formData: FormData) {
       p_authority: authority,
       p_valid_from: validFrom,
       p_valid_until: validUntil || null,
-      p_permissions: permissionsJsonValue(permissions),
+      p_permissions: permissions || null,
       p_notes: notes || null,
       p_send_to_citizen: sendToCitizen,
     },
