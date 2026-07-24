@@ -10,7 +10,6 @@ import {
   updateTreasureHuntClue,
 } from "@/app/actions/treasure-hunt";
 import type { TreasureHunt } from "@/lib/treasure-hunt/data";
-
 import styles from "./treasure-hunt.module.css";
 
 function localDate(value: string | null): string {
@@ -18,9 +17,7 @@ function localDate(value: string | null): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
   const offset = date.getTimezoneOffset();
-  return new Date(date.getTime() - offset * 60_000)
-    .toISOString()
-    .slice(0, 16);
+  return new Date(date.getTime() - offset * 60_000).toISOString().slice(0, 16);
 }
 
 function statusLabel(status: TreasureHunt["status"]): string {
@@ -31,6 +28,24 @@ function statusLabel(status: TreasureHunt["status"]): string {
     cancelled: "Annulée",
   }[status];
 }
+
+const uploadHelpStyle = {
+  display: "block",
+  marginTop: "0.35rem",
+  color: "rgba(255,255,255,0.62)",
+  fontSize: "0.78rem",
+} as const;
+
+const previewStyle = {
+  display: "block",
+  width: "min(100%, 520px)",
+  maxHeight: "280px",
+  marginTop: "0.65rem",
+  objectFit: "contain",
+  borderRadius: "12px",
+  border: "1px solid rgba(212,175,55,0.35)",
+  background: "#090909",
+} as const;
 
 export function TreasureHuntAdmin({
   hunts,
@@ -130,7 +145,6 @@ export function TreasureHuntAdmin({
                   {hunt.prize && <span>Lot : {hunt.prize}</span>}
                 </div>
               </div>
-
               <form action={deleteTreasureHunt}>
                 <input type="hidden" name="id" value={hunt.id} />
                 <button className={styles.dangerButton} type="submit">
@@ -160,10 +174,7 @@ export function TreasureHuntAdmin({
               </label>
               <label>
                 Point de départ
-                <input
-                  name="meeting_point"
-                  defaultValue={hunt.meeting_point ?? ""}
-                />
+                <input name="meeting_point" defaultValue={hunt.meeting_point ?? ""} />
               </label>
               <label>
                 Début
@@ -207,9 +218,7 @@ export function TreasureHuntAdmin({
                 />
               </label>
               <div className={styles.actions}>
-                <span>
-                  Le statut « Publiée » rend l’événement visible aux citoyens.
-                </span>
+                <span>Le statut « Publiée » rend l’événement visible aux citoyens.</span>
                 <button className={styles.primaryButton} type="submit">
                   Enregistrer
                 </button>
@@ -230,7 +239,11 @@ export function TreasureHuntAdmin({
                 </form>
               </div>
 
-              <form action={addTreasureHuntClue} className={styles.clueForm}>
+              <form
+                action={addTreasureHuntClue}
+                className={styles.clueForm}
+                encType="multipart/form-data"
+              >
                 <input type="hidden" name="hunt_id" value={hunt.id} />
                 <label>
                   Titre de l’indice
@@ -245,8 +258,15 @@ export function TreasureHuntAdmin({
                   <textarea name="content" rows={3} required />
                 </label>
                 <label className={styles.full}>
-                  URL d’une image facultative
-                  <input name="image_url" type="url" placeholder="https://…" />
+                  Image facultative depuis ton PC
+                  <input
+                    name="image_file"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                  />
+                  <small style={uploadHelpStyle}>
+                    JPG, PNG, WEBP ou GIF — 8 Mo maximum. L’image sera envoyée automatiquement.
+                  </small>
                 </label>
                 <label className={styles.checkbox}>
                   <input type="checkbox" name="is_revealed" />
@@ -304,8 +324,10 @@ export function TreasureHuntAdmin({
                     <form
                       action={updateTreasureHuntClue}
                       className={styles.clueForm}
+                      encType="multipart/form-data"
                     >
                       <input type="hidden" name="id" value={clue.id} />
+                      <input type="hidden" name="hunt_id" value={hunt.id} />
                       <label>
                         Titre
                         <input name="title" defaultValue={clue.title} required />
@@ -324,13 +346,29 @@ export function TreasureHuntAdmin({
                         />
                       </label>
                       <label className={styles.full}>
-                        Image
+                        Remplacer l’image depuis ton PC
                         <input
-                          name="image_url"
-                          type="url"
-                          defaultValue={clue.image_url ?? ""}
+                          name="image_file"
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp,image/gif"
                         />
+                        <small style={uploadHelpStyle}>
+                          Laisse vide pour garder l’image actuelle. Taille maximale : 8 Mo.
+                        </small>
+                        {clue.image_url && (
+                          <img
+                            src={clue.image_url}
+                            alt={`Aperçu de l’indice ${clue.title}`}
+                            style={previewStyle}
+                          />
+                        )}
                       </label>
+                      {clue.image_url && (
+                        <label className={styles.checkbox}>
+                          <input type="checkbox" name="remove_image" />
+                          Supprimer l’image actuelle
+                        </label>
+                      )}
                       <label className={styles.checkbox}>
                         <input
                           type="checkbox"
