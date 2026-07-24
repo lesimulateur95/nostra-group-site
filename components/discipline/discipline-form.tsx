@@ -16,6 +16,16 @@ type CitizenOption = {
   licenceCount: number;
 };
 
+type DisciplineSeverity = "minor" | "major" | "critical";
+
+type PointScaleEntry = {
+  id: string;
+  label: string;
+  description: string;
+  points: number;
+  severity: DisciplineSeverity;
+};
+
 const ACTION_OPTIONS: Array<{
   value: DisciplineActionType;
   label: string;
@@ -43,6 +53,78 @@ const ACTION_OPTIONS: Array<{
   },
 ];
 
+const POINT_SCALE: PointScaleEntry[] = [
+  {
+    id: "track-limits",
+    label: "Limites de piste ou consigne mineure",
+    description: "Infractions répétées aux limites de piste ou consigne simple non respectée.",
+    points: 1,
+    severity: "minor",
+  },
+  {
+    id: "unsafe-move",
+    label: "Manœuvre ou dépassement dangereux",
+    description: "Manœuvre évitable ayant mis un autre pilote en difficulté sans accident grave.",
+    points: 2,
+    severity: "minor",
+  },
+  {
+    id: "avoidable-contact",
+    label: "Contact responsable",
+    description: "Contact évitable causant une perte de position ou des dégâts légers.",
+    points: 3,
+    severity: "major",
+  },
+  {
+    id: "yellow-flag",
+    label: "Non-respect d’un drapeau jaune",
+    description: "Vitesse ou dépassement non conforme sous drapeau jaune ou ordre commissaire ignoré.",
+    points: 4,
+    severity: "major",
+  },
+  {
+    id: "responsible-crash",
+    label: "Accident responsable important",
+    description: "Accident causé avec dégâts importants ou abandon d’un autre concurrent.",
+    points: 5,
+    severity: "major",
+  },
+  {
+    id: "safety-car-red-flag",
+    label: "Non-respect Safety Car ou drapeau rouge",
+    description: "Consigne majeure de sécurité ignorée pendant une neutralisation ou un arrêt de course.",
+    points: 6,
+    severity: "critical",
+  },
+  {
+    id: "serious-unsporting",
+    label: "Comportement antisportif grave",
+    description: "Obstruction volontaire, récidive grave ou comportement mettant la course en danger.",
+    points: 8,
+    severity: "critical",
+  },
+  {
+    id: "intentional-collision",
+    label: "Collision volontaire",
+    description: "Action volontaire contre un pilote ou mise en danger majeure des participants.",
+    points: 10,
+    severity: "critical",
+  },
+  {
+    id: "fraud-cheating",
+    label: "Triche, falsification ou récidive extrême",
+    description: "Triche avérée, falsification de documents ou faute critique justifiant la perte totale.",
+    points: 12,
+    severity: "critical",
+  },
+];
+
+const SEVERITY_LABELS: Record<DisciplineSeverity, string> = {
+  minor: "Mineur",
+  major: "Majeur",
+  critical: "Critique",
+};
+
 function citizenKey(licence: CircuitDisciplineLicence): string {
   return licence.holderUserId || `licence:${licence.id}`;
 }
@@ -68,6 +150,9 @@ export function DisciplineForm({
     initialLicence?.id ?? "",
   );
   const [pointsToRemove, setPointsToRemove] = useState(1);
+  const [severity, setSeverity] = useState<DisciplineSeverity>("minor");
+  const [reason, setReason] = useState("");
+  const [selectedScaleId, setSelectedScaleId] = useState("");
 
   const citizens = useMemo<CitizenOption[]>(() => {
     const byCitizen = new Map<string, CitizenOption>();
@@ -109,6 +194,8 @@ export function DisciplineForm({
   const maxRemovablePoints = selectedLicence?.pointsRemaining ?? 0;
 
   useEffect(() => {
+    if (!selectedLicence) return;
+
     if (maxRemovablePoints <= 0) {
       setPointsToRemove(0);
       return;
@@ -117,7 +204,7 @@ export function DisciplineForm({
     setPointsToRemove((current) =>
       Math.min(Math.max(current || 1, 1), maxRemovablePoints),
     );
-  }, [maxRemovablePoints]);
+  }, [selectedLicence, maxRemovablePoints]);
 
   function handleCitizenChange(value: string) {
     setSelectedCitizenId(value);
@@ -130,11 +217,32 @@ export function DisciplineForm({
 
     setSelectedLicenceId(nextLicenceId);
     setPointsToRemove(1);
+    setSelectedScaleId("");
   }
 
   function handleLicenceChange(value: string) {
     setSelectedLicenceId(value);
     setPointsToRemove(1);
+    setSelectedScaleId("");
+  }
+
+  function applyScale(entry: PointScaleEntry) {
+    if (!selectedLicence || maxRemovablePoints <= 0) return;
+
+    const appliedPoints = Math.min(entry.points, maxRemovablePoints);
+
+    setActionType("points_deduction");
+    setSelectedScaleId(entry.id);
+    setPointsToRemove(appliedPoints);
+    setSeverity(entry.severity);
+    setReason(
+      `Barème Nostra Circuit — ${entry.label} : ${entry.description}`,
+    );
+  }
+
+  function selectManualPoints(points: number) {
+    setSelectedScaleId("");
+    setPointsToRemove(points);
   }
 
   const submitDisabled =
@@ -196,7 +304,8 @@ export function DisciplineForm({
             </option>
             {citizenLicences.map((licence) => (
               <option value={licence.id} key={licence.id}>
-                {licence.licenceNumber} · {licence.licenceName} · {licence.pointsRemaining}/12 pts
+                {licence.licenceNumber} · {licence.licenceName} ·{" "}
+                {licence.pointsRemaining}/12 pts
               </option>
             ))}
           </select>
@@ -206,6 +315,65 @@ export function DisciplineForm({
           </small>
         </label>
       </div>
+
+      <section className={styles.scalePanel} aria-label="Barème de retrait de points">
+        <div className={styles.scaleHeading}>
+          <div>
+            <span>BARÈME NOSTRA CIRCUIT</span>
+            <h3>Points retirés selon l’infraction</h3>
+          </div>
+          <p>
+            Sélectionne un citoyen et sa licence, puis clique sur une infraction.
+            Le retrait, la gravité et le motif seront préremplis automatiquement.
+          </p>
+        </div>
+
+        <div className={styles.scaleGrid}>
+          {POINT_SCALE.map((entry) => {
+            const unavailable =
+              !selectedLicence || maxRemovablePoints <= 0;
+            const appliedPoints = selectedLicence
+              ? Math.min(entry.points, maxRemovablePoints)
+              : entry.points;
+
+            return (
+              <button
+                key={entry.id}
+                type="button"
+                disabled={unavailable}
+                className={`${styles.scaleCard} ${
+                  selectedScaleId === entry.id ? styles.scaleCardActive : ""
+                }`}
+                aria-pressed={selectedScaleId === entry.id}
+                onClick={() => applyScale(entry)}
+              >
+                <span className={styles.scalePoints}>-{entry.points} pts</span>
+                <strong>{entry.label}</strong>
+                <small>{entry.description}</small>
+                <span
+                  className={`${styles.scaleSeverity} ${
+                    styles[`scaleSeverity_${entry.severity}`]
+                  }`}
+                >
+                  {SEVERITY_LABELS[entry.severity]}
+                </span>
+                {selectedLicence && appliedPoints < entry.points ? (
+                  <em>
+                    Retrait limité à -{appliedPoints} pt
+                    {appliedPoints > 1 ? "s" : ""} selon le solde restant.
+                  </em>
+                ) : null}
+              </button>
+            );
+          })}
+        </div>
+
+        {!selectedLicence ? (
+          <p className={styles.scaleNotice}>
+            Choisis d’abord le citoyen et la licence pour appliquer le barème.
+          </p>
+        ) : null}
+      </section>
 
       <fieldset className={styles.measureFieldset}>
         <legend>Mesure disciplinaire</legend>
@@ -231,7 +399,13 @@ export function DisciplineForm({
       <div className={styles.grid}>
         <label>
           <span>Niveau de gravité</span>
-          <select name="severity" defaultValue="minor">
+          <select
+            name="severity"
+            value={severity}
+            onChange={(event: ChangeEvent<HTMLSelectElement>) =>
+              setSeverity(event.target.value as DisciplineSeverity)
+            }
+          >
             <option value="minor">Mineur</option>
             <option value="major">Majeur</option>
             <option value="critical">Critique</option>
@@ -271,11 +445,15 @@ export function DisciplineForm({
           <div className={styles.pointsPanelHeader}>
             <div>
               <span>RETRAIT DE POINTS</span>
-              <h3>Choisis le nombre de points à retirer</h3>
+              <h3>Choisis ou ajuste le nombre de points à retirer</h3>
             </div>
             <div className={styles.currentPoints}>
               <small>Points actuels</small>
-              <strong>{selectedLicence ? `${selectedLicence.pointsRemaining}/12` : "—/12"}</strong>
+              <strong>
+                {selectedLicence
+                  ? `${selectedLicence.pointsRemaining}/12`
+                  : "—/12"}
+              </strong>
             </div>
           </div>
 
@@ -302,7 +480,7 @@ export function DisciplineForm({
                       pointsToRemove === point ? styles.pointButtonActive : ""
                     }`}
                     aria-pressed={pointsToRemove === point}
-                    onClick={() => setPointsToRemove(point)}
+                    onClick={() => selectManualPoints(point)}
                   >
                     -{point}
                   </button>
@@ -344,6 +522,8 @@ export function DisciplineForm({
           minLength={3}
           maxLength={2000}
           required
+          value={reason}
+          onChange={(event) => setReason(event.target.value)}
           placeholder="Décris précisément le comportement, l’infraction ou la décision prise."
         />
       </label>
@@ -361,7 +541,8 @@ export function DisciplineForm({
       <div className={styles.footer}>
         <p>
           Le citoyen recevra automatiquement une notification et la mesure sera
-          ajoutée à l’historique permanent de la Direction.
+          ajoutée à l’historique permanent de la Direction. Le barème reste une
+          référence : la Direction peut ajuster le retrait avant validation.
         </p>
         <button
           type="submit"
