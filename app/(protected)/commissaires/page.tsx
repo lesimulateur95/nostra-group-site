@@ -48,23 +48,24 @@ export default async function CommissionersPage() {
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
   const roles = data.user ? await getUserRoleKeys(data.user) : [];
-
-  const tools = roles.includes("manager")
+  const canUseDiscipline =
+    roles.includes("manager") || roles.includes("commissioner");
+  const tools = canUseDiscipline
     ? [...managementTools, disciplineTool]
     : managementTools;
 
   return (
     <main className={styles.page}>
       <section className={styles.hero}>
-        <span className={styles.eyebrow}>ACCÈS RÉSERVÉ</span>
+        <span className="eyebrow">ACCÈS RÉSERVÉ</span>
         <h1>Gestion des commissaires</h1>
         <p>
-          Tous les outils de direction de course sont regroupés ici. Cet
-          espace est réservé aux comptes autorisés Commissaire.
+          Tous les outils de direction de course sont regroupés ici. Cet espace
+          est réservé aux comptes autorisés Commissaire.
         </p>
       </section>
 
-      <section className={styles.grid} aria-label="Outils des commissaires">
+      <section className={styles.grid}>
         {tools.map((tool) => (
           <Link className={styles.card} href={tool.href} key={tool.href}>
             <span className={styles.icon} aria-hidden="true">

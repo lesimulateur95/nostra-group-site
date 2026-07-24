@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import type { User } from "@supabase/supabase-js";
 
 import {
@@ -314,10 +315,51 @@ export async function getUserRoleLabel(
   return (await getUserRoleLabels(user)).join(" · ");
 }
 
+const OPERATIONS_DASHBOARD_PREFIXES = [
+  "/dashboard/catalogue",
+  "/dashboard/commandes",
+  "/dashboard/livraisons",
+  "/dashboard/rendez-vous-motors",
+  "/dashboard/stocks",
+  "/dashboard/reservations",
+  "/dashboard/homologations",
+  "/dashboard/inscriptions-ecuries",
+  "/dashboard/championnats",
+] as const;
+
+function isOperationsDashboardPath(pathname: string): boolean {
+  return OPERATIONS_DASHBOARD_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+}
+
+async function getCurrentRequestPathname(): Promise<string> {
+  try {
+    const requestHeaders = await headers();
+    const forwardedPathname = requestHeaders.get("x-nostra-pathname");
+    if (forwardedPathname) return forwardedPathname;
+
+    const referer = requestHeaders.get("referer");
+    if (!referer) return "";
+
+    return new URL(referer).pathname;
+  } catch {
+    return "";
+  }
+}
+
 export async function hasDashboardAccess(
   user: User | null | undefined,
 ): Promise<boolean> {
-  return (await getUserRoleKeys(user)).includes("manager");
+  const roles = await getUserRoleKeys(user);
+
+  if (roles.includes("manager")) return true;
+
+  const operationsRole =
+    roles.includes("employee") || roles.includes("commercial");
+  if (!operationsRole) return false;
+
+  return isOperationsDashboardPath(await getCurrentRequestPathname());
 }
 
 export async function hasStaffDashboardAccess(

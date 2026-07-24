@@ -10,22 +10,24 @@ function field(formData: FormData, name: string): string {
   return String(formData.get(name) ?? "").trim();
 }
 
-async function requireManager() {
+async function requireMotorsStaff() {
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
 
   if (!data.user) redirect("/");
 
   const roles = await getUserRoleKeys(data.user);
-  if (!roles.includes("manager")) redirect("/accueil");
+  const allowed = roles.some((role) =>
+    ["manager", "employee", "commercial"].includes(role),
+  );
 
+  if (!allowed) redirect("/accueil");
   return supabase;
 }
 
 export async function createMotorAppointment(formData: FormData) {
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
-
   if (!data.user) redirect("/");
 
   const customerName = field(formData, "customer_name");
@@ -38,7 +40,6 @@ export async function createMotorAppointment(formData: FormData) {
   const [vehicleId, selectedVehicleLabel] = vehicleSelection.split("|||", 2);
   const vehicleLabel = customVehicleLabel || selectedVehicleLabel || "";
   const reason = field(formData, "message");
-
   const selectedDate = new Date(`${appointmentDate}T${appointmentTime}:00`);
 
   if (
@@ -71,9 +72,7 @@ export async function createMotorAppointment(formData: FormData) {
       status: "pending",
     });
 
-  if (error) {
-    redirect("/motors/rendez-vous?error=database");
-  }
+  if (error) redirect("/motors/rendez-vous?error=database");
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/rendez-vous-motors");
@@ -81,8 +80,7 @@ export async function createMotorAppointment(formData: FormData) {
 }
 
 export async function updateMotorAppointment(formData: FormData) {
-  const supabase = await requireManager();
-
+  const supabase = await requireMotorsStaff();
   const id = field(formData, "id");
   const status = field(formData, "status");
   const directionNote = field(formData, "direction_note");
@@ -105,9 +103,7 @@ export async function updateMotorAppointment(formData: FormData) {
     })
     .eq("id", id);
 
-  if (error) {
-    redirect("/dashboard/rendez-vous-motors?error=database");
-  }
+  if (error) redirect("/dashboard/rendez-vous-motors?error=database");
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/rendez-vous-motors");
@@ -115,21 +111,17 @@ export async function updateMotorAppointment(formData: FormData) {
 }
 
 export async function deleteMotorAppointment(formData: FormData) {
-  const supabase = await requireManager();
+  const supabase = await requireMotorsStaff();
   const id = field(formData, "id");
 
-  if (!id) {
-    redirect("/dashboard/rendez-vous-motors?error=invalid");
-  }
+  if (!id) redirect("/dashboard/rendez-vous-motors?error=invalid");
 
   const { error } = await (supabase as any)
     .from("motors_appointments")
     .delete()
     .eq("id", id);
 
-  if (error) {
-    redirect("/dashboard/rendez-vous-motors?error=delete");
-  }
+  if (error) redirect("/dashboard/rendez-vous-motors?error=delete");
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/rendez-vous-motors");

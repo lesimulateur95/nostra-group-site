@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+
 import { getUserRoleKeys } from "@/lib/auth/access";
 import { createClient } from "@/lib/supabase/server";
 
@@ -12,12 +13,22 @@ function field(formData: FormData, name: string): string {
 async function currentUserAndRoles() {
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
-  if (!data.user) return { supabase, user: null, roles: [] as string[] };
+
+  if (!data.user) {
+    return { supabase, user: null, roles: [] as string[] };
+  }
+
   return {
     supabase,
     user: data.user,
     roles: await getUserRoleKeys(data.user),
   };
+}
+
+function hasMotorsStaffRole(roles: string[]): boolean {
+  return roles.some((role) =>
+    ["manager", "employee", "commercial"].includes(role),
+  );
 }
 
 export async function createMotorAppointment(formData: FormData) {
@@ -33,7 +44,6 @@ export async function createMotorAppointment(formData: FormData) {
   const [vehicleId, selectedVehicleLabel] = vehicleSelection.split("|||", 2);
   const vehicleLabel = customVehicleLabel || selectedVehicleLabel || "";
   const message = field(formData, "message");
-
   const selectedDate = new Date(`${appointmentDate}T${appointmentTime}:00`);
 
   if (
@@ -71,7 +81,7 @@ export async function createMotorAppointment(formData: FormData) {
 
 export async function updateMotorAppointment(formData: FormData) {
   const { supabase, user, roles } = await currentUserAndRoles();
-  if (!user || !roles.includes("manager")) redirect("/accueil");
+  if (!user || !hasMotorsStaffRole(roles)) redirect("/accueil");
 
   const id = field(formData, "id");
   const status = field(formData, "status");
@@ -101,10 +111,7 @@ export async function updateMotorAppointment(formData: FormData) {
 
 export async function updateMotorDelivery(formData: FormData) {
   const { supabase, user, roles } = await currentUserAndRoles();
-  const allowed = roles.some((role) =>
-    ["manager", "employee", "commercial"].includes(role),
-  );
-  if (!user || !allowed) redirect("/accueil");
+  if (!user || !hasMotorsStaffRole(roles)) redirect("/accueil");
 
   const id = field(formData, "id");
   const deliveryStatus = field(formData, "delivery_status");
@@ -114,9 +121,13 @@ export async function updateMotorDelivery(formData: FormData) {
 
   if (
     !id ||
-    !["not_planned", "planned", "in_progress", "delivered", "cancelled"].includes(
-      deliveryStatus,
-    )
+    ![
+      "not_planned",
+      "planned",
+      "in_progress",
+      "delivered",
+      "cancelled",
+    ].includes(deliveryStatus)
   ) {
     redirect("/dashboard/livraisons?error=invalid");
   }
@@ -139,7 +150,6 @@ export async function updateMotorDelivery(formData: FormData) {
   };
 
   // Le statut de commande existant utilise "completed", jamais "delivered".
-  // Le passage à "Livrée" reste ainsi compatible avec les documents/factures.
   if (deliveryStatus === "delivered") update.status = "completed";
 
   const { data: updatedOrder, error } = await (supabase as any)

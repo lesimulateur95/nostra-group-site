@@ -16,6 +16,24 @@ type SecurityGatePayload = {
   matched_page?: string | null;
 };
 
+const OPERATIONS_DASHBOARD_PREFIXES = [
+  "/dashboard/catalogue",
+  "/dashboard/commandes",
+  "/dashboard/livraisons",
+  "/dashboard/rendez-vous-motors",
+  "/dashboard/stocks",
+  "/dashboard/reservations",
+  "/dashboard/homologations",
+  "/dashboard/inscriptions-ecuries",
+  "/dashboard/championnats",
+] as const;
+
+function isOperationsDashboardPath(pathname: string): boolean {
+  return OPERATIONS_DASHBOARD_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+}
+
 function normalizeRole(value: string): string {
   const normalized = value
     .trim()
@@ -54,8 +72,13 @@ function normalizeRoles(roles: unknown, role: unknown): string[] {
   return ["citizen"];
 }
 
+function hasOperationsRole(roles: string[]): boolean {
+  return roles.some((role) => ["employee", "commercial", "manager"].includes(role));
+}
+
 async function hashValue(value: string | null): Promise<string | null> {
   if (!value) return null;
+
   try {
     const bytes = new TextEncoder().encode(value);
     const digest = await crypto.subtle.digest("SHA-256", bytes);
@@ -67,13 +90,19 @@ async function hashValue(value: string | null): Promise<string | null> {
   }
 }
 
-function redirectTo(request: NextRequest, pathname: string, params?: Record<string, string>) {
+function redirectTo(
+  request: NextRequest,
+  pathname: string,
+  params?: Record<string, string>,
+) {
   const url = request.nextUrl.clone();
   url.pathname = pathname;
   url.search = "";
+
   for (const [key, value] of Object.entries(params ?? {})) {
     if (value) url.searchParams.set(key, value);
   }
+
   return NextResponse.redirect(url);
 }
 
@@ -89,7 +118,9 @@ export async function updateSession(request: NextRequest) {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value),
+          );
           response = NextResponse.next({ request });
           cookiesToSet.forEach(({ name, value, options }) =>
             response.cookies.set(name, value, options),
@@ -112,7 +143,8 @@ export async function updateSession(request: NextRequest) {
     path === "/compte-bloque";
   const isProfilePage = path === "/profil" || path.startsWith("/profil/");
   const isDashboardPage = path === "/dashboard" || path.startsWith("/dashboard/");
-  const isCommissionerPage = path === "/commissaires" || path.startsWith("/commissaires/");
+  const isCommissionerPage =
+    path === "/commissaires" || path.startsWith("/commissaires/");
 
   if (!user && !isPublic) {
     return isApi
@@ -127,7 +159,8 @@ export async function updateSession(request: NextRequest) {
   let securityGate: SecurityGatePayload | null = null;
 
   if (user && !isPublic) {
-    const forwardedFor = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
+    const forwardedFor =
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
     const ipHash = await hashValue(forwardedFor);
     const gateResult = await supabase.rpc("nostra_security_gate", {
       p_path: path,
@@ -135,7 +168,11 @@ export async function updateSession(request: NextRequest) {
       p_ip_hash: ipHash,
     });
 
-    if (!gateResult.error && gateResult.data && typeof gateResult.data === "object") {
+    if (
+      !gateResult.error &&
+      gateResult.data &&
+      typeof gateResult.data === "object"
+    ) {
       securityGate = gateResult.data as SecurityGatePayload;
 
       if (securityGate.account_blocked) {
@@ -149,30 +186,56 @@ export async function updateSession(request: NextRequest) {
             { status: 403 },
           );
         }
+
         return redirectTo(request, "/compte-bloque", {
           reason: securityGate.blocked_reason ?? "Blocage temporaire",
           until: securityGate.blocked_until ?? "",
         });
       }
 
-      if (securityGate.maintenance_enabled && !securityGate.maintenance_bypass) {
+      if (
+        securityGate.maintenance_enabled &&
+        !securityGate.maintenance_bypass
+      ) {
         if (isApi) {
           return NextResponse.json(
-            { error: securityGate.maintenance_message ?? "Site en maintenance" },
+            {
+              error:
+                securityGate.maintenance_message ?? "Site en maintenance",
+            },
             { status: 503 },
           );
         }
+
         return redirectTo(request, "/maintenance");
       }
 
       if (securityGate.page_allowed === false) {
-        if (isApi) {
-          return NextResponse.json({ error: "Accès refusé" }, { status: 403 });
+        let resolvedRoles = normalizeRoles(securityGate.roles, null);
+
+        // La matrice Supabase peut encore contenir les anciens réglages.
+        // Pour les seules pages opérationnelles demandées, on vérifie le rôle
+        // réel avant de refuser l'accès.
+        if (isOperationsDashboardPath(path) && !hasOperationsRole(resolvedRoles)) {
+          const rpcResult = await supabase.rpc("nostra_roles");
+          if (!rpcResult.error) {
+            resolvedRoles = normalizeRoles(rpcResult.data, null);
+          }
         }
-        return redirectTo(request, "/accueil", {
-          acces: "refuse",
-          page: securityGate.matched_page ?? "Page protégée",
-        });
+
+        const operationsOverride =
+          isOperationsDashboardPath(path) && hasOperationsRole(resolvedRoles);
+
+        if (!operationsOverride) {
+          if (isApi) {
+            return NextResponse.json({ error: "Accès refusé" }, { status: 403 });
+          }
+
+          return redirectTo(request, "/accueil", {
+            acces: "refuse",
+            page: securityGate.matched_page ?? "Page protégée",
+          });
+        }
       }
     }
   }
@@ -184,8 +247,7 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Les anciens contrôles statiques restent uniquement comme secours tant que V64
-  // n’est pas installée. Une fois le centre actif, la matrice du Dashboard fait foi.
+  // Secours tant que la matrice Supabase n'est pas disponible.
   if (
     user &&
     securityGate === null &&
@@ -194,20 +256,18 @@ export async function updateSession(request: NextRequest) {
   ) {
     let roles: string[] = [];
 
-    if (roles.length === 0) {
-      const rpcResult = await supabase.rpc("nostra_roles");
-      roles = !rpcResult.error
-        ? normalizeRoles(rpcResult.data, null)
-        : ["citizen"];
+    const rpcResult = await supabase.rpc("nostra_roles");
+    roles = !rpcResult.error
+      ? normalizeRoles(rpcResult.data, null)
+      : ["citizen"];
 
-      if (rpcResult.error) {
-        const { data: profile } = await supabase
-          .from("member_profiles")
-          .select("roles,role")
-          .eq("user_id", user.id)
-          .maybeSingle();
-        roles = normalizeRoles(profile?.roles, profile?.role);
-      }
+    if (rpcResult.error) {
+      const { data: profile } = await supabase
+        .from("member_profiles")
+        .select("roles,role")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      roles = normalizeRoles(profile?.roles, profile?.role);
     }
 
     const dashboardRoles = [
@@ -218,7 +278,10 @@ export async function updateSession(request: NextRequest) {
       "commercial",
     ];
 
-    if (isDashboardPage && !roles.some((role) => dashboardRoles.includes(role))) {
+    if (
+      isDashboardPage &&
+      !roles.some((role) => dashboardRoles.includes(role))
+    ) {
       return redirectTo(request, "/accueil");
     }
 

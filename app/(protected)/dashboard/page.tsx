@@ -3,7 +3,10 @@ import { redirect } from "next/navigation";
 import { DashboardCard } from "@/components/dashboard/dashboard-card";
 import { DashboardModuleGroup } from "@/components/dashboard/dashboard-module-group";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
-import { getRequestRoleKeys, getRequestUser } from "@/lib/auth/request-context";
+import {
+  getRequestRoleKeys,
+  getRequestUser,
+} from "@/lib/auth/request-context";
 import { getDiscordName, getRpName } from "@/lib/auth/user-profile";
 import { getDashboardOverview } from "@/lib/dashboard/overview";
 
@@ -17,16 +20,18 @@ export default async function DashboardPage() {
 
   const managerAccess = roles.includes("manager");
   const commissionerRole = roles.includes("commissioner");
-  const ordersAccess =
-    managerAccess || roles.includes("employee") || roles.includes("commercial");
+  const operationsAccess =
+    managerAccess ||
+    roles.includes("employee") ||
+    roles.includes("commercial");
 
-  if (!managerAccess && !ordersAccess) {
+  if (!operationsAccess) {
     redirect(commissionerRole ? "/commissaires" : "/accueil");
   }
 
   const overview = await getDashboardOverview({
     managerAccess,
-    ordersAccess,
+    ordersAccess: operationsAccess,
   });
 
   const accessLabel = managerAccess
@@ -42,7 +47,7 @@ export default async function DashboardPage() {
     overview.pendingOrders;
 
   return (
-    <DashboardShell>
+    <DashboardShell allowedRoles={["manager", "employee", "commercial"]}>
       <section className="dashboard-hero dashboard-hero-compact">
         <div>
           <span className="eyebrow">NOSTRA GROUP</span>
@@ -60,8 +65,8 @@ export default async function DashboardPage() {
           <span className="module-status">Vérification nécessaire</span>
           <h2>Certains modules ne répondent pas</h2>
           <p>
-            Le Dashboard reste accessible. Vérifie le centre de diagnostic pour
-            identifier le module Supabase concerné.
+            Le Dashboard reste accessible. Vérifie le centre de diagnostic
+            pour identifier le module Supabase concerné.
           </p>
         </section>
       )}
@@ -101,148 +106,136 @@ export default async function DashboardPage() {
         <p className="eyebrow">CENTRE DE GESTION</p>
         <h2>Modules disponibles</h2>
         <p>
-          Le Dashboard charge uniquement les compteurs utiles. Les listes
-          complètes sont récupérées seulement après l’ouverture d’un module.
+          Employés et commerciaux disposent uniquement des catégories Nostra
+          Motors et Nostra Circuit. Les zones Direction, Jeux et Administration
+          restent réservées au gérant.
         </p>
       </section>
 
       <div className="dashboard-module-groups">
-        {ordersAccess && (
-          <DashboardModuleGroup
-            icon="🚘"
-            eyebrow="CONCESSION"
-            title="Nostra Motors"
-            description={
-              managerAccess
-                ? "Catalogue, commandes clients et quantités disponibles."
-                : "Accès limité au traitement des commandes clients."
-            }
-            defaultOpen={!managerAccess}
-          >
-            <div className="dashboard-module-grid dashboard-module-grid-grouped">
-              {managerAccess && (
-                <DashboardCard
-                  href="/dashboard/catalogue"
-                  icon="🚗"
-                  title="Catalogue Nostra Motors"
-                  description="Ajouter les véhicules par marque avec leurs photos, caractéristiques, prix et quantité en stock."
-                  badge={
-                    overview.catalogVehicles
-                      ? `${overview.catalogVehicles} véhicule(s)`
-                      : undefined
-                  }
-                />
-              )}
-              <DashboardCard
-                href="/dashboard/commandes"
-                icon="📦"
-                title="Commandes Nostra Motors"
-                description="Recevoir les commandes des citoyens, suivre leur préparation et modifier leur statut."
-                badge={
-                  !overview.ordersConfigured
-                    ? "À activer"
-                    : overview.pendingOrders
-                      ? `${overview.pendingOrders} nouvelle(s)`
-                      : undefined
-                }
-              />
-              <DashboardCard
-                href="/dashboard/livraisons"
-                icon="🚚"
-                title="Gestion des livraisons"
-                description="Planifier les livraisons à domicile, assigner un livreur et suivre leur progression."
-                badge={
-                  !overview.motorsV41Configured
-                    ? "V41 à activer"
-                    : overview.pendingDeliveries
-                      ? `${overview.pendingDeliveries} à traiter`
-                      : undefined
-                }
-              />
-              {managerAccess && (
-                <DashboardCard
-                  href="/dashboard/rendez-vous-motors"
-                  icon="◷"
-                  title="Demandes de rendez-vous"
-                  description="Consulter, traiter ou supprimer les demandes envoyées par les citoyens."
-                  badge={
-                    !overview.motorsV41Configured
-                      ? "À activer"
-                      : overview.pendingAppointments
-                        ? `${overview.pendingAppointments} en attente`
-                        : undefined
-                  }
-                />
-              )}
-              {managerAccess && (
-                <DashboardCard
-                  href="/dashboard/stocks"
-                  icon="▦"
-                  title="Gestion des stocks"
-                  description="Modifier les quantités et surveiller les véhicules bientôt épuisés."
-                  badge={
-                    overview.lowStock
-                      ? `${overview.lowStock} alerte(s)`
-                      : undefined
-                  }
-                />
-              )}
-            </div>
-          </DashboardModuleGroup>
-        )}
+        <DashboardModuleGroup
+          icon="🚘"
+          eyebrow="CONCESSION"
+          title="Nostra Motors"
+          description="Catalogue, commandes, livraisons, rendez-vous et stocks."
+          defaultOpen={!managerAccess}
+        >
+          <div className="dashboard-module-grid dashboard-module-grid-grouped">
+            <DashboardCard
+              href="/dashboard/catalogue"
+              icon="🚗"
+              title="Catalogue Nostra Motors"
+              description="Ajouter ou modifier les véhicules, leurs photos, caractéristiques, prix et quantités."
+              badge={
+                managerAccess && overview.catalogVehicles
+                  ? `${overview.catalogVehicles} véhicule(s)`
+                  : undefined
+              }
+            />
+            <DashboardCard
+              href="/dashboard/commandes"
+              icon="📦"
+              title="Commandes Nostra Motors"
+              description="Recevoir les commandes, suivre leur préparation et modifier leur statut."
+              badge={
+                !overview.ordersConfigured
+                  ? "À activer"
+                  : overview.pendingOrders
+                    ? `${overview.pendingOrders} nouvelle(s)`
+                    : undefined
+              }
+            />
+            <DashboardCard
+              href="/dashboard/livraisons"
+              icon="🚚"
+              title="Gestion des livraisons"
+              description="Planifier les livraisons, assigner un livreur et suivre leur progression."
+              badge={
+                !overview.motorsV41Configured
+                  ? "À activer"
+                  : overview.pendingDeliveries
+                    ? `${overview.pendingDeliveries} à traiter`
+                    : undefined
+              }
+            />
+            <DashboardCard
+              href="/dashboard/rendez-vous-motors"
+              icon="◷"
+              title="Demandes de rendez-vous"
+              description="Consulter, traiter ou supprimer les demandes envoyées par les citoyens."
+              badge={
+                !overview.motorsV41Configured
+                  ? "À activer"
+                  : overview.pendingAppointments
+                    ? `${overview.pendingAppointments} en attente`
+                    : undefined
+              }
+            />
+            <DashboardCard
+              href="/dashboard/stocks"
+              icon="▦"
+              title="Gestion des stocks"
+              description="Modifier les quantités et surveiller les véhicules bientôt épuisés."
+              badge={
+                managerAccess && overview.lowStock
+                  ? `${overview.lowStock} alerte(s)`
+                  : undefined
+              }
+            />
+          </div>
+        </DashboardModuleGroup>
 
-        {managerAccess && (
-          <DashboardModuleGroup
-            icon="🏁"
-            eyebrow="SPORT AUTOMOBILE"
-            title="Nostra Circuit"
-            description="Réservations, homologations, écuries et championnats."
-          >
-            <div className="dashboard-module-grid dashboard-module-grid-grouped dashboard-module-grid-four">
-              <DashboardCard
-                href="/dashboard/reservations"
-                icon="📅"
-                title="Demandes de réservation"
-                description="Valider, refuser ou supprimer les créneaux demandés sur le calendrier du circuit."
-                badge={
-                  overview.pendingReservations
-                    ? `${overview.pendingReservations} à traiter`
+        <DashboardModuleGroup
+          icon="🏁"
+          eyebrow="SPORT AUTOMOBILE"
+          title="Nostra Circuit"
+          description="Réservations, homologations, écuries et championnats."
+          defaultOpen={!managerAccess}
+        >
+          <div className="dashboard-module-grid dashboard-module-grid-grouped dashboard-module-grid-four">
+            <DashboardCard
+              href="/dashboard/reservations"
+              icon="📅"
+              title="Demandes de réservation"
+              description="Valider, refuser ou supprimer les créneaux demandés sur le calendrier du circuit."
+              badge={
+                managerAccess && overview.pendingReservations
+                  ? `${overview.pendingReservations} à traiter`
+                  : undefined
+              }
+            />
+            <DashboardCard
+              href="/dashboard/homologations"
+              icon="✅"
+              title="Homologations"
+              description="Recevoir et traiter les demandes d’homologation de véhicules et d’écuries."
+              badge={
+                managerAccess && overview.pendingHomologations
+                  ? `${overview.pendingHomologations} en attente`
+                  : undefined
+              }
+            />
+            <DashboardCard
+              href="/dashboard/inscriptions-ecuries"
+              icon="🏎️"
+              title="Inscriptions des écuries"
+              description="Traiter les inscriptions F1, GT3 RS et les demandes pour les championnats."
+              badge={
+                managerAccess && !overview.teamRegistrationsConfigured
+                  ? "À activer"
+                  : managerAccess && overview.pendingTeamRegistrations
+                    ? `${overview.pendingTeamRegistrations} à traiter`
                     : undefined
-                }
-              />
-              <DashboardCard
-                href="/dashboard/homologations"
-                icon="✅"
-                title="Homologations"
-                description="Recevoir et traiter les demandes d’homologation de véhicules et d’écuries."
-                badge={
-                  overview.pendingHomologations
-                    ? `${overview.pendingHomologations} en attente`
-                    : undefined
-                }
-              />
-              <DashboardCard
-                href="/dashboard/inscriptions-ecuries"
-                icon="🏎️"
-                title="Inscriptions des écuries"
-                description="Traiter les inscriptions F1, GT3 RS et les demandes pour les deux championnats."
-                badge={
-                  !overview.teamRegistrationsConfigured
-                    ? "À activer"
-                    : overview.pendingTeamRegistrations
-                      ? `${overview.pendingTeamRegistrations} à traiter`
-                      : undefined
-                }
-              />
-              <DashboardCard
-                href="/dashboard/championnats"
-                icon="🏆"
-                title="Calendriers F1 & GT3 RS"
-                description="Programmer les manches et événements dans le calendrier de chaque championnat."
-              />
-            </div>
-          </DashboardModuleGroup>
-        )}
+              }
+            />
+            <DashboardCard
+              href="/dashboard/championnats"
+              icon="🏆"
+              title="Calendriers F1 & GT3 RS"
+              description="Programmer les manches et événements dans le calendrier de chaque championnat."
+            />
+          </div>
+        </DashboardModuleGroup>
 
         {managerAccess && (
           <DashboardModuleGroup
@@ -256,12 +249,12 @@ export default async function DashboardPage() {
                 href="/dashboard/jeux/roue"
                 icon="🎡"
                 title="Roue de la chance"
-                description="Consulter l’historique, modifier le statut ou retirer un gain du profil du citoyen."
+                description="Consulter l’historique et gérer les gains obtenus."
                 badge={
                   !overview.wheelConfigured
-                    ? "V29 à activer"
+                    ? "À activer"
                     : overview.unusedWheelGains
-                      ? `${overview.unusedWheelGains} gain(s) à utiliser`
+                      ? `${overview.unusedWheelGains} gain(s)`
                       : undefined
                 }
               />
@@ -269,10 +262,10 @@ export default async function DashboardPage() {
                 href="/dashboard/jeux/tombola"
                 icon="🎟️"
                 title="Tombola"
-                description="Configurer le prix, consulter les tickets, lancer le tirage et réinitialiser la tombola."
+                description="Configurer, consulter les tickets et lancer le tirage."
                 badge={
                   !overview.tombolaConfigured
-                    ? "V31 à activer"
+                    ? "À activer"
                     : overview.tombolaTickets
                       ? `${overview.tombolaTickets} ticket(s)`
                       : undefined
@@ -282,10 +275,10 @@ export default async function DashboardPage() {
                 href="/dashboard/jeux/bingo"
                 icon="🎱"
                 title="Bingo"
-                description="Configurer les grilles, tirer les numéros et suivre les gagnants et les récompenses."
+                description="Configurer les grilles, tirer les numéros et suivre les gagnants."
                 badge={
                   !overview.bingoConfigured
-                    ? "V32 à activer"
+                    ? "À activer"
                     : overview.bingoCards
                       ? `${overview.bingoCards} grille(s)`
                       : undefined
@@ -293,14 +286,14 @@ export default async function DashboardPage() {
               />
               <DashboardCard
                 href="/dashboard/jeux/a-prendre-ou-a-laisser"
-                icon="🎁"
+                icon="💼"
                 title="À Prendre ou à Laisser"
-                description="Créer les 24 gains, suivre les joueurs en direct et déclencher manuellement les appels du banquier."
+                description="Gérer les gains, les joueurs et les appels du banquier."
                 badge={
                   !overview.dealConfigured
-                    ? "V36 à activer"
+                    ? "À activer"
                     : overview.activeDealSessions
-                      ? `${overview.activeDealSessions} partie(s) en direct`
+                      ? `${overview.activeDealSessions} partie(s)`
                       : overview.dealEditionOpen
                         ? "Édition ouverte"
                         : undefined
@@ -310,73 +303,59 @@ export default async function DashboardPage() {
           </DashboardModuleGroup>
         )}
 
-        {ordersAccess && (
+        {managerAccess && (
           <DashboardModuleGroup
             icon="⚙️"
             eyebrow="DIRECTION"
             title="Direction"
-            description={
-              managerAccess
-                ? "Messagerie officielle, état des activités, finances et événements du groupe."
-                : "Accès à la messagerie officielle de l’équipe Nostra Group."
-            }
+            description="Messagerie officielle, état des activités, finances et événements du groupe."
             defaultOpen
           >
             <div className="dashboard-module-grid dashboard-module-grid-grouped">
               <DashboardCard
                 href="/dashboard/messagerie"
-                icon="📨"
+                icon="✉️"
                 title="Messagerie Nostra Group"
-                description="Lire les messages des citoyens, répondre aux conversations et écrire depuis equipe@nostra.group."
+                description="Lire les messages des citoyens et répondre aux conversations."
                 badge={
                   !overview.teamMailConfigured
-                    ? "V35 à activer"
+                    ? "À activer"
                     : overview.unreadTeamMail
                       ? `${overview.unreadTeamMail} non lu(s)`
                       : undefined
                 }
               />
-              {managerAccess && (
-                <DashboardCard
-                  href="/dashboard/circuit"
-                  icon="◉"
-                  title="État des activités"
-                  description="Gérer au même endroit l’état du Nostra Circuit et de Nostra Motors."
-                  badge={
-                    overview.motorsStatusConfigured
-                      ? `${overview.circuitLabel} / ${overview.motorsLabel}`
-                      : "Motors à activer"
-                  }
-                />
-              )}
-              {managerAccess && (
-                <DashboardCard
-                  href="/dashboard/comptabilite"
-                  icon="€"
-                  title="Comptabilité"
-                  description="Enregistrer les recettes, les dépenses et suivre le solde du groupe."
-                />
-              )}
-              {managerAccess && (
-                <DashboardCard
-                  href="/dashboard/evenements"
-                  icon="📅"
-                  title="Gestion des événements"
-                  description="Créer, publier, modifier ou annuler les événements Nostra Group."
-                  badge={
-                    overview.generalEvents
-                      ? `${overview.generalEvents} événement(s)`
-                      : undefined
-                  }
-                />
-              )}
+              <DashboardCard
+                href="/dashboard/circuit"
+                icon="◉"
+                title="État des activités"
+                description="Gérer l’état du Nostra Circuit et de Nostra Motors."
+                badge={`${overview.circuitLabel} / ${overview.motorsLabel}`}
+              />
+              <DashboardCard
+                href="/dashboard/comptabilite"
+                icon="€"
+                title="Comptabilité"
+                description="Enregistrer les recettes, les dépenses et suivre le solde du groupe."
+              />
+              <DashboardCard
+                href="/dashboard/evenements"
+                icon="📆"
+                title="Gestion des événements"
+                description="Créer, publier, modifier ou annuler les événements Nostra Group."
+                badge={
+                  overview.generalEvents
+                    ? `${overview.generalEvents} événement(s)`
+                    : undefined
+                }
+              />
             </div>
           </DashboardModuleGroup>
         )}
 
         {managerAccess && (
           <DashboardModuleGroup
-            icon="🛠️"
+            icon="🛡️"
             eyebrow="ADMINISTRATION"
             title="Site et membres"
             description="Modifier les pages du site et gérer les permissions des comptes."
@@ -386,13 +365,13 @@ export default async function DashboardPage() {
                 href="/dashboard/contenu"
                 icon="✎"
                 title="Modification des pages"
-                description="Choisir entre Nostra Motors, Nostra Circuit et Jeux & Événements, puis modifier leurs pages séparément."
+                description="Modifier les pages Nostra Motors, Nostra Circuit et Jeux & Événements."
               />
               <DashboardCard
                 href="/dashboard/membres"
                 icon="👥"
                 title="Membres et rôles"
-                description="Attribuer les rôles Citoyen, Employé, Commercial, Commissaire ou Gérant, avec plusieurs rôles possibles."
+                description="Attribuer les rôles et gérer les accès des comptes."
               />
             </div>
           </DashboardModuleGroup>
