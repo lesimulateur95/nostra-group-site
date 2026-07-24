@@ -42,13 +42,13 @@ function stringValue(value: FormDataEntryValue | null): string {
 }
 
 /**
- * La fonction Supabase issue_nostra_licence attend un paramètre JSON pour les
- * droits. Le formulaire, lui, accepte volontairement du texte libre.
- * JSON.stringify transforme ce texte en chaîne JSON valide sans demander à
- * l'utilisateur d'écrire du JSON à la main.
+ * Supabase attend une vraie valeur JSON/JSONB pour p_permissions.
+ * On envoie donc un objet JavaScript, et non du texte brut ni une chaîne déjà
+ * sérialisée. Cela fonctionne aussi si la fonction SQL convertit ensuite ce
+ * paramètre en jsonb.
  */
-function jsonTextValue(value: string): string | null {
-  return value ? JSON.stringify(value) : null;
+function permissionsJsonValue(value: string): { text: string } | null {
+  return value ? { text: value } : null;
 }
 
 function formatDate(value: string | null): string {
@@ -138,16 +138,20 @@ async function issueLicence(formData: FormData) {
       p_authority: authority,
       p_valid_from: validFrom,
       p_valid_until: validUntil || null,
-      p_permissions: jsonTextValue(permissions),
+      p_permissions: permissionsJsonValue(permissions),
       p_notes: notes || null,
       p_send_to_citizen: sendToCitizen,
     },
   );
 
   if (error) {
+    const errorMessage = [error.message, error.details, error.hint]
+      .filter(Boolean)
+      .join(" — ");
+
     redirect(
       "/dashboard/administration/licences?error=" +
-        encodeURIComponent(error.message),
+        encodeURIComponent(errorMessage),
     );
   }
 
