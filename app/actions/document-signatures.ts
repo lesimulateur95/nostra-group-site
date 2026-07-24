@@ -13,6 +13,7 @@ function textValue(value: FormDataEntryValue | null): string {
 export async function signNostraDocument(formData: FormData) {
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
+
   if (!data.user) redirect("/");
 
   const documentId = textValue(formData.get("document_id"));
@@ -23,7 +24,9 @@ export async function signNostraDocument(formData: FormData) {
     const query = new URLSearchParams({
       error: "Le nom et l’acceptation de la signature sont obligatoires.",
     });
-    redirect(`/profil/documents/signature/${documentId || "inconnu"}?${query}`);
+    redirect(
+      `/profil/documents/signature/${documentId || "inconnu"}?${query}`,
+    );
   }
 
   const { data: verificationCode, error } = await (supabase as any).rpc(
@@ -40,18 +43,39 @@ export async function signNostraDocument(formData: FormData) {
     redirect(`/profil/documents/signature/${documentId}?${query}`);
   }
 
+  // Une licence achetée et acceptée existe d’abord comme document officiel.
+  // Dès que ce document est signé, on crée/synchronise aussi sa ligne dans
+  // nostra_licences afin qu’elle apparaisse dans Profil > Mes licences.
+  const { error: licenceSyncError } = await (supabase as any).rpc(
+    "nostra_sync_signed_pilot_licence_v75",
+    { p_document_id: documentId },
+  );
+
+  if (licenceSyncError) {
+    // La signature reste valide. La page Mes licences retentera également la
+    // synchronisation automatiquement, ce qui évite de bloquer le citoyen.
+    console.error(
+      "Synchronisation de la licence signée impossible :",
+      licenceSyncError,
+    );
+  }
+
   revalidatePath("/profil/documents");
   revalidatePath(`/profil/documents/signature/${documentId}`);
+  revalidatePath("/profil/licences");
+  revalidatePath("/profil");
   revalidatePath("/dashboard/documents-signes");
 
   const query = new URLSearchParams({ signed: "1" });
   if (verificationCode) query.set("code", String(verificationCode));
+
   redirect(`/profil/documents/signature/${documentId}?${query}`);
 }
 
 export async function changeNostraDocumentStatus(formData: FormData) {
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
+
   if (!data.user) redirect("/");
 
   const roles = await getUserRoleKeys(data.user);
@@ -74,11 +98,13 @@ export async function changeNostraDocumentStatus(formData: FormData) {
 
   if (error) {
     redirect(
-      "/dashboard/documents-signes?error=" + encodeURIComponent(error.message),
+      "/dashboard/documents-signes?error=" +
+        encodeURIComponent(error.message),
     );
   }
 
   revalidatePath("/dashboard/documents-signes");
   revalidatePath("/profil/documents");
+  revalidatePath("/profil/licences");
   redirect(`/dashboard/documents-signes?updated=${status}`);
 }

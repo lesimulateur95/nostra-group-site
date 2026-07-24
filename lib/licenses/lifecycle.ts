@@ -210,6 +210,10 @@ export async function getOwnOfficialPilotLicences(
   try {
     const supabase = await createClient();
 
+    // Répare automatiquement les anciennes licences officielles déjà signées
+    // qui existent dans Documents & factures mais pas encore dans Mes licences.
+    await (supabase as any).rpc("nostra_sync_my_signed_pilot_licences_v75");
+
     await (supabase as any).rpc("refresh_my_license_expiry_notifications");
     await (supabase as any).rpc(
       "nostra_refresh_expired_disciplinary_suspensions",
