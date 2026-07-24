@@ -1,18 +1,16 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { startTransition, useCallback, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 
-const MIN_DELAY_AFTER_INTERACTION_MS = 10_000;
-const REFRESH_LOCK_MS = 5_000;
+const MIN_DELAY_AFTER_INTERACTION_MS = 12_000;
 
 /**
- * Les rafraîchissements complets Next.js restent réservés aux pages qui en ont
- * réellement besoin. Les délais sont volontairement espacés pour éviter de
- * relancer en boucle les composants serveur et les requêtes Supabase.
+ * Un router.refresh() recharge toutes les requêtes serveur de la page.
+ * Il est donc réservé aux écrans qui ont réellement besoin d'une mise à jour
+ * périodique. Les pages lourdes du Dashboard ne sont plus rechargées en boucle.
  */
 function refreshIntervalForPath(pathname: string): number | null {
-  // Ces pages disposent déjà de leur propre synchronisation plus précise.
   if (
     pathname.startsWith("/dashboard/commissaires/chronometrage/") ||
     pathname.startsWith("/evenements/bingo") ||
@@ -21,37 +19,30 @@ function refreshIntervalForPath(pathname: string): number | null {
     return null;
   }
 
-  if (pathname === "/dashboard/commissaires") {
-    return 20_000;
-  }
-
   if (
     pathname.startsWith("/dashboard/commandes") ||
     pathname.startsWith("/dashboard/livraisons") ||
     pathname.startsWith("/dashboard/rendez-vous-motors")
   ) {
-    return 30_000;
-  }
-
-  if (pathname.startsWith("/dashboard/messagerie")) {
-    return 45_000;
-  }
-
-  if (
-    pathname === "/dashboard" ||
-    pathname.startsWith("/dashboard/evenements") ||
-    pathname.startsWith("/dashboard/circuit")
-  ) {
     return 60_000;
   }
 
-  // Les pages classiques ne sont jamais rechargées automatiquement.
+  if (pathname.startsWith("/dashboard/messagerie")) {
+    return 90_000;
+  }
+
+  if (pathname === "/dashboard/commissaires") {
+    return 90_000;
+  }
+
+  // Dashboard principal, état des activités, événements et pages classiques :
+  // aucune recharge complète automatique. Les données sont actualisées lors de
+  // la navigation ou après une action, grâce à revalidatePath/router.refresh.
   return null;
 }
 
 function userIsEditing(): boolean {
   const activeElement = document.activeElement;
-
   if (!activeElement) return false;
 
   return (
@@ -67,87 +58,42 @@ export function AutoRefresh() {
   const router = useRouter();
   const refreshLocked = useRef(false);
   const lastInteractionAt = useRef(Date.now());
-  const refreshUnlockTimer = useRef<number | null>(null);
-  const visibilityTimer = useRef<number | null>(null);
-
-  const refresh = useCallback(() => {
-    if (
-      document.visibilityState !== "visible" ||
-      userIsEditing() ||
-      refreshLocked.current ||
-      Date.now() - lastInteractionAt.current < MIN_DELAY_AFTER_INTERACTION_MS
-    ) {
-      return;
-    }
-
-    refreshLocked.current = true;
-
-    startTransition(() => {
-      router.refresh();
-    });
-
-    if (refreshUnlockTimer.current !== null) {
-      window.clearTimeout(refreshUnlockTimer.current);
-    }
-
-    refreshUnlockTimer.current = window.setTimeout(() => {
-      refreshLocked.current = false;
-      refreshUnlockTimer.current = null;
-    }, REFRESH_LOCK_MS);
-  }, [router]);
 
   useEffect(() => {
     const intervalMs = refreshIntervalForPath(pathname);
-
     if (intervalMs === null) return;
 
     const registerInteraction = () => {
       lastInteractionAt.current = Date.now();
     };
 
-    const refreshWhenVisible = () => {
-      if (document.visibilityState !== "visible") return;
-
-      if (visibilityTimer.current !== null) {
-        window.clearTimeout(visibilityTimer.current);
+    const refresh = () => {
+      if (
+        document.visibilityState !== "visible" ||
+        userIsEditing() ||
+        refreshLocked.current ||
+        Date.now() - lastInteractionAt.current < MIN_DELAY_AFTER_INTERACTION_MS
+      ) {
+        return;
       }
 
-      // Une seule actualisation après le retour sur l'onglet, sans rafale.
-      visibilityTimer.current = window.setTimeout(() => {
-        refresh();
-        visibilityTimer.current = null;
-      }, 1_000);
+      refreshLocked.current = true;
+      router.refresh();
+      window.setTimeout(() => {
+        refreshLocked.current = false;
+      }, 4_000);
     };
 
     const interval = window.setInterval(refresh, intervalMs);
-
-    window.addEventListener("focus", refreshWhenVisible);
-    window.addEventListener("pointerdown", registerInteraction, {
-      passive: true,
-    });
+    window.addEventListener("pointerdown", registerInteraction, { passive: true });
     window.addEventListener("keydown", registerInteraction);
-    document.addEventListener("visibilitychange", refreshWhenVisible);
 
     return () => {
       window.clearInterval(interval);
-      window.removeEventListener("focus", refreshWhenVisible);
       window.removeEventListener("pointerdown", registerInteraction);
       window.removeEventListener("keydown", registerInteraction);
-      document.removeEventListener("visibilitychange", refreshWhenVisible);
-
-      if (refreshUnlockTimer.current !== null) {
-        window.clearTimeout(refreshUnlockTimer.current);
-        refreshUnlockTimer.current = null;
-      }
-
-      if (visibilityTimer.current !== null) {
-        window.clearTimeout(visibilityTimer.current);
-        visibilityTimer.current = null;
-      }
-
-      refreshLocked.current = false;
     };
-  }, [pathname, refresh]);
+  }, [pathname, router]);
 
   return null;
 }

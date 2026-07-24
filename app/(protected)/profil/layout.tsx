@@ -1,10 +1,13 @@
+import type { ReactNode } from "react";
+import { ProfileBackBar } from "@/components/profile/profile-back-bar";
 import { Topbar } from "@/components/site/topbar";
 
-export default function ProfileLayout({ children }: { children: React.ReactNode }) {
+export default function ProfileLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="site-shell">
+    <>
       <Topbar />
-      <main className="profile-main">{children}</main>
-    </div>
+      <ProfileBackBar />
+      {children}
+    </>
   );
 }

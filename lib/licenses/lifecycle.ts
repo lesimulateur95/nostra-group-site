@@ -128,7 +128,6 @@ function matchLicenceCode(
   types: Array<{ code: string; label: string }>,
 ): string | null {
   const wanted = normalize(licenceName);
-
   const exact = types.find((type) => normalize(type.label) === wanted);
   if (exact) return exact.code;
 
@@ -171,7 +170,10 @@ function disciplineForLicence(
   licenceId: string,
   rows: DisciplineRow[],
 ): LicenceDisciplineState {
-  const related = rows.filter((row) => String(row.licence_id ?? "") === licenceId);
+  const related = rows.filter(
+    (row) => String(row.licence_id ?? "") === licenceId,
+  );
+
   const pointsRemoved = related
     .filter(
       (row) =>
@@ -179,10 +181,18 @@ function disciplineForLicence(
         String(row.status ?? "") !== "cancelled",
     )
     .reduce((total, row) => total + Number(row.points_removed ?? 0), 0);
+
   const today = new Date().toISOString().slice(0, 10);
   const suspension = related.find((row) => {
-    const start = typeof row.suspension_starts_on === "string" ? row.suspension_starts_on : "";
-    const end = typeof row.suspension_ends_on === "string" ? row.suspension_ends_on : "";
+    const start =
+      typeof row.suspension_starts_on === "string"
+        ? row.suspension_starts_on
+        : "";
+    const end =
+      typeof row.suspension_ends_on === "string"
+        ? row.suspension_ends_on
+        : "";
+
     return (
       String(row.action_type ?? "") === "suspension" &&
       String(row.status ?? "") !== "cancelled" &&
@@ -213,14 +223,15 @@ export async function getOwnOfficialPilotLicences(
   try {
     const supabase = await createClient();
 
-    // Répare automatiquement les anciennes licences officielles déjà signées
-    // qui existent dans Documents & factures mais pas encore dans Mes licences.
-    await (supabase as any).rpc("nostra_sync_my_signed_pilot_licences_v75");
-
-    await (supabase as any).rpc("refresh_my_license_expiry_notifications");
-    await (supabase as any).rpc(
-      "nostra_refresh_expired_disciplinary_suspensions",
-    );
+    // Ces opérations sont indépendantes. Les lancer ensemble évite trois
+    // allers-retours Supabase successifs avant même de charger la page.
+    await Promise.allSettled([
+      (supabase as any).rpc("nostra_sync_my_signed_pilot_licences_v75"),
+      (supabase as any).rpc("refresh_my_license_expiry_notifications"),
+      (supabase as any).rpc(
+        "nostra_refresh_expired_disciplinary_suspensions",
+      ),
+    ]);
 
     const [licencesResult, typesResult, disciplineResult] = await Promise.all([
       (supabase as any)
@@ -252,6 +263,7 @@ export async function getOwnOfficialPilotLicences(
           label: String(row.label ?? ""),
         }))
       : [];
+
     const disciplineRows = Array.isArray(disciplineResult.data)
       ? (disciplineResult.data as DisciplineRow[])
       : [];

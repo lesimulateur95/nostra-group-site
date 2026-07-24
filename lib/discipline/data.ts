@@ -1,5 +1,4 @@
 import { after } from "next/server";
-
 import { createClient } from "@/lib/supabase/server";
 
 export type DisciplineActionType =
@@ -7,7 +6,6 @@ export type DisciplineActionType =
   | "penalty"
   | "suspension"
   | "points_deduction";
-
 export type DisciplineSeverity = "minor" | "major" | "critical";
 export type DisciplineStatus = "active" | "completed" | "cancelled";
 
@@ -138,10 +136,6 @@ function isCurrentSuspension(action: CircuitDisciplinaryAction): boolean {
   return today >= action.suspensionStartsOn && today <= action.suspensionEndsOn;
 }
 
-/**
- * Ancienne version : chaque licence rescannait toute la liste des sanctions.
- * Nouvelle version : les sanctions sont regroupées une seule fois par licence.
- */
 function buildLicences(
   rows: UnknownRow[],
   actions: CircuitDisciplinaryAction[],
@@ -195,14 +189,17 @@ function buildLicences(
   });
 }
 
-function scheduleExpiredSuspensionRefresh(supabase: any): void {
+function scheduleMaintenance(supabase: any, syncAll: boolean): void {
   after(async () => {
     try {
-      await supabase.rpc(
-        "nostra_refresh_expired_disciplinary_suspensions",
-      );
+      await Promise.allSettled([
+        supabase.rpc("nostra_refresh_expired_disciplinary_suspensions"),
+        syncAll
+          ? supabase.rpc("nostra_sync_all_signed_pilot_licences_v81")
+          : Promise.resolve(),
+      ]);
     } catch {
-      // La maintenance ne doit jamais bloquer l'affichage d'une page.
+      // Une maintenance ne doit jamais bloquer l'affichage de la page.
     }
   });
 }
@@ -213,22 +210,26 @@ async function fetchDisciplineData(
   try {
     const supabase = await createClient();
 
-    // La clôture automatique est conservée, mais elle s'exécute après la réponse.
-    scheduleExpiredSuspensionRefresh(supabase);
+    // Le Dashboard Direction répare les anciennes licences acceptées en tâche
+    // de fond. Elles deviennent ensuite immédiatement disponibles dans le
+    // sélecteur disciplinaire, sans supprimer ni modifier les sanctions.
+    scheduleMaintenance(supabase, !userId);
 
     let actionsQuery = (supabase as any)
       .from("nostra_circuit_disciplinary_actions")
       .select(
         "id,case_number,licence_id,licence_number,licence_name,holder_user_id,holder_name,action_type,severity,reason,event_name,note,penalty_amount,points_removed,suspension_starts_on,suspension_ends_on,status,issued_by_name,issued_at,completed_at,cancelled_at,cancellation_reason,updated_at",
       )
-      .order("issued_at", { ascending: false });
+      .order("issued_at", { ascending: false })
+      .limit(500);
 
     let licencesQuery = (supabase as any)
       .from("nostra_licences")
       .select(
         "id,holder_user_id,holder_name,licence_number,licence_name,status,valid_until",
       )
-      .order("holder_name", { ascending: true });
+      .order("holder_name", { ascending: true })
+      .limit(500);
 
     let historyQuery = (supabase as any)
       .from("nostra_circuit_disciplinary_history")
@@ -236,7 +237,7 @@ async function fetchDisciplineData(
         "id,action_id,case_number,licence_number,holder_user_id,holder_name,action_type,event_type,reason,changed_by_name,created_at",
       )
       .order("created_at", { ascending: false })
-      .limit(200);
+      .limit(300);
 
     if (userId) {
       actionsQuery = actionsQuery.eq("holder_user_id", userId);
