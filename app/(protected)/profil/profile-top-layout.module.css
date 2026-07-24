@@ -1,12 +1,234 @@
 .rightColumn {
   display: grid;
   align-content: start;
-  gap: 14px;
+  gap: 12px;
   min-width: 0;
 }
 
-@media (max-width: 980px) {
-  .rightColumn {
-    gap: 14px;
+/*
+ * Page d'accueil du profil uniquement.
+ * La présence de .rightColumn permet de ne pas modifier les sous-pages /profil/*.
+ */
+:global(.profile-main):has(> :global(.profile-layout) .rightColumn) {
+  width: min(1160px, calc(100% - 32px));
+  margin-inline: auto;
+  padding-top: 42px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+:global(.profile-main):has(> :global(.profile-layout) .rightColumn) > * {
+  width: 100%;
+  max-width: 100%;
+  margin-inline: auto;
+  order: 5;
+}
+
+/* 1 — Titre */
+:global(.profile-main):has(> :global(.profile-layout) .rightColumn)
+  > :global(.profile-heading) {
+  order: 1;
+  margin-bottom: 20px;
+}
+
+/* 2 — Profil à gauche, identité/messagerie/centre personnel à droite */
+:global(.profile-main):has(> :global(.profile-layout) .rightColumn)
+  > :global(.profile-layout) {
+  order: 2;
+  display: grid;
+  grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: stretch;
+}
+
+:global(.profile-main):has(> :global(.profile-layout) .rightColumn)
+  :global(.profile-summary) {
+  min-height: 100%;
+  padding: 22px;
+  gap: 18px;
+  align-content: center;
+  justify-items: center;
+  text-align: center;
+}
+
+:global(.profile-main):has(> :global(.profile-layout) .rightColumn)
+  :global(.profile-summary .profile-avatar) {
+  width: 88px;
+  height: 88px;
+  border-radius: 20px;
+}
+
+:global(.profile-main):has(> :global(.profile-layout) .rightColumn)
+  :global(.profile-summary .profile-name) {
+  font-size: 1.4rem;
+}
+
+:global(.profile-main):has(> :global(.profile-layout) .rightColumn)
+  :global(.profile-summary .profile-details) {
+  width: 100%;
+  text-align: left;
+}
+
+:global(.profile-main):has(> :global(.profile-layout) .rightColumn)
+  :global(.profile-summary .profile-details div) {
+  padding: 11px 0;
+  gap: 5px;
+}
+
+/* 3 — Messages de confirmation et d'erreur */
+:global(.profile-main):has(> :global(.profile-layout) .rightColumn)
+  > :global(.dashboard-feedback) {
+  order: 3;
+  margin-top: 12px;
+  margin-bottom: 0;
+}
+
+/* 4 — Statut de fidélité à gauche et panier à droite */
+:global(.profile-main):has(> :global(.profile-layout) .rightColumn)
+  > :global(.profile-commerce-grid) {
+  order: 4;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+  margin-top: 18px;
+}
+
+:global(.profile-main):has(> :global(.profile-layout) .rightColumn)
+  :global(.profile-commerce-card) {
+  padding: 18px;
+  border-radius: 18px;
+}
+
+:global(.profile-main):has(> :global(.profile-layout) .rightColumn)
+  :global(.profile-commerce-head) {
+  gap: 11px;
+}
+
+:global(.profile-main):has(> :global(.profile-layout) .rightColumn)
+  :global(.profile-commerce-head > span) {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+}
+
+:global(.profile-main):has(> :global(.profile-layout) .rightColumn)
+  :global(.profile-commerce-head h2) {
+  font-size: 1.15rem;
+}
+
+:global(.profile-main):has(> :global(.profile-layout) .rightColumn)
+  :global(.profile-commerce-card dl) {
+  gap: 10px;
+  margin-top: 14px;
+}
+
+:global(.profile-main):has(> :global(.profile-layout) .rightColumn)
+  :global(.profile-commerce-card dl div) {
+  padding: 10px 11px;
+}
+
+:global(.profile-main):has(> :global(.profile-layout) .rightColumn)
+  :global(.commerce-hint) {
+  margin-top: 12px;
+  line-height: 1.45;
+}
+
+:global(.profile-main):has(> :global(.profile-layout) .rightColumn)
+  :global(.profile-mini-list) {
+  gap: 7px;
+  margin-top: 13px;
+}
+
+:global(.profile-main):has(> :global(.profile-layout) .rightColumn)
+  :global(.profile-mini-list > div),
+:global(.profile-main):has(> :global(.profile-layout) .rightColumn)
+  :global(.profile-commerce-card > footer) {
+  padding: 9px 0;
+}
+
+:global(.profile-main):has(> :global(.profile-layout) .rightColumn)
+  :global(.profile-order-form) {
+  gap: 10px;
+  margin-top: 13px;
+  padding-top: 13px;
+}
+
+/*
+ * 5 — Le bloc Fidélité & plaques, lorsqu'il est présent après les deux cartes,
+ * reste centré et ne s'étale plus sur toute la page.
+ */
+:global(.profile-main):has(> :global(.profile-layout) .rightColumn)
+  > :global(.profile-commerce-grid)
+  ~ *:not(:global(.profile-navigation-section)) {
+  order: 5;
+  width: min(960px, 100%);
+  max-width: 960px;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+/* 6 — Mon espace revient à la fin, sur une ligne propre */
+:global(.profile-main):has(> :global(.profile-layout) .rightColumn)
+  > :global(.profile-navigation-section) {
+  order: 6;
+  margin-top: 18px;
+  padding: 20px;
+  border-radius: 18px;
+}
+
+:global(.profile-main):has(> :global(.profile-layout) .rightColumn)
+  :global(.profile-navigation-section .profile-data-heading) {
+  margin-bottom: 14px;
+}
+
+:global(.profile-main):has(> :global(.profile-layout) .rightColumn)
+  :global(.profile-navigation-grid) {
+  gap: 10px;
+}
+
+:global(.profile-main):has(> :global(.profile-layout) .rightColumn)
+  :global(.profile-navigation-card) {
+  gap: 12px;
+  padding: 14px;
+  border-radius: 14px;
+}
+
+:global(.profile-main):has(> :global(.profile-layout) .rightColumn)
+  :global(.profile-navigation-icon) {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+}
+
+@media (max-width: 900px) {
+  :global(.profile-main):has(> :global(.profile-layout) .rightColumn)
+    > :global(.profile-layout) {
+    grid-template-columns: 1fr;
+  }
+
+  :global(.profile-main):has(> :global(.profile-layout) .rightColumn)
+    :global(.profile-summary) {
+    min-height: auto;
+    align-content: start;
+  }
+}
+
+@media (max-width: 720px) {
+  :global(.profile-main):has(> :global(.profile-layout) .rightColumn) {
+    width: min(100% - 22px, 1160px);
+    padding-top: 28px;
+  }
+
+  :global(.profile-main):has(> :global(.profile-layout) .rightColumn)
+    > :global(.profile-commerce-grid) {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  :global(.profile-main):has(> :global(.profile-layout) .rightColumn)
+    > :global(.profile-navigation-section) {
+    padding: 16px;
   }
 }
