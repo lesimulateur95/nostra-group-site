@@ -1,8 +1,5 @@
 import Link from "next/link";
 
-import { getUserRoleKeys } from "@/lib/auth/access";
-import { createClient } from "@/lib/supabase/server";
-
 import styles from "./commissaires-management.module.css";
 
 const managementTools = [
@@ -44,15 +41,11 @@ const disciplineTool = {
     "Attribuer des avertissements, pénalités, suspensions temporaires et retraits de points, puis consulter l’historique complet.",
 };
 
-export default async function CommissionersPage() {
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getUser();
-  const roles = data.user ? await getUserRoleKeys(data.user) : [];
-  const canUseDiscipline =
-    roles.includes("manager") || roles.includes("commissioner");
-  const tools = canUseDiscipline
-    ? [...managementTools, disciplineTool]
-    : managementTools;
+export default function CommissionersPage() {
+  // Cette page est déjà protégée par le contrôle d’accès Commissaire/Direction.
+  // La carte disciplinaire doit donc être visible pour tous les utilisateurs
+  // autorisés à ouvrir cet espace, sans second filtrage contradictoire.
+  const tools = [...managementTools, disciplineTool];
 
   return (
     <main className={styles.page}>

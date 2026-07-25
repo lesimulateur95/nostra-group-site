@@ -228,6 +228,61 @@ function mergeRoleSources(...sources: unknown[]): RoleKey[] {
   return ROLE_PRIORITY.filter((role) => merged.has(role));
 }
 
+
+/**
+ * Compatibilité ciblée pour l'ancien module disciplinaire.
+ *
+ * Certaines pages historiques testent encore uniquement
+ * `roles.includes("manager")`, alors que l'espace est désormais aussi destiné
+ * au rôle Commissaire. On adapte uniquement ce test dans le contexte des
+ * pages disciplinaires, sans ajouter réellement le rôle Gérant au compte et
+ * sans élargir ses permissions sur le reste du Dashboard.
+ */
+async function withCommissionerDisciplineCompatibility(
+  roles: RoleKey[],
+): Promise<RoleKey[]> {
+  if (!roles.includes("commissioner")) return roles;
+
+  let pathname = "";
+
+  try {
+    const requestHeaders = await headers();
+    pathname = requestHeaders.get("x-nostra-pathname") ?? "";
+
+    if (!pathname) {
+      const referer = requestHeaders.get("referer");
+      if (referer) pathname = new URL(referer).pathname;
+    }
+  } catch {
+    return roles;
+  }
+
+  const isCommissionerDisciplineContext =
+    pathname === "/commissaires" ||
+    pathname === "/commissaires/sanctions-disciplinaires" ||
+    pathname.startsWith("/commissaires/sanctions-disciplinaires/");
+
+  if (!isCommissionerDisciplineContext) return roles;
+
+  return new Proxy(roles, {
+    get(target, property, receiver) {
+      if (property === "includes") {
+        return (searchElement: RoleKey, fromIndex?: number) => {
+          if (searchElement === "manager") return true;
+
+          return Array.prototype.includes.call(
+            target,
+            searchElement,
+            fromIndex,
+          );
+        };
+      }
+
+      return Reflect.get(target, property, receiver);
+    },
+  });
+}
+
 export async function getUserRoleKeys(
   user: User | null | undefined,
 ): Promise<RoleKey[]> {
@@ -277,10 +332,12 @@ export async function getUserRoleKeys(
       MANAGER_DISCORD_IDS.has(discordId) &&
       !roles.includes("manager")
     ) {
-      return mergeRoleSources(roles, "manager");
+      return withCommissionerDisciplineCompatibility(
+        mergeRoleSources(roles, "manager"),
+      );
     }
 
-    return roles;
+    return withCommissionerDisciplineCompatibility(roles);
   } catch {
     const metadataRoles = mergeRoleSources(
       user.app_metadata?.roles,
@@ -290,10 +347,12 @@ export async function getUserRoleKeys(
     );
 
     if (discordId && MANAGER_DISCORD_IDS.has(discordId)) {
-      return mergeRoleSources(metadataRoles, "manager");
+      return withCommissionerDisciplineCompatibility(
+        mergeRoleSources(metadataRoles, "manager"),
+      );
     }
 
-    return metadataRoles;
+    return withCommissionerDisciplineCompatibility(metadataRoles);
   }
 }
 
