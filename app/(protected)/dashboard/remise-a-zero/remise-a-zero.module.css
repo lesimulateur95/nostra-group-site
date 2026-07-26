@@ -1,0 +1,440 @@
+.page {
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 34px 0 70px;
+  display: grid;
+  gap: 22px;
+  color: #f7f5ef;
+}
+
+.hero,
+.section,
+.warning,
+.globalReset {
+  border: 1px solid rgba(219, 177, 31, 0.28);
+  border-radius: 18px;
+  background:
+    linear-gradient(125deg, rgba(20, 21, 19, 0.98), rgba(12, 13, 12, 0.98)),
+    #0d0e0d;
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.2);
+}
+
+.hero {
+  padding: 28px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 24px;
+  background:
+    radial-gradient(circle at 88% 10%, rgba(214, 171, 28, 0.15), transparent 34%),
+    linear-gradient(125deg, #111311, #090a09);
+}
+
+.eyebrow,
+.sectionHeader span,
+.globalReset > div > span {
+  color: #e8c03f;
+  font-size: 0.72rem;
+  line-height: 1;
+  font-weight: 900;
+  letter-spacing: 0.13em;
+}
+
+.hero h1 {
+  margin: 8px 0 8px;
+  font-size: clamp(1.85rem, 4vw, 3rem);
+  line-height: 1.05;
+}
+
+.hero p,
+.sectionHeader p,
+.warning p,
+.moduleCard p,
+.documentCard p,
+.globalReset p {
+  margin: 0;
+  color: #b7b9b5;
+  line-height: 1.55;
+}
+
+.heroLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.heroLinks a {
+  padding: 10px 13px;
+  border: 1px solid rgba(220, 180, 44, 0.32);
+  border-radius: 10px;
+  color: #f2cf54;
+  text-decoration: none;
+  font-weight: 800;
+  font-size: 0.83rem;
+  background: rgba(230, 190, 48, 0.06);
+}
+
+.successBanner,
+.errorBanner,
+.setupBanner {
+  border-radius: 13px;
+  padding: 14px 16px;
+  font-weight: 750;
+}
+
+.successBanner {
+  border: 1px solid rgba(72, 196, 112, 0.45);
+  background: rgba(27, 110, 55, 0.18);
+  color: #bff4cc;
+}
+
+.errorBanner {
+  border: 1px solid rgba(227, 74, 74, 0.5);
+  background: rgba(139, 25, 25, 0.19);
+  color: #ffc5c5;
+}
+
+.setupBanner {
+  display: grid;
+  gap: 6px;
+  border: 1px solid rgba(237, 170, 42, 0.48);
+  background: rgba(136, 88, 11, 0.18);
+  color: #ffe3a1;
+}
+
+.setupBanner code {
+  width: fit-content;
+  padding: 5px 8px;
+  border-radius: 7px;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.warning {
+  padding: 17px 20px;
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  border-color: rgba(225, 75, 75, 0.45);
+  background: linear-gradient(120deg, rgba(82, 17, 17, 0.4), rgba(15, 14, 12, 0.98));
+}
+
+.warningIcon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  flex: 0 0 38px;
+  background: #bc3131;
+  font-size: 1.25rem;
+  font-weight: 950;
+}
+
+.warning strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.section {
+  padding: 24px;
+}
+
+.sectionHeader {
+  margin-bottom: 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 18px;
+}
+
+.sectionHeader h2,
+.globalReset h2 {
+  margin: 5px 0 0;
+  font-size: clamp(1.35rem, 2.5vw, 2rem);
+}
+
+.counter,
+.countPair span,
+.moduleHeading div > span,
+.historyTopline span {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid rgba(213, 174, 39, 0.24);
+  background: rgba(210, 171, 35, 0.07);
+  color: #d9bd62;
+  padding: 6px 9px;
+  font-size: 0.73rem;
+  font-weight: 800;
+}
+
+.historyList,
+.logList {
+  display: grid;
+  gap: 10px;
+}
+
+.historyCard {
+  padding: 15px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 390px);
+  gap: 18px;
+  align-items: center;
+  border: 1px solid rgba(223, 185, 46, 0.2);
+  border-radius: 13px;
+  background: rgba(7, 8, 7, 0.7);
+}
+
+.historyTopline {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.historyInfo p {
+  margin: 0 0 4px;
+  color: #d0d2cf;
+  font-size: 0.86rem;
+}
+
+.historyInfo small {
+  color: #858985;
+}
+
+.inlineDangerForm,
+.resetForm,
+.globalForm {
+  display: grid;
+  gap: 9px;
+}
+
+.inlineDangerForm {
+  grid-template-columns: 1fr auto;
+  align-items: end;
+}
+
+.inlineDangerForm label {
+  grid-column: 1;
+}
+
+.inlineDangerForm button {
+  grid-column: 2;
+}
+
+.resetForm label,
+.inlineDangerForm label,
+.globalForm label {
+  display: grid;
+  gap: 6px;
+  color: #c8cac6;
+  font-size: 0.75rem;
+}
+
+.resetForm input,
+.inlineDangerForm input,
+.globalForm input {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid rgba(230, 191, 51, 0.23);
+  border-radius: 9px;
+  background: #111211;
+  color: #fff;
+  padding: 10px 11px;
+  outline: none;
+}
+
+.resetForm input:focus,
+.inlineDangerForm input:focus,
+.globalForm input:focus {
+  border-color: rgba(239, 198, 55, 0.7);
+  box-shadow: 0 0 0 3px rgba(230, 189, 48, 0.09);
+}
+
+.resetForm button,
+.inlineDangerForm button,
+.globalForm button {
+  border: 1px solid rgba(224, 184, 44, 0.45);
+  border-radius: 9px;
+  background: linear-gradient(135deg, #dcb73e, #b88b14);
+  color: #171307;
+  padding: 10px 13px;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.inlineDangerForm button,
+.dangerCard button,
+.globalForm button {
+  border-color: rgba(228, 78, 78, 0.5);
+  background: linear-gradient(135deg, #d44a4a, #962727);
+  color: white;
+}
+
+.resetForm button:disabled,
+.inlineDangerForm button:disabled,
+.globalForm button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.moduleGrid,
+.documentSection {
+  background:
+    radial-gradient(circle at 92% 8%, rgba(208, 166, 27, 0.08), transparent 30%),
+    linear-gradient(125deg, rgba(20, 21, 19, 0.98), rgba(12, 13, 12, 0.98));
+}
+
+.documentGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.moduleCard,
+.documentCard {
+  border: 1px solid rgba(218, 179, 44, 0.2);
+  border-radius: 14px;
+  padding: 17px;
+  background: rgba(7, 8, 7, 0.72);
+  display: grid;
+  align-content: start;
+  gap: 14px;
+}
+
+.moduleHeading {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.moduleIcon {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(225, 184, 39, 0.28);
+  border-radius: 11px;
+  background: rgba(222, 182, 42, 0.07);
+  font-size: 1.25rem;
+}
+
+.moduleHeading h3,
+.documentCard h3 {
+  margin: 0 0 5px;
+  font-size: 1rem;
+}
+
+.moduleHeading div > span {
+  padding: 3px 7px;
+  font-size: 0.66rem;
+}
+
+.moduleCard .resetForm,
+.documentCard .resetForm {
+  margin-top: auto;
+}
+
+.countPair {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.dangerCard {
+  border-color: rgba(218, 68, 68, 0.37);
+  background: linear-gradient(140deg, rgba(74, 18, 18, 0.28), rgba(7, 8, 7, 0.76));
+}
+
+.globalReset {
+  padding: 25px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 440px);
+  gap: 28px;
+  align-items: center;
+  border-color: rgba(225, 69, 69, 0.5);
+  background:
+    radial-gradient(circle at 95% 20%, rgba(186, 37, 37, 0.2), transparent 35%),
+    linear-gradient(125deg, #17100f, #090a09);
+}
+
+.logRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 11px 13px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(216, 178, 43, 0.12);
+}
+
+.logRow div {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.logRow span {
+  color: #c2a747;
+  font-size: 0.72rem;
+}
+
+.logRow time {
+  color: #8e928e;
+  font-size: 0.76rem;
+}
+
+.emptyState {
+  padding: 22px;
+  text-align: center;
+  border-radius: 12px;
+  border: 1px dashed rgba(218, 179, 44, 0.2);
+  color: #929691;
+}
+
+@media (max-width: 900px) {
+  .hero,
+  .sectionHeader,
+  .globalReset {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+    flex-direction: column;
+  }
+
+  .historyCard,
+  .moduleGrid,
+  .documentGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 620px) {
+  .page {
+    width: min(100% - 18px, 1180px);
+    padding-top: 18px;
+  }
+
+  .hero,
+  .section,
+  .globalReset {
+    padding: 17px;
+    border-radius: 14px;
+  }
+
+  .inlineDangerForm {
+    grid-template-columns: 1fr;
+  }
+
+  .inlineDangerForm label,
+  .inlineDangerForm button {
+    grid-column: 1;
+  }
+
+  .heroLinks a {
+    flex: 1 1 auto;
+    text-align: center;
+  }
+}
