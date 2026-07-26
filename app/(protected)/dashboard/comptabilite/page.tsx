@@ -1,19 +1,32 @@
+import Link from "next/link";
 import { createAccountingEntry, deleteAccountingEntry } from "@/app/actions/backoffice";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { getAccountingEntries, type AccountingEntry } from "@/lib/backoffice/data";
 import styles from "./comptabilite.module.css";
 
-function euros(value: number) {
-  return Number(value).toLocaleString("fr-FR", {
+type SearchParams = Record<string, string | string[] | undefined>;
+type Period = "month" | "30" | "90" | "year" | "all";
+type EntryFilter = "all" | AccountingEntry["entry_type"];
+
+function scalar(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] ?? "" : value ?? "";
+}
+
+function currency(value: number, maximumFractionDigits = 0) {
+  return Number(value || 0).toLocaleString("fr-FR", {
     style: "currency",
     currency: "EUR",
-    maximumFractionDigits: 2,
+    maximumFractionDigits,
   });
 }
 
+function signedCurrency(value: number) {
+  return `${value > 0 ? "+" : ""}${currency(value)}`;
+}
+
 function percent(value: number) {
-  return `${value.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} %`;
+  return `${Number.isFinite(value) ? value.toLocaleString("fr-FR", { maximumFractionDigits: 1 }) : "0"} %`;
 }
 
 function monthKey(date: Date) {
@@ -26,57 +39,108 @@ function monthLabel(date: Date) {
     .replace(".", "");
 }
 
-function entryTotal(
-  entries: AccountingEntry[],
-  type: AccountingEntry["entry_type"],
-) {
+function dateLabel(date: string) {
+  return new Date(`${date}T12:00:00`).toLocaleDateString("fr-FR", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function totalByType(entries: AccountingEntry[], type: AccountingEntry["entry_type"]) {
   return entries
     .filter((entry) => entry.entry_type === type)
     .reduce((sum, entry) => sum + Number(entry.amount), 0);
 }
 
+function periodStart(period: Period, now: Date) {
+  if (period === "all") return null;
+  if (period === "month") return new Date(now.getFullYear(), now.getMonth(), 1);
+  if (period === "year") return new Date(now.getFullYear(), 0, 1);
+
+  const days = period === "30" ? 30 : 90;
+  const start = new Date(now);
+  start.setDate(start.getDate() - days + 1);
+  start.setHours(0, 0, 0, 0);
+  return start;
+}
+
+function isPeriod(value: string): value is Period {
+  return ["month", "30", "90", "year", "all"].includes(value);
+}
+
+function isEntryFilter(value: string): value is EntryFilter {
+  return ["all", "income", "expense"].includes(value);
+}
+
+function trendLabel(value: number) {
+  if (value === 0) return "Stable";
+  return value > 0 ? "En hausse" : "En baisse";
+}
+
 export default async function AccountingPage({
   searchParams,
 }: {
-  searchParams: Promise<Record<string, string | undefined>>;
+  searchParams: Promise<SearchParams>;
 }) {
   const params = await searchParams;
   const entries = await getAccountingEntries();
-
-  const income = entryTotal(entries, "income");
-  const expenses = entryTotal(entries, "expense");
-  const balance = income - expenses;
-  const netMargin = income > 0 ? (balance / income) * 100 : 0;
-
   const now = new Date();
   const today = now.toISOString().slice(0, 10);
-  const currentMonthKey = monthKey(now);
+
+  const requestedPeriod = scalar(params.period);
+  const requestedType = scalar(params.type);
+  const period: Period = isPeriod(requestedPeriod) ? requestedPeriod : "month";
+  const entryType: EntryFilter = isEntryFilter(requestedType) ? requestedType : "all";
+  const categoryFilter = scalar(params.category).trim();
+  const search = scalar(params.q).trim().toLocaleLowerCase("fr-FR");
+  const start = periodStart(period, now);
+
+  const availableCategories = [...new Set(
+    entries.map((entry) => entry.category?.trim() || "Général"),
+  )].sort((a, b) => a.localeCompare(b, "fr-FR"));
+
+  const filteredEntries = [...entries]
+    .filter((entry) => {
+      const entryDate = new Date(`${entry.entry_date}T12:00:00`);
+      const category = entry.category?.trim() || "Général";
+      const matchesPeriod = !start || entryDate >= start;
+      const matchesType = entryType === "all" || entry.entry_type === entryType;
+      const matchesCategory = !categoryFilter || category === categoryFilter;
+      const haystack = `${entry.label} ${category} ${entry.notes ?? ""}`.toLocaleLowerCase("fr-FR");
+      const matchesSearch = !search || haystack.includes(search);
+      return matchesPeriod && matchesType && matchesCategory && matchesSearch;
+    })
+    .sort((a, b) => {
+      const dateDifference = b.entry_date.localeCompare(a.entry_date);
+      return dateDifference || String(b.id).localeCompare(String(a.id));
+    });
+
+  const income = totalByType(filteredEntries, "income");
+  const expenses = totalByType(filteredEntries, "expense");
+  const balance = income - expenses;
+  const margin = income > 0 ? (balance / income) * 100 : 0;
+  const averageEntry = filteredEntries.length
+    ? filteredEntries.reduce((sum, entry) => sum + Number(entry.amount), 0) / filteredEntries.length
+    : 0;
+
+  const currentMonth = monthKey(now);
   const previousMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const previousMonthKey = monthKey(previousMonthDate);
-
-  const currentMonthEntries = entries.filter((entry) =>
-    entry.entry_date.startsWith(currentMonthKey),
-  );
-  const previousMonthEntries = entries.filter((entry) =>
-    entry.entry_date.startsWith(previousMonthKey),
-  );
-
-  const currentMonthIncome = entryTotal(currentMonthEntries, "income");
-  const currentMonthExpenses = entryTotal(currentMonthEntries, "expense");
-  const currentMonthBalance = currentMonthIncome - currentMonthExpenses;
-  const previousMonthBalance =
-    entryTotal(previousMonthEntries, "income") -
-    entryTotal(previousMonthEntries, "expense");
+  const previousMonth = monthKey(previousMonthDate);
+  const currentMonthEntries = entries.filter((entry) => entry.entry_date.startsWith(currentMonth));
+  const previousMonthEntries = entries.filter((entry) => entry.entry_date.startsWith(previousMonth));
+  const currentMonthBalance = totalByType(currentMonthEntries, "income") - totalByType(currentMonthEntries, "expense");
+  const previousMonthBalance = totalByType(previousMonthEntries, "income") - totalByType(previousMonthEntries, "expense");
   const monthlyDifference = currentMonthBalance - previousMonthBalance;
+  const expenseRate = income > 0 ? (expenses / income) * 100 : expenses > 0 ? 100 : 0;
 
-  const categories = new Map<string, { income: number; expenses: number }>();
-  for (const entry of entries) {
+  const categories = new Map<string, { income: number; expenses: number; count: number }>();
+  for (const entry of filteredEntries) {
     const category = entry.category?.trim() || "Général";
-    const totals = categories.get(category) ?? { income: 0, expenses: 0 };
-
+    const totals = categories.get(category) ?? { income: 0, expenses: 0, count: 0 };
     if (entry.entry_type === "income") totals.income += Number(entry.amount);
     else totals.expenses += Number(entry.amount);
-
+    totals.count += 1;
     categories.set(category, totals);
   }
 
@@ -85,22 +149,17 @@ export default async function AccountingPage({
       category,
       ...totals,
       balance: totals.income - totals.expenses,
+      volume: totals.income + totals.expenses,
     }))
-    .sort(
-      (a, b) =>
-        Math.abs(b.income) + Math.abs(b.expenses) -
-        (Math.abs(a.income) + Math.abs(a.expenses)),
-    );
+    .sort((a, b) => b.volume - a.volume);
+  const categoryMaximum = Math.max(1, ...categoryRows.map((row) => row.volume));
 
-  const months = Array.from({ length: 6 }, (_, index) => {
-    const date = new Date(now.getFullYear(), now.getMonth() - (5 - index), 1);
+  const months = Array.from({ length: 8 }, (_, index) => {
+    const date = new Date(now.getFullYear(), now.getMonth() - (7 - index), 1);
     const key = monthKey(date);
-    const monthEntries = entries.filter((entry) =>
-      entry.entry_date.startsWith(key),
-    );
-    const monthIncome = entryTotal(monthEntries, "income");
-    const monthExpenses = entryTotal(monthEntries, "expense");
-
+    const monthEntries = entries.filter((entry) => entry.entry_date.startsWith(key));
+    const monthIncome = totalByType(monthEntries, "income");
+    const monthExpenses = totalByType(monthEntries, "expense");
     return {
       key,
       label: monthLabel(date),
@@ -109,271 +168,148 @@ export default async function AccountingPage({
       balance: monthIncome - monthExpenses,
     };
   });
+  const chartMaximum = Math.max(1, ...months.flatMap((month) => [month.income, month.expenses]));
 
-  const chartMaximum = Math.max(
-    1,
-    ...months.flatMap((month) => [month.income, month.expenses]),
-  );
+  const activeFilters = [
+    period !== "month",
+    entryType !== "all",
+    Boolean(categoryFilter),
+    Boolean(search),
+  ].filter(Boolean).length;
 
   return (
     <DashboardShell>
       <main className={styles.page}>
-        <DashboardHeader
-          title="Comptabilité"
-          description="Une vue simple et propre des recettes, des dépenses et du résultat de Nostra Group."
-        />
+        <div className={styles.hero}>
+          <DashboardHeader
+            title="Comptabilité"
+            description="Pilotage financier de Nostra Group : trésorerie, écritures, tendances et ventilation par activité."
+          />
+          <div className={styles.heroMeta}>
+            <span className={styles.statusDot} />
+            Données actualisées au {now.toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })}
+          </div>
+        </div>
 
         {params.saved && (
           <div className="dashboard-feedback dashboard-feedback-success">
-            L’opération a bien été enregistrée.
+            L’écriture a bien été enregistrée.
           </div>
         )}
         {params.deleted && (
           <div className="dashboard-feedback">
-            L’opération a été supprimée et les totaux ont été actualisés.
+            L’écriture a été supprimée et les indicateurs ont été recalculés.
           </div>
         )}
         {params.error && (
           <div className="dashboard-feedback dashboard-feedback-error">
-            Vérifie la date, le type, le libellé et le montant. Les formats 50000,
-            50 000 et 50.000 sont acceptés.
+            Vérifie la date, le type, le libellé et le montant saisi.
           </div>
         )}
 
-        <section className={styles.summaryGrid} aria-label="Résumé financier">
-          <article
-            className={`${styles.summaryCard} ${styles.balanceCard} ${
-              balance < 0 ? styles.negativeCard : ""
-            }`}
-          >
-            <div className={styles.summaryHeading}>
-              <span className={styles.summaryIcon}>€</span>
-              <span>Résultat global</span>
+        <section className={styles.toolbar} aria-label="Filtres comptables">
+          <form className={styles.filters} method="get">
+            <label>
+              <span>Période</span>
+              <select name="period" defaultValue={period}>
+                <option value="month">Mois en cours</option>
+                <option value="30">30 derniers jours</option>
+                <option value="90">90 derniers jours</option>
+                <option value="year">Année en cours</option>
+                <option value="all">Depuis le début</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Flux</span>
+              <select name="type" defaultValue={entryType}>
+                <option value="all">Tous les flux</option>
+                <option value="income">Recettes</option>
+                <option value="expense">Dépenses</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Catégorie</span>
+              <select name="category" defaultValue={categoryFilter}>
+                <option value="">Toutes les catégories</option>
+                {availableCategories.map((category) => (
+                  <option value={category} key={category}>{category}</option>
+                ))}
+              </select>
+            </label>
+
+            <label className={styles.searchField}>
+              <span>Recherche</span>
+              <input name="q" defaultValue={scalar(params.q)} placeholder="Libellé, note, catégorie…" />
+            </label>
+
+            <button className={styles.filterButton} type="submit">Appliquer</button>
+            <Link className={styles.resetButton} href="/dashboard/comptabilite">Réinitialiser</Link>
+          </form>
+          <div className={styles.filterSummary}>
+            <strong>{filteredEntries.length}</strong> écriture(s)
+            {activeFilters > 0 && <span>{activeFilters} filtre(s) actif(s)</span>}
+          </div>
+        </section>
+
+        <section className={styles.kpiGrid} aria-label="Indicateurs financiers">
+          <article className={`${styles.kpiCard} ${styles.primaryKpi} ${balance < 0 ? styles.dangerKpi : ""}`}>
+            <div className={styles.kpiTopline}>
+              <span>Solde net</span>
+              <i>01</i>
             </div>
-            <strong className={balance >= 0 ? styles.positive : styles.negative}>
-              {euros(balance)}
-            </strong>
-            <div className={styles.summaryFooter}>
+            <strong className={balance >= 0 ? styles.positive : styles.negative}>{currency(balance)}</strong>
+            <div className={styles.kpiFooter}>
               <span>Marge nette</span>
-              <b>{percent(netMargin)}</b>
+              <b>{percent(margin)}</b>
             </div>
           </article>
 
-          <article className={styles.summaryCard}>
-            <div className={styles.summaryHeading}>
-              <span className={`${styles.summaryIcon} ${styles.incomeIcon}`}>↗</span>
-              <span>Total des recettes</span>
+          <article className={styles.kpiCard}>
+            <div className={styles.kpiTopline}>
+              <span>Recettes</span>
+              <i className={styles.incomeMark}>↗</i>
             </div>
-            <strong className={styles.positive}>{euros(income)}</strong>
-            <div className={styles.summaryFooter}>
-              <span>Ce mois-ci</span>
-              <b>{euros(currentMonthIncome)}</b>
+            <strong>{currency(income)}</strong>
+            <div className={styles.kpiFooter}>
+              <span>Part conservée</span>
+              <b>{percent(Math.max(0, 100 - expenseRate))}</b>
+            </div>
+          </article>
+
+          <article className={styles.kpiCard}>
+            <div className={styles.kpiTopline}>
+              <span>Dépenses</span>
+              <i className={styles.expenseMark}>↘</i>
+            </div>
+            <strong>{currency(expenses)}</strong>
+            <div className={styles.kpiFooter}>
+              <span>Poids sur les recettes</span>
+              <b>{percent(expenseRate)}</b>
             </div>
           </article>
 
-          <article className={styles.summaryCard}>
-            <div className={styles.summaryHeading}>
-              <span className={`${styles.summaryIcon} ${styles.expenseIcon}`}>↘</span>
-              <span>Total des dépenses</span>
+          <article className={styles.kpiCard}>
+            <div className={styles.kpiTopline}>
+              <span>Montant moyen</span>
+              <i>Ø</i>
             </div>
-            <strong className={styles.negative}>{euros(expenses)}</strong>
-            <div className={styles.summaryFooter}>
-              <span>Ce mois-ci</span>
-              <b>{euros(currentMonthExpenses)}</b>
-            </div>
-          </article>
-        </section>
-
-        <section className={styles.mainGrid}>
-          <article className={styles.panel}>
-            <div className={styles.panelHeader}>
-              <div>
-                <span className={styles.eyebrow}>NOUVELLE ÉCRITURE</span>
-                <h2>Ajouter une opération</h2>
-              </div>
-              <span className={styles.panelBadge}>Manuel</span>
-            </div>
-
-            <form
-              action={createAccountingEntry}
-              className={styles.form}
-              autoComplete="off"
-            >
-              <div className={styles.formRow}>
-                <label>
-                  Date
-                  <input
-                    type="date"
-                    name="operation_date"
-                    defaultValue={today}
-                    required
-                  />
-                </label>
-
-                <label>
-                  Type
-                  <select name="operation_type" defaultValue="income">
-                    <option value="income">Recette</option>
-                    <option value="expense">Dépense</option>
-                  </select>
-                </label>
-              </div>
-
-              <label>
-                Catégorie
-                <input
-                  name="operation_category"
-                  list="accounting-categories"
-                  placeholder="Vente, circuit, entretien…"
-                />
-                <datalist id="accounting-categories">
-                  <option value="Nostra Motors" />
-                  <option value="Nostra Circuit" />
-                  <option value="Événement" />
-                  <option value="Entretien" />
-                  <option value="Achat véhicule" />
-                  <option value="Frais de fonctionnement" />
-                </datalist>
-              </label>
-
-              <label>
-                Libellé
-                <input
-                  name="operation_label"
-                  placeholder="Exemple : vente Porsche 911"
-                  required
-                />
-              </label>
-
-              <label>
-                Montant
-                <div className={styles.amountInput}>
-                  <input
-                    type="text"
-                    inputMode="decimal"
-                    name="operation_amount"
-                    placeholder="300 000"
-                    required
-                  />
-                  <span>€</span>
-                </div>
-              </label>
-
-              <label>
-                Note facultative
-                <textarea
-                  name="operation_notes"
-                  rows={3}
-                  placeholder="Client, facture ou information complémentaire"
-                />
-              </label>
-
-              <button className={`btn ${styles.submitButton}`} type="submit">
-                Enregistrer l’opération
-              </button>
-            </form>
-          </article>
-
-          <article className={`${styles.panel} ${styles.historyPanel}`}>
-            <div className={styles.panelHeader}>
-              <div>
-                <span className={styles.eyebrow}>JOURNAL COMPTABLE</span>
-                <h2>Historique des opérations</h2>
-              </div>
-              <span className={styles.panelBadge}>{entries.length} écriture(s)</span>
-            </div>
-
-            <div className={styles.monthStrip}>
-              <div>
-                <span>Résultat du mois</span>
-                <strong
-                  className={
-                    currentMonthBalance >= 0 ? styles.positive : styles.negative
-                  }
-                >
-                  {euros(currentMonthBalance)}
-                </strong>
-              </div>
-              <div>
-                <span>Écart avec le mois précédent</span>
-                <strong
-                  className={
-                    monthlyDifference >= 0 ? styles.positive : styles.negative
-                  }
-                >
-                  {monthlyDifference >= 0 ? "+" : ""}
-                  {euros(monthlyDifference)}
-                </strong>
-              </div>
-            </div>
-
-            <div className={styles.ledger}>
-              {entries.length === 0 && (
-                <div className={styles.emptyState}>
-                  <span>€</span>
-                  <strong>Aucune opération enregistrée</strong>
-                  <p>Les prochaines écritures apparaîtront ici.</p>
-                </div>
-              )}
-
-              {entries.map((entry) => (
-                <article className={styles.ledgerRow} key={entry.id}>
-                  <span
-                    className={`${styles.typeBadge} ${
-                      entry.entry_type === "income"
-                        ? styles.incomeBadge
-                        : styles.expenseBadge
-                    }`}
-                  >
-                    {entry.entry_type === "income" ? "+" : "−"}
-                  </span>
-
-                  <div className={styles.ledgerCopy}>
-                    <strong>{entry.label}</strong>
-                    <span>
-                      {new Date(`${entry.entry_date}T12:00:00`).toLocaleDateString(
-                        "fr-FR",
-                      )}
-                      {" · "}
-                      {entry.category || "Général"}
-                    </span>
-                    {entry.notes && <small>{entry.notes}</small>}
-                  </div>
-
-                  <strong
-                    className={`${styles.ledgerAmount} ${
-                      entry.entry_type === "income"
-                        ? styles.positive
-                        : styles.negative
-                    }`}
-                  >
-                    {entry.entry_type === "income" ? "+" : "−"}
-                    {euros(Number(entry.amount))}
-                  </strong>
-
-                  <form action={deleteAccountingEntry}>
-                    <input type="hidden" name="id" value={entry.id} />
-                    <button
-                      className={styles.deleteButton}
-                      type="submit"
-                      aria-label={`Supprimer ${entry.label}`}
-                      title="Supprimer l’opération"
-                    >
-                      ×
-                    </button>
-                  </form>
-                </article>
-              ))}
+            <strong>{currency(averageEntry)}</strong>
+            <div className={styles.kpiFooter}>
+              <span>Nombre d’écritures</span>
+              <b>{filteredEntries.length}</b>
             </div>
           </article>
         </section>
 
-        <section className={styles.analysisGrid}>
-          <article className={styles.panel}>
+        <section className={styles.insightGrid}>
+          <article className={`${styles.panel} ${styles.cashflowPanel}`}>
             <div className={styles.panelHeader}>
               <div>
-                <span className={styles.eyebrow}>ÉVOLUTION</span>
-                <h2>Les six derniers mois</h2>
+                <span className={styles.eyebrow}>TRÉSORERIE</span>
+                <h2>Évolution des flux</h2>
+                <p>Comparatif des recettes et dépenses sur les huit derniers mois.</p>
               </div>
               <div className={styles.legend}>
                 <span><i className={styles.incomeDot} /> Recettes</span>
@@ -384,75 +320,232 @@ export default async function AccountingPage({
             <div className={styles.chart}>
               {months.map((month) => (
                 <div className={styles.chartColumn} key={month.key}>
+                  <div className={styles.chartValue}>{currency(month.balance)}</div>
                   <div className={styles.chartBars}>
                     <span
                       className={styles.incomeBar}
-                      style={{
-                        height: `${Math.max(
-                          month.income > 0 ? 6 : 0,
-                          (month.income / chartMaximum) * 100,
-                        )}%`,
-                      }}
-                      title={`Recettes : ${euros(month.income)}`}
+                      style={{ height: `${Math.max(month.income > 0 ? 5 : 0, (month.income / chartMaximum) * 100)}%` }}
+                      title={`Recettes : ${currency(month.income)}`}
                     />
                     <span
                       className={styles.expenseBar}
-                      style={{
-                        height: `${Math.max(
-                          month.expenses > 0 ? 6 : 0,
-                          (month.expenses / chartMaximum) * 100,
-                        )}%`,
-                      }}
-                      title={`Dépenses : ${euros(month.expenses)}`}
+                      style={{ height: `${Math.max(month.expenses > 0 ? 5 : 0, (month.expenses / chartMaximum) * 100)}%` }}
+                      title={`Dépenses : ${currency(month.expenses)}`}
                     />
                   </div>
-                  <strong
-                    className={
-                      month.balance >= 0 ? styles.positive : styles.negative
-                    }
-                  >
-                    {euros(month.balance)}
-                  </strong>
                   <span>{month.label}</span>
                 </div>
               ))}
             </div>
           </article>
 
-          <article className={styles.panel}>
+          <aside className={`${styles.panel} ${styles.performancePanel}`}>
             <div className={styles.panelHeader}>
               <div>
-                <span className={styles.eyebrow}>RÉPARTITION</span>
-                <h2>Résultat par catégorie</h2>
+                <span className={styles.eyebrow}>PERFORMANCE</span>
+                <h2>Mois en cours</h2>
               </div>
-              <span className={styles.panelBadge}>{categoryRows.length} catégorie(s)</span>
+              <span className={`${styles.trendBadge} ${monthlyDifference < 0 ? styles.trendDown : ""}`}>
+                {trendLabel(monthlyDifference)}
+              </span>
             </div>
 
-            <div className={styles.categoryList}>
-              {categoryRows.length === 0 && (
-                <div className={styles.emptyState}>
-                  <strong>Aucune catégorie à analyser</strong>
-                </div>
-              )}
+            <div className={styles.performanceValue}>
+              <span>Résultat mensuel</span>
+              <strong className={currentMonthBalance >= 0 ? styles.positive : styles.negative}>
+                {currency(currentMonthBalance)}
+              </strong>
+            </div>
 
-              {categoryRows.map((row) => (
-                <div className={styles.categoryRow} key={row.category}>
-                  <div>
-                    <strong>{row.category}</strong>
-                    <span>
-                      {euros(row.income)} de recettes · {euros(row.expenses)} de dépenses
-                    </span>
-                  </div>
-                  <strong
-                    className={row.balance >= 0 ? styles.positive : styles.negative}
-                  >
-                    {row.balance >= 0 ? "+" : ""}
-                    {euros(row.balance)}
-                  </strong>
+            <dl className={styles.performanceList}>
+              <div>
+                <dt>Mois précédent</dt>
+                <dd>{currency(previousMonthBalance)}</dd>
+              </div>
+              <div>
+                <dt>Écart mensuel</dt>
+                <dd className={monthlyDifference >= 0 ? styles.positive : styles.negative}>
+                  {signedCurrency(monthlyDifference)}
+                </dd>
+              </div>
+              <div>
+                <dt>Recettes du mois</dt>
+                <dd>{currency(totalByType(currentMonthEntries, "income"))}</dd>
+              </div>
+              <div>
+                <dt>Dépenses du mois</dt>
+                <dd>{currency(totalByType(currentMonthEntries, "expense"))}</dd>
+              </div>
+            </dl>
+          </aside>
+        </section>
+
+        <section className={styles.workspaceGrid}>
+          <article className={`${styles.panel} ${styles.ledgerPanel}`}>
+            <div className={styles.panelHeader}>
+              <div>
+                <span className={styles.eyebrow}>GRAND LIVRE</span>
+                <h2>Journal des opérations</h2>
+                <p>Historique filtré des mouvements comptables enregistrés.</p>
+              </div>
+              <span className={styles.countBadge}>{filteredEntries.length} ligne(s)</span>
+            </div>
+
+            {filteredEntries.length === 0 ? (
+              <div className={styles.emptyState}>
+                <span>€</span>
+                <strong>Aucune écriture trouvée</strong>
+                <p>Modifie les filtres ou ajoute une nouvelle opération.</p>
+              </div>
+            ) : (
+              <div className={styles.tableWrap}>
+                <table className={styles.ledgerTable}>
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Libellé</th>
+                      <th>Catégorie</th>
+                      <th>Type</th>
+                      <th className={styles.amountColumn}>Montant</th>
+                      <th aria-label="Actions" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredEntries.map((entry) => (
+                      <tr key={entry.id}>
+                        <td className={styles.dateCell}>{dateLabel(entry.entry_date)}</td>
+                        <td>
+                          <div className={styles.entryTitle}>
+                            <strong>{entry.label}</strong>
+                            {entry.notes && <span>{entry.notes}</span>}
+                          </div>
+                        </td>
+                        <td><span className={styles.categoryBadge}>{entry.category || "Général"}</span></td>
+                        <td>
+                          <span className={`${styles.typePill} ${entry.entry_type === "income" ? styles.incomePill : styles.expensePill}`}>
+                            {entry.entry_type === "income" ? "Recette" : "Dépense"}
+                          </span>
+                        </td>
+                        <td className={`${styles.amountColumn} ${entry.entry_type === "income" ? styles.positive : styles.negative}`}>
+                          {entry.entry_type === "income" ? "+" : "−"}{currency(Number(entry.amount))}
+                        </td>
+                        <td>
+                          <form action={deleteAccountingEntry}>
+                            <input type="hidden" name="id" value={entry.id} />
+                            <button className={styles.deleteButton} type="submit" aria-label={`Supprimer ${entry.label}`} title="Supprimer l’écriture">×</button>
+                          </form>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </article>
+
+          <aside className={`${styles.panel} ${styles.entryPanel}`}>
+            <div className={styles.panelHeader}>
+              <div>
+                <span className={styles.eyebrow}>SAISIE</span>
+                <h2>Nouvelle écriture</h2>
+                <p>Ajoute manuellement une recette ou une dépense.</p>
+              </div>
+            </div>
+
+            <form action={createAccountingEntry} className={styles.entryForm} autoComplete="off">
+              <fieldset className={styles.typeSelector}>
+                <legend>Nature du mouvement</legend>
+                <label>
+                  <input type="radio" name="operation_type" value="income" defaultChecked />
+                  <span><b>Recette</b><small>Entrée d’argent</small></span>
+                </label>
+                <label>
+                  <input type="radio" name="operation_type" value="expense" />
+                  <span><b>Dépense</b><small>Sortie d’argent</small></span>
+                </label>
+              </fieldset>
+
+              <div className={styles.formRow}>
+                <label>
+                  <span>Date</span>
+                  <input type="date" name="operation_date" defaultValue={today} required />
+                </label>
+                <label>
+                  <span>Catégorie</span>
+                  <input name="operation_category" list="accounting-categories" placeholder="Nostra Motors…" />
+                </label>
+              </div>
+
+              <datalist id="accounting-categories">
+                <option value="Nostra Motors" />
+                <option value="Nostra Circuit" />
+                <option value="Événement" />
+                <option value="Entretien" />
+                <option value="Achat véhicule" />
+                <option value="Frais de fonctionnement" />
+              </datalist>
+
+              <label>
+                <span>Libellé</span>
+                <input name="operation_label" placeholder="Exemple : vente Porsche 911" required />
+              </label>
+
+              <label>
+                <span>Montant</span>
+                <div className={styles.amountInput}>
+                  <input type="text" inputMode="decimal" name="operation_amount" placeholder="300 000" required />
+                  <b>€</b>
                 </div>
+              </label>
+
+              <label>
+                <span>Note facultative</span>
+                <textarea name="operation_notes" rows={3} placeholder="Client, facture ou information complémentaire" />
+              </label>
+
+              <button className={styles.submitButton} type="submit">Enregistrer l’écriture</button>
+              <p className={styles.formNotice}>Les montants 50000, 50 000 et 50.000 sont acceptés.</p>
+            </form>
+          </aside>
+        </section>
+
+        <section className={styles.categorySection}>
+          <div className={styles.sectionTitle}>
+            <div>
+              <span className={styles.eyebrow}>VENTILATION</span>
+              <h2>Performance par activité</h2>
+            </div>
+            <p>Lecture des volumes et du solde généré par chaque catégorie comptable.</p>
+          </div>
+
+          {categoryRows.length === 0 ? (
+            <div className={styles.emptyState}>
+              <strong>Aucune catégorie à analyser</strong>
+            </div>
+          ) : (
+            <div className={styles.categoryGrid}>
+              {categoryRows.map((row) => (
+                <article className={styles.categoryCard} key={row.category}>
+                  <div className={styles.categoryTopline}>
+                    <div>
+                      <strong>{row.category}</strong>
+                      <span>{row.count} écriture(s)</span>
+                    </div>
+                    <b className={row.balance >= 0 ? styles.positive : styles.negative}>
+                      {signedCurrency(row.balance)}
+                    </b>
+                  </div>
+                  <div className={styles.progressTrack} aria-hidden="true">
+                    <span style={{ width: `${Math.max(3, (row.volume / categoryMaximum) * 100)}%` }} />
+                  </div>
+                  <dl>
+                    <div><dt>Recettes</dt><dd>{currency(row.income)}</dd></div>
+                    <div><dt>Dépenses</dt><dd>{currency(row.expenses)}</dd></div>
+                  </dl>
+                </article>
               ))}
             </div>
-          </article>
+          )}
         </section>
       </main>
     </DashboardShell>
