@@ -43,12 +43,24 @@ export function FortunePlayerControls({
   const isActive =
     currentPlayer?.position === game.active_player_position;
 
-  const canSpin =
-    isActive &&
-    ((game.status === "active" &&
-      ["must_spin", "can_act"].includes(game.turn_phase)) ||
-      (game.status === "finale" &&
-        game.turn_phase === "final_spin"));
+  /*
+   * Une ancienne partie peut rester en status « setup » / « between_rounds »
+   * ou avec turn_phase « waiting » alors que l'énigme et le joueur actif sont
+   * déjà présents. La route V89 répare cet état au clic. On laisse donc le
+   * joueur actif appuyer sur la roue dans ces états réparables.
+   */
+  const canSpinNormal =
+    game.status !== "finale" &&
+    !["finished", "cancelled"].includes(game.status) &&
+    game.turn_phase !== "choose_consonant" &&
+    game.turn_phase !== "final_answer" &&
+    game.turn_phase !== "finished";
+
+  const canSpinFinal =
+    game.status === "finale" &&
+    ["final_spin", "waiting"].includes(game.turn_phase);
+
+  const canSpin = isActive && (canSpinNormal || canSpinFinal);
 
   const canConsonant =
     isActive &&
@@ -63,8 +75,7 @@ export function FortunePlayerControls({
 
   const canPropose =
     isActive &&
-    ((game.status === "active" &&
-      game.turn_phase !== "waiting") ||
+    ((game.status === "active" && game.turn_phase !== "waiting") ||
       (game.status === "finale" &&
         game.turn_phase === "final_answer"));
 
@@ -93,22 +104,31 @@ export function FortunePlayerControls({
       };
 
       if (!response.ok) {
-        throw new Error(result.error || "spin_failed");
+        const code = String(result.error || "spin_failed");
+        const friendly =
+          code.includes("round_solution_missing")
+            ? "Il faut d’abord enregistrer ou tirer une énigme pour cette manche."
+            : code.includes("wheel_hidden")
+              ? "La roue normale doit être affichée par la régie."
+              : code.includes("special_target_required")
+                ? "La case spéciale précédente doit d’abord être résolue."
+                : code.includes("not_active_player")
+                  ? "Ce n’est plus à toi de jouer. Recharge la page."
+                  : code.includes("spin_not_allowed")
+                    ? "Le tour était bloqué. Recharge la page puis réessaie."
+                    : code;
+        throw new Error(friendly);
       }
 
       const position = Number(result.segment_position);
-
       if (!Number.isFinite(position)) {
-        throw new Error("invalid_result");
+        throw new Error("Résultat de roue invalide.");
       }
 
       onSpinResult({
         segmentPosition: position,
         label: String(result.label ?? "Résultat"),
-        sequence: Math.max(
-          0,
-          Number(result.spin_sequence) || 0,
-        ),
+        sequence: Math.max(0, Number(result.spin_sequence) || 0),
         startedAt:
           typeof result.spin_started_at === "string"
             ? result.spin_started_at
@@ -136,8 +156,8 @@ export function FortunePlayerControls({
   if (!currentPlayer) {
     return (
       <section className={styles.spectatorPanel}>
-        Tu regardes la partie en tant que spectateur. Les actions,
-        les scores, l’énigme et la roue sont synchronisés en direct.
+        Tu regardes la partie en tant que spectateur. Les actions, les
+        scores, l’énigme et la roue sont synchronisés en direct.
       </section>
     );
   }
@@ -149,15 +169,12 @@ export function FortunePlayerControls({
           <span>ESPACE JOUEUR</span>
           <h2>{currentPlayer.player_name}</h2>
         </div>
-
         <strong>
           {isActive ? "C’est à toi de jouer" : "Attends ton tour"}
         </strong>
       </div>
 
-      {error && (
-        <div className={styles.controlError}>{error}</div>
-      )}
+      {error && <div className={styles.controlError}>{error}</div>}
 
       {isActive && game.status === "active" && (
         <div className={styles.keepTurnNotice}>
@@ -192,7 +209,6 @@ export function FortunePlayerControls({
         >
           <input type="hidden" name="game_id" value={game.id} />
           <input type="hidden" name="kind" value="consonant" />
-
           <label>
             <span>Choisir une consonne</span>
             <input
@@ -216,7 +232,6 @@ export function FortunePlayerControls({
         >
           <input type="hidden" name="game_id" value={game.id} />
           <input type="hidden" name="kind" value="vowel" />
-
           <label>
             <span>
               Acheter une voyelle (
@@ -231,7 +246,6 @@ export function FortunePlayerControls({
               placeholder="A"
             />
           </label>
-
           <button type="submit" disabled={!canVowel}>
             Acheter la voyelle
           </button>
@@ -243,7 +257,6 @@ export function FortunePlayerControls({
         className={styles.solutionForm}
       >
         <input type="hidden" name="game_id" value={game.id} />
-
         <label>
           <span>Proposer la solution complète</span>
           <input

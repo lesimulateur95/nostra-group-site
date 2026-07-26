@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 export async function POST(request: Request) {
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
+
   if (!data.user) {
     return NextResponse.json(
       { error: "not_authenticated" },
@@ -24,12 +25,15 @@ export async function POST(request: Request) {
       ? (body as Record<string, unknown>)
       : {};
   const gameId = typeof source.gameId === "string" ? source.gameId : "";
+
   if (!gameId) {
     return NextResponse.json({ error: "missing_game" }, { status: 400 });
   }
 
+  // V89 répare automatiquement les anciennes parties restées en « waiting »
+  // avant d'appeler la logique complète de lancer V87.
   const { data: result, error } = await (supabase as any).rpc(
-    "fortune_spin_wheel_v87",
+    "fortune_spin_wheel_v89",
     { p_game_id: gameId },
   );
 
