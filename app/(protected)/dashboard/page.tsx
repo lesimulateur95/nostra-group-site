@@ -373,6 +373,13 @@ export default async function DashboardPage() {
                 title="Membres et rôles"
                 description="Attribuer les rôles et gérer les accès des comptes."
               />
+              <DashboardCard
+                href="/dashboard/remise-a-zero"
+                icon="↺"
+                title="Remise à zéro des tests"
+                description="Supprimer les anciennes parties des jeux et remettre les compteurs des documents au début avant l’ouverture."
+                badge="Gérant"
+              />
             </div>
           </DashboardModuleGroup>
         )}
