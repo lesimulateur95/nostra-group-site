@@ -101,7 +101,8 @@ export async function getVehicleReservations(): Promise<VehicleReservation[]> {
     .select(columns)
     .order("created_at", { ascending: false });
   if (error) return [];
-  return (data ?? []).map((row) => normalize(row as Record<string, unknown>));
+  const rows = (data ?? []) as unknown as Record<string, unknown>[];
+  return rows.map(normalize);
 }
 
 export async function getOwnVehicleReservations(
@@ -114,7 +115,8 @@ export async function getOwnVehicleReservations(
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
   if (error) return [];
-  return (data ?? []).map((row) => normalize(row as Record<string, unknown>));
+  const rows = (data ?? []) as unknown as Record<string, unknown>[];
+  return rows.map(normalize);
 }
 
 export async function getVehicleReservationSummary() {
