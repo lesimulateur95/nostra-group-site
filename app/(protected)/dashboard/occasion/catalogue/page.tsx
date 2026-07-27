@@ -86,7 +86,9 @@ export default async function UsedVehicleCataloguePage({
                 ? "Ce véhicule d’occasion n’existe plus."
                 : params.error === "forbidden"
                   ? "Seul un gérant peut supprimer définitivement un véhicule."
-                  : "Impossible de supprimer ce véhicule. Vérifie qu’il ne possède aucune commande ou vente liée."}
+                  : params.error === "setup"
+                    ? "La correction SQL de suppression V94 n’est pas encore installée dans Supabase. Exécute le fichier delete-used-vehicle-v94.sql puis recommence."
+                    : "Impossible de supprimer ce véhicule. Vérifie qu’il ne possède aucune commande, réservation active ou vente liée."}
         </div>
       )}
 

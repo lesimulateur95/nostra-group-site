@@ -302,7 +302,7 @@ export async function deleteUsedVehiclePurchase(formData: FormData) {
   }
 
   const stored = normalizeStoredImages(current.data.images);
-  const result = await (supabase as any).rpc("delete_used_vehicle_v92", {
+  const result = await (supabase as any).rpc("delete_used_vehicle_v94", {
     p_vehicle_id: vehicleId,
   });
 

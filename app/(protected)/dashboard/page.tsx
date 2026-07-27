@@ -434,6 +434,13 @@ export default async function DashboardPage() {
                     : undefined
                 }
               />
+              <DashboardCard
+                href="/dashboard/recrutement/annonce-discord"
+                icon="📣"
+                title="Annonce Discord recrutement"
+                description="Préparer une annonce de recrutement, la prévisualiser et la copier pour la publier manuellement sur le Discord du serveur."
+                badge="Sans webhook"
+              />
             </div>
           </DashboardModuleGroup>
         )}
