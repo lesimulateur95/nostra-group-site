@@ -2,7 +2,12 @@ import Link from "next/link";
 
 import { redirect } from "next/navigation";
 
-import { placeCartOrder, removeCartItem } from "@/app/actions/orders";
+import {
+ checkoutVehicleReservationBalances,
+ checkoutVehicleReservationDeposits,
+ placeCartOrder,
+ removeCartItem,
+} from "@/app/actions/orders";
 
 import { checkoutTombolaCart, removeTombolaCart } from "@/app/actions/tombola";
 import { checkoutBingoCart, removeBingoCart } from "@/app/actions/bingo";
@@ -38,11 +43,12 @@ import { getMyMailboxOverview } from "@/lib/mail/data";
 import { getUserRoleLabel } from "@/lib/auth/access";
 
 import { createClient } from "@/lib/supabase/server";
+import { getOwnVehicleReservations } from "@/lib/vehicle-reservations/data";
 import styles from "./profile-top-layout.module.css";
 
 type ProfilePageProps = {
 
- searchParams: Promise<{ error?: string; profile_saved?: string; vehicle_added?: string; order_sent?: string; order_error?: string; cart_removed?: string; cart_error?: string; tombola_added?: string; tombola_removed?: string; tombola_cart_error?: string; tombola_order_error?: string; bingo_added?: string; bingo_removed?: string; bingo_cart_error?: string; bingo_order_error?: string; license_added?: string; license_removed?: string; license_paid?: string; license_order_error?: string }>;
+ searchParams: Promise<{ error?: string; profile_saved?: string; vehicle_added?: string; reservation_added?: string; reservation_paid?: string; reservation_error?: string; balance_paid?: string; balance_error?: string; order_sent?: string; order_error?: string; cart_removed?: string; cart_error?: string; tombola_added?: string; tombola_removed?: string; tombola_cart_error?: string; tombola_order_error?: string; bingo_added?: string; bingo_removed?: string; bingo_cart_error?: string; bingo_order_error?: string; license_added?: string; license_removed?: string; license_paid?: string; license_order_error?: string }>;
 
 };
 
@@ -68,7 +74,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
  const rpName = getRpName(data.user);
 
  const complete = hasRpProfile(data.user);
- const [role, commerce, homologations, teamRegistrations, wheelSpins, tombolaCart, tombolaTickets, bingoCart, bingoCards, licenseCart, unreadNotifications, mailboxOverview] = await Promise.all([
+ const [role, commerce, homologations, teamRegistrations, wheelSpins, tombolaCart, tombolaTickets, bingoCart, bingoCards, licenseCart, unreadNotifications, mailboxOverview, vehicleReservations] = await Promise.all([
 
  getUserRoleLabel(data.user),
 
@@ -93,8 +99,13 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
 
  getMyMailboxOverview(),
 
+ getOwnVehicleReservations(data.user.id),
+
  ]);
 
+ const normalVehicleCart = commerce.cart.filter((item) => ["vehicle", "delivery"].includes(String(item.item_type)));
+ const reservationDepositCart = commerce.cart.filter((item) => item.item_type === "reservation_deposit");
+ const reservationBalanceCart = commerce.cart.filter((item) => item.item_type === "reservation_balance");
  const cartTotal = commerce.cart.reduce((sum, item) => sum + Number(item.unit_price) * Number(item.quantity), 0);
 
  const tombolaCartTotal = tombolaCart ? Number(tombolaCart.unit_price) * Number(tombolaCart.quantity) : 0;
@@ -197,15 +208,25 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
 
  </div>
 
- <ProfileNavigation orders={commerce.orders.length} homologations={homologations.length} teams={teamRegistrations.length} documents={commerce.invoices.length} games={wheelSpins.length + tombolaTickets.length + bingoCards.length} />
+ <ProfileNavigation orders={commerce.orders.length} reservations={vehicleReservations.length} homologations={homologations.length} teams={teamRegistrations.length} documents={commerce.invoices.length} games={wheelSpins.length + tombolaTickets.length + bingoCards.length} />
  {!commerce.configured && <div className="dashboard-feedback">Les rubriques commerciales seront disponibles dès que le script SQL du Dashboard aura été exécuté.</div>}
 
- {params.vehicle_added && <div className="dashboard-feedback dashboard-feedback-success">Le véhicule et son mode de livraison ont été ajoutés à ton panier.</div>}
+ {params.vehicle_added && <div className="dashboard-feedback dashboard-feedback-success">Le véhicule et son mode de livraison ont été ajoutés à ton panier au prix total.</div>}
+
+ {params.reservation_added && <div className="dashboard-feedback dashboard-feedback-success">L’acompte de réservation de 15 % a été ajouté à ton panier.</div>}
+
+ {params.reservation_paid && <div className="dashboard-feedback dashboard-feedback-success">Acompte payé. La réservation est maintenant en attente de validation par Nostra Motors.</div>}
+
+ {params.balance_paid && <div className="dashboard-feedback dashboard-feedback-success">Solde payé. La réservation est devenue une commande Nostra Motors.</div>}
+
+ {params.reservation_error && <div className="dashboard-feedback dashboard-feedback-error">La réservation n’a pas pu être enregistrée. Vérifie le stock ou une éventuelle réservation déjà active.</div>}
+
+ {params.balance_error && <div className="dashboard-feedback dashboard-feedback-error">Le solde n’a pas pu être payé. Recharge la page ou contacte Nostra Motors.</div>}
 
  {params.order_sent && <div className="dashboard-feedback dashboard-feedback-success">Commande <strong>{params.order_sent}</strong> envoyée à Nostra Motors. Le stock a été réservé automatiquement.</div>}
 
  {params.cart_removed && <div className="dashboard-feedback dashboard-feedback-success">L’article a été retiré de ton panier.</div>}
- {params.cart_error && <div className="dashboard-feedback dashboard-feedback-error">Impossible de retirer cet article du panier.</div>}
+ {params.cart_error && <div className="dashboard-feedback dashboard-feedback-error">{params.cart_error === "locked" ? "Le solde d’une réservation validée ne peut pas être retiré du panier." : "Impossible de retirer cet article du panier."}</div>}
 
  {params.tombola_added && <div className="dashboard-feedback dashboard-feedback-success">Les tickets de tombola ont été ajoutés à ton panier.</div>}
 
@@ -254,18 +275,23 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
  <div className="profile-mini-list">
  {commerce.cart.length === 0 && !tombolaCart && !bingoCart && !licenseCart && <p className="empty-state">Ton panier est vide.</p>}
 
- {commerce.cart.map((item) => (
-
- <div className="profile-cart-row" key={item.id}>
-
- <span>{item.quantity} × {item.item_name}</span>
-
+ {commerce.cart.map((item) => {
+ const isDeposit = item.item_type === "reservation_deposit";
+ const isBalance = item.item_type === "reservation_balance";
+ return (
+ <div className={`profile-cart-row${isDeposit ? " profile-cart-row-reservation" : ""}${isBalance ? " profile-cart-row-balance" : ""}`} key={item.id}>
+ <span>
+ {item.quantity} × {item.item_name}
+ {isDeposit && <small className="order-client-note">Acompte de 15 % · validation de la concession requise</small>}
+ {isBalance && <small className="order-client-note">Solde de 85 % après validation · montant verrouillé</small>}
+ </span>
  <strong>{money(Number(item.unit_price) * Number(item.quantity))}</strong>
-
+ {!isBalance && !item.locked ? (
  <form action={removeCartItem}><input type="hidden" name="id" value={item.id} /><button type="submit" aria-label={`Retirer ${item.item_name} du panier`}>Supprimer</button></form>
+ ) : <span className="role-badge">À payer</span>}
  </div>
-
- ))}
+ );
+ })}
 
  {tombolaCart && (
 
@@ -312,17 +338,32 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
 
  <footer><span>Total du panier</span><strong>{money(cartTotal + tombolaCartTotal + bingoCartTotal + licenseCartTotal)}</strong></footer>
 
- {commerce.cart.length > 0 && (
+ {normalVehicleCart.length > 0 && (
 
  <form action={placeCartOrder} className="profile-order-form">
  <label><span>Message pour Nostra Motors <small>(facultatif)</small></span><textarea name="customer_note" rows={3} maxLength={1500} placeholder="Exemple : couleur souhaitée, disponibilité pour la livraison…" /></label>
 
- <button className="btn" type="submit" disabled={!commerce.ordersConfigured}>Commander les véhicules</button>
+ <button className="btn" type="submit" disabled={!commerce.ordersConfigured}>Commander les véhicules au prix total</button>
 
  {!commerce.ordersConfigured && <p>Active d’abord le module depuis <strong>Dashboard → Commandes Nostra Motors</strong>.</p>}
 
  </form>
 
+ )}
+
+
+ {reservationDepositCart.length > 0 && (
+ <form action={checkoutVehicleReservationDeposits} className="profile-order-form">
+ <p className="commerce-hint">Le paiement de l’acompte bloque le stock et envoie la réservation au Dashboard. Après validation, le solde de 85 % sera ajouté automatiquement ici.</p>
+ <button className="btn" type="submit">Payer les acomptes de réservation</button>
+ </form>
+ )}
+
+ {reservationBalanceCart.length > 0 && (
+ <form action={checkoutVehicleReservationBalances} className="profile-order-form">
+ <p className="commerce-hint">Nostra Motors a validé la réservation. Le montant ci-dessus correspond aux 85 % restants, avec la livraison à domicile si elle a été choisie.</p>
+ <button className="btn" type="submit">Payer les soldes de réservation</button>
+ </form>
  )}
 
  {tombolaCart && (

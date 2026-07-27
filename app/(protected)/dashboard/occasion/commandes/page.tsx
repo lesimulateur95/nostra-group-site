@@ -152,7 +152,14 @@ function OrderSection({
                   <tbody>
                     {order.items.map((item, index) => (
                       <tr key={`${order.id}-${index}`}>
-                        <td>{item.name}</td>
+                        <td>
+                          {item.name}
+                          {item.reservation_id && (
+                            <small className="order-client-note">
+                              Réservation #{item.reservation_id} · acompte {money(item.deposit_paid)} · solde {money(item.balance_paid)}
+                            </small>
+                          )}
+                        </td>
                         <td>{item.quantity}</td>
                         <td>{money(item.quantity * item.unit_price)}</td>
                       </tr>

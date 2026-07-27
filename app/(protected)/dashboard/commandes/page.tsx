@@ -102,9 +102,15 @@ function OrderCard({
           <div key={`${order.id}-${index}`}>
             <span>
               {item.quantity} × {item.name}
+              {item.reservation_id && (
+                <small className="order-delivery-address">
+                  Réservation #{item.reservation_id} · Acompte payé : {money(item.deposit_paid)} · Solde payé : {money(item.balance_paid)}
+                </small>
+              )}
               {item.delivery_address && (
                 <small className="order-delivery-address">
                   Adresse : {item.delivery_address}
+                  {item.delivery_phone ? ` · Téléphone : ${item.delivery_phone}` : ""}
                 </small>
               )}
             </span>

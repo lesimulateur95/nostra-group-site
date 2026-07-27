@@ -15,22 +15,46 @@ function integer(value: FormDataEntryValue | null): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function errorText(error: { code?: string | null; message?: string | null } | null | undefined): string {
+function errorText(
+  error: { code?: string | null; message?: string | null } | null | undefined,
+): string {
   return `${error?.code ?? ""} ${error?.message ?? ""}`.toLowerCase();
 }
 
-function isMissingStockOrderSetup(error: { code?: string | null; message?: string | null } | null | undefined): boolean {
+function isMissingStockOrderSetup(
+  error: { code?: string | null; message?: string | null } | null | undefined,
+): boolean {
   const value = errorText(error);
-  return value.includes("pgrst202") || value.includes("place_nostra_order") || value.includes("update_nostra_order") || value.includes("delete_nostra_order") || value.includes("stock_deducted");
+  return (
+    value.includes("pgrst202") ||
+    value.includes("place_nostra_order_v93") ||
+    value.includes("checkout_vehicle_reservation") ||
+    value.includes("review_vehicle_reservation_v93") ||
+    value.includes("vehicle_reservations") ||
+    value.includes("reservation_id") ||
+    value.includes("update_nostra_order") ||
+    value.includes("delete_nostra_order") ||
+    value.includes("stock_deducted")
+  );
 }
 
-function orderErrorCode(error: { code?: string | null; message?: string | null } | null | undefined): string {
+function orderErrorCode(
+  error: { code?: string | null; message?: string | null } | null | undefined,
+): string {
   const value = errorText(error);
   if (isMissingStockOrderSetup(error)) return "setup";
   if (value.includes("empty_cart")) return "empty";
+  if (value.includes("empty_reservation_cart")) return "empty-reservation";
+  if (value.includes("empty_balance_cart")) return "empty-balance";
+  if (value.includes("reservation_already_exists")) return "reservation-exists";
+  if (value.includes("reservation_balance_unavailable")) return "balance-unavailable";
   if (value.includes("insufficient_stock")) return "stock";
   if (value.includes("vehicle_unavailable")) return "unavailable";
-  if (value.includes("cart_needs_refresh") || value.includes("invalid_delivery_cart")) return "cart-refresh";
+  if (
+    value.includes("cart_needs_refresh") ||
+    value.includes("invalid_delivery_cart")
+  )
+    return "cart-refresh";
   return "save";
 }
 
@@ -52,6 +76,27 @@ function createOrderNumber(): string {
   return `NM-${date}-${token}`;
 }
 
+function revalidateCommerce() {
+  revalidatePath("/profil");
+  revalidatePath("/profil/commandes");
+  revalidatePath("/profil/reservations-vehicules");
+  revalidatePath("/profil/documents");
+  revalidatePath("/motors/catalogue");
+  revalidatePath("/motors/catalogue/poids-lourds");
+  revalidatePath("/motors/catalogue/vehicules-exclusifs");
+  revalidatePath("/motors/catalogue/vehicules-occasion");
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/commandes");
+  revalidatePath("/dashboard/reservations-vehicules");
+  revalidatePath("/dashboard/stocks");
+  revalidatePath("/dashboard/catalogue");
+  revalidatePath("/dashboard/occasion/commandes");
+  revalidatePath("/dashboard/occasion/stocks");
+  revalidatePath("/dashboard/occasion/ventes");
+  revalidatePath("/dashboard/occasion/documents");
+  revalidatePath("/dashboard/occasion/statistiques");
+}
+
 export async function removeCartItem(formData: FormData) {
   const id = integer(formData.get("id"));
   if (id <= 0) redirect("/profil?cart_error=invalid");
@@ -62,12 +107,17 @@ export async function removeCartItem(formData: FormData) {
 
   const lookup = await supabase
     .from("cart_items")
-    .select("id,item_type,vehicle_id,related_vehicle_id")
+    .select("id,item_type,vehicle_id,related_vehicle_id,locked")
     .eq("id", id)
     .eq("user_id", data.user.id)
     .maybeSingle();
 
-  if (!lookup.error && lookup.data?.item_type === "vehicle" && lookup.data.vehicle_id) {
+  if (lookup.error || !lookup.data) redirect("/profil?cart_error=delete");
+  if (lookup.data.locked || lookup.data.item_type === "reservation_balance") {
+    redirect("/profil?cart_error=locked");
+  }
+
+  if (lookup.data.item_type === "vehicle" && lookup.data.vehicle_id) {
     await supabase
       .from("cart_items")
       .delete()
@@ -83,7 +133,7 @@ export async function removeCartItem(formData: FormData) {
     .eq("user_id", data.user.id);
 
   if (error) redirect("/profil?cart_error=delete");
-  revalidatePath("/profil");
+  revalidateCommerce();
   redirect("/profil?cart_removed=1");
 }
 
@@ -94,9 +144,10 @@ export async function placeCartOrder(formData: FormData) {
   if (!data.user) redirect("/");
 
   const orderNumber = createOrderNumber();
-  const customerName = getRpName(data.user) || getDiscordName(data.user) || "Client Nostra Motors";
+  const customerName =
+    getRpName(data.user) || getDiscordName(data.user) || "Client Nostra Motors";
 
-  const { data: result, error } = await supabase.rpc("place_nostra_order", {
+  const { data: result, error } = await supabase.rpc("place_nostra_order_v93", {
     p_order_number: orderNumber,
     p_customer_name: customerName,
     p_customer_note: customerNote,
@@ -104,32 +155,106 @@ export async function placeCartOrder(formData: FormData) {
 
   if (error) redirect(`/profil?order_error=${orderErrorCode(error)}`);
 
-  const response = result && typeof result === "object" ? result as Record<string, unknown> : {};
-  const savedNumber = typeof response.order_number === "string" ? response.order_number : orderNumber;
+  const response =
+    result && typeof result === "object"
+      ? (result as Record<string, unknown>)
+      : {};
+  const savedNumber =
+    typeof response.order_number === "string"
+      ? response.order_number
+      : orderNumber;
 
-  revalidatePath("/profil");
-  revalidatePath("/profil/commandes");
-  revalidatePath("/profil/documents");
-  revalidatePath("/motors/catalogue");
-  revalidatePath("/motors/catalogue/vehicules-occasion");
-  revalidatePath("/dashboard");
-  revalidatePath("/dashboard/commandes");
-  revalidatePath("/dashboard/stocks");
-  revalidatePath("/dashboard/catalogue");
-  revalidatePath("/dashboard/occasion/commandes");
-  revalidatePath("/dashboard/occasion/stocks");
-  revalidatePath("/dashboard/occasion/ventes");
-  revalidatePath("/dashboard/occasion/documents");
-  revalidatePath("/dashboard/occasion/statistiques");
+  revalidateCommerce();
   redirect(`/profil?order_sent=${encodeURIComponent(savedNumber)}`);
+}
+
+export async function checkoutVehicleReservationDeposits() {
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getUser();
+  if (!data.user) redirect("/");
+
+  const customerName =
+    getRpName(data.user) || getDiscordName(data.user) || "Client Nostra Motors";
+  const { data: result, error } = await supabase.rpc(
+    "checkout_vehicle_reservation_deposits_v93",
+    { p_customer_name: customerName },
+  );
+
+  if (error) {
+    redirect(`/profil?reservation_error=${orderErrorCode(error)}`);
+  }
+
+  const response =
+    result && typeof result === "object"
+      ? (result as Record<string, unknown>)
+      : {};
+  const count = Math.max(1, Number(response.reservations_created) || 1);
+  revalidateCommerce();
+  redirect(`/profil?reservation_paid=${count}`);
+}
+
+export async function checkoutVehicleReservationBalances() {
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getUser();
+  if (!data.user) redirect("/");
+
+  const { data: result, error } = await supabase.rpc(
+    "checkout_vehicle_reservation_balances_v93",
+  );
+  if (error) redirect(`/profil?balance_error=${orderErrorCode(error)}`);
+
+  const response =
+    result && typeof result === "object"
+      ? (result as Record<string, unknown>)
+      : {};
+  const count = Math.max(1, Number(response.orders_created) || 1);
+  revalidateCommerce();
+  redirect(`/profil?balance_paid=${count}`);
+}
+
+export async function reviewVehicleReservation(formData: FormData) {
+  const id = integer(formData.get("id"));
+  const decision = text(formData.get("decision"), 30);
+  const adminNote = text(formData.get("admin_note"), 2000) || null;
+  if (id <= 0 || !["approve", "reject"].includes(decision)) {
+    redirect("/dashboard/reservations-vehicules?error=invalid");
+  }
+
+  const { supabase } = await requireMotorsStaff();
+  const { error } = await supabase.rpc("review_vehicle_reservation_v93", {
+    p_reservation_id: id,
+    p_decision: decision,
+    p_admin_note: adminNote,
+  });
+  if (error) {
+    redirect(
+      `/dashboard/reservations-vehicules?error=${orderErrorCode(error)}`,
+    );
+  }
+
+  revalidateCommerce();
+  redirect(
+    `/dashboard/reservations-vehicules?${
+      decision === "approve" ? "approved" : "rejected"
+    }=1`,
+  );
 }
 
 export async function updateOrder(formData: FormData) {
   const id = integer(formData.get("id"));
   const status = text(formData.get("status"), 30);
   const adminNote = text(formData.get("admin_note"), 2000) || null;
-  const allowed = new Set(["pending", "confirmed", "preparing", "ready", "completed", "cancelled"]);
-  if (id <= 0 || !allowed.has(status)) redirect("/dashboard/commandes?error=invalid");
+  const allowed = new Set([
+    "pending",
+    "confirmed",
+    "preparing",
+    "ready",
+    "completed",
+    "cancelled",
+  ]);
+  if (id <= 0 || !allowed.has(status)) {
+    redirect("/dashboard/commandes?error=invalid");
+  }
 
   const { supabase } = await requireMotorsStaff();
   const { error } = await supabase.rpc("update_nostra_order", {
@@ -140,22 +265,13 @@ export async function updateOrder(formData: FormData) {
 
   if (error) {
     const code = orderErrorCode(error);
-    redirect(`/dashboard/commandes?error=${code === "stock" ? "stock" : code === "setup" ? "setup" : "save"}`);
+    redirect(
+      `/dashboard/commandes?error=${
+        code === "stock" ? "stock" : code === "setup" ? "setup" : "save"
+      }`,
+    );
   }
-  revalidatePath("/motors/catalogue");
-  revalidatePath("/motors/catalogue/vehicules-occasion");
-  revalidatePath("/dashboard");
-  revalidatePath("/dashboard/commandes");
-  revalidatePath("/dashboard/stocks");
-  revalidatePath("/dashboard/catalogue");
-  revalidatePath("/dashboard/occasion/commandes");
-  revalidatePath("/dashboard/occasion/stocks");
-  revalidatePath("/dashboard/occasion/ventes");
-  revalidatePath("/dashboard/occasion/documents");
-  revalidatePath("/dashboard/occasion/statistiques");
-  revalidatePath("/profil");
-  revalidatePath("/profil/commandes");
-  revalidatePath("/profil/documents");
+  revalidateCommerce();
   redirect("/dashboard/commandes?saved=1");
 }
 
@@ -164,22 +280,17 @@ export async function deleteOrder(formData: FormData) {
   if (id <= 0) redirect("/dashboard/commandes?error=invalid");
 
   const { supabase } = await requireMotorsStaff();
-  const { error } = await supabase.rpc("delete_nostra_order", { p_order_id: id });
-  if (error) redirect(`/dashboard/commandes?error=${isMissingStockOrderSetup(error) ? "setup" : "delete"}`);
+  const { error } = await supabase.rpc("delete_nostra_order", {
+    p_order_id: id,
+  });
+  if (error) {
+    redirect(
+      `/dashboard/commandes?error=${
+        isMissingStockOrderSetup(error) ? "setup" : "delete"
+      }`,
+    );
+  }
 
-  revalidatePath("/motors/catalogue");
-  revalidatePath("/motors/catalogue/vehicules-occasion");
-  revalidatePath("/dashboard");
-  revalidatePath("/dashboard/commandes");
-  revalidatePath("/dashboard/stocks");
-  revalidatePath("/dashboard/catalogue");
-  revalidatePath("/dashboard/occasion/commandes");
-  revalidatePath("/dashboard/occasion/stocks");
-  revalidatePath("/dashboard/occasion/ventes");
-  revalidatePath("/dashboard/occasion/documents");
-  revalidatePath("/dashboard/occasion/statistiques");
-  revalidatePath("/profil");
-  revalidatePath("/profil/commandes");
-  revalidatePath("/profil/documents");
+  revalidateCommerce();
   redirect("/dashboard/commandes?deleted=1");
 }

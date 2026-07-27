@@ -10,6 +10,7 @@ import {
 import { getDiscordName, getRpName } from "@/lib/auth/user-profile";
 import { getDashboardOverview } from "@/lib/dashboard/overview";
 import { getUsedVehicleDashboardSummary } from "@/lib/used-vehicles/data";
+import { getVehicleReservationSummary } from "@/lib/vehicle-reservations/data";
 
 export default async function DashboardPage() {
   const [user, roles] = await Promise.all([
@@ -30,12 +31,13 @@ export default async function DashboardPage() {
     redirect(commissionerRole ? "/commissaires" : "/accueil");
   }
 
-  const [overview, usedOverview] = await Promise.all([
+  const [overview, usedOverview, vehicleReservationOverview] = await Promise.all([
     getDashboardOverview({
       managerAccess,
       ordersAccess: operationsAccess,
     }),
     getUsedVehicleDashboardSummary(),
+    getVehicleReservationSummary(),
   ]);
 
   const accessLabel = managerAccess
@@ -48,7 +50,8 @@ export default async function DashboardPage() {
     overview.pendingHomologations +
     overview.pendingReservations +
     overview.pendingTeamRegistrations +
-    overview.pendingOrders;
+    overview.pendingOrders +
+    vehicleReservationOverview.pending;
 
   return (
     <DashboardShell allowedRoles={["manager", "employee", "commercial"]}>
@@ -147,6 +150,21 @@ export default async function DashboardPage() {
                   : overview.pendingOrders
                     ? `${overview.pendingOrders} nouvelle(s)`
                     : undefined
+              }
+            />
+            <DashboardCard
+              href="/dashboard/reservations-vehicules"
+              icon="🔒"
+              title="Réservations véhicules"
+              description="Valider les acomptes de 15 % et envoyer automatiquement les 85 % restants dans le panier du client."
+              badge={
+                !vehicleReservationOverview.configured
+                  ? "À activer"
+                  : vehicleReservationOverview.pending
+                    ? `${vehicleReservationOverview.pending} à valider`
+                    : vehicleReservationOverview.balanceDue
+                      ? `${vehicleReservationOverview.balanceDue} solde(s)`
+                      : undefined
               }
             />
             <DashboardCard

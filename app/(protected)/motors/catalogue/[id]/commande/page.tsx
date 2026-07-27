@@ -92,6 +92,8 @@ export default async function VehicleConfigurationPage({
   const profileAddress = metadataText(metadata, "address");
   const vehicleImages = images(vehicle.images);
   const vehiclePrice = Number(vehicle.price) || 0;
+  const depositAmount = Math.round(vehiclePrice * 0.15 * 100) / 100;
+  const balanceAmount = Math.max(0, vehiclePrice - depositAmount);
   const stock = Math.max(0, Number(vehicle.stock_quantity) || 0);
   const isHeavyVehicle = vehicle.catalog_type === "heavy";
   const isUsedVehicle = vehicle.catalog_type === "used";
@@ -121,9 +123,13 @@ export default async function VehicleConfigurationPage({
               ? "Renseigne une adresse de livraison complète."
               : query.error === "phone"
                 ? "Renseigne un numéro de téléphone pour la livraison."
-                : query.error
-                  ? "Impossible d’ajouter cette configuration au panier."
-                  : null;
+                : query.error === "purchase"
+                  ? "Choisis entre réserver le véhicule ou le commander directement."
+                  : query.error === "reservation-exists"
+                    ? "Tu as déjà une réservation active pour ce véhicule."
+                    : query.error
+                      ? "Impossible d’ajouter cette configuration au panier."
+                      : null;
 
   return (
     <article className={styles.page}>
@@ -211,6 +217,45 @@ export default async function VehicleConfigurationPage({
           className={styles.deliveryCard}
         >
           <input type="hidden" name="vehicle_id" value={vehicle.id} />
+
+          <div className={styles.deliveryHeading}>
+            <p className={styles.eyebrow}>CHOIX D’ACHAT</p>
+            <h2>Réserver ou commander ?</h2>
+          </div>
+
+          <label className={`${styles.option} ${styles.purchaseOption}`}>
+            <input
+              type="radio"
+              name="purchase_mode"
+              value="order"
+              defaultChecked
+            />
+            <span className={styles.optionIcon}>✓</span>
+            <span className={styles.optionText}>
+              <strong>Commander maintenant</strong>
+              <small>
+                Le prix total du véhicule est ajouté au panier et la commande
+                suit le fonctionnement habituel.
+              </small>
+            </span>
+            <span className={styles.optionPrice}>{formatPrice(vehiclePrice)}</span>
+          </label>
+
+          <label className={`${styles.option} ${styles.purchaseOption}`}>
+            <input type="radio" name="purchase_mode" value="reservation" />
+            <span className={styles.optionIcon}>15 %</span>
+            <span className={styles.optionText}>
+              <strong>Réserver avec un acompte</strong>
+              <small>
+                Tu paies {formatPrice(depositAmount)} maintenant. Après
+                validation par la concession, les {formatPrice(balanceAmount)}
+                restants seront ajoutés automatiquement à ton panier.
+              </small>
+            </span>
+            <span className={styles.optionPrice}>{formatPrice(depositAmount)}</span>
+          </label>
+
+          <div className={styles.sectionDivider} />
 
           <div className={styles.deliveryHeading}>
             <p className={styles.eyebrow}>MODE DE LIVRAISON</p>
@@ -319,12 +364,20 @@ export default async function VehicleConfigurationPage({
 
           <div className={styles.summary}>
             <div>
-              <span>Véhicule</span>
+              <span>Prix total du véhicule</span>
               <strong>{formatPrice(vehiclePrice)}</strong>
             </div>
             <div>
-              <span>Livraison showroom</span>
-              <strong>Gratuite</strong>
+              <span>Acompte de réservation (15 %)</span>
+              <strong>{formatPrice(depositAmount)}</strong>
+            </div>
+            <div>
+              <span>Solde après validation (85 %)</span>
+              <strong>{formatPrice(balanceAmount)}</strong>
+            </div>
+            <div>
+              <span>Retrait au showroom</span>
+              <strong>Gratuit</strong>
             </div>
             {!isHeavyVehicle && (
               <div>
@@ -337,9 +390,13 @@ export default async function VehicleConfigurationPage({
           </div>
 
           <p className={styles.notice}>
+            En mode réservation, l’acompte de 15 % apparaît dans le panier. La
+            concession bloque ensuite le véhicule et valide le dossier. Le solde
+            de 85 % est ajouté automatiquement au panier du client après cette
+            validation.
             {isHeavyVehicle
-              ? "La livraison à domicile est désactivée pour l’intégralité du catalogue poids lourd."
-              : `En choisissant la livraison à domicile, un second article « Livraison à domicile — ${vehicle.brand} ${vehicle.model} » sera ajouté au panier.`}
+              ? " La livraison à domicile reste désactivée pour l’intégralité du catalogue poids lourd."
+              : " Une éventuelle livraison à domicile est ajoutée au solde final."}
           </p>
 
           <button
@@ -348,9 +405,7 @@ export default async function VehicleConfigurationPage({
             disabled={stock <= 0 || !canOrderUsedVehicle}
           >
             {stock > 0 && canOrderUsedVehicle
-              ? isUsedVehicle
-                ? "Réserver ou commander ce véhicule"
-                : "Ajouter cette configuration au panier"
+              ? "Ajouter le choix au panier"
               : usedStatus === "reserved"
                 ? "Véhicule déjà réservé"
                 : usedStatus === "sold"

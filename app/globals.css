@@ -3112,3 +3112,38 @@ select:focus { outline: 2px solid rgba(212,175,55,.32); outline-offset: 1px; }
   .bingo-rewards-table article { border-right: 0; border-bottom: 1px solid rgba(255,255,255,.07); }
 }
 
+
+/* V93 — Réservations véhicules */
+.profile-cart-row-reservation {
+  border-color: rgba(212, 175, 55, 0.34) !important;
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.08), rgba(10, 10, 10, 0.98)) !important;
+}
+.profile-cart-row-balance {
+  border-color: rgba(82, 196, 120, 0.38) !important;
+  background: linear-gradient(135deg, rgba(82, 196, 120, 0.09), rgba(10, 10, 10, 0.98)) !important;
+}
+.profile-cart-row > span:first-child {
+  display: grid;
+  gap: 4px;
+}
+.dashboard-inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+.danger-button {
+  min-height: 42px;
+  padding: 10px 16px;
+  border: 1px solid rgba(226, 93, 93, 0.42);
+  border-radius: 999px;
+  background: rgba(226, 93, 93, 0.09);
+  color: #ffb3b3;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+.danger-button:hover {
+  border-color: rgba(226, 93, 93, 0.75);
+  background: rgba(226, 93, 93, 0.15);
+}

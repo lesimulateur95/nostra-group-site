@@ -136,7 +136,9 @@ function revalidateUsedVehiclePaths(vehicleId?: number) {
   revalidatePath("/dashboard/occasion/statistiques");
   revalidatePath("/profil");
   revalidatePath("/profil/commandes");
+  revalidatePath("/profil/reservations-vehicules");
   revalidatePath("/profil/documents");
+  revalidatePath("/dashboard/reservations-vehicules");
 }
 
 function validateImages(selected: File[], existingCount = 0): string | null {

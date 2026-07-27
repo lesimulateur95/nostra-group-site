@@ -73,10 +73,14 @@ export type OrderItemSnapshot = {
   item_type: "vehicle" | "delivery" | null;
   vehicle_id: number | null;
   related_vehicle_id: number | null;
+  reservation_id: number | null;
   name: string;
   delivery_address: string | null;
+  delivery_phone: string | null;
   quantity: number;
   unit_price: number;
+  deposit_paid: number;
+  balance_paid: number;
   image_url: string | null;
 };
 
@@ -264,19 +268,43 @@ function normalizeOrderItems(value: unknown): OrderItemSnapshot[] {
         candidate.item_type === "vehicle" || candidate.item_type === "delivery"
           ? candidate.item_type
           : null,
-      vehicle_id: Number.isFinite(Number(candidate.vehicle_id))
-        ? Number(candidate.vehicle_id)
-        : null,
-      related_vehicle_id: Number.isFinite(Number(candidate.related_vehicle_id))
-        ? Number(candidate.related_vehicle_id)
-        : null,
+      vehicle_id:
+        candidate.vehicle_id === null ||
+        candidate.vehicle_id === undefined ||
+        candidate.vehicle_id === ""
+          ? null
+          : Number.isFinite(Number(candidate.vehicle_id))
+            ? Number(candidate.vehicle_id)
+            : null,
+      related_vehicle_id:
+        candidate.related_vehicle_id === null ||
+        candidate.related_vehicle_id === undefined ||
+        candidate.related_vehicle_id === ""
+          ? null
+          : Number.isFinite(Number(candidate.related_vehicle_id))
+            ? Number(candidate.related_vehicle_id)
+            : null,
+      reservation_id:
+        candidate.reservation_id === null ||
+        candidate.reservation_id === undefined ||
+        candidate.reservation_id === ""
+          ? null
+          : Number.isFinite(Number(candidate.reservation_id))
+            ? Number(candidate.reservation_id)
+            : null,
       name: candidate.name,
       delivery_address:
         typeof candidate.delivery_address === "string"
           ? candidate.delivery_address
           : null,
+      delivery_phone:
+        typeof candidate.delivery_phone === "string"
+          ? candidate.delivery_phone
+          : null,
       quantity: Math.max(1, Number(candidate.quantity) || 1),
       unit_price: Math.max(0, Number(candidate.unit_price) || 0),
+      deposit_paid: Math.max(0, Number(candidate.deposit_paid) || 0),
+      balance_paid: Math.max(0, Number(candidate.balance_paid) || 0),
       image_url: typeof candidate.image_url === "string" ? candidate.image_url : null,
     }];
   });
@@ -321,7 +349,7 @@ export async function getProfileCommerceData(userId: string) {
     supabase.from("orders").select("id,order_number,status,total,created_at,customer_name,items,customer_note,admin_note,stock_deducted,updated_at").eq("user_id", userId).order("created_at", { ascending: false }),
     supabase.from("invoices").select("id,invoice_number,status,amount,issued_at,download_url").eq("user_id", userId).order("issued_at", { ascending: false }),
     supabase.from("loyalty_profiles").select("tier,purchases_count,discount_percent,updated_at").eq("user_id", userId).maybeSingle(),
-    supabase.from("cart_items").select("id,vehicle_id,related_vehicle_id,item_type,delivery_mode,delivery_address,item_name,quantity,unit_price,image_url,created_at").eq("user_id", userId).order("created_at", { ascending: false }),
+    supabase.from("cart_items").select("id,vehicle_id,related_vehicle_id,reservation_id,item_type,delivery_mode,delivery_address,delivery_phone,item_name,quantity,unit_price,original_unit_price,image_url,locked,created_at").eq("user_id", userId).order("created_at", { ascending: false }),
   ]);
 
   return {

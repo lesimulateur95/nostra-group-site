@@ -301,9 +301,7 @@ export async function CatalogueViewV51({
                                   className="btn catalogue-cart-button"
                                   href={`/motors/catalogue/${vehicle.id}/commande`}
                                 >
-                                  {catalogType === "used"
-                                    ? "Réserver ou commander"
-                                    : "Ajouter au panier"}
+                                  Réserver / Commander
                                 </Link>
                               ) : (
                                 <button
