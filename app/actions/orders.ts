@@ -111,10 +111,16 @@ export async function placeCartOrder(formData: FormData) {
   revalidatePath("/profil/commandes");
   revalidatePath("/profil/documents");
   revalidatePath("/motors/catalogue");
+  revalidatePath("/motors/catalogue/vehicules-occasion");
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/commandes");
   revalidatePath("/dashboard/stocks");
   revalidatePath("/dashboard/catalogue");
+  revalidatePath("/dashboard/occasion/commandes");
+  revalidatePath("/dashboard/occasion/stocks");
+  revalidatePath("/dashboard/occasion/ventes");
+  revalidatePath("/dashboard/occasion/documents");
+  revalidatePath("/dashboard/occasion/statistiques");
   redirect(`/profil?order_sent=${encodeURIComponent(savedNumber)}`);
 }
 
@@ -137,10 +143,16 @@ export async function updateOrder(formData: FormData) {
     redirect(`/dashboard/commandes?error=${code === "stock" ? "stock" : code === "setup" ? "setup" : "save"}`);
   }
   revalidatePath("/motors/catalogue");
+  revalidatePath("/motors/catalogue/vehicules-occasion");
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/commandes");
   revalidatePath("/dashboard/stocks");
   revalidatePath("/dashboard/catalogue");
+  revalidatePath("/dashboard/occasion/commandes");
+  revalidatePath("/dashboard/occasion/stocks");
+  revalidatePath("/dashboard/occasion/ventes");
+  revalidatePath("/dashboard/occasion/documents");
+  revalidatePath("/dashboard/occasion/statistiques");
   revalidatePath("/profil");
   revalidatePath("/profil/commandes");
   revalidatePath("/profil/documents");
@@ -156,10 +168,16 @@ export async function deleteOrder(formData: FormData) {
   if (error) redirect(`/dashboard/commandes?error=${isMissingStockOrderSetup(error) ? "setup" : "delete"}`);
 
   revalidatePath("/motors/catalogue");
+  revalidatePath("/motors/catalogue/vehicules-occasion");
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/commandes");
   revalidatePath("/dashboard/stocks");
   revalidatePath("/dashboard/catalogue");
+  revalidatePath("/dashboard/occasion/commandes");
+  revalidatePath("/dashboard/occasion/stocks");
+  revalidatePath("/dashboard/occasion/ventes");
+  revalidatePath("/dashboard/occasion/documents");
+  revalidatePath("/dashboard/occasion/statistiques");
   revalidatePath("/profil");
   revalidatePath("/profil/commandes");
   revalidatePath("/profil/documents");

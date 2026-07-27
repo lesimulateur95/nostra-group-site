@@ -32,6 +32,25 @@ function formatPrice(value: number): string {
   });
 }
 
+
+function usedStatusLabel(status: string): string {
+  if (status === "reserved") return "Réservé";
+  if (status === "sold") return "Vendu";
+  return "Disponible";
+}
+
+function usedConditionLabel(value: string): string {
+  const labels: Record<string, string> = {
+    excellent: "Excellent état",
+    very_good: "Très bon état",
+    good: "Bon état",
+    fair: "État correct",
+    repair: "À remettre en état",
+  };
+
+  return labels[value] ?? value;
+}
+
 function brandAnchor(brand: string): string {
   return `marque-${brand
     .toLocaleLowerCase("fr")
@@ -130,7 +149,7 @@ export async function CatalogueViewV51({
         {!configured && (
           <section className="catalogue-empty">
             <h2>Activation nécessaire</h2>
-            <p>Exécute le SQL V51 pour activer les trois catalogues séparés.</p>
+            <p>Exécute le SQL V92 pour activer les quatre catalogues séparés.</p>
           </section>
         )}
 
@@ -233,8 +252,12 @@ export async function CatalogueViewV51({
                                 </dd>
                               </div>
                               <div>
-                                <dt>Puissance</dt>
-                                <dd>{vehicle.power || "Non renseignée"}</dd>
+                                <dt>{catalogType === "used" ? "État" : "Puissance"}</dt>
+                                <dd>
+                                  {catalogType === "used"
+                                    ? usedConditionLabel(vehicle.used_condition) || "Contrôlé"
+                                    : vehicle.power || "Non renseignée"}
+                                </dd>
                               </div>
                               <div className="catalogue-price">
                                 <dt>Prix</dt>
@@ -244,30 +267,43 @@ export async function CatalogueViewV51({
 
                             <div
                               className={`catalogue-stock-status${
-                                vehicle.stock_quantity <= 0
+                                vehicle.stock_quantity <= 0 ||
+                                (catalogType === "used" &&
+                                  vehicle.used_vehicle_status !== "available")
                                   ? " catalogue-stock-status-empty"
                                   : ""
                               }`}
                             >
                               <span>
-                                {vehicle.stock_quantity > 0
-                                  ? "Disponible"
-                                  : "Rupture de stock"}
+                                {catalogType === "used"
+                                  ? usedStatusLabel(vehicle.used_vehicle_status)
+                                  : vehicle.stock_quantity > 0
+                                    ? "Disponible"
+                                    : "Rupture de stock"}
                               </span>
                               <strong>
                                 {stockConfigured
-                                  ? `${vehicle.stock_quantity} en stock`
+                                  ? catalogType === "used"
+                                    ? vehicle.used_vehicle_status === "available"
+                                      ? `${vehicle.stock_quantity} disponible${vehicle.stock_quantity > 1 ? "s" : ""}`
+                                      : usedStatusLabel(vehicle.used_vehicle_status)
+                                    : `${vehicle.stock_quantity} en stock`
                                   : "Stock en cours d’activation"}
                               </strong>
                             </div>
 
                             <div className="catalogue-cart-form">
-                              {vehicle.stock_quantity > 0 && stockConfigured ? (
+                              {vehicle.stock_quantity > 0 &&
+                              stockConfigured &&
+                              (catalogType !== "used" ||
+                                vehicle.used_vehicle_status === "available") ? (
                                 <Link
                                   className="btn catalogue-cart-button"
                                   href={`/motors/catalogue/${vehicle.id}/commande`}
                                 >
-                                  Ajouter au panier
+                                  {catalogType === "used"
+                                    ? "Réserver ou commander"
+                                    : "Ajouter au panier"}
                                 </Link>
                               ) : (
                                 <button
@@ -292,9 +328,11 @@ export async function CatalogueViewV51({
                                     vehicle.top_speed
                                       ? `Vitesse : ${vehicle.top_speed}`
                                       : "Vitesse non renseignée",
-                                    vehicle.power
-                                      ? `Puissance : ${vehicle.power}`
-                                      : "Puissance non renseignée",
+                                    catalogType === "used"
+                                      ? `État : ${usedConditionLabel(vehicle.used_condition) || "Contrôlé"}`
+                                      : vehicle.power
+                                        ? `Puissance : ${vehicle.power}`
+                                        : "Puissance non renseignée",
                                   ],
                                 }}
                               />

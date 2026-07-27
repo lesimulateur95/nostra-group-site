@@ -60,7 +60,9 @@ type FavoriteStatRow = {
 };
 
 function normalizeCatalogType(value: unknown): CatalogType {
-  return value === "heavy" || value === "exclusive" ? value : "standard";
+  return value === "heavy" || value === "exclusive" || value === "used"
+    ? value
+    : "standard";
 }
 
 function extractFirstImageUrl(images: unknown): string | null {

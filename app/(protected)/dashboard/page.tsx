@@ -9,6 +9,7 @@ import {
 } from "@/lib/auth/request-context";
 import { getDiscordName, getRpName } from "@/lib/auth/user-profile";
 import { getDashboardOverview } from "@/lib/dashboard/overview";
+import { getUsedVehicleDashboardSummary } from "@/lib/used-vehicles/data";
 
 export default async function DashboardPage() {
   const [user, roles] = await Promise.all([
@@ -29,10 +30,13 @@ export default async function DashboardPage() {
     redirect(commissionerRole ? "/commissaires" : "/accueil");
   }
 
-  const overview = await getDashboardOverview({
-    managerAccess,
-    ordersAccess: operationsAccess,
-  });
+  const [overview, usedOverview] = await Promise.all([
+    getDashboardOverview({
+      managerAccess,
+      ordersAccess: operationsAccess,
+    }),
+    getUsedVehicleDashboardSummary(),
+  ]);
 
   const accessLabel = managerAccess
     ? "GÉRANT"
@@ -181,6 +185,69 @@ export default async function DashboardPage() {
                   ? `${overview.lowStock} alerte(s)`
                   : undefined
               }
+            />
+          </div>
+        </DashboardModuleGroup>
+
+        <DashboardModuleGroup
+          icon="♻️"
+          eyebrow="CONCESSION"
+          title="Véhicules rachetés"
+          description="Rachats, stock, commandes, ventes, clients, documents et marges des véhicules d’occasion."
+          defaultOpen={!managerAccess}
+        >
+          <div className="dashboard-module-grid dashboard-module-grid-grouped dashboard-module-grid-four">
+            <DashboardCard
+              href="/dashboard/occasion/catalogue"
+              icon="🚙"
+              title="Catalogue"
+              description="Contrôler les véhicules visibles dans la concession publique Véhicules d’occasion."
+              badge={!usedOverview.configured ? "À activer" : `${usedOverview.vehicles} véhicule(s)`}
+            />
+            <DashboardCard
+              href="/dashboard/occasion/stocks"
+              icon="▦"
+              title="Stock"
+              description="Gérer les quantités et les statuts disponible, réservé ou vendu."
+              badge={usedOverview.configured ? `${usedOverview.available} disponible(s)` : undefined}
+            />
+            <DashboardCard
+              href="/dashboard/occasion/rachats"
+              icon="€"
+              title="Rachats"
+              description="Enregistrer le prix de rachat, le prix de revente, l’ancien propriétaire et les informations internes."
+            />
+            <DashboardCard
+              href="/dashboard/occasion/commandes"
+              icon="📦"
+              title="Commandes"
+              description="Traiter les réservations et commandes avec les mêmes statuts que Nostra Motors."
+              badge={usedOverview.pendingOrders ? `${usedOverview.pendingOrders} à traiter` : undefined}
+            />
+            <DashboardCard
+              href="/dashboard/occasion/ventes"
+              icon="🤝"
+              title="Ventes"
+              description="Consulter les ventes terminées et la marge réelle de chaque véhicule."
+              badge={usedOverview.sold ? `${usedOverview.sold} vendu(s)` : undefined}
+            />
+            <DashboardCard
+              href="/dashboard/occasion/clients"
+              icon="👥"
+              title="Clients"
+              description="Retrouver les citoyens ayant réservé ou acheté un véhicule d’occasion."
+            />
+            <DashboardCard
+              href="/dashboard/occasion/documents"
+              icon="📄"
+              title="Documents"
+              description="Suivre les documents de commande et de vente générés pour les clients."
+            />
+            <DashboardCard
+              href="/dashboard/occasion/statistiques"
+              icon="📊"
+              title="Statistiques"
+              description="Analyser la valeur du stock, le chiffre d’affaires et les marges prévues ou réalisées."
             />
           </div>
         </DashboardModuleGroup>

@@ -33,6 +33,19 @@ function images(value: unknown): CatalogVehicleImage[] {
   });
 }
 
+
+function usedConditionLabel(value: unknown): string {
+  const labels: Record<string, string> = {
+    excellent: "Excellent état",
+    very_good: "Très bon état",
+    good: "Bon état",
+    fair: "État correct",
+    repair: "À remettre en état",
+  };
+  const key = typeof value === "string" ? value : "";
+  return labels[key] ?? "Contrôlé par Nostra Motors";
+}
+
 function metadataText(
   metadata: Record<string, unknown>,
   key: string,
@@ -60,7 +73,7 @@ export default async function VehicleConfigurationPage({
     supabase
       .from("catalog_vehicles")
       .select(
-        "id,brand,model,trunk_capacity,top_speed,power,price,description,images,published,stock_quantity,catalog_type",
+        "id,brand,model,trunk_capacity,top_speed,power,price,description,images,published,stock_quantity,catalog_type,used_vehicle_status,used_condition",
       )
       .eq("id", vehicleId)
       .eq("published", true)
@@ -81,12 +94,17 @@ export default async function VehicleConfigurationPage({
   const vehiclePrice = Number(vehicle.price) || 0;
   const stock = Math.max(0, Number(vehicle.stock_quantity) || 0);
   const isHeavyVehicle = vehicle.catalog_type === "heavy";
+  const isUsedVehicle = vehicle.catalog_type === "used";
+  const usedStatus = String(vehicle.used_vehicle_status ?? "available");
+  const canOrderUsedVehicle = !isUsedVehicle || usedStatus === "available";
   const cataloguePath =
     vehicle.catalog_type === "heavy"
       ? "/motors/catalogue/poids-lourds"
       : vehicle.catalog_type === "exclusive"
         ? "/motors/catalogue/vehicules-exclusifs"
-        : "/motors/catalogue";
+        : vehicle.catalog_type === "used"
+          ? "/motors/catalogue/vehicules-occasion"
+          : "/motors/catalogue";
 
   const errorMessage =
     query.error === "stock"
@@ -97,7 +115,9 @@ export default async function VehicleConfigurationPage({
           ? "Choisis un mode de livraison valide."
           : query.error === "heavy-delivery"
             ? "La livraison à domicile est désactivée pour les poids lourds. Le retrait au showroom est obligatoire."
-            : query.error === "address"
+            : query.error === "used-unavailable"
+              ? "Ce véhicule d’occasion est déjà réservé, vendu ou indisponible."
+              : query.error === "address"
               ? "Renseigne une adresse de livraison complète."
               : query.error === "phone"
                 ? "Renseigne un numéro de téléphone pour la livraison."
@@ -116,7 +136,9 @@ export default async function VehicleConfigurationPage({
           <p>
             {isHeavyVehicle
               ? "Vérifie le poids lourd avant de l’ajouter au panier. Le retrait au showroom est le seul mode disponible."
-              : "Vérifie le véhicule, puis choisis son mode de livraison avant de l’ajouter au panier."}
+              : isUsedVehicle
+                ? "Vérifie ce véhicule d’occasion contrôlé par Nostra Motors, puis choisis son mode de livraison."
+                : "Vérifie le véhicule, puis choisis son mode de livraison avant de l’ajouter au panier."}
           </p>
         </div>
         <Link className={styles.backLink} href={cataloguePath}>
@@ -156,12 +178,24 @@ export default async function VehicleConfigurationPage({
                 <dd>{vehicle.top_speed || "Non renseignée"}</dd>
               </div>
               <div>
-                <dt>Puissance</dt>
-                <dd>{vehicle.power || "Non renseignée"}</dd>
+                <dt>{isUsedVehicle ? "État" : "Puissance"}</dt>
+                <dd>
+                  {isUsedVehicle
+                    ? usedConditionLabel(vehicle.used_condition)
+                    : vehicle.power || "Non renseignée"}
+                </dd>
               </div>
               <div>
                 <dt>Disponibilité</dt>
-                <dd>{stock} en stock</dd>
+                <dd>
+                  {isUsedVehicle
+                    ? usedStatus === "sold"
+                      ? "Vendu"
+                      : usedStatus === "reserved"
+                        ? "Réservé"
+                        : `${stock} disponible${stock > 1 ? "s" : ""}`
+                    : `${stock} en stock`}
+                </dd>
               </div>
             </dl>
 
@@ -311,11 +345,17 @@ export default async function VehicleConfigurationPage({
           <button
             className={styles.submit}
             type="submit"
-            disabled={stock <= 0}
+            disabled={stock <= 0 || !canOrderUsedVehicle}
           >
-            {stock > 0
-              ? "Ajouter cette configuration au panier"
-              : "Véhicule indisponible"}
+            {stock > 0 && canOrderUsedVehicle
+              ? isUsedVehicle
+                ? "Réserver ou commander ce véhicule"
+                : "Ajouter cette configuration au panier"
+              : usedStatus === "reserved"
+                ? "Véhicule déjà réservé"
+                : usedStatus === "sold"
+                  ? "Véhicule vendu"
+                  : "Véhicule indisponible"}
           </button>
         </form>
       </div>

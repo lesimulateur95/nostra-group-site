@@ -39,6 +39,7 @@ function configuredCartErrorCode(
   }
 
   if (value.includes("heavy_home_delivery_disabled")) return "heavy-delivery";
+  if (value.includes("used_vehicle_unavailable")) return "used-unavailable";
   if (value.includes("insufficient_stock")) return "stock";
   if (value.includes("vehicle_unavailable")) return "not-found";
   if (value.includes("invalid_delivery_mode")) return "delivery";
@@ -66,20 +67,26 @@ export async function addConfiguredVehicleWithProfileDelivery(
   const { data: authData } = await supabase.auth.getUser();
   if (!authData.user) redirect("/");
 
-  if (deliveryMode === "home") {
-    const { data: vehicle, error: vehicleError } = await (supabase as any)
-      .from("catalog_vehicles")
-      .select("id,catalog_type")
-      .eq("id", vehicleId)
-      .maybeSingle();
+  const { data: vehicle, error: vehicleError } = await (supabase as any)
+    .from("catalog_vehicles")
+    .select("id,catalog_type,used_vehicle_status,stock_quantity,published")
+    .eq("id", vehicleId)
+    .maybeSingle();
 
-    if (vehicleError || !vehicle) {
-      redirect(`/motors/catalogue/${vehicleId}/commande?error=not-found`);
-    }
+  if (vehicleError || !vehicle || vehicle.published !== true) {
+    redirect(`/motors/catalogue/${vehicleId}/commande?error=not-found`);
+  }
 
-    if (vehicle.catalog_type === "heavy") {
-      redirect(`/motors/catalogue/${vehicleId}/commande?error=heavy-delivery`);
-    }
+  if (
+    vehicle.catalog_type === "used" &&
+    (vehicle.used_vehicle_status !== "available" ||
+      Number(vehicle.stock_quantity ?? 0) <= 0)
+  ) {
+    redirect(`/motors/catalogue/${vehicleId}/commande?error=used-unavailable`);
+  }
+
+  if (deliveryMode === "home" && vehicle.catalog_type === "heavy") {
+    redirect(`/motors/catalogue/${vehicleId}/commande?error=heavy-delivery`);
   }
 
   if (deliveryMode === "home" && deliveryAddress.length < 5) {
@@ -123,6 +130,7 @@ export async function addConfiguredVehicleWithProfileDelivery(
   }
 
   revalidatePath("/motors/catalogue");
+  revalidatePath("/motors/catalogue/vehicules-occasion");
   revalidatePath(`/motors/catalogue/${vehicleId}/commande`);
   revalidatePath("/profil");
   redirect("/profil?vehicle_added=1");

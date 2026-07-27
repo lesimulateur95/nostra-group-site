@@ -169,6 +169,9 @@ function revalidateCatalogs() {
   revalidatePath(
     "/motors/catalogue/vehicules-exclusifs",
   );
+  revalidatePath(
+    "/motors/catalogue/vehicules-occasion",
+  );
   revalidatePath("/dashboard/catalogue");
   revalidatePath("/dashboard/stocks");
   revalidatePath("/profil");
@@ -189,6 +192,10 @@ export async function saveCatalogVehicleV51(
         30,
       ),
     );
+
+  if (catalogType === "used") {
+    redirect("/dashboard/occasion/rachats?error=use-dedicated");
+  }
 
   const brand = text(
     formData.get("brand"),
@@ -263,7 +270,7 @@ export async function saveCatalogVehicleV51(
     const { data, error } =
       await supabase
         .from("catalog_vehicles")
-        .select("images")
+        .select("images,catalog_type")
         .eq("id", id)
         .maybeSingle();
 
@@ -274,6 +281,10 @@ export async function saveCatalogVehicleV51(
           "error=not-found",
         ),
       );
+    }
+
+    if (data.catalog_type === "used") {
+      redirect("/dashboard/occasion/rachats?error=use-dedicated");
     }
 
     current = storedImages(data.images);
@@ -467,9 +478,13 @@ export async function deleteCatalogVehicleV51(
 
   const { data } = await supabase
     .from("catalog_vehicles")
-    .select("brand,model,images")
+    .select("brand,model,images,catalog_type")
     .eq("id", id)
     .maybeSingle();
+
+  if (data?.catalog_type === "used") {
+    redirect("/dashboard/occasion/rachats?error=use-dedicated");
+  }
 
   const vehicleImages =
     storedImages(data?.images);

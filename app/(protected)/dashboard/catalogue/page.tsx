@@ -85,10 +85,13 @@ export default async function DashboardCataloguePage({
         })
       : [];
 
+  const managedTypes = CATALOG_TYPES.filter((type) => type !== "used");
+  const managedVehicles = allVehicles.filter((vehicle) => vehicle.catalog_type !== "used");
+
   const selectedType:
     | CatalogType
     | "all" =
-    params.type === "all"
+    params.type === "all" || params.type === "used"
       ? "all"
       : normalizeCatalogType(
           params.type,
@@ -96,8 +99,8 @@ export default async function DashboardCataloguePage({
 
   const visibleVehicles =
     selectedType === "all"
-      ? allVehicles
-      : allVehicles.filter(
+      ? managedVehicles
+      : managedVehicles.filter(
           (vehicle) =>
             vehicle.catalog_type ===
             selectedType,
@@ -145,7 +148,7 @@ export default async function DashboardCataloguePage({
             Activer les catalogues séparés
           </h2>
           <p>
-            Exécute le fichier SQL V51 puis recharge la page.
+            Exécute le fichier SQL V92 puis recharge la page.
           </p>
         </section>
       ) : (
@@ -162,10 +165,10 @@ export default async function DashboardCataloguePage({
               }
               href="/dashboard/catalogue?type=all"
             >
-              Tous · {allVehicles.length}
+              Tous · {managedVehicles.length}
             </Link>
 
-            {CATALOG_TYPES.map((type) => (
+            {managedTypes.map((type) => (
               <Link
                 className={
                   selectedType === type
@@ -177,7 +180,7 @@ export default async function DashboardCataloguePage({
               >
                 {CATALOG_LABELS[type]} ·{" "}
                 {
-                  allVehicles.filter(
+                  managedVehicles.filter(
                     (vehicle) =>
                       vehicle.catalog_type ===
                       type,
@@ -185,6 +188,10 @@ export default async function DashboardCataloguePage({
                 }
               </Link>
             ))}
+
+            <Link className={styles.adminTab} href="/dashboard/occasion/rachats">
+              Véhicules d’occasion →
+            </Link>
           </nav>
 
           <article className="backoffice-panel catalog-admin-create">
@@ -215,7 +222,7 @@ export default async function DashboardCataloguePage({
                   name="catalog_type"
                   defaultValue={createType}
                 >
-                  {CATALOG_TYPES.map(
+                  {managedTypes.map(
                     (type) => (
                       <option
                         value={type}
@@ -423,7 +430,7 @@ export default async function DashboardCataloguePage({
                           vehicle.catalog_type
                         }
                       >
-                        {CATALOG_TYPES.map(
+                        {managedTypes.map(
                           (type) => (
                             <option
                               value={type}

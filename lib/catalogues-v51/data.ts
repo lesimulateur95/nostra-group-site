@@ -8,14 +8,19 @@ export const CATALOG_TYPES = [
   "standard",
   "heavy",
   "exclusive",
+  "used",
 ] as const;
 
 export type CatalogType =
   (typeof CATALOG_TYPES)[number];
 
+export type UsedVehicleStatus = "available" | "reserved" | "sold";
+
 export type CatalogVehicleV51 =
   CatalogVehicle & {
     catalog_type: CatalogType;
+    used_vehicle_status: UsedVehicleStatus;
+    used_condition: string;
   };
 
 export const CATALOG_LABELS: Record<
@@ -25,6 +30,7 @@ export const CATALOG_LABELS: Record<
   standard: "Catalogue principal",
   heavy: "Catalogue poids lourd",
   exclusive: "Catalogue véhicules exclusifs",
+  used: "Véhicules d’occasion",
 };
 
 export const CATALOG_PATHS: Record<
@@ -35,6 +41,7 @@ export const CATALOG_PATHS: Record<
   heavy: "/motors/catalogue/poids-lourds",
   exclusive:
     "/motors/catalogue/vehicules-exclusifs",
+  used: "/motors/catalogue/vehicules-occasion",
 };
 
 export function normalizeCatalogType(
@@ -74,7 +81,7 @@ export async function getCataloguesV51Configured(): Promise<boolean> {
 
   const { error } = await supabase
     .from("catalog_vehicles")
-    .select("id,catalog_type")
+    .select("id,catalog_type,used_vehicle_status,used_condition")
     .limit(1);
 
   return !error;
@@ -92,7 +99,7 @@ export async function getCatalogVehiclesV51({
   let query = supabase
     .from("catalog_vehicles")
     .select(
-      "id,brand,model,trunk_capacity,top_speed,power,price,description,images,published,stock_quantity,sort_order,catalog_type,created_at,updated_at",
+      "id,brand,model,trunk_capacity,top_speed,power,price,description,images,published,stock_quantity,sort_order,catalog_type,used_vehicle_status,used_condition,created_at,updated_at",
     )
     .order("brand")
     .order("sort_order")
@@ -142,6 +149,12 @@ export async function getCatalogVehiclesV51({
     catalog_type: normalizeCatalogType(
       row.catalog_type,
     ),
+    used_vehicle_status:
+      row.used_vehicle_status === "reserved" ||
+      row.used_vehicle_status === "sold"
+        ? row.used_vehicle_status
+        : "available",
+    used_condition: String(row.used_condition ?? ""),
     created_at:
       typeof row.created_at === "string"
         ? row.created_at

@@ -26,6 +26,11 @@ const catalogChildren: SidebarNavItem["children"] = [
     href: "/motors/catalogue/vehicules-exclusifs",
     label: "Catalogue véhicules exclusifs",
   },
+  {
+    key: "catalog-used",
+    href: "/motors/catalogue/vehicules-occasion",
+    label: "Véhicules d’occasion",
+  },
 ];
 
 function addCatalogChildren(
@@ -41,7 +46,8 @@ function addCatalogChildren(
         child.key !== "builtin-catalogue" &&
         child.key !== "catalog-standard" &&
         child.key !== "catalog-heavy" &&
-        child.key !== "catalog-exclusive",
+        child.key !== "catalog-exclusive" &&
+        child.key !== "catalog-used",
     );
 
     return {

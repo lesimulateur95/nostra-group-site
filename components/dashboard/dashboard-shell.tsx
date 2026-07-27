@@ -12,6 +12,7 @@ const OPERATIONS_DASHBOARD_PREFIXES = [
   "/dashboard/livraisons",
   "/dashboard/rendez-vous-motors",
   "/dashboard/stocks",
+  "/dashboard/occasion",
   "/dashboard/reservations",
   "/dashboard/homologations",
   "/dashboard/inscriptions-ecuries",
