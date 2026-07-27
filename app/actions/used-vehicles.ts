@@ -279,29 +279,45 @@ export async function updateUsedVehiclePurchase(formData: FormData) {
 
 export async function deleteUsedVehiclePurchase(formData: FormData) {
   const vehicleId = integer(formData.get("vehicle_id"));
-  if (vehicleId <= 0) redirect("/dashboard/occasion/rachats?error=invalid");
+  const returnTo =
+    text(formData.get("return_to"), 30) === "catalogue"
+      ? "/dashboard/occasion/catalogue"
+      : "/dashboard/occasion/rachats";
+
+  if (vehicleId <= 0) redirect(`${returnTo}?error=invalid`);
 
   const { supabase } = await requireUsedVehicleStaff();
   const current = await (supabase as any)
     .from("catalog_vehicles")
-    .select("images")
+    .select("images,catalog_type")
     .eq("id", vehicleId)
     .maybeSingle();
-  const stored = normalizeStoredImages(current.data?.images);
 
+  if (
+    current.error ||
+    !current.data ||
+    current.data.catalog_type !== "used"
+  ) {
+    redirect(`${returnTo}?error=not-found`);
+  }
+
+  const stored = normalizeStoredImages(current.data.images);
   const result = await (supabase as any).rpc("delete_used_vehicle_v92", {
     p_vehicle_id: vehicleId,
   });
+
   if (result.error) {
-    redirect(`/dashboard/occasion/rachats?error=${errorCode(result.error)}`);
+    redirect(`${returnTo}?error=${errorCode(result.error)}`);
   }
 
   if (stored.length > 0) {
-    await supabase.storage.from("vehicle-images").remove(stored.map((image) => image.path));
+    await supabase.storage
+      .from("vehicle-images")
+      .remove(stored.map((image) => image.path));
   }
 
   revalidateUsedVehiclePaths(vehicleId);
-  redirect("/dashboard/occasion/rachats?deleted=1");
+  redirect(`${returnTo}?deleted=1`);
 }
 
 export async function updateUsedVehicleStock(formData: FormData) {
