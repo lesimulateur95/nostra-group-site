@@ -119,6 +119,7 @@ async function uploadImages(
 function revalidateUsedVehiclePaths(vehicleId?: number) {
   revalidatePath("/motors/catalogue");
   revalidatePath("/motors/catalogue/vehicules-occasion");
+  revalidatePath("/motors/reprise");
   if (vehicleId) revalidatePath(`/motors/catalogue/${vehicleId}/commande`);
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/catalogue");
@@ -127,6 +128,7 @@ function revalidateUsedVehiclePaths(vehicleId?: number) {
   revalidatePath("/dashboard/comptabilite");
   revalidatePath("/dashboard/occasion");
   revalidatePath("/dashboard/occasion/rachats");
+  revalidatePath("/dashboard/occasion/demandes-reprise");
   revalidatePath("/dashboard/occasion/catalogue");
   revalidatePath("/dashboard/occasion/stocks");
   revalidatePath("/dashboard/occasion/commandes");

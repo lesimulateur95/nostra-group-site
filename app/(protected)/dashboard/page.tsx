@@ -9,8 +9,10 @@ import {
 } from "@/lib/auth/request-context";
 import { getDiscordName, getRpName } from "@/lib/auth/user-profile";
 import { getDashboardOverview } from "@/lib/dashboard/overview";
+import { getRecruitmentSummary } from "@/lib/recruitment/data";
 import { getUsedVehicleDashboardSummary } from "@/lib/used-vehicles/data";
 import { getVehicleReservationSummary } from "@/lib/vehicle-reservations/data";
+import { getVehicleTradeInSummary } from "@/lib/vehicle-trade-ins/data";
 
 export default async function DashboardPage() {
   const [user, roles] = await Promise.all([
@@ -31,13 +33,21 @@ export default async function DashboardPage() {
     redirect(commissionerRole ? "/commissaires" : "/accueil");
   }
 
-  const [overview, usedOverview, vehicleReservationOverview] = await Promise.all([
+  const [
+    overview,
+    usedOverview,
+    vehicleReservationOverview,
+    recruitmentOverview,
+    tradeInOverview,
+  ] = await Promise.all([
     getDashboardOverview({
       managerAccess,
       ordersAccess: operationsAccess,
     }),
     getUsedVehicleDashboardSummary(),
     getVehicleReservationSummary(),
+    getRecruitmentSummary(),
+    getVehicleTradeInSummary(),
   ]);
 
   const accessLabel = managerAccess
@@ -51,7 +61,9 @@ export default async function DashboardPage() {
     overview.pendingReservations +
     overview.pendingTeamRegistrations +
     overview.pendingOrders +
-    vehicleReservationOverview.pending;
+    vehicleReservationOverview.pending +
+    recruitmentOverview.pending +
+    tradeInOverview.pending;
 
   return (
     <DashboardShell allowedRoles={["manager", "employee", "commercial"]}>
@@ -156,7 +168,7 @@ export default async function DashboardPage() {
               href="/dashboard/reservations-vehicules"
               icon="🔒"
               title="Réservations véhicules"
-              description="Valider les acomptes de 15 % et envoyer automatiquement les 85 % restants dans le panier du client."
+              description="Valider les acomptes, suivre le solde, attribuer un commercial puis accompagner le véhicule jusqu’à sa livraison."
               badge={
                 !vehicleReservationOverview.configured
                   ? "À activer"
@@ -234,6 +246,19 @@ export default async function DashboardPage() {
               icon="€"
               title="Rachats"
               description="Enregistrer le prix de rachat, le prix de revente, l’ancien propriétaire et les informations internes."
+            />
+            <DashboardCard
+              href="/dashboard/occasion/demandes-reprise"
+              icon="📥"
+              title="Demandes de reprise"
+              description="Étudier les véhicules proposés par les clients, envoyer une offre puis les transformer en véhicules rachetés."
+              badge={
+                !tradeInOverview.configured
+                  ? "À activer"
+                  : tradeInOverview.pending
+                    ? `${tradeInOverview.pending} à traiter`
+                    : undefined
+              }
             />
             <DashboardCard
               href="/dashboard/occasion/commandes"
@@ -432,6 +457,19 @@ export default async function DashboardPage() {
                   overview.generalEvents
                     ? `${overview.generalEvents} événement(s)`
                     : undefined
+                }
+              />
+              <DashboardCard
+                href="/dashboard/recrutement/candidatures"
+                icon="🗂️"
+                title="Gestion des candidatures"
+                description="Étudier les dossiers, planifier les entretiens, ajouter des notes privées et préparer les réponses."
+                badge={
+                  !recruitmentOverview.configured
+                    ? "À activer"
+                    : recruitmentOverview.pending
+                      ? `${recruitmentOverview.pending} à traiter`
+                      : undefined
                 }
               />
               <DashboardCard

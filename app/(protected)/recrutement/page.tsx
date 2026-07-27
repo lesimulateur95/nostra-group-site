@@ -1,166 +1,223 @@
-import Link from "next/link";
+import { redirect } from "next/navigation";
 
-import { Topbar } from "@/components/site/topbar";
-import styles from "./page.module.css";
+import { submitRecruitmentApplication } from "@/app/actions/recruitment";
+import { getDiscordName, getRpName } from "@/lib/auth/user-profile";
+import { formatParisDateTime } from "@/lib/dates/paris";
+import {
+  getOwnRecruitmentApplications,
+  getRecruitmentConfigured,
+} from "@/lib/recruitment/data";
+import { createClient } from "@/lib/supabase/server";
 
-const departments = [
-  {
-    icon: "◆",
-    eyebrow: "NOSTRA MOTORS",
-    title: "Automobile & relation client",
-    description:
-      "Rejoignez la concession pour accompagner les citoyens, présenter les véhicules et participer à la qualité du service Nostra Motors.",
-    roles: [
-      "Conseiller commercial",
-      "Vendeur automobile",
-      "Préparateur de véhicules",
-      "Livreur Nostra Motors",
-    ],
-  },
-  {
-    icon: "◉",
-    eyebrow: "NOSTRA CIRCUIT",
-    title: "Sport automobile",
-    description:
-      "Participez à l’organisation des activités piste, à la sécurité des courses et au bon déroulement des événements sportifs.",
-    roles: [
-      "Commissaire de course",
-      "Chronométrage et tours",
-      "Organisation de piste",
-      "Accueil des pilotes",
-    ],
-  },
-  {
-    icon: "✦",
-    eyebrow: "NOSTRA GROUP",
-    title: "Événementiel & administration",
-    description:
-      "Contribuez aux événements, à la communication et au fonctionnement quotidien des différentes activités du groupe.",
-    roles: [
-      "Organisation d’événements",
-      "Communication",
-      "Accueil des citoyens",
-      "Administration",
-    ],
-  },
-] as const;
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
-export default function RecruitmentPage() {
+const statusLabels: Record<string, string> = {
+  new: "Nouvelle candidature",
+  reviewing: "En cours d’étude",
+  interview: "Entretien prévu",
+  accepted: "Acceptée",
+  refused: "Refusée",
+  archived: "Archivée",
+};
+
+export default async function RecruitmentPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | undefined>>;
+}) {
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getUser();
+  if (!data.user) redirect("/");
+
+  const [params, configured, applications] = await Promise.all([
+    searchParams,
+    getRecruitmentConfigured(),
+    getOwnRecruitmentApplications(data.user.id),
+  ]);
+  const metadata = data.user.user_metadata ?? {};
+
   return (
-    <div className="site-shell">
-      <Topbar />
+    <>
+      <section className="profile-heading">
+        <span className="eyebrow">NOSTRA GROUP</span>
+        <h1 className="page-title">Recrutement</h1>
+        <p className="lead">
+          Dépose ta candidature et suis son traitement directement depuis le
+          site.
+        </p>
+      </section>
 
-      <main className={styles.page}>
-        <section className={styles.hero}>
-          <span>RECRUTEMENT · NOSTRA GROUP</span>
+      {!configured && (
+        <div className="dashboard-feedback dashboard-feedback-error">
+          Le module doit être activé avec le fichier SQL V96.
+        </div>
+      )}
+      {params.sent && (
+        <div className="dashboard-feedback dashboard-feedback-success">
+          Candidature <strong>{params.sent}</strong> envoyée à la direction.
+        </div>
+      )}
+      {params.error && (
+        <div className="dashboard-feedback dashboard-feedback-error">
+          {params.error === "already-active"
+            ? "Tu as déjà une candidature active. Attends son traitement avant d’en envoyer une nouvelle."
+            : params.error === "setup"
+              ? "Le SQL V96 doit être exécuté dans Supabase."
+              : "Vérifie les informations du formulaire puis réessaie."}
+        </div>
+      )}
 
-          <h1>Construisez la suite avec nous.</h1>
-
-          <p>
-            Nostra Group rassemble l’automobile de prestige, le
-            sport automobile et l’événementiel. Découvrez les
-            différents domaines dans lesquels vous pouvez rejoindre
-            l’équipe.
-          </p>
-
-          <div className={styles.heroActions}>
-            <Link href="/recrutement/candidature">Déposer ma candidature</Link>
-            <a href="#postes">Découvrir les métiers</a>
-          </div>
-        </section>
-
-        <section
-          className={styles.departments}
-          id="postes"
-          aria-labelledby="departments-title"
-        >
-          <header className={styles.sectionHeader}>
-            <span>OPPORTUNITÉS</span>
-            <h2 id="departments-title">
-              Dans quel univers souhaitez-vous évoluer&nbsp;?
-            </h2>
-            <p>
-              Les disponibilités précises sont communiquées par la
-              Direction. Cette page présente les principaux métiers
-              pouvant être ouverts au recrutement.
-            </p>
-          </header>
-
-          <div className={styles.departmentGrid}>
-            {departments.map((department) => (
-              <article
-                className={styles.department}
-                key={department.eyebrow}
-              >
-                <div
-                  className={styles.departmentIcon}
-                  aria-hidden="true"
-                >
-                  {department.icon}
-                </div>
-
-                <span>{department.eyebrow}</span>
-                <h3>{department.title}</h3>
-                <p>{department.description}</p>
-
-                <ul>
-                  {department.roles.map((role) => (
-                    <li key={role}>{role}</li>
-                  ))}
-                </ul>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section className={styles.application}>
-          <div>
-            <span>COMMENT POSTULER&nbsp;?</span>
-            <h2>Présentez votre candidature à la Direction</h2>
-            <p>
-              Préparez une courte présentation, le poste recherché,
-              vos disponibilités et vos motivations. Envoyez ensuite
-              ces informations depuis la messagerie interne du site.
-            </p>
-          </div>
-
-          <div className={styles.steps}>
-            <article>
-              <strong>01</strong>
-              <span>Choisir un domaine</span>
+      {configured && (
+        <div className="recruitment-layout-v96">
+          <section className="backoffice-panel">
+            <div className="dashboard-section-heading dashboard-section-heading-tight">
+              <p className="eyebrow">CANDIDATURE</p>
+              <h2>Rejoindre Nostra Group</h2>
               <p>
-                Nostra Motors, Nostra Circuit ou les activités
-                générales de Nostra Group.
+                Remplis le formulaire avec des réponses précises. La direction
+                pourra ensuite te proposer un entretien, accepter ou refuser ta
+                candidature.
               </p>
-            </article>
+            </div>
 
-            <article>
-              <strong>02</strong>
-              <span>Préparer sa candidature</span>
-              <p>
-                Indiquer le poste souhaité, son expérience et ses
-                disponibilités.
-              </p>
-            </article>
+            <form action={submitRecruitmentApplication} className="backoffice-form">
+              <label>
+                Nom RP
+                <input
+                  name="candidate_name"
+                  defaultValue={getRpName(data.user) || ""}
+                  required
+                />
+              </label>
+              <label>
+                Nom Discord
+                <input
+                  name="discord_name"
+                  defaultValue={getDiscordName(data.user) || ""}
+                />
+              </label>
+              <label>
+                Téléphone
+                <input
+                  name="phone"
+                  defaultValue={
+                    typeof metadata.phone === "string" ? metadata.phone : ""
+                  }
+                />
+              </label>
+              <label>
+                Poste souhaité
+                <select name="position" required defaultValue="">
+                  <option value="" disabled>
+                    Choisir un poste
+                  </option>
+                  <option value="Commercial Nostra Motors">
+                    Commercial Nostra Motors
+                  </option>
+                  <option value="Employé Nostra Motors">
+                    Employé Nostra Motors
+                  </option>
+                  <option value="Commissaire de course">
+                    Commissaire de course
+                  </option>
+                  <option value="Autre poste Nostra Group">
+                    Autre poste Nostra Group
+                  </option>
+                </select>
+              </label>
+              <label className="form-span-2">
+                Disponibilités et présence sur l’île
+                <textarea
+                  name="availability"
+                  rows={3}
+                  required
+                  placeholder="Jours, horaires et fréquence de présence..."
+                />
+              </label>
+              <label className="form-span-2">
+                Motivation
+                <textarea
+                  name="motivation"
+                  rows={6}
+                  required
+                  minLength={20}
+                  placeholder="Pourquoi souhaites-tu rejoindre Nostra Group ?"
+                />
+              </label>
+              <label className="form-span-2">
+                Expérience
+                <textarea
+                  name="experience"
+                  rows={4}
+                  placeholder="Expériences professionnelles ou RP utiles au poste..."
+                />
+              </label>
+              <label className="form-span-2">
+                Qualités et points forts
+                <textarea
+                  name="strengths"
+                  rows={4}
+                  placeholder="Relation client, travail en équipe, polyvalence..."
+                />
+              </label>
+              <button type="submit" className="btn form-span-2">
+                Envoyer ma candidature
+              </button>
+            </form>
+          </section>
 
-            <article>
-              <strong>03</strong>
-              <span>Contacter la Direction</span>
-              <p>
-                Utiliser la messagerie interne depuis votre espace
-                personnel.
-              </p>
-            </article>
-          </div>
+          <section className="backoffice-panel">
+            <div className="dashboard-section-heading dashboard-section-heading-tight">
+              <p className="eyebrow">SUIVI</p>
+              <h2>Mes candidatures</h2>
+            </div>
 
-          <Link
-            className={styles.profileLink}
-            href="/recrutement/candidature"
-          >
-            Déposer ou suivre ma candidature →
-          </Link>
-        </section>
-      </main>
-    </div>
+            <div className="recruitment-own-list-v96">
+              {applications.length === 0 && (
+                <p className="empty-state">Aucune candidature envoyée.</p>
+              )}
+              {applications.map((application) => (
+                <article key={application.id} className="recruitment-own-card-v96">
+                  <div>
+                    <span className={`request-status recruitment-status-${application.status}`}>
+                      {statusLabels[application.status] ?? application.status}
+                    </span>
+                    <h3>{application.application_number}</h3>
+                    <p>{application.position}</p>
+                  </div>
+                  <dl>
+                    <div>
+                      <dt>Envoyée le</dt>
+                      <dd>
+                        {formatParisDateTime(application.created_at)}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Responsable</dt>
+                      <dd>{application.assigned_to || "Non attribué"}</dd>
+                    </div>
+                    {application.interview_at && (
+                      <div>
+                        <dt>Entretien</dt>
+                        <dd>
+                          {formatParisDateTime(application.interview_at)}
+                        </dd>
+                      </div>
+                    )}
+                  </dl>
+                  {application.manager_response && (
+                    <div className="reservation-reason">
+                      <span>Réponse de la direction</span>
+                      <p>{application.manager_response}</p>
+                    </div>
+                  )}
+                </article>
+              ))}
+            </div>
+          </section>
+        </div>
+      )}
+    </>
   );
 }

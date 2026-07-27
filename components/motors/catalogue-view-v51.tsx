@@ -121,6 +121,22 @@ export async function CatalogueViewV51({
           ))}
         </nav>
 
+        {catalogType === "used" && (
+          <section className="catalogue-trade-in-callout-v96">
+            <div>
+              <span className="eyebrow">REPRISE NOSTRA MOTORS</span>
+              <h2>Tu souhaites vendre ton véhicule ?</h2>
+              <p>
+                Envoie ses informations et ses photos afin de recevoir une
+                estimation de rachat directement dans ton espace personnel.
+              </p>
+            </div>
+            <Link href="/motors/reprise" className="btn">
+              Faire reprendre mon véhicule
+            </Link>
+          </section>
+        )}
+
         <CatalogueComparatorPanelV51 title={CATALOG_LABELS[catalogType]} />
 
         {customPage?.content?.trim() && (

@@ -3147,3 +3147,497 @@ select:focus { outline: 2px solid rgba(212,175,55,.32); outline-offset: 1px; }
   border-color: rgba(226, 93, 93, 0.75);
   background: rgba(226, 93, 93, 0.15);
 }
+
+/* Nostra Group V96 — Recrutement, suivi des réservations et reprises */
+.secondary-button {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 1px solid rgba(212, 175, 55, 0.34);
+  border-radius: 999px;
+  background: rgba(212, 175, 55, 0.08);
+  color: var(--gold-light, #f1d77a);
+  font: inherit;
+  font-weight: 850;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 0.18s ease, background 0.18s ease, transform 0.18s ease;
+}
+.secondary-button:hover {
+  border-color: rgba(212, 175, 55, 0.72);
+  background: rgba(212, 175, 55, 0.14);
+  transform: translateY(-1px);
+}
+
+.recruitment-layout-v96,
+.trade-in-layout-v96 {
+  width: min(1420px, 100%);
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(360px, 0.92fr);
+  gap: 22px;
+  align-items: start;
+}
+.recruitment-layout-v96 > .backoffice-panel,
+.trade-in-layout-v96 > .backoffice-panel {
+  min-width: 0;
+}
+.recruitment-own-list-v96,
+.recruitment-admin-list-v96,
+.trade-in-own-list-v96,
+.trade-in-admin-list-v96,
+.profile-reservation-list-v96 {
+  display: grid;
+  gap: 16px;
+}
+.recruitment-own-card-v96,
+.trade-in-own-card-v96,
+.profile-reservation-card-v96 {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  border-radius: 18px;
+  background: linear-gradient(145deg, rgba(25, 25, 25, 0.94), rgba(8, 8, 8, 0.97));
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.2);
+}
+.recruitment-own-card-v96 > div:first-child,
+.trade-in-card-head-v96,
+.profile-reservation-head-v96 {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.recruitment-own-card-v96 h3,
+.trade-in-own-card-v96 h3,
+.profile-reservation-card-v96 h3 {
+  margin: 10px 0 4px;
+}
+.recruitment-own-card-v96 p,
+.trade-in-own-card-v96 p,
+.profile-reservation-card-v96 p {
+  color: var(--muted, rgba(255, 255, 255, 0.62));
+  line-height: 1.55;
+}
+.recruitment-own-card-v96 dl,
+.trade-in-own-card-v96 dl {
+  margin: 16px 0 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.recruitment-own-card-v96 dl > div,
+.trade-in-own-card-v96 dl > div {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.025);
+}
+.recruitment-own-card-v96 dt,
+.trade-in-own-card-v96 dt {
+  margin-bottom: 5px;
+  color: var(--muted, rgba(255, 255, 255, 0.58));
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.recruitment-own-card-v96 dd,
+.trade-in-own-card-v96 dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: #fff;
+  font-weight: 800;
+}
+
+.recruitment-summary-v96,
+.trade-in-summary-v96,
+.reservation-summary-v96 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.recruitment-application-card-v96,
+.trade-in-admin-card-v96,
+.reservation-card-v96 {
+  overflow: hidden;
+}
+.recruitment-contact-v96,
+.trade-in-price-summary-v96 {
+  min-width: 190px;
+  display: grid;
+  gap: 5px;
+  text-align: right;
+}
+.recruitment-contact-v96 span,
+.trade-in-price-summary-v96 span {
+  color: var(--muted, rgba(255, 255, 255, 0.58));
+  font-size: 0.78rem;
+}
+.recruitment-contact-v96 strong,
+.trade-in-price-summary-v96 strong {
+  color: var(--gold-light, #f1d77a);
+  overflow-wrap: anywhere;
+}
+.recruitment-answers-v96 {
+  margin: 18px 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.recruitment-answers-v96 > div {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.025);
+}
+.recruitment-answers-v96 span {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--gold-light, #f1d77a);
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+.recruitment-answers-v96 p {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: rgba(255, 255, 255, 0.82);
+  line-height: 1.6;
+}
+.recruitment-history-v96 {
+  margin-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 14px;
+}
+.recruitment-history-v96 summary {
+  color: var(--gold-light, #f1d77a);
+  font-weight: 850;
+  cursor: pointer;
+}
+.recruitment-history-v96 > div {
+  margin-top: 12px;
+  display: grid;
+  gap: 8px;
+}
+.recruitment-history-v96 p {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 14px;
+  padding: 11px 13px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.035);
+  color: rgba(255, 255, 255, 0.78);
+}
+.recruitment-history-v96 small {
+  color: var(--muted, rgba(255, 255, 255, 0.52));
+}
+
+.request-status.recruitment-status-new,
+.request-status.trade-in-status-new {
+  border-color: rgba(87, 175, 255, 0.4);
+  background: rgba(87, 175, 255, 0.1);
+  color: #9bd1ff;
+}
+.request-status.recruitment-status-reviewing,
+.request-status.trade-in-status-reviewing,
+.request-status.trade-in-status-offer_sent {
+  border-color: rgba(255, 190, 85, 0.4);
+  background: rgba(255, 190, 85, 0.1);
+  color: #ffd18a;
+}
+.request-status.recruitment-status-interview {
+  border-color: rgba(180, 128, 255, 0.42);
+  background: rgba(180, 128, 255, 0.1);
+  color: #cfadff;
+}
+.request-status.recruitment-status-accepted,
+.request-status.trade-in-status-accepted,
+.request-status.trade-in-status-converted {
+  border-color: rgba(82, 210, 126, 0.42);
+  background: rgba(82, 210, 126, 0.1);
+  color: #91efb1;
+}
+.request-status.recruitment-status-refused,
+.request-status.trade-in-status-refused,
+.request-status.trade-in-status-cancelled {
+  border-color: rgba(235, 101, 101, 0.42);
+  background: rgba(235, 101, 101, 0.1);
+  color: #ffb0b0;
+}
+.request-status.recruitment-status-archived {
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.66);
+}
+
+.trade-in-form-panel-v96 {
+  position: sticky;
+  top: 88px;
+}
+.trade-in-images-v96 {
+  margin-top: 15px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+.trade-in-images-v96 img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  display: block;
+  object-fit: cover;
+  border: 1px solid rgba(212, 175, 55, 0.22);
+  border-radius: 11px;
+  background: #080808;
+}
+.trade-in-images-admin-v96 {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+.trade-in-images-admin-v96 a {
+  min-width: 0;
+}
+.trade-in-details-grid-v96,
+.trade-in-price-summary-v96,
+.reservation-followup-summary-v96,
+.profile-reservation-money-v96 {
+  display: grid;
+  gap: 10px;
+}
+.trade-in-details-grid-v96 {
+  margin: 18px 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.trade-in-details-grid-v96 > div,
+.reservation-followup-summary-v96 > div,
+.profile-reservation-money-v96 > div {
+  min-width: 0;
+  padding: 13px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.025);
+  display: grid;
+  gap: 5px;
+}
+.trade-in-details-grid-v96 span,
+.reservation-followup-summary-v96 span,
+.profile-reservation-money-v96 span {
+  color: var(--muted, rgba(255, 255, 255, 0.56));
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.trade-in-details-grid-v96 strong,
+.reservation-followup-summary-v96 strong,
+.profile-reservation-money-v96 strong {
+  overflow-wrap: anywhere;
+  color: #fff;
+}
+.trade-in-convert-v96 {
+  margin-top: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 18px;
+  border: 1px solid rgba(82, 210, 126, 0.34);
+  border-radius: 16px;
+  background: rgba(82, 210, 126, 0.07);
+}
+.trade-in-convert-v96 p {
+  margin: 6px 0 0;
+  color: rgba(220, 245, 228, 0.72);
+  line-height: 1.5;
+}
+
+.reservation-money-grid-v96 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.reservation-followup-summary-v96 {
+  margin: 16px 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.reservation-followup-form-v96 {
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.reservation-internal-note-v96 {
+  border-color: rgba(180, 128, 255, 0.26) !important;
+  background: rgba(180, 128, 255, 0.055) !important;
+}
+.reservation-deadline-overdue-v96 {
+  border-color: rgba(235, 101, 101, 0.48) !important;
+  background: rgba(235, 101, 101, 0.08) !important;
+}
+.reservation-deadline-overdue-v96 strong {
+  color: #ffaaaa !important;
+}
+.profile-reservation-head-v96 > strong {
+  color: var(--gold-light, #f1d77a);
+  font-size: 1.2rem;
+  white-space: nowrap;
+}
+.profile-reservation-money-v96 {
+  margin: 16px 0;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.reservation-timeline-v96 {
+  position: relative;
+  margin: 20px 0;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(90px, 1fr));
+  gap: 9px;
+  overflow-x: auto;
+  padding-bottom: 5px;
+}
+.reservation-timeline-step-v96 {
+  min-width: 110px;
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 9px;
+  align-items: start;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.025);
+  opacity: 0.65;
+}
+.reservation-timeline-step-v96 > span {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 50%;
+  color: transparent;
+  font-weight: 950;
+}
+.reservation-timeline-step-v96 > div {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+.reservation-timeline-step-v96 strong {
+  color: rgba(255, 255, 255, 0.84);
+  font-size: 0.82rem;
+  line-height: 1.3;
+}
+.reservation-timeline-step-v96 small {
+  color: var(--muted, rgba(255, 255, 255, 0.52));
+  font-size: 0.7rem;
+  line-height: 1.35;
+}
+.reservation-timeline-step-v96.is-done {
+  border-color: rgba(82, 210, 126, 0.34);
+  background: rgba(82, 210, 126, 0.065);
+  opacity: 1;
+}
+.reservation-timeline-step-v96.is-done > span {
+  border-color: rgba(82, 210, 126, 0.5);
+  background: rgba(82, 210, 126, 0.15);
+  color: #91efb1;
+}
+
+@media (max-width: 1120px) {
+  .recruitment-layout-v96,
+  .trade-in-layout-v96 {
+    grid-template-columns: 1fr;
+  }
+  .trade-in-form-panel-v96 {
+    position: static;
+  }
+  .recruitment-summary-v96,
+  .trade-in-summary-v96,
+  .reservation-summary-v96,
+  .reservation-money-grid-v96,
+  .profile-reservation-money-v96 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .trade-in-images-admin-v96 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .recruitment-own-card-v96 > div:first-child,
+  .trade-in-card-head-v96,
+  .profile-reservation-head-v96,
+  .trade-in-convert-v96,
+  .order-admin-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .recruitment-contact-v96,
+  .trade-in-price-summary-v96 {
+    min-width: 0;
+    text-align: left;
+  }
+  .recruitment-own-card-v96 dl,
+  .trade-in-own-card-v96 dl,
+  .recruitment-answers-v96,
+  .trade-in-details-grid-v96,
+  .reservation-followup-summary-v96 {
+    grid-template-columns: 1fr;
+  }
+  .trade-in-images-v96,
+  .trade-in-images-admin-v96 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .profile-reservation-head-v96 > strong {
+    white-space: normal;
+  }
+}
+
+@media (max-width: 520px) {
+  .recruitment-summary-v96,
+  .trade-in-summary-v96,
+  .reservation-summary-v96,
+  .reservation-money-grid-v96,
+  .profile-reservation-money-v96 {
+    grid-template-columns: 1fr;
+  }
+  .trade-in-images-v96,
+  .trade-in-images-admin-v96 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.catalogue-trade-in-callout-v96 {
+  margin: 18px 0 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 22px;
+  padding: 22px 24px;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 20px;
+  background: linear-gradient(120deg, rgba(212, 175, 55, 0.12), rgba(10, 10, 10, 0.94) 62%);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.24);
+}
+.catalogue-trade-in-callout-v96 h2 {
+  margin: 6px 0;
+}
+.catalogue-trade-in-callout-v96 p {
+  margin: 0;
+  max-width: 760px;
+  color: var(--muted, rgba(255, 255, 255, 0.62));
+  line-height: 1.55;
+}
+.catalogue-trade-in-callout-v96 .btn {
+  flex: 0 0 auto;
+  text-align: center;
+}
+@media (max-width: 760px) {
+  .catalogue-trade-in-callout-v96 {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

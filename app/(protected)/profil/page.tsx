@@ -44,6 +44,7 @@ import { getUserRoleLabel } from "@/lib/auth/access";
 
 import { createClient } from "@/lib/supabase/server";
 import { getOwnVehicleReservations } from "@/lib/vehicle-reservations/data";
+import { getOwnVehicleTradeInRequests } from "@/lib/vehicle-trade-ins/data";
 import styles from "./profile-top-layout.module.css";
 
 type ProfilePageProps = {
@@ -74,7 +75,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
  const rpName = getRpName(data.user);
 
  const complete = hasRpProfile(data.user);
- const [role, commerce, homologations, teamRegistrations, wheelSpins, tombolaCart, tombolaTickets, bingoCart, bingoCards, licenseCart, unreadNotifications, mailboxOverview, vehicleReservations] = await Promise.all([
+ const [role, commerce, homologations, teamRegistrations, wheelSpins, tombolaCart, tombolaTickets, bingoCart, bingoCards, licenseCart, unreadNotifications, mailboxOverview, vehicleReservations, vehicleTradeIns] = await Promise.all([
 
  getUserRoleLabel(data.user),
 
@@ -100,6 +101,8 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
  getMyMailboxOverview(),
 
  getOwnVehicleReservations(data.user.id),
+
+ getOwnVehicleTradeInRequests(data.user.id),
 
  ]);
 
@@ -208,7 +211,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
 
  </div>
 
- <ProfileNavigation orders={commerce.orders.length} reservations={vehicleReservations.length} homologations={homologations.length} teams={teamRegistrations.length} documents={commerce.invoices.length} games={wheelSpins.length + tombolaTickets.length + bingoCards.length} />
+ <ProfileNavigation orders={commerce.orders.length} reservations={vehicleReservations.length} tradeIns={vehicleTradeIns.length} homologations={homologations.length} teams={teamRegistrations.length} documents={commerce.invoices.length} games={wheelSpins.length + tombolaTickets.length + bingoCards.length} />
  {!commerce.configured && <div className="dashboard-feedback">Les rubriques commerciales seront disponibles dès que le script SQL du Dashboard aura été exécuté.</div>}
 
  {params.vehicle_added && <div className="dashboard-feedback dashboard-feedback-success">Le véhicule et son mode de livraison ont été ajoutés à ton panier au prix total.</div>}

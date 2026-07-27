@@ -1,6 +1,8 @@
 import { reviewVehicleReservation } from "@/app/actions/orders";
+import { updateVehicleReservationFollowUp } from "@/app/actions/vehicle-reservations";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
+import { formatParisDateTime, toParisDateTimeLocal } from "@/lib/dates/paris";
 import {
   getVehicleReservations,
   getVehicleReservationsConfigured,
@@ -18,10 +20,13 @@ function money(value: number | string) {
   });
 }
 
+
 const statusLabels: Record<string, string> = {
   pending_validation: "Acompte payé — à valider",
   balance_due: "Validée — solde au panier",
   paid_full: "Payée intégralement",
+  preparing: "Véhicule en préparation",
+  ready: "Véhicule prêt",
   rejected: "Refusée",
   cancelled: "Annulée",
   completed: "Livrée / terminée",
@@ -38,28 +43,38 @@ export default async function VehicleReservationsDashboardPage({
   ]);
   const reservations = configured ? await getVehicleReservations() : [];
   const active = reservations.filter((reservation) =>
-    ["pending_validation", "balance_due", "paid_full"].includes(
-      reservation.status,
-    ),
+    [
+      "pending_validation",
+      "balance_due",
+      "paid_full",
+      "preparing",
+      "ready",
+    ].includes(reservation.status),
   );
   const archived = reservations.filter(
     (reservation) => !active.includes(reservation),
   );
+  const overdue = reservations.filter(
+    (reservation) =>
+      reservation.status === "balance_due" &&
+      reservation.payment_due_at &&
+      new Date(reservation.payment_due_at).getTime() < Date.now(),
+  ).length;
 
   return (
     <DashboardShell allowedRoles={["manager", "employee", "commercial"]}>
       <DashboardHeader
         title="Réservations véhicules"
-        description="Valide les acomptes de 15 %. Une validation ajoute automatiquement les 85 % restants dans le panier du client."
+        description="Valide l’acompte, suis le paiement du solde, attribue un commercial puis accompagne le véhicule jusqu’à sa livraison."
       />
 
       {!configured && (
         <section className="dashboard-setup">
           <span className="module-status">Activation nécessaire</span>
-          <h2>Activer les réservations véhicules</h2>
+          <h2>Activer le suivi V96 des réservations</h2>
           <p>
-            Exécute le fichier <strong>vehicle-reservations-v93.sql</strong> dans
-            Supabase, puis recharge la page.
+            Exécute le fichier <strong>nostra-v96-recrutement-reservations-reprise.sql</strong>{" "}
+            dans Supabase. Le SQL V93 doit déjà être installé.
           </p>
         </section>
       )}
@@ -74,16 +89,24 @@ export default async function VehicleReservationsDashboardPage({
           Réservation refusée : le véhicule est revenu dans le stock.
         </div>
       )}
+      {params.followup_saved && (
+        <div className="dashboard-feedback dashboard-feedback-success">
+          Suivi de la réservation mis à jour.
+        </div>
+      )}
       {params.error && (
         <div className="dashboard-feedback dashboard-feedback-error">
-          Impossible de traiter cette réservation. Vérifie son statut ou le SQL
-          V93.
+          {params.error === "setup-v96"
+            ? "Le SQL V96 doit être exécuté dans Supabase."
+            : params.error === "status"
+              ? "Ce statut ne peut pas être appliqué à cette réservation."
+              : "Impossible de traiter cette réservation. Vérifie son statut et la configuration Supabase."}
         </div>
       )}
 
       {configured && (
         <>
-          <section className="reservation-admin-summary">
+          <section className="reservation-admin-summary reservation-summary-v96">
             <article>
               <span>À valider</span>
               <strong>
@@ -104,13 +127,18 @@ export default async function VehicleReservationsDashboardPage({
               </strong>
             </article>
             <article>
-              <span>Payées intégralement</span>
+              <span>En préparation</span>
               <strong>
                 {
-                  reservations.filter((item) => item.status === "paid_full")
-                    .length
+                  reservations.filter((item) =>
+                    ["paid_full", "preparing", "ready"].includes(item.status),
+                  ).length
                 }
               </strong>
+            </article>
+            <article>
+              <span>Échéances dépassées</span>
+              <strong>{overdue}</strong>
             </article>
           </section>
 
@@ -121,10 +149,7 @@ export default async function VehicleReservationsDashboardPage({
               </div>
             )}
             {active.map((reservation) => (
-              <ReservationCard
-                key={reservation.id}
-                reservation={reservation}
-              />
+              <ReservationCard key={reservation.id} reservation={reservation} />
             ))}
           </section>
 
@@ -150,18 +175,21 @@ export default async function VehicleReservationsDashboardPage({
   );
 }
 
-function ReservationCard({
-  reservation,
-}: {
-  reservation: VehicleReservation;
-}) {
+function ReservationCard({ reservation }: { reservation: VehicleReservation }) {
   const canReview = ["pending_validation", "balance_due"].includes(
     reservation.status,
   );
+  const canProgress = ["paid_full", "preparing", "ready", "completed"].includes(
+    reservation.status,
+  );
   const totalBalance = reservation.balance_amount + reservation.delivery_fee;
+  const deadlineOverdue =
+    reservation.status === "balance_due" &&
+    reservation.payment_due_at &&
+    new Date(reservation.payment_due_at).getTime() < Date.now();
 
   return (
-    <article className="backoffice-panel order-admin-card">
+    <article className="backoffice-panel order-admin-card reservation-card-v96">
       <div className="order-admin-head">
         <div>
           <span
@@ -171,7 +199,8 @@ function ReservationCard({
                 ? "cancelled"
                 : reservation.status === "completed"
                   ? "completed"
-                  : reservation.status === "balance_due"
+                  : reservation.status === "balance_due" ||
+                      reservation.status === "ready"
                     ? "confirmed"
                     : "pending"
             }`}
@@ -182,7 +211,7 @@ function ReservationCard({
           <p>
             <strong>{reservation.customer_name}</strong> · {reservation.vehicle_name}
             {" · "}
-            {new Date(reservation.created_at).toLocaleString("fr-FR")}
+            {formatParisDateTime(reservation.created_at)}
           </p>
         </div>
         <strong className="order-admin-total">
@@ -190,7 +219,7 @@ function ReservationCard({
         </strong>
       </div>
 
-      <div className="order-items-list">
+      <div className="order-items-list reservation-money-grid-v96">
         <div>
           <span>Acompte payé (15 %)</span>
           <strong>{money(reservation.deposit_amount)}</strong>
@@ -206,8 +235,27 @@ function ReservationCard({
           <strong>{money(reservation.delivery_fee)}</strong>
         </div>
         <div>
-          <span>Montant ajouté au panier après validation</span>
+          <span>Montant du solde avec livraison</span>
           <strong>{money(totalBalance)}</strong>
+        </div>
+      </div>
+
+      <div className="reservation-followup-summary-v96">
+        <div>
+          <span>Commercial responsable</span>
+          <strong>{reservation.assigned_staff || "Non attribué"}</strong>
+        </div>
+        <div className={deadlineOverdue ? "reservation-deadline-overdue-v96" : ""}>
+          <span>Échéance du solde</span>
+          <strong>
+            {reservation.payment_due_at
+              ? formatParisDateTime(reservation.payment_due_at)
+              : "Non définie"}
+          </strong>
+        </div>
+        <div>
+          <span>Commande finale</span>
+          <strong>{reservation.final_order_number || "Pas encore créée"}</strong>
         </div>
       </div>
 
@@ -223,17 +271,16 @@ function ReservationCard({
         </div>
       )}
 
-      {reservation.final_order_number && (
-        <div className="reservation-reason">
-          <span>Commande finale</span>
-          <p>{reservation.final_order_number}</p>
-        </div>
-      )}
-
       {reservation.admin_note && (
         <div className="reservation-reason">
-          <span>Message au client</span>
+          <span>Message visible par le client</span>
           <p>{reservation.admin_note}</p>
+        </div>
+      )}
+      {reservation.internal_note && (
+        <div className="reservation-reason reservation-internal-note-v96">
+          <span>Note interne</span>
+          <p>{reservation.internal_note}</p>
         </div>
       )}
 
@@ -244,7 +291,7 @@ function ReservationCard({
         >
           <input type="hidden" name="id" value={reservation.id} />
           <label className="form-span-2">
-            Message visible par le client
+            Message visible par le client lors de la décision
             <textarea
               name="admin_note"
               rows={3}
@@ -269,6 +316,57 @@ function ReservationCard({
           </div>
         </form>
       )}
+
+      <form action={updateVehicleReservationFollowUp} className="backoffice-form reservation-followup-form-v96">
+        <input type="hidden" name="reservation_id" value={reservation.id} />
+        <label>
+          Commercial responsable
+          <input
+            name="assigned_staff"
+            defaultValue={reservation.assigned_staff ?? ""}
+            placeholder="Nom du commercial"
+          />
+        </label>
+        <label>
+          Date limite de paiement du solde
+          <input
+            type="datetime-local"
+            name="payment_due_at"
+            defaultValue={toParisDateTimeLocal(reservation.payment_due_at)}
+          />
+        </label>
+        {canProgress && (
+          <label>
+            Étape après paiement
+            <select name="status" defaultValue={reservation.status}>
+              <option value="paid_full">Paiement intégral reçu</option>
+              <option value="preparing">Véhicule en préparation</option>
+              <option value="ready">Véhicule prêt</option>
+              <option value="completed">Véhicule livré / dossier terminé</option>
+            </select>
+          </label>
+        )}
+        <label className="form-span-2">
+          Message visible par le client
+          <textarea
+            name="admin_note"
+            rows={3}
+            defaultValue={reservation.admin_note ?? ""}
+          />
+        </label>
+        <label className="form-span-2">
+          Note interne Nostra Motors
+          <textarea
+            name="internal_note"
+            rows={3}
+            defaultValue={reservation.internal_note ?? ""}
+            placeholder="Préparation, rendez-vous, documents manquants..."
+          />
+        </label>
+        <button type="submit" className="secondary-button form-span-2">
+          Enregistrer le suivi
+        </button>
+      </form>
     </article>
   );
 }
