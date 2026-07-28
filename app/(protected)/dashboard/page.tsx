@@ -179,6 +179,14 @@ export default async function DashboardPage() {
                       : undefined
               }
             />
+            {managerAccess && (
+              <DashboardCard
+                href="/dashboard/parametres-reservations"
+                icon="⚙️"
+                title="Activation des réservations"
+                description="Ouvrir ou fermer les réservations avec acompte pour tous les catalogues ou uniquement certains d’entre eux."
+              />
+            )}
             <DashboardCard
               href="/dashboard/livraisons"
               icon="🚚"

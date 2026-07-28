@@ -18,6 +18,7 @@ import {
 } from "@/lib/catalogues-v51/data";
 import { getStockCommerceConfigured } from "@/lib/backoffice/data";
 import { getCurrentFavoriteStateMap } from "@/lib/favorites/data";
+import { isVehicleReservationEnabled } from "@/lib/vehicle-reservation-settings/data";
 import {
   getSitePage,
   type EditablePageSlug,
@@ -77,13 +78,19 @@ export async function CatalogueViewV51({
   sitePageSlug?: EditablePageSlug;
 }) {
   const params = await searchParams;
-  const [configured, vehicles, stockConfigured, customPage] =
-    await Promise.all([
-      getCataloguesV51Configured(),
-      getCatalogVehiclesV51({ catalogType }),
-      getStockCommerceConfigured(),
-      sitePageSlug ? getSitePage(sitePageSlug) : Promise.resolve(null),
-    ]);
+  const [
+    configured,
+    vehicles,
+    stockConfigured,
+    customPage,
+    reservationsEnabled,
+  ] = await Promise.all([
+    getCataloguesV51Configured(),
+    getCatalogVehiclesV51({ catalogType }),
+    getStockCommerceConfigured(),
+    sitePageSlug ? getSitePage(sitePageSlug) : Promise.resolve(null),
+    isVehicleReservationEnabled(catalogType),
+  ]);
 
   const favoriteState = await getCurrentFavoriteStateMap(
     vehicles.map((vehicle) => Number(vehicle.id)),
@@ -120,6 +127,19 @@ export async function CatalogueViewV51({
             </Link>
           ))}
         </nav>
+
+        {!reservationsEnabled && (
+          <section className="catalogue-reservation-closed-v98">
+            <div>
+              <span className="eyebrow">RÉSERVATIONS TEMPORAIREMENT FERMÉES</span>
+              <h2>Les commandes restent disponibles</h2>
+              <p>
+                La réservation avec un acompte de 15 % est désactivée pour ce
+                catalogue. Tu peux toujours commander le véhicule au prix total.
+              </p>
+            </div>
+          </section>
+        )}
 
         {catalogType === "used" && (
           <section className="catalogue-trade-in-callout-v96">
@@ -317,7 +337,9 @@ export async function CatalogueViewV51({
                                   className="btn catalogue-cart-button"
                                   href={`/motors/catalogue/${vehicle.id}/commande`}
                                 >
-                                  Réserver / Commander
+                                  {reservationsEnabled
+                                    ? "Réserver / Commander"
+                                    : "Commander"}
                                 </Link>
                               ) : (
                                 <button

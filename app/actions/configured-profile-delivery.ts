@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { isVehicleReservationEnabled } from "@/lib/vehicle-reservation-settings/data";
 
 function text(value: FormDataEntryValue | null, max = 2000): string {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
@@ -40,6 +41,7 @@ function configuredCartErrorCode(
   if (value.includes("heavy_home_delivery_disabled")) return "heavy-delivery";
   if (value.includes("used_vehicle_unavailable")) return "used-unavailable";
   if (value.includes("reservation_already_exists")) return "reservation-exists";
+  if (value.includes("vehicle_reservations_disabled")) return "reservation-disabled";
   if (value.includes("insufficient_stock")) return "stock";
   if (value.includes("vehicle_unavailable")) return "not-found";
   if (value.includes("invalid_purchase_mode")) return "purchase";
@@ -90,6 +92,17 @@ export async function addConfiguredVehicleWithProfileDelivery(
       Number(vehicle.stock_quantity ?? 0) <= 0)
   ) {
     redirect(`/motors/catalogue/${vehicleId}/commande?error=used-unavailable`);
+  }
+
+  if (
+    purchaseMode === "reservation" &&
+    !(await isVehicleReservationEnabled(
+      String(vehicle.catalog_type ?? "standard"),
+    ))
+  ) {
+    redirect(
+      `/motors/catalogue/${vehicleId}/commande?error=reservation-disabled`,
+    );
   }
 
   if (deliveryMode === "home" && vehicle.catalog_type === "heavy") {

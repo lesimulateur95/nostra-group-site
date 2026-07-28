@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 
 import { addConfiguredVehicleWithProfileDelivery } from "@/app/actions/configured-profile-delivery";
 import type { CatalogVehicleImage } from "@/lib/backoffice/data";
+import { isVehicleReservationEnabled } from "@/lib/vehicle-reservation-settings/data";
 import { createClient } from "@/lib/supabase/server";
 
 import styles from "./page.module.css";
@@ -99,6 +100,9 @@ export default async function VehicleConfigurationPage({
   const isUsedVehicle = vehicle.catalog_type === "used";
   const usedStatus = String(vehicle.used_vehicle_status ?? "available");
   const canOrderUsedVehicle = !isUsedVehicle || usedStatus === "available";
+  const reservationsEnabled = await isVehicleReservationEnabled(
+    String(vehicle.catalog_type ?? "standard"),
+  );
   const cataloguePath =
     vehicle.catalog_type === "heavy"
       ? "/motors/catalogue/poids-lourds"
@@ -127,6 +131,8 @@ export default async function VehicleConfigurationPage({
                   ? "Choisis entre réserver le véhicule ou le commander directement."
                   : query.error === "reservation-exists"
                     ? "Tu as déjà une réservation active pour ce véhicule."
+                    : query.error === "reservation-disabled"
+                      ? "Les réservations sont actuellement désactivées pour ce catalogue. Tu peux toujours commander le véhicule au prix total."
                     : query.error
                       ? "Impossible d’ajouter cette configuration au panier."
                       : null;
@@ -220,7 +226,11 @@ export default async function VehicleConfigurationPage({
 
           <div className={styles.deliveryHeading}>
             <p className={styles.eyebrow}>CHOIX D’ACHAT</p>
-            <h2>Réserver ou commander ?</h2>
+            <h2>
+              {reservationsEnabled
+                ? "Réserver ou commander ?"
+                : "Commander le véhicule"}
+            </h2>
           </div>
 
           <label className={`${styles.option} ${styles.purchaseOption}`}>
@@ -241,19 +251,30 @@ export default async function VehicleConfigurationPage({
             <span className={styles.optionPrice}>{formatPrice(vehiclePrice)}</span>
           </label>
 
-          <label className={`${styles.option} ${styles.purchaseOption}`}>
-            <input type="radio" name="purchase_mode" value="reservation" />
-            <span className={styles.optionIcon}>15 %</span>
-            <span className={styles.optionText}>
-              <strong>Réserver avec un acompte</strong>
-              <small>
-                Tu paies {formatPrice(depositAmount)} maintenant. Après
-                validation par la concession, les {formatPrice(balanceAmount)}
-                restants seront ajoutés automatiquement à ton panier.
-              </small>
-            </span>
-            <span className={styles.optionPrice}>{formatPrice(depositAmount)}</span>
-          </label>
+          {reservationsEnabled && (
+            <label className={`${styles.option} ${styles.purchaseOption}`}>
+              <input type="radio" name="purchase_mode" value="reservation" />
+              <span className={styles.optionIcon}>15 %</span>
+              <span className={styles.optionText}>
+                <strong>Réserver avec un acompte</strong>
+                <small>
+                  Tu paies {formatPrice(depositAmount)} maintenant. Après
+                  validation par la concession, les {formatPrice(balanceAmount)}
+                  restants seront ajoutés automatiquement à ton panier.
+                </small>
+              </span>
+              <span className={styles.optionPrice}>
+                {formatPrice(depositAmount)}
+              </span>
+            </label>
+          )}
+
+          {!reservationsEnabled && (
+            <div className={styles.notice}>
+              Les réservations avec acompte sont temporairement fermées pour ce
+              catalogue. La commande directe reste disponible au prix total.
+            </div>
+          )}
 
           <div className={styles.sectionDivider} />
 
@@ -367,14 +388,18 @@ export default async function VehicleConfigurationPage({
               <span>Prix total du véhicule</span>
               <strong>{formatPrice(vehiclePrice)}</strong>
             </div>
-            <div>
-              <span>Acompte de réservation (15 %)</span>
-              <strong>{formatPrice(depositAmount)}</strong>
-            </div>
-            <div>
-              <span>Solde après validation (85 %)</span>
-              <strong>{formatPrice(balanceAmount)}</strong>
-            </div>
+            {reservationsEnabled && (
+              <>
+                <div>
+                  <span>Acompte de réservation (15 %)</span>
+                  <strong>{formatPrice(depositAmount)}</strong>
+                </div>
+                <div>
+                  <span>Solde après validation (85 %)</span>
+                  <strong>{formatPrice(balanceAmount)}</strong>
+                </div>
+              </>
+            )}
             <div>
               <span>Retrait au showroom</span>
               <strong>Gratuit</strong>
@@ -390,13 +415,14 @@ export default async function VehicleConfigurationPage({
           </div>
 
           <p className={styles.notice}>
-            En mode réservation, l’acompte de 15 % apparaît dans le panier. La
-            concession bloque ensuite le véhicule et valide le dossier. Le solde
-            de 85 % est ajouté automatiquement au panier du client après cette
-            validation.
+            {reservationsEnabled
+              ? "En mode réservation, l’acompte de 15 % apparaît dans le panier. La concession bloque ensuite le véhicule et valide le dossier. Le solde de 85 % est ajouté automatiquement au panier du client après cette validation."
+              : "La réservation avec acompte est fermée pour ce catalogue. Le véhicule sera ajouté au panier au prix total."}
             {isHeavyVehicle
               ? " La livraison à domicile reste désactivée pour l’intégralité du catalogue poids lourd."
-              : " Une éventuelle livraison à domicile est ajoutée au solde final."}
+              : reservationsEnabled
+                ? " Une éventuelle livraison à domicile est ajoutée au solde final."
+                : " Une éventuelle livraison à domicile est ajoutée à la commande."}
           </p>
 
           <button
