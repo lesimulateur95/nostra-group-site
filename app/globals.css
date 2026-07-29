@@ -4251,3 +4251,54 @@ select:focus { outline: 2px solid rgba(212,175,55,.32); outline-offset: 1px; }
     grid-column: 1 / -1;
   }
 }
+
+/* V105 — Direction : place les sous-menus sous les cartes Licences / Discipline */
+.dashboard-module-grid.dashboard-module-grid-grouped > .dashboard-module-subgroups,
+.dashboard-module-group-content > .dashboard-module-grid > .dashboard-module-subgroups,
+.dashboard-module-group-content > .dashboard-module-subgroups,
+.dashboard-module-group-content .dashboard-module-grid-grouped > .dashboard-module-subgroups {
+  grid-column: 1 / -1 !important;
+  grid-row: auto !important;
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  justify-self: stretch !important;
+  align-self: start !important;
+  order: 999;
+}
+
+/* Les menus Messagerie, Recrutement et Pilotage restent de vraies lignes larges. */
+.dashboard-module-subgroups {
+  width: 100% !important;
+  max-width: none !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+.dashboard-module-subgroup-collapsible,
+.dashboard-module-subgroup-summary,
+.dashboard-module-subgroup-content {
+  width: 100%;
+  max-width: none;
+}
+
+.dashboard-module-subgroup-content .dashboard-module-subgroup-grid {
+  width: 100%;
+  min-width: 0;
+}
+
+@media (min-width: 901px) {
+  .dashboard-module-grid.dashboard-module-grid-grouped > .dashboard-module-subgroups,
+  .dashboard-module-group-content > .dashboard-module-grid > .dashboard-module-subgroups,
+  .dashboard-module-group-content > .dashboard-module-subgroups,
+  .dashboard-module-group-content .dashboard-module-grid-grouped > .dashboard-module-subgroups {
+    margin-top: 4px;
+  }
+
+  .dashboard-module-subgroup-content .dashboard-module-subgroup-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dashboard-module-subgroup-content .dashboard-module-card:only-child {
+    grid-column: 1 / -1;
+  }
+}
