@@ -546,16 +546,88 @@ export default async function DashboardPage() {
           </DashboardModuleGroup>
         )}
 
-        {/* V109_DIRECTION_CLEAN : remplacement intégral, aucune ancienne carte directe. */}
+        {/* V110_DIRECTION_STRICT : masque tout ancien bouton direct et n’affiche que les 4 catégories. */}
         {managerAccess && (
-          <DashboardModuleGroup
+          <div className="direction-v110-root">
+            <style>{`
+              .direction-v110-root {
+                grid-column: 1 / -1;
+                width: 100%;
+                min-width: 0;
+              }
+
+              .direction-v110-root > .dashboard-module-group {
+                width: 100%;
+                min-width: 0;
+              }
+
+              .direction-v110-root .dashboard-module-group-content {
+                display: block !important;
+                width: 100% !important;
+                min-width: 0 !important;
+              }
+
+              /* Coupe définitivement les anciennes cartes restées dans Direction. */
+              .direction-v110-root .dashboard-module-card {
+                display: none !important;
+              }
+
+              /* Réaffiche uniquement les cartes rangées dans les 4 nouvelles catégories. */
+              .direction-v110-root .direction-v110-subgroups {
+                display: grid !important;
+                grid-template-columns: minmax(0, 1fr) !important;
+                gap: 16px !important;
+                width: 100% !important;
+                max-width: none !important;
+                margin: 0 !important;
+              }
+
+              .direction-v110-root .direction-v110-subgroups > .dashboard-module-subgroup {
+                display: block !important;
+                width: 100% !important;
+                max-width: none !important;
+                min-width: 0 !important;
+              }
+
+              .direction-v110-root .direction-v110-subgroups .dashboard-module-subgroup-content,
+              .direction-v110-root .direction-v110-subgroups .dashboard-module-subgroup-grid {
+                width: 100% !important;
+                max-width: none !important;
+                min-width: 0 !important;
+              }
+
+              .direction-v110-root .direction-v110-subgroups .dashboard-module-subgroup-grid {
+                display: grid !important;
+                grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+                gap: 14px !important;
+              }
+
+              .direction-v110-root .direction-v110-subgroups .dashboard-module-card {
+                display: grid !important;
+                width: 100% !important;
+                min-width: 0 !important;
+              }
+
+              @media (max-width: 1050px) {
+                .direction-v110-root .direction-v110-subgroups .dashboard-module-subgroup-grid {
+                  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                }
+              }
+
+              @media (max-width: 680px) {
+                .direction-v110-root .direction-v110-subgroups .dashboard-module-subgroup-grid {
+                  grid-template-columns: minmax(0, 1fr) !important;
+                }
+              }
+            `}</style>
+            <DashboardModuleGroup
             icon="⚙️"
             eyebrow="DIRECTION"
             title="Direction"
             description="Citoyens, Nostra Motors, Nostra Group et finances."
             defaultOpen
           >
-            <div className="dashboard-module-subgroups">
+            <div className="dashboard-module-subgroups direction-v110-subgroups">
               <DashboardModuleSubgroup
                 eyebrow="CITOYENS"
                 title="Citoyens"
@@ -699,7 +771,8 @@ export default async function DashboardPage() {
                 />
               </DashboardModuleSubgroup>
             </div>
-          </DashboardModuleGroup>
+            </DashboardModuleGroup>
+          </div>
         )}
 
         {managerAccess && (
