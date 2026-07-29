@@ -551,67 +551,152 @@ export default async function DashboardPage() {
             icon="⚙️"
             eyebrow="DIRECTION"
             title="Direction"
-            description="Messagerie officielle, état des activités, finances et événements du groupe."
+            description="Citoyens, Nostra Motors, Nostra Group et finances."
             defaultOpen
           >
-            <div className="dashboard-module-grid dashboard-module-grid-grouped">
-              <DashboardCard
-                href="/dashboard/messagerie"
-                icon="✉️"
-                title="Messagerie Nostra Group"
-                description="Lire les messages des citoyens et répondre aux conversations."
-                badge={
-                  !overview.teamMailConfigured
-                    ? "À activer"
-                    : overview.unreadTeamMail
-                      ? `${overview.unreadTeamMail} non lu(s)`
+            <div className="dashboard-module-subgroups">
+              <DashboardModuleSubgroup
+                eyebrow="CITOYENS"
+                title="Citoyens"
+                description="Consulter les profils, les garages et les avantages de fidélité."
+              >
+                <DashboardCard
+                  href="/dashboard/citoyens"
+                  icon="👤"
+                  title="Fiches citoyens"
+                  description="Consulter les informations et l’activité des citoyens enregistrés."
+                />
+                <DashboardCard
+                  href="/dashboard/garage-vehicules"
+                  icon="🏠"
+                  title="Garages citoyens"
+                  description="Retrouver les véhicules possédés par chaque citoyen."
+                />
+                <DashboardCard
+                  href="/dashboard/fidelite"
+                  icon="★"
+                  title="Grades de fidélité"
+                  description="Gérer les grades, les avantages et le niveau de fidélité des citoyens."
+                />
+              </DashboardModuleSubgroup>
+
+              <DashboardModuleSubgroup
+                eyebrow="NOSTRA MOTORS"
+                title="Nostra Motors"
+                description="Suivre les ventes, les demandes clients et le service après-vente."
+              >
+                <DashboardCard
+                  href="/dashboard/top-ventes"
+                  icon="🏆"
+                  title="Véhicules en top ventes"
+                  description="Consulter les véhicules les plus vendus par Nostra Motors."
+                />
+                <DashboardCard
+                  href="/dashboard/favoris-vehicules"
+                  icon="♥"
+                  title="Favoris et alertes de stock"
+                  description="Voir les véhicules favoris des citoyens et les alertes liées au stock."
+                  badge={
+                    overview.lowStock
+                      ? `${overview.lowStock} alerte(s)`
                       : undefined
-                }
-              />
-              <DashboardCard
-                href="/dashboard/circuit"
-                icon="◉"
-                title="État des activités"
-                description="Gérer l’état du Nostra Circuit et de Nostra Motors."
-                badge={`${overview.circuitLabel} / ${overview.motorsLabel}`}
-              />
-              <DashboardCard
-                href="/dashboard/comptabilite"
-                icon="€"
-                title="Comptabilité"
-                description="Enregistrer les recettes, les dépenses et suivre le solde du groupe."
-              />
-              <DashboardCard
-                href="/dashboard/evenements"
-                icon="📆"
-                title="Gestion des événements"
-                description="Créer, publier, modifier ou annuler les événements Nostra Group."
-                badge={
-                  overview.generalEvents
-                    ? `${overview.generalEvents} événement(s)`
-                    : undefined
-                }
-              />
-              <DashboardCard
-                href="/dashboard/recrutement/candidatures"
-                icon="🗂️"
-                title="Gestion des candidatures"
-                description="Étudier les dossiers, planifier les entretiens, ajouter des notes privées et préparer les réponses."
-                badge={
-                  !recruitmentOverview.configured
-                    ? "À activer"
-                    : recruitmentOverview.pending
-                      ? `${recruitmentOverview.pending} à traiter`
+                  }
+                />
+                <DashboardCard
+                  href="/dashboard/plaques"
+                  icon="▣"
+                  title="Gestion des commandes de plaques"
+                  description="Traiter et suivre les commandes de plaques d’immatriculation."
+                />
+                <DashboardCard
+                  href="/dashboard/sav"
+                  icon="🛠️"
+                  title="SAV Nostra Motors"
+                  description="Consulter et traiter les demandes de service après-vente."
+                />
+              </DashboardModuleSubgroup>
+
+              <DashboardModuleSubgroup
+                eyebrow="NOSTRA GROUP"
+                title="Nostra Group"
+                description="Gérer les licences, le recrutement, la messagerie et les événements."
+              >
+                <DashboardCard
+                  href="/dashboard/administration/licences"
+                  icon="🪪"
+                  title="Licences officielles"
+                  description="Configurer et administrer les licences officielles du groupe."
+                />
+                <DashboardCard
+                  href="/dashboard/licences-pilotes"
+                  icon="📋"
+                  title="Demandes de licences"
+                  description="Consulter et traiter les demandes de licences reçues."
+                />
+                <DashboardCard
+                  href="/dashboard/recrutement"
+                  icon="⚙️"
+                  title="Gestion des candidatures"
+                  description="Activer ou désactiver la possibilité de déposer une candidature."
+                />
+                <DashboardCard
+                  href="/dashboard/recrutement/annonce-discord"
+                  icon="📣"
+                  title="Annonce Discord recrutement"
+                  description="Préparer et copier une annonce de recrutement pour Discord."
+                  badge="Sans webhook"
+                />
+                <DashboardCard
+                  href="/dashboard/recrutement/candidatures"
+                  icon="🗂️"
+                  title="Candidatures"
+                  description="Consulter, étudier et traiter les candidatures reçues."
+                  badge={
+                    !recruitmentOverview.configured
+                      ? "À activer"
+                      : recruitmentOverview.pending
+                        ? `${recruitmentOverview.pending} à traiter`
+                        : undefined
+                  }
+                />
+                <DashboardCard
+                  href="/dashboard/messagerie"
+                  icon="✉️"
+                  title="Messagerie"
+                  description="Lire les messages des citoyens et répondre aux conversations."
+                  badge={
+                    !overview.teamMailConfigured
+                      ? "À activer"
+                      : overview.unreadTeamMail
+                        ? `${overview.unreadTeamMail} non lu(s)`
+                        : undefined
+                  }
+                />
+                <DashboardCard
+                  href="/dashboard/evenements"
+                  icon="📆"
+                  title="Gestion des événements"
+                  description="Créer, publier, modifier ou annuler les événements Nostra Group."
+                  badge={
+                    overview.generalEvents
+                      ? `${overview.generalEvents} événement(s)`
                       : undefined
-                }
-              />
-              <DashboardCard
-                href="/dashboard/recrutement/annonce-discord"
-                icon="📣"
-                title="Annonce Discord recrutement"
-                description="Préparer une annonce de recrutement, la prévisualiser et la copier pour la publier manuellement sur le Discord du serveur."
-                badge="Sans webhook"
-              />
+                  }
+                />
+              </DashboardModuleSubgroup>
+
+              <DashboardModuleSubgroup
+                eyebrow="FINANCES"
+                title="Finance"
+                description="Suivre les recettes, les dépenses et le solde du groupe."
+              >
+                <DashboardCard
+                  href="/dashboard/comptabilite"
+                  icon="€"
+                  title="Comptabilité"
+                  description="Enregistrer les recettes, les dépenses et suivre le solde du groupe."
+                />
+              </DashboardModuleSubgroup>
             </div>
           </DashboardModuleGroup>
         )}
