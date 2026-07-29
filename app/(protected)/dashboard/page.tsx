@@ -546,6 +546,8 @@ export default async function DashboardPage() {
           </DashboardModuleGroup>
         )}
 
+        {/* V108 : le bloc Direction est remplacé intégralement.
+            Aucune ancienne carte directe ne doit être ajoutée avant les sous-catégories. */}
         {managerAccess && (
           <DashboardModuleGroup
             icon="⚙️"
