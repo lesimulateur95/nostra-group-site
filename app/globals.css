@@ -4221,3 +4221,33 @@ select:focus { outline: 2px solid rgba(212,175,55,.32); outline-offset: 1px; }
     max-height: 52px;
   }
 }
+
+/* V103 — Direction et Administration : sous-menus sur toute la largeur */
+.dashboard-module-group-content > .dashboard-module-subgroups {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-width: 0;
+}
+
+.dashboard-module-subgroups {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.dashboard-module-subgroup-content,
+.dashboard-module-subgroup-grid {
+  width: 100%;
+}
+
+.dashboard-module-subgroup-grid > .dashboard-module-card {
+  min-width: 0;
+}
+
+@media (min-width: 901px) {
+  .dashboard-module-subgroup-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dashboard-module-subgroup-grid > .dashboard-module-card:only-child {
+    grid-column: 1 / -1;
+  }
+}

@@ -557,8 +557,8 @@ export default async function DashboardPage() {
             <div className="dashboard-module-subgroups">
               <DashboardModuleSubgroup
                 eyebrow="COMMUNICATION"
-                title="Messagerie et recrutement"
-                description="Centraliser les échanges, les candidatures et les annonces de recrutement."
+                title="Messagerie"
+                description="Consulter et traiter les messages envoyés à Nostra Group."
               >
                 <DashboardCard
                   href="/dashboard/messagerie"
@@ -573,6 +573,13 @@ export default async function DashboardPage() {
                         : undefined
                   }
                 />
+              </DashboardModuleSubgroup>
+
+              <DashboardModuleSubgroup
+                eyebrow="RESSOURCES HUMAINES"
+                title="Recrutement"
+                description="Gérer les candidatures et préparer les annonces de recrutement."
+              >
                 <DashboardCard
                   href="/dashboard/recrutement/candidatures"
                   icon="🗂️"
@@ -634,41 +641,28 @@ export default async function DashboardPage() {
             icon="🛡️"
             eyebrow="ADMINISTRATION"
             title="Site et membres"
-            description="Contenu public, permissions et maintenance du site."
+            description="Modifier les pages du site et gérer les permissions des comptes."
           >
-            <div className="dashboard-module-subgroups">
-              <DashboardModuleSubgroup
-                eyebrow="GESTION DU SITE"
-                title="Contenu et accès"
-                description="Modifier les pages et contrôler les permissions des comptes."
-              >
-                <DashboardCard
-                  href="/dashboard/contenu"
-                  icon="✎"
-                  title="Modification des pages"
-                  description="Modifier les pages Nostra Motors, Nostra Circuit et Jeux & Événements."
-                />
-                <DashboardCard
-                  href="/dashboard/membres"
-                  icon="👥"
-                  title="Membres et rôles"
-                  description="Attribuer les rôles et gérer les accès des comptes."
-                />
-              </DashboardModuleSubgroup>
-
-              <DashboardModuleSubgroup
-                eyebrow="MAINTENANCE"
-                title="Outils techniques"
-                description="Nettoyer les données de test avant l’ouverture ou après une vérification."
-              >
-                <DashboardCard
-                  href="/dashboard/remise-a-zero"
-                  icon="↺"
-                  title="Remise à zéro des tests"
-                  description="Supprimer les anciennes parties et remettre les compteurs des documents au début."
-                  badge="Gérant"
-                />
-              </DashboardModuleSubgroup>
+            <div className="dashboard-module-grid dashboard-module-grid-grouped dashboard-module-grid-two">
+              <DashboardCard
+                href="/dashboard/contenu"
+                icon="✎"
+                title="Modification des pages"
+                description="Modifier les pages Nostra Motors, Nostra Circuit et Jeux & Événements."
+              />
+              <DashboardCard
+                href="/dashboard/membres"
+                icon="👥"
+                title="Membres et rôles"
+                description="Attribuer les rôles et gérer les accès des comptes."
+              />
+              <DashboardCard
+                href="/dashboard/remise-a-zero"
+                icon="↺"
+                title="Remise à zéro des tests"
+                description="Supprimer les anciennes parties des jeux et remettre les compteurs des documents au début avant l’ouverture."
+                badge="Gérant"
+              />
             </div>
           </DashboardModuleGroup>
         )}
