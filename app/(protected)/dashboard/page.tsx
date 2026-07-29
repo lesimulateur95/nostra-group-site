@@ -575,7 +575,8 @@ export default async function DashboardPage() {
               /* Réaffiche uniquement les cartes rangées dans les 4 nouvelles catégories. */
               .direction-v110-root .direction-v110-subgroups {
                 display: grid !important;
-                grid-template-columns: minmax(0, 1fr) !important;
+                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                align-items: start !important;
                 gap: 16px !important;
                 width: 100% !important;
                 max-width: none !important;
@@ -606,6 +607,12 @@ export default async function DashboardPage() {
                 display: grid !important;
                 width: 100% !important;
                 min-width: 0 !important;
+              }
+
+              @media (max-width: 820px) {
+                .direction-v110-root .direction-v110-subgroups {
+                  grid-template-columns: minmax(0, 1fr) !important;
+                }
               }
 
               @media (max-width: 1050px) {
