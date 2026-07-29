@@ -613,16 +613,38 @@ export default async function DashboardPage() {
                 min-width: 0 !important;
               }
 
+              /* Cartes internes plus larges que hautes : 2 colonnes maximum. */
               .direction-v112-root .direction-v112-subgroups .dashboard-module-subgroup-grid {
                 display: grid !important;
-                grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                align-items: start !important;
                 gap: 14px !important;
               }
 
               .direction-v112-root .direction-v112-subgroups .dashboard-module-card {
                 display: grid !important;
+                grid-template-columns: 52px minmax(0, 1fr) 22px !important;
+                align-items: center !important;
                 width: 100% !important;
                 min-width: 0 !important;
+                min-height: 118px !important;
+                padding: 18px !important;
+                gap: 14px !important;
+              }
+
+              .direction-v112-root .direction-v112-subgroups .dashboard-module-icon {
+                width: 52px !important;
+                height: 52px !important;
+                min-width: 52px !important;
+                min-height: 52px !important;
+                max-width: 52px !important;
+                max-height: 52px !important;
+              }
+
+              /* Quand une catégorie contient un nombre impair de boutons,
+                 le dernier prend toute la largeur au lieu de rester étroit. */
+              .direction-v112-root .direction-v112-subgroups .dashboard-module-card:last-child:nth-child(odd) {
+                grid-column: 1 / -1 !important;
               }
 
               @media (max-width: 820px) {
@@ -632,14 +654,20 @@ export default async function DashboardPage() {
               }
 
               @media (max-width: 1050px) {
-                .direction-v112-root .direction-v112-subgroups .dashboard-module-subgroup-grid {
-                  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                .direction-v112-root .direction-v112-subgroups .dashboard-module-card {
+                  grid-template-columns: 48px minmax(0, 1fr) 20px !important;
+                  min-height: 110px !important;
+                  padding: 16px !important;
                 }
               }
 
               @media (max-width: 680px) {
                 .direction-v112-root .direction-v112-subgroups .dashboard-module-subgroup-grid {
                   grid-template-columns: minmax(0, 1fr) !important;
+                }
+
+                .direction-v112-root .direction-v112-subgroups .dashboard-module-card:last-child:nth-child(odd) {
+                  grid-column: auto !important;
                 }
               }
             `}</style>
