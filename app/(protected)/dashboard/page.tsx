@@ -29,16 +29,23 @@ function DashboardModuleSubgroup({
   children,
 }: DashboardModuleSubgroupProps) {
   return (
-    <section className="dashboard-module-subgroup">
-      <header className="dashboard-module-subgroup-heading">
-        <span>{eyebrow}</span>
-        <h4>{title}</h4>
-        <p>{description}</p>
-      </header>
-      <div className="dashboard-module-grid dashboard-module-grid-grouped dashboard-module-subgroup-grid">
-        {children}
+    <details className="dashboard-module-subgroup dashboard-module-subgroup-collapsible">
+      <summary className="dashboard-module-subgroup-summary">
+        <span className="dashboard-module-subgroup-copy">
+          <span>{eyebrow}</span>
+          <strong>{title}</strong>
+          <span>{description}</span>
+        </span>
+        <span className="dashboard-module-subgroup-chevron" aria-hidden="true">
+          ⌄
+        </span>
+      </summary>
+      <div className="dashboard-module-subgroup-content">
+        <div className="dashboard-module-grid dashboard-module-grid-grouped dashboard-module-subgroup-grid">
+          {children}
+        </div>
       </div>
-    </section>
+    </details>
   );
 }
 

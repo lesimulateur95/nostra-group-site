@@ -4037,3 +4037,115 @@ select:focus { outline: 2px solid rgba(212,175,55,.32); outline-offset: 1px; }
     padding: 17px;
   }
 }
+
+/* V101 — sous-catégories du Dashboard repliables */
+.dashboard-module-subgroup-collapsible {
+  padding: 0;
+  overflow: hidden;
+}
+
+.dashboard-module-subgroup-collapsible > summary {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin: 0;
+  padding: 18px 20px;
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+  transition: background .2s ease, border-color .2s ease;
+}
+
+.dashboard-module-subgroup-collapsible > summary::-webkit-details-marker {
+  display: none;
+}
+
+.dashboard-module-subgroup-collapsible > summary:hover {
+  background: rgba(212,175,55,.045);
+}
+
+.dashboard-module-subgroup-collapsible > summary:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: -3px;
+}
+
+.dashboard-module-subgroup-collapsible[open] > summary {
+  border-bottom: 1px solid rgba(212,175,55,.14);
+  background: rgba(212,175,55,.03);
+}
+
+.dashboard-module-subgroup-summary {
+  min-height: 88px;
+}
+
+.dashboard-module-subgroup-copy {
+  min-width: 0;
+  flex: 1;
+  display: grid;
+  gap: 5px;
+}
+
+.dashboard-module-subgroup-copy > span:first-child {
+  color: var(--gold-light);
+  font-size: .7rem;
+  font-weight: 900;
+  letter-spacing: .14em;
+}
+
+.dashboard-module-subgroup-copy > strong {
+  color: #f4f4f4;
+  font-size: clamp(1.08rem, 2vw, 1.35rem);
+}
+
+.dashboard-module-subgroup-copy > span:last-child {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.dashboard-module-subgroup-chevron {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border: 1px solid rgba(212,175,55,.32);
+  border-radius: 999px;
+  color: var(--gold-light);
+  background: rgba(0,0,0,.35);
+  font-size: 1.3rem;
+  font-weight: 800;
+  transition: transform .2s ease, background .2s ease;
+}
+
+.dashboard-module-subgroup-collapsible[open] .dashboard-module-subgroup-chevron {
+  transform: rotate(180deg);
+  background: rgba(212,175,55,.09);
+}
+
+.dashboard-module-subgroup-content {
+  padding: 16px 18px 18px;
+}
+
+@media (max-width: 680px) {
+  .dashboard-module-subgroup-collapsible {
+    padding: 0;
+  }
+
+  .dashboard-module-subgroup-collapsible > summary {
+    align-items: flex-start;
+    padding: 16px;
+  }
+
+  .dashboard-module-subgroup-summary {
+    min-height: 0;
+  }
+
+  .dashboard-module-subgroup-chevron {
+    width: 34px;
+    height: 34px;
+  }
+
+  .dashboard-module-subgroup-content {
+    padding: 13px 14px 14px;
+  }
+}
