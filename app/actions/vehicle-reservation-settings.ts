@@ -14,6 +14,11 @@ function text(value: FormDataEntryValue | null, max = 80): string {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
 }
 
+function integer(value: FormDataEntryValue | null): number {
+  const parsed = Number.parseInt(text(value, 30), 10);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
 function booleanValue(value: FormDataEntryValue | null): boolean {
   return text(value, 10).toLowerCase() === "true";
 }
@@ -34,14 +39,20 @@ async function requireManager() {
   return supabase;
 }
 
-function revalidateReservationSettings() {
+function revalidateReservationSettings(vehicleId?: number) {
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/parametres-reservations");
+  revalidatePath("/dashboard/controle-vehicules");
+  revalidatePath("/dashboard/occasion/catalogue");
   revalidatePath("/motors/catalogue");
   revalidatePath("/motors/catalogue/vehicules-exclusifs");
   revalidatePath("/motors/catalogue/poids-lourds");
   revalidatePath("/motors/catalogue/vehicules-occasion");
   revalidatePath("/profil");
+
+  if (vehicleId && vehicleId > 0) {
+    revalidatePath(`/motors/catalogue/${vehicleId}/commande`);
+  }
 }
 
 function errorCode(error: { code?: string | null; message?: string | null }) {
@@ -53,8 +64,12 @@ function errorCode(error: { code?: string | null; message?: string | null }) {
   ) {
     return "setup-v98";
   }
+  if (value.includes("set_vehicle_commerce_availability_v99")) {
+    return "setup-v99";
+  }
   if (value.includes("forbidden")) return "forbidden";
   if (value.includes("invalid_catalog_type")) return "catalog";
+  if (value.includes("vehicle_not_found")) return "vehicle";
   return "save";
 }
 
@@ -108,5 +123,38 @@ export async function setAllVehicleReservationCatalogSettings(
   revalidateReservationSettings();
   redirect(
     `/dashboard/parametres-reservations?saved=1&all=${enabled ? "enabled" : "disabled"}`,
+  );
+}
+
+export async function setVehicleCommerceAvailability(formData: FormData) {
+  const vehicleId = integer(formData.get("vehicle_id"));
+  const reservationEnabled = booleanValue(
+    formData.get("reservation_enabled"),
+  );
+  const saleEnabled = booleanValue(formData.get("sale_enabled"));
+
+  if (vehicleId <= 0) {
+    redirect("/dashboard/controle-vehicules?error=vehicle");
+  }
+
+  const supabase = await requireManager();
+  const { error } = await (supabase as any).rpc(
+    "set_vehicle_commerce_availability_v99",
+    {
+      p_vehicle_id: vehicleId,
+      p_reservation_enabled: reservationEnabled,
+      p_sale_enabled: saleEnabled,
+    },
+  );
+
+  if (error) {
+    redirect(
+      `/dashboard/controle-vehicules?error=${errorCode(error)}#vehicule-${vehicleId}`,
+    );
+  }
+
+  revalidateReservationSettings(vehicleId);
+  redirect(
+    `/dashboard/controle-vehicules?vehicle_saved=1#vehicule-${vehicleId}`,
   );
 }

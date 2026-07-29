@@ -18,6 +18,7 @@ import {
 } from "@/lib/catalogues-v51/data";
 import { getStockCommerceConfigured } from "@/lib/backoffice/data";
 import { getCurrentFavoriteStateMap } from "@/lib/favorites/data";
+import { getVehicleCommerceAvailabilityMap } from "@/lib/vehicle-commerce-settings/data";
 import { isVehicleReservationEnabled } from "@/lib/vehicle-reservation-settings/data";
 import {
   getSitePage,
@@ -92,9 +93,11 @@ export async function CatalogueViewV51({
     isVehicleReservationEnabled(catalogType),
   ]);
 
-  const favoriteState = await getCurrentFavoriteStateMap(
-    vehicles.map((vehicle) => Number(vehicle.id)),
-  );
+  const vehicleIds = vehicles.map((vehicle) => Number(vehicle.id));
+  const [favoriteState, commerceAvailability] = await Promise.all([
+    getCurrentFavoriteStateMap(vehicleIds),
+    getVehicleCommerceAvailabilityMap(vehicleIds),
+  ]);
 
   const grouped = new Map<string, typeof vehicles>();
   for (const vehicle of vehicles) {
@@ -132,10 +135,10 @@ export async function CatalogueViewV51({
           <section className="catalogue-reservation-closed-v98">
             <div>
               <span className="eyebrow">RÉSERVATIONS TEMPORAIREMENT FERMÉES</span>
-              <h2>Les commandes restent disponibles</h2>
+              <h2>Les commandes autorisées restent disponibles</h2>
               <p>
                 La réservation avec un acompte de 15 % est désactivée pour ce
-                catalogue. Tu peux toujours commander le véhicule au prix total.
+                catalogue. Les véhicules dont la vente est autorisée peuvent toujours être commandés au prix total.
               </p>
             </div>
           </section>
@@ -231,6 +234,24 @@ export async function CatalogueViewV51({
                   <div className="catalogue-vehicle-grid">
                     {brandVehicles.map((vehicle) => {
                       const formattedPrice = formatPrice(vehicle.price);
+                      const availability = commerceAvailability.get(
+                        Number(vehicle.id),
+                      ) ?? {
+                        vehicle_id: Number(vehicle.id),
+                        reservation_enabled: true,
+                        sale_enabled: true,
+                      };
+                      const canReserve =
+                        reservationsEnabled && availability.reservation_enabled;
+                      const canOrder = availability.sale_enabled;
+                      const canStartPurchase = canReserve || canOrder;
+                      const purchaseLabel = canReserve && canOrder
+                        ? "Réserver / Commander"
+                        : canReserve
+                          ? "Réserver"
+                          : canOrder
+                            ? "Commander"
+                            : "Temporairement indisponible";
 
                       return (
                         <article
@@ -328,18 +349,30 @@ export async function CatalogueViewV51({
                               </strong>
                             </div>
 
+                            <div className="catalogue-commerce-status-v99">
+                              {!availability.reservation_enabled && (
+                                <span>Réservation suspendue</span>
+                              )}
+                              {!availability.sale_enabled && (
+                                <span>Vente suspendue</span>
+                              )}
+                              {availability.reservation_enabled &&
+                                !reservationsEnabled && (
+                                  <span>Réservations du catalogue fermées</span>
+                                )}
+                            </div>
+
                             <div className="catalogue-cart-form">
                               {vehicle.stock_quantity > 0 &&
                               stockConfigured &&
+                              canStartPurchase &&
                               (catalogType !== "used" ||
                                 vehicle.used_vehicle_status === "available") ? (
                                 <Link
                                   className="btn catalogue-cart-button"
                                   href={`/motors/catalogue/${vehicle.id}/commande`}
                                 >
-                                  {reservationsEnabled
-                                    ? "Réserver / Commander"
-                                    : "Commander"}
+                                  {purchaseLabel}
                                 </Link>
                               ) : (
                                 <button
@@ -347,7 +380,11 @@ export async function CatalogueViewV51({
                                   type="button"
                                   disabled
                                 >
-                                  Indisponible
+                                  {vehicle.stock_quantity <= 0 ||
+                                  (catalogType === "used" &&
+                                    vehicle.used_vehicle_status !== "available")
+                                    ? "Indisponible"
+                                    : purchaseLabel}
                                 </button>
                               )}
 

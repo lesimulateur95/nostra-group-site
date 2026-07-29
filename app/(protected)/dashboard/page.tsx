@@ -180,12 +180,20 @@ export default async function DashboardPage() {
               }
             />
             {managerAccess && (
-              <DashboardCard
-                href="/dashboard/parametres-reservations"
-                icon="⚙️"
-                title="Activation des réservations"
-                description="Ouvrir ou fermer les réservations avec acompte pour tous les catalogues ou uniquement certains d’entre eux."
-              />
+              <>
+                <DashboardCard
+                  href="/dashboard/parametres-reservations"
+                  icon="⚙️"
+                  title="Activation des réservations"
+                  description="Ouvrir ou fermer les réservations pour tous les catalogues ou uniquement certains d’entre eux."
+                />
+                <DashboardCard
+                  href="/dashboard/controle-vehicules"
+                  icon="🚘"
+                  title="Contrôle des véhicules"
+                  description="Bloquer séparément la réservation ou la vente d’un véhicule tout en le laissant visible dans le catalogue."
+                />
+              </>
             )}
             <DashboardCard
               href="/dashboard/livraisons"

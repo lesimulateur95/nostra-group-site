@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isVehicleReservationEnabled } from "@/lib/vehicle-reservation-settings/data";
+import { getVehicleCommerceAvailability } from "@/lib/vehicle-commerce-settings/data";
 
 function text(value: FormDataEntryValue | null, max = 2000): string {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
@@ -41,7 +42,9 @@ function configuredCartErrorCode(
   if (value.includes("heavy_home_delivery_disabled")) return "heavy-delivery";
   if (value.includes("used_vehicle_unavailable")) return "used-unavailable";
   if (value.includes("reservation_already_exists")) return "reservation-exists";
+  if (value.includes("vehicle_reservation_disabled")) return "reservation-vehicle-disabled";
   if (value.includes("vehicle_reservations_disabled")) return "reservation-disabled";
+  if (value.includes("vehicle_sale_disabled")) return "sale-disabled";
   if (value.includes("insufficient_stock")) return "stock";
   if (value.includes("vehicle_unavailable")) return "not-found";
   if (value.includes("invalid_purchase_mode")) return "purchase";
@@ -94,15 +97,28 @@ export async function addConfiguredVehicleWithProfileDelivery(
     redirect(`/motors/catalogue/${vehicleId}/commande?error=used-unavailable`);
   }
 
-  if (
-    purchaseMode === "reservation" &&
-    !(await isVehicleReservationEnabled(
-      String(vehicle.catalog_type ?? "standard"),
-    ))
-  ) {
+  const [catalogReservationEnabled, vehicleAvailability] = await Promise.all([
+    isVehicleReservationEnabled(String(vehicle.catalog_type ?? "standard")),
+    getVehicleCommerceAvailability(vehicleId),
+  ]);
+
+  if (purchaseMode === "reservation" && !catalogReservationEnabled) {
     redirect(
       `/motors/catalogue/${vehicleId}/commande?error=reservation-disabled`,
     );
+  }
+
+  if (
+    purchaseMode === "reservation" &&
+    !vehicleAvailability.reservation_enabled
+  ) {
+    redirect(
+      `/motors/catalogue/${vehicleId}/commande?error=reservation-vehicle-disabled`,
+    );
+  }
+
+  if (purchaseMode === "order" && !vehicleAvailability.sale_enabled) {
+    redirect(`/motors/catalogue/${vehicleId}/commande?error=sale-disabled`);
   }
 
   if (deliveryMode === "home" && vehicle.catalog_type === "heavy") {

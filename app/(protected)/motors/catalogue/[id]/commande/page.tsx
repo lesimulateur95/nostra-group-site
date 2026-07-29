@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { addConfiguredVehicleWithProfileDelivery } from "@/app/actions/configured-profile-delivery";
 import type { CatalogVehicleImage } from "@/lib/backoffice/data";
 import { isVehicleReservationEnabled } from "@/lib/vehicle-reservation-settings/data";
+import { getVehicleCommerceAvailability } from "@/lib/vehicle-commerce-settings/data";
 import { createClient } from "@/lib/supabase/server";
 
 import styles from "./page.module.css";
@@ -100,9 +101,14 @@ export default async function VehicleConfigurationPage({
   const isUsedVehicle = vehicle.catalog_type === "used";
   const usedStatus = String(vehicle.used_vehicle_status ?? "available");
   const canOrderUsedVehicle = !isUsedVehicle || usedStatus === "available";
-  const reservationsEnabled = await isVehicleReservationEnabled(
-    String(vehicle.catalog_type ?? "standard"),
-  );
+  const [catalogReservationsEnabled, vehicleAvailability] = await Promise.all([
+    isVehicleReservationEnabled(String(vehicle.catalog_type ?? "standard")),
+    getVehicleCommerceAvailability(vehicleId),
+  ]);
+  const canReserve =
+    catalogReservationsEnabled && vehicleAvailability.reservation_enabled;
+  const canOrder = vehicleAvailability.sale_enabled;
+  const canPurchase = canReserve || canOrder;
   const cataloguePath =
     vehicle.catalog_type === "heavy"
       ? "/motors/catalogue/poids-lourds"
@@ -132,7 +138,11 @@ export default async function VehicleConfigurationPage({
                   : query.error === "reservation-exists"
                     ? "Tu as déjà une réservation active pour ce véhicule."
                     : query.error === "reservation-disabled"
-                      ? "Les réservations sont actuellement désactivées pour ce catalogue. Tu peux toujours commander le véhicule au prix total."
+                      ? "Les réservations sont actuellement désactivées pour ce catalogue."
+                    : query.error === "reservation-vehicle-disabled"
+                      ? "La réservation est temporairement bloquée pour ce véhicule précis."
+                    : query.error === "sale-disabled"
+                      ? "La vente directe est temporairement bloquée pour ce véhicule précis."
                     : query.error
                       ? "Impossible d’ajouter cette configuration au panier."
                       : null;
@@ -227,33 +237,44 @@ export default async function VehicleConfigurationPage({
           <div className={styles.deliveryHeading}>
             <p className={styles.eyebrow}>CHOIX D’ACHAT</p>
             <h2>
-              {reservationsEnabled
+              {canReserve && canOrder
                 ? "Réserver ou commander ?"
-                : "Commander le véhicule"}
+                : canReserve
+                  ? "Réserver le véhicule"
+                  : canOrder
+                    ? "Commander le véhicule"
+                    : "Véhicule temporairement indisponible"}
             </h2>
           </div>
 
-          <label className={`${styles.option} ${styles.purchaseOption}`}>
-            <input
-              type="radio"
-              name="purchase_mode"
-              value="order"
-              defaultChecked
-            />
-            <span className={styles.optionIcon}>✓</span>
-            <span className={styles.optionText}>
-              <strong>Commander maintenant</strong>
-              <small>
-                Le prix total du véhicule est ajouté au panier et la commande
-                suit le fonctionnement habituel.
-              </small>
-            </span>
-            <span className={styles.optionPrice}>{formatPrice(vehiclePrice)}</span>
-          </label>
-
-          {reservationsEnabled && (
+          {canOrder && (
             <label className={`${styles.option} ${styles.purchaseOption}`}>
-              <input type="radio" name="purchase_mode" value="reservation" />
+              <input
+                type="radio"
+                name="purchase_mode"
+                value="order"
+                defaultChecked
+              />
+              <span className={styles.optionIcon}>✓</span>
+              <span className={styles.optionText}>
+                <strong>Commander maintenant</strong>
+                <small>
+                  Le prix total du véhicule est ajouté au panier et la commande
+                  suit le fonctionnement habituel.
+                </small>
+              </span>
+              <span className={styles.optionPrice}>{formatPrice(vehiclePrice)}</span>
+            </label>
+          )}
+
+          {canReserve && (
+            <label className={`${styles.option} ${styles.purchaseOption}`}>
+              <input
+                type="radio"
+                name="purchase_mode"
+                value="reservation"
+                defaultChecked={!canOrder}
+              />
               <span className={styles.optionIcon}>15 %</span>
               <span className={styles.optionText}>
                 <strong>Réserver avec un acompte</strong>
@@ -269,10 +290,32 @@ export default async function VehicleConfigurationPage({
             </label>
           )}
 
-          {!reservationsEnabled && (
+          {!vehicleAvailability.sale_enabled && (
             <div className={styles.notice}>
-              Les réservations avec acompte sont temporairement fermées pour ce
-              catalogue. La commande directe reste disponible au prix total.
+              La vente directe est temporairement suspendue pour ce véhicule.
+              Il reste visible dans le catalogue.
+            </div>
+          )}
+
+          {!vehicleAvailability.reservation_enabled && (
+            <div className={styles.notice}>
+              La réservation avec acompte est temporairement suspendue pour ce
+              véhicule.
+            </div>
+          )}
+
+          {vehicleAvailability.reservation_enabled &&
+            !catalogReservationsEnabled && (
+              <div className={styles.notice}>
+                Les réservations sont actuellement fermées pour l’ensemble de ce
+                catalogue.
+              </div>
+            )}
+
+          {!canPurchase && (
+            <div className={styles.error}>
+              La réservation et la vente sont temporairement suspendues pour ce
+              véhicule. Tu peux toujours consulter sa fiche dans le catalogue.
             </div>
           )}
 
@@ -388,7 +431,7 @@ export default async function VehicleConfigurationPage({
               <span>Prix total du véhicule</span>
               <strong>{formatPrice(vehiclePrice)}</strong>
             </div>
-            {reservationsEnabled && (
+            {canReserve && (
               <>
                 <div>
                   <span>Acompte de réservation (15 %)</span>
@@ -415,23 +458,31 @@ export default async function VehicleConfigurationPage({
           </div>
 
           <p className={styles.notice}>
-            {reservationsEnabled
-              ? "En mode réservation, l’acompte de 15 % apparaît dans le panier. La concession bloque ensuite le véhicule et valide le dossier. Le solde de 85 % est ajouté automatiquement au panier du client après cette validation."
-              : "La réservation avec acompte est fermée pour ce catalogue. Le véhicule sera ajouté au panier au prix total."}
+            {canReserve && canOrder
+              ? "Choisis entre la réservation avec 15 % d’acompte et la commande directe au prix total."
+              : canReserve
+                ? "Seule la réservation avec 15 % d’acompte est autorisée pour ce véhicule."
+                : canOrder
+                  ? "Seule la commande directe au prix total est autorisée pour ce véhicule."
+                  : "Aucune nouvelle réservation ou commande n’est actuellement autorisée pour ce véhicule."}
             {isHeavyVehicle
               ? " La livraison à domicile reste désactivée pour l’intégralité du catalogue poids lourd."
-              : reservationsEnabled
-                ? " Une éventuelle livraison à domicile est ajoutée au solde final."
-                : " Une éventuelle livraison à domicile est ajoutée à la commande."}
+              : canPurchase
+                ? " Une éventuelle livraison à domicile sera ajoutée au paiement concerné."
+                : ""}
           </p>
 
           <button
             className={styles.submit}
             type="submit"
-            disabled={stock <= 0 || !canOrderUsedVehicle}
+            disabled={stock <= 0 || !canOrderUsedVehicle || !canPurchase}
           >
-            {stock > 0 && canOrderUsedVehicle
-              ? "Ajouter le choix au panier"
+            {stock > 0 && canOrderUsedVehicle && canPurchase
+              ? canReserve && canOrder
+                ? "Ajouter le choix au panier"
+                : canReserve
+                  ? "Ajouter la réservation au panier"
+                  : "Ajouter la commande au panier"
               : usedStatus === "reserved"
                 ? "Véhicule déjà réservé"
                 : usedStatus === "sold"
