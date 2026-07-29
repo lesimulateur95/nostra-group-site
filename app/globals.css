@@ -4149,3 +4149,75 @@ select:focus { outline: 2px solid rgba(212,175,55,.32); outline-offset: 1px; }
     padding: 13px 14px 14px;
   }
 }
+
+/* V102 — empêche l’étirement des cartes quand un sous-menu voisin s’ouvre */
+.dashboard-module-groups,
+.dashboard-module-group-content,
+.dashboard-module-subgroups,
+.dashboard-module-subgroup-content,
+.dashboard-module-subgroup-grid,
+.dashboard-module-grid-grouped {
+  align-items: start;
+}
+
+.dashboard-module-group,
+.dashboard-module-subgroup,
+.dashboard-module-subgroup-content,
+.dashboard-module-subgroup-grid,
+.dashboard-module-card {
+  min-width: 0;
+}
+
+.dashboard-module-subgroup,
+.dashboard-module-card {
+  align-self: start;
+  height: auto;
+}
+
+.dashboard-module-subgroup-grid > .dashboard-module-card {
+  width: 100%;
+  min-height: 138px;
+}
+
+.dashboard-module-icon {
+  width: 58px;
+  height: 58px;
+  min-width: 58px;
+  min-height: 58px;
+  max-width: 58px;
+  max-height: 58px;
+  align-self: center;
+}
+
+.dashboard-module-group-icon {
+  width: 62px;
+  height: 62px;
+  min-width: 62px;
+  min-height: 62px;
+  max-width: 62px;
+  max-height: 62px;
+}
+
+@media (max-width: 680px) {
+  .dashboard-module-subgroup-grid > .dashboard-module-card {
+    min-height: 0;
+  }
+
+  .dashboard-module-icon {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    min-height: 48px;
+    max-width: 48px;
+    max-height: 48px;
+  }
+
+  .dashboard-module-group-icon {
+    width: 52px;
+    height: 52px;
+    min-width: 52px;
+    min-height: 52px;
+    max-width: 52px;
+    max-height: 52px;
+  }
+}
