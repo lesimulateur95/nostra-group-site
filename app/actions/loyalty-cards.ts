@@ -31,14 +31,19 @@ function errorCode(error: { message?: string | null; code?: string | null }) {
   if (value.includes("invalid_tier")) return "tier";
   if (value.includes("forbidden")) return "forbidden";
   if (value.includes("cards_exist")) return "cards_exist";
+  if (value.includes("invalid_user")) return "invalid_user";
   if (value.includes("forbidden") || value.includes("42501")) return "forbidden";
   if (value.includes("23503")) return "delete_blocked";
   if (
-    value.includes("pgrst202") ||
+    value.includes("remove_loyalty_grade_v126") ||
+    value.includes("missing_loyalty_v126")
+  ) return "setup_v126";
+  if (
     value.includes("delete_all_loyalty_cards_and_reset_v124") ||
     value.includes("reset_loyalty_card_counters_v124") ||
     value.includes("missing_loyalty_tables")
   ) return "setup_v124";
+  if (value.includes("pgrst202")) return "setup";
   if (value.includes("loyalty_cards")) return "setup";
   return "save";
 }
@@ -136,3 +141,27 @@ export async function deleteAllLoyaltyCardsAndResetCounters(
   redirect("/dashboard/fidelite?cards_deleted=1");
 }
 
+
+export async function removeLoyaltyGrade(formData: FormData) {
+  const userId = text(formData.get("user_id"), 80);
+  const confirmation = text(formData.get("confirmation"), 80);
+
+  if (!userId) redirect("/dashboard/fidelite?error=invalid_user");
+  if (confirmation !== "RETIRER_LE_GRADE") {
+    redirect("/dashboard/fidelite?error=confirmation_grade");
+  }
+
+  const supabase = await requireManager();
+  const { error } = await (supabase as any).rpc(
+    "remove_loyalty_grade_v126",
+    { p_user_id: userId },
+  );
+
+  if (error) {
+    console.error("removeLoyaltyGrade V126", error);
+    redirect(`/dashboard/fidelite?error=${errorCode(error)}`);
+  }
+
+  revalidateLoyalty();
+  redirect("/dashboard/fidelite?grade_removed=1");
+}

@@ -4,6 +4,7 @@ import {
   deactivateLoyaltyCard,
   deleteAllLoyaltyCardsAndResetCounters,
   generateLoyaltyCard,
+  removeLoyaltyGrade,
   resetLoyaltyCardCounters,
 } from "@/app/actions/loyalty-cards";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
@@ -24,6 +25,7 @@ type PageProps = {
     deactivated?: string;
     cards_deleted?: string;
     counters_reset?: string;
+    grade_removed?: string;
     error?: string;
   }>;
 };
@@ -45,7 +47,9 @@ export default async function LoyaltyDashboardPage({ searchParams }: PageProps) 
   const currentYear = new Date().getFullYear();
 
   const errorMessage =
-    params.error === "setup_v124"
+    params.error === "setup_v126"
+      ? "Exécute le SQL V126 pour activer la suppression individuelle d’un grade de fidélité."
+      : params.error === "setup_v124"
       ? "Exécute le SQL V124 pour réparer la suppression des cartes et les compteurs."
       : params.error === "setup"
         ? "La base fidélité n’est pas entièrement configurée."
@@ -57,6 +61,10 @@ export default async function LoyaltyDashboardPage({ searchParams }: PageProps) 
             ? "Impossible de remettre seulement les compteurs à zéro tant que des cartes existent. Supprime d’abord toutes les cartes."
             : params.error === "confirmation"
               ? "La confirmation de suppression est invalide."
+              : params.error === "confirmation_grade"
+                ? "La confirmation pour retirer le grade est invalide."
+                : params.error === "invalid_user"
+                  ? "Le citoyen sélectionné est invalide."
               : params.error === "forbidden"
                 ? "Ton compte n’a pas l’autorisation de gérer les cartes de fidélité."
                 : params.error === "delete_blocked"
@@ -103,6 +111,12 @@ export default async function LoyaltyDashboardPage({ searchParams }: PageProps) 
       {params.counters_reset && (
         <div className="dashboard-feedback dashboard-feedback-success">
           Les compteurs Silver, Gold et Black Signature ont été remis à zéro.
+        </div>
+      )}
+      {params.grade_removed && (
+        <div className="dashboard-feedback dashboard-feedback-success">
+          Le grade de fidélité a été retiré. La carte active du citoyen a été
+          désactivée et sa remise est revenue à 0 %.
         </div>
       )}
       {errorMessage && (
@@ -256,6 +270,20 @@ export default async function LoyaltyDashboardPage({ searchParams }: PageProps) 
                   {citizen.active_card ? "Changer / régénérer la carte" : "Générer la carte"}
                 </button>
               </form>
+
+              {citizen.tier && (
+                <form action={removeLoyaltyGrade}>
+                  <input type="hidden" name="user_id" value={citizen.user_id} />
+                  <input
+                    type="hidden"
+                    name="confirmation"
+                    value="RETIRER_LE_GRADE"
+                  />
+                  <button className="btn btn-danger-v98" type="submit">
+                    Retirer le grade de fidélité
+                  </button>
+                </form>
+              )}
             </article>
           );
         })}
