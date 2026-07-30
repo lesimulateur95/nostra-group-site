@@ -4702,3 +4702,199 @@ select:focus { outline: 2px solid rgba(212,175,55,.32); outline-offset: 1px; }
     text-align: left;
   }
 }
+
+/* ========================================================================== */
+/* NOSTRA GROUP V115 — MODÈLES OFFICIELS DES CARTES DE FIDÉLITÉ              */
+/* ========================================================================== */
+
+.loyalty-official-card-v115 {
+  position: relative;
+  width: 100%;
+  max-width: 980px;
+  aspect-ratio: 3 / 2;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 24px;
+  background: #050505;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.38);
+}
+
+.loyalty-official-card-image-v115 {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.loyalty-official-card-personalization-v115 {
+  position: absolute;
+  right: 3.35%;
+  bottom: 2.75%;
+  z-index: 2;
+  display: flex;
+  width: 46.5%;
+  height: 12.8%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2%;
+  padding: 0.5% 1.4%;
+  overflow: hidden;
+  color: #080808;
+  text-align: center;
+  text-transform: uppercase;
+  border-radius: 8px 8px 20px 8px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78);
+}
+
+.loyalty-official-card-gold-v115 .loyalty-official-card-personalization-v115 {
+  background:
+    linear-gradient(100deg, rgba(255, 245, 190, 0.99), rgba(178, 126, 25, 0.99) 52%, rgba(245, 210, 112, 0.99));
+}
+
+.loyalty-official-card-silver-v115 .loyalty-official-card-personalization-v115,
+.loyalty-official-card-black-v115 .loyalty-official-card-personalization-v115 {
+  background:
+    linear-gradient(100deg, rgba(246, 246, 246, 0.99), rgba(132, 132, 132, 0.99) 52%, rgba(238, 238, 238, 0.99));
+}
+
+.loyalty-official-card-personalization-v115 span,
+.loyalty-official-card-personalization-v115 strong {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.loyalty-official-card-personalization-v115 span {
+  font-size: clamp(0.58rem, 1.18vw, 1.06rem);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.loyalty-official-card-personalization-v115 strong {
+  font-size: clamp(0.68rem, 1.52vw, 1.36rem);
+  font-weight: 950;
+  letter-spacing: 0.045em;
+}
+
+.loyalty-official-card-compact-v115 {
+  max-width: 620px;
+  border-radius: 18px;
+}
+
+.loyalty-official-card-compact-v115 .loyalty-official-card-personalization-v115 {
+  border-radius: 6px 6px 13px 6px;
+}
+
+.loyalty-official-template-grid-v115 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.loyalty-official-template-v115 {
+  display: grid;
+  gap: 15px;
+  align-content: start;
+}
+
+.loyalty-official-template-v115 h3 {
+  margin: 7px 0 0;
+}
+
+.loyalty-official-template-v115 img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+  border: 1px solid rgba(212, 175, 55, 0.22);
+  border-radius: 15px;
+}
+
+.profile-commerce-grid-v115 {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.profile-loyalty-status-card-v115 {
+  order: 2;
+}
+
+.profile-loyalty-status-layout-v115 {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(280px, 0.45fr);
+  gap: 24px;
+  align-items: start;
+  margin-top: 20px;
+}
+
+.profile-loyalty-visual-v115 {
+  min-width: 0;
+}
+
+.profile-loyalty-visual-v115 .loyalty-official-card-v115 {
+  max-width: none;
+}
+
+.profile-loyalty-summary-v115 {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+
+.profile-loyalty-summary-v115 dl {
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 0;
+}
+
+.profile-loyalty-summary-v115 .btn {
+  width: 100%;
+  justify-content: center;
+}
+
+.loyalty-profile-page-v114 .loyalty-official-card-v115 {
+  max-width: none;
+}
+
+@media (max-width: 1100px) {
+  .loyalty-official-template-grid-v115 {
+    grid-template-columns: 1fr;
+  }
+
+  .loyalty-official-template-v115 img {
+    max-width: 760px;
+  }
+
+  .profile-loyalty-status-layout-v115 {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .loyalty-official-card-v115 {
+    border-radius: 14px;
+  }
+
+  .loyalty-official-card-personalization-v115 {
+    right: 3.1%;
+    bottom: 2.5%;
+    width: 47%;
+    height: 13.4%;
+    border-radius: 4px 4px 10px 4px;
+  }
+
+  .loyalty-official-card-personalization-v115 span {
+    font-size: clamp(0.43rem, 2.1vw, 0.72rem);
+  }
+
+  .loyalty-official-card-personalization-v115 strong {
+    font-size: clamp(0.5rem, 2.55vw, 0.86rem);
+  }
+
+  .profile-loyalty-summary-v115 dl {
+    grid-template-columns: 1fr;
+  }
+}

@@ -3,10 +3,12 @@ import { redirect } from "next/navigation";
 import {
   deactivateLoyaltyCard,
   generateLoyaltyCard,
-  updateLoyaltyCardTemplate,
 } from "@/app/actions/loyalty-cards";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
-import { LoyaltyCard } from "@/components/loyalty/loyalty-card";
+import {
+  getOfficialLoyaltyCardImage,
+  LoyaltyCard,
+} from "@/components/loyalty/loyalty-card";
 import { getUserRoleKeys } from "@/lib/auth/access";
 import { getLoyaltyCitizens } from "@/lib/loyalty-cards/data";
 import { createClient } from "@/lib/supabase/server";
@@ -15,7 +17,6 @@ type PageProps = {
   searchParams: Promise<{
     generated?: string;
     deactivated?: string;
-    template_saved?: string;
     error?: string;
   }>;
 };
@@ -75,11 +76,6 @@ export default async function LoyaltyDashboardPage({ searchParams }: PageProps) 
           La carte du citoyen a été désactivée.
         </div>
       )}
-      {params.template_saved && (
-        <div className="dashboard-feedback dashboard-feedback-success">
-          Le modèle de carte a été enregistré.
-        </div>
-      )}
       {errorMessage && (
         <div className="dashboard-feedback dashboard-feedback-error">
           {errorMessage}
@@ -87,40 +83,29 @@ export default async function LoyaltyDashboardPage({ searchParams }: PageProps) 
       )}
 
       <section className="dashboard-section-heading dashboard-section-heading-tight">
-        <p className="eyebrow">MODÈLES</p>
-        <h2>Arrière-plans des cartes</h2>
+        <p className="eyebrow">MODÈLES OFFICIELS</p>
+        <h2>Cartes Nostra Motors utilisées dans les profils</h2>
         <p>
-          Les modèles déjà utilisés par ton espace fidélité peuvent être reliés
-          ici avec leur URL d’image. Sans URL, le site utilise le modèle intégré.
+          Les cartes générées utilisent maintenant exactement les modèles Silver,
+          Gold et Black Signature de Nostra Motors. Le nom, le prénom et le numéro
+          unique sont ajoutés automatiquement sur la zone membre.
         </p>
       </section>
 
-      <div className="loyalty-template-grid-v114">
-        {tiers.map((tier) => {
-          const template = overview.templates.find((item) => item.tier === tier);
-          return (
-            <form
-              action={updateLoyaltyCardTemplate}
-              className="dashboard-panel loyalty-template-form-v114"
-              key={tier}
-            >
-              <input type="hidden" name="tier" value={tier} />
-              <strong>{tier}</strong>
-              <label>
-                <span>URL du modèle</span>
-                <input
-                  type="url"
-                  name="image_url"
-                  defaultValue={template?.image_url ?? ""}
-                  placeholder="https://.../carte-silver.png"
-                />
-              </label>
-              <button className="btn" type="submit">
-                Enregistrer le modèle
-              </button>
-            </form>
-          );
-        })}
+      <div className="loyalty-official-template-grid-v115">
+        {tiers.map((tier) => (
+          <article className="dashboard-panel loyalty-official-template-v115" key={tier}>
+            <div>
+              <span className="eyebrow">MODÈLE</span>
+              <h3>{tier}</h3>
+            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={getOfficialLoyaltyCardImage(tier)}
+              alt={`Modèle officiel ${tier}`}
+            />
+          </article>
+        ))}
       </div>
 
       <section className="dashboard-section-heading dashboard-section-heading-tight">

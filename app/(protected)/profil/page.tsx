@@ -270,28 +270,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
 
  {orderErrorMessage && <div className="dashboard-feedback dashboard-feedback-error">{orderErrorMessage}</div>}
 
- <section className="profile-commerce-grid">
-
- <article className="profile-commerce-card loyalty-card">
-
- <div className="profile-commerce-head"><span>◆</span><div><p>STATUT DE FIDÉLITÉ</p><h2>{activeLoyaltyCard?.tier ?? commerce.loyalty?.tier ?? "Aucun statut"}</h2></div></div>
-
- {activeLoyaltyCard ? (
- <LoyaltyCard card={activeLoyaltyCard} />
- ) : (
- <p className="empty-state">{commerce.loyalty?.tier ? "Ton grade est actif. La Direction doit encore générer ta carte personnalisée." : "Aucune carte de fidélité active."}</p>
- )}
-
- <dl>
-
- <div><dt>Achats comptabilisés</dt><dd>{commerce.loyalty?.purchases_count ?? 0}</dd></div>
- <div><dt>Remise actuelle</dt><dd>{Number(commerce.loyalty?.discount_percent ?? 0)} %</dd></div>
-
- </dl>
-
- <p className="commerce-hint">Une seule carte peut être active par citoyen. Un changement de grade désactive uniquement l’ancienne carte de ce citoyen.</p>
-
- </article>
+ <section className="profile-commerce-grid profile-commerce-grid-v115">
 
  <article className="profile-commerce-card">
 
@@ -442,6 +421,35 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
  </form>
  )}
 
+
+ </article>
+
+
+
+ <article className="profile-commerce-card loyalty-card profile-loyalty-status-card-v115">
+
+ <div className="profile-commerce-head"><span>◆</span><div><p>STATUT DE FIDÉLITÉ</p><h2>{activeLoyaltyCard?.tier ?? commerce.loyalty?.tier ?? "Aucun statut"}</h2></div></div>
+
+ <div className="profile-loyalty-status-layout-v115">
+ <div className="profile-loyalty-visual-v115">
+ {activeLoyaltyCard ? (
+ <LoyaltyCard card={activeLoyaltyCard} />
+ ) : (
+ <p className="empty-state">{commerce.loyalty?.tier ? "Ton grade est actif. La Direction doit encore générer ta carte personnalisée." : "Aucune carte de fidélité active."}</p>
+ )}
+ </div>
+
+ <div className="profile-loyalty-summary-v115">
+ <dl>
+ <div><dt>Achats comptabilisés</dt><dd>{commerce.loyalty?.purchases_count ?? 0}</dd></div>
+ <div><dt>Remise actuelle</dt><dd>{Number(commerce.loyalty?.discount_percent ?? 0)} %</dd></div>
+ <div><dt>Numéro de carte</dt><dd>{activeLoyaltyCard?.card_number ?? "Non généré"}</dd></div>
+ <div><dt>Titulaire</dt><dd>{activeLoyaltyCard ? `${activeLoyaltyCard.first_name} ${activeLoyaltyCard.last_name}` : rpName || "À compléter"}</dd></div>
+ </dl>
+ <p className="commerce-hint">Une nouvelle carte désactive uniquement l’ancienne carte du même citoyen lorsqu’il change de grade ou qu’elle est régénérée.</p>
+ <Link className="btn btn-secondary" href="/profil/fidelite">Ouvrir ma carte de fidélité</Link>
+ </div>
+ </div>
 
  </article>
 
