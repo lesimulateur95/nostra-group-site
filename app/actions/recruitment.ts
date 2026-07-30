@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { getUserRoleKeys } from "@/lib/auth/access";
 import { getDiscordName, getRpName } from "@/lib/auth/user-profile";
 import { parisLocalDateTimeToIso } from "@/lib/dates/paris";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 function text(value: FormDataEntryValue | null, max = 5000): string {
@@ -119,7 +120,7 @@ export async function reviewRecruitmentApplication(formData: FormData) {
     redirect("/dashboard/recrutement/candidatures?error=invalid");
   }
 
-  const { supabase } = await requireRecruitmentManager();
+  const { user } = await requireRecruitmentManager();
   const interviewAt = parisLocalDateTimeToIso(
     text(formData.get("interview_at"), 40),
   );
@@ -129,23 +130,76 @@ export async function reviewRecruitmentApplication(formData: FormData) {
     );
   }
 
-  const { error } = await (supabase as any).rpc(
-    "review_recruitment_application_v96",
-    {
-      p_application_id: applicationId,
-      p_status: status,
-      p_assigned_to: text(formData.get("assigned_to"), 180) || null,
-      p_interview_at: interviewAt,
-      p_internal_notes: text(formData.get("internal_notes"), 5000) || null,
-      p_manager_response: text(formData.get("manager_response"), 5000) || null,
-      p_history_note: text(formData.get("history_note"), 2000) || null,
-    },
-  );
+  try {
+    const admin = createAdminClient();
+    const { data: currentApplication, error: readError } = await admin
+      .from("recruitment_applications")
+      .select("id,status")
+      .eq("id", applicationId)
+      .maybeSingle();
 
-  if (error) {
-    redirect(
-      `/dashboard/recrutement/candidatures?error=${recruitmentError(error)}`,
-    );
+    if (readError || !currentApplication) {
+      console.error("Recruitment application read failed", readError);
+      redirect("/dashboard/recrutement/candidatures?error=save");
+    }
+
+    const assignedTo = text(formData.get("assigned_to"), 180) || null;
+    const internalNotes = text(formData.get("internal_notes"), 5000) || null;
+    const managerResponse =
+      text(formData.get("manager_response"), 5000) || null;
+    const historyNote = text(formData.get("history_note"), 2000) || null;
+
+    const { error: updateError } = await admin
+      .from("recruitment_applications")
+      .update({
+        status,
+        assigned_to: assignedTo,
+        interview_at: interviewAt,
+        manager_response: managerResponse,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", applicationId);
+
+    if (updateError) {
+      console.error("Recruitment application update failed", updateError);
+      redirect("/dashboard/recrutement/candidatures?error=save");
+    }
+
+    const { error: privateError } = await admin
+      .from("recruitment_application_private_v96")
+      .upsert(
+        {
+          application_id: applicationId,
+          internal_notes: internalNotes,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "application_id" },
+      );
+
+    if (privateError) {
+      console.error("Recruitment private note update failed", privateError);
+      redirect("/dashboard/recrutement/candidatures?error=save");
+    }
+
+    if (currentApplication.status !== status || historyNote) {
+      const { error: historyError } = await admin
+        .from("recruitment_application_history")
+        .insert({
+          application_id: applicationId,
+          actor_user_id: user.id,
+          from_status: currentApplication.status,
+          to_status: status,
+          note: historyNote,
+        });
+
+      if (historyError) {
+        console.error("Recruitment history insert failed", historyError);
+        redirect("/dashboard/recrutement/candidatures?error=save");
+      }
+    }
+  } catch (error) {
+    console.error("Recruitment manager save failed", error);
+    redirect("/dashboard/recrutement/candidatures?error=save");
   }
 
   revalidateRecruitment();

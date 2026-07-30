@@ -1,3 +1,4 @@
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 export type RecruitmentApplicationStatus =
@@ -70,55 +71,88 @@ function normalizeApplication(
   } as RecruitmentApplication;
 }
 
+/**
+ * La disponibilité du module est vérifiée avec le client serveur secret.
+ * Cela évite qu'une connexion Steam valide soit considérée comme non configurée
+ * à cause d'une ancienne politique RLS prévue pour Discord.
+ */
 export async function getRecruitmentConfigured(): Promise<boolean> {
-  const supabase = await createClient();
-  const [applicationsResult, privateResult] = await Promise.all([
-    supabase
-      .from("recruitment_applications")
-      .select("id,application_number,status,assigned_to,interview_at,manager_response")
-      .limit(1),
-    supabase
-      .from("recruitment_application_private_v96")
-      .select("application_id,internal_notes")
-      .limit(1),
-  ]);
-  return !applicationsResult.error && !privateResult.error;
+  try {
+    const admin = createAdminClient();
+    const [applicationsResult, privateResult] = await Promise.all([
+      admin.from("recruitment_applications").select(applicationColumns).limit(1),
+      admin
+        .from("recruitment_application_private_v96")
+        .select("application_id,internal_notes")
+        .limit(1),
+    ]);
+
+    if (applicationsResult.error || privateResult.error) {
+      console.error("Recruitment configuration check failed", {
+        applications: applicationsResult.error,
+        privateNotes: privateResult.error,
+      });
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Recruitment configuration check failed", error);
+    return false;
+  }
 }
 
+/**
+ * Données réservées à la Direction : la page qui appelle cette fonction est
+ * déjà protégée par DashboardShell. Le client admin évite les faux refus RLS
+ * après une connexion Steam.
+ */
 export async function getRecruitmentApplications(): Promise<RecruitmentApplication[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("recruitment_applications")
-    .select(applicationColumns)
-    .order("created_at", { ascending: false });
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("recruitment_applications")
+      .select(applicationColumns)
+      .order("created_at", { ascending: false });
 
-  if (error) return [];
+    if (error) {
+      console.error("Recruitment applications load failed", error);
+      return [];
+    }
 
-  const rows = (data ?? []) as unknown as Record<string, unknown>[];
-  const ids = rows.map((row) => Number(row.id)).filter((id) => id > 0);
-  if (ids.length === 0) return [];
+    const rows = (data ?? []) as unknown as Record<string, unknown>[];
+    const ids = rows.map((row) => Number(row.id)).filter((id) => id > 0);
+    if (ids.length === 0) return [];
 
-  const { data: privateRows } = await supabase
-    .from("recruitment_application_private_v96")
-    .select("application_id,internal_notes")
-    .in("application_id", ids);
+    const { data: privateRows, error: privateError } = await admin
+      .from("recruitment_application_private_v96")
+      .select("application_id,internal_notes")
+      .in("application_id", ids);
 
-  const privateNotes = new Map<number, string | null>();
-  for (const privateRow of (privateRows ?? []) as unknown as Record<
-    string,
-    unknown
-  >[]) {
-    privateNotes.set(
-      Number(privateRow.application_id),
-      typeof privateRow.internal_notes === "string"
-        ? privateRow.internal_notes
-        : null,
+    if (privateError) {
+      console.error("Recruitment private notes load failed", privateError);
+    }
+
+    const privateNotes = new Map<number, string | null>();
+    for (const privateRow of (privateRows ?? []) as unknown as Record<
+      string,
+      unknown
+    >[]) {
+      privateNotes.set(
+        Number(privateRow.application_id),
+        typeof privateRow.internal_notes === "string"
+          ? privateRow.internal_notes
+          : null,
+      );
+    }
+
+    return rows.map((row) =>
+      normalizeApplication(row, privateNotes.get(Number(row.id)) ?? null),
     );
+  } catch (error) {
+    console.error("Recruitment applications load failed", error);
+    return [];
   }
-
-  return rows.map((row) =>
-    normalizeApplication(row, privateNotes.get(Number(row.id)) ?? null),
-  );
 }
 
 export async function getOwnRecruitmentApplications(
@@ -142,19 +176,28 @@ export async function getRecruitmentHistory(
 ): Promise<RecruitmentHistoryEntry[]> {
   if (applicationIds.length === 0) return [];
 
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("recruitment_application_history")
-    .select("id,application_id,actor_user_id,from_status,to_status,note,created_at")
-    .in("application_id", applicationIds)
-    .order("created_at", { ascending: false });
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("recruitment_application_history")
+      .select("id,application_id,actor_user_id,from_status,to_status,note,created_at")
+      .in("application_id", applicationIds)
+      .order("created_at", { ascending: false });
 
-  if (error) return [];
-  return ((data ?? []) as unknown as Record<string, unknown>[]).map((row) => ({
-    ...row,
-    id: Number(row.id),
-    application_id: Number(row.application_id),
-  })) as RecruitmentHistoryEntry[];
+    if (error) {
+      console.error("Recruitment history load failed", error);
+      return [];
+    }
+
+    return ((data ?? []) as unknown as Record<string, unknown>[]).map((row) => ({
+      ...row,
+      id: Number(row.id),
+      application_id: Number(row.application_id),
+    })) as RecruitmentHistoryEntry[];
+  } catch (error) {
+    console.error("Recruitment history load failed", error);
+    return [];
+  }
 }
 
 export async function getRecruitmentSummary() {
