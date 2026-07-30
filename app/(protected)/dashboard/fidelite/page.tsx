@@ -45,8 +45,10 @@ export default async function LoyaltyDashboardPage({ searchParams }: PageProps) 
   const currentYear = new Date().getFullYear();
 
   const errorMessage =
-    params.error === "setup"
-      ? "Exécute le SQL V118 pour activer la gestion des cartes et des compteurs."
+    params.error === "setup_v124"
+      ? "Exécute le SQL V124 pour réparer la suppression des cartes et les compteurs."
+      : params.error === "setup"
+        ? "La base fidélité n’est pas entièrement configurée."
       : params.error === "name"
         ? "Le citoyen doit avoir un prénom et un nom RP avant la génération."
         : params.error === "tier"
@@ -55,9 +57,13 @@ export default async function LoyaltyDashboardPage({ searchParams }: PageProps) 
             ? "Impossible de remettre seulement les compteurs à zéro tant que des cartes existent. Supprime d’abord toutes les cartes."
             : params.error === "confirmation"
               ? "La confirmation de suppression est invalide."
-              : params.error
-                ? "L’opération n’a pas pu être enregistrée."
-                : null;
+              : params.error === "forbidden"
+                ? "Ton compte n’a pas l’autorisation de gérer les cartes de fidélité."
+                : params.error === "delete_blocked"
+                  ? "Une donnée liée bloque la suppression. Exécute le SQL V124 puis réessaie."
+                  : params.error
+                    ? "L’opération n’a pas pu être enregistrée. Consulte les logs Vercel si le problème continue."
+                    : null;
 
   return (
     <DashboardShell allowedRoles={["manager"]}>
@@ -75,7 +81,7 @@ export default async function LoyaltyDashboardPage({ searchParams }: PageProps) 
 
       {!overview.configured && (
         <div className="dashboard-feedback dashboard-feedback-error">
-          Exécute le fichier SQL V118 avant d’utiliser ce module.
+          Exécute le fichier SQL V124 si les actions de maintenance ne fonctionnent pas.
         </div>
       )}
       {params.generated && (

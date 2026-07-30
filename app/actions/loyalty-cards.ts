@@ -31,7 +31,15 @@ function errorCode(error: { message?: string | null; code?: string | null }) {
   if (value.includes("invalid_tier")) return "tier";
   if (value.includes("forbidden")) return "forbidden";
   if (value.includes("cards_exist")) return "cards_exist";
-  if (value.includes("pgrst202") || value.includes("loyalty_cards")) return "setup";
+  if (value.includes("forbidden") || value.includes("42501")) return "forbidden";
+  if (value.includes("23503")) return "delete_blocked";
+  if (
+    value.includes("pgrst202") ||
+    value.includes("delete_all_loyalty_cards_and_reset_v124") ||
+    value.includes("reset_loyalty_card_counters_v124") ||
+    value.includes("missing_loyalty_tables")
+  ) return "setup_v124";
+  if (value.includes("loyalty_cards")) return "setup";
   return "save";
 }
 
@@ -96,10 +104,13 @@ export async function updateLoyaltyCardTemplate(formData: FormData) {
 export async function resetLoyaltyCardCounters() {
   const supabase = await requireManager();
   const { error } = await (supabase as any).rpc(
-    "reset_loyalty_card_counters_v118",
+    "reset_loyalty_card_counters_v124",
   );
 
-  if (error) redirect(`/dashboard/fidelite?error=${errorCode(error)}`);
+  if (error) {
+    console.error("resetLoyaltyCardCounters V124", error);
+    redirect(`/dashboard/fidelite?error=${errorCode(error)}`);
+  }
   revalidateLoyalty();
   redirect("/dashboard/fidelite?counters_reset=1");
 }
@@ -114,10 +125,13 @@ export async function deleteAllLoyaltyCardsAndResetCounters(
 
   const supabase = await requireManager();
   const { error } = await (supabase as any).rpc(
-    "delete_all_loyalty_cards_and_reset_v118",
+    "delete_all_loyalty_cards_and_reset_v124",
   );
 
-  if (error) redirect(`/dashboard/fidelite?error=${errorCode(error)}`);
+  if (error) {
+    console.error("deleteAllLoyaltyCardsAndResetCounters V124", error);
+    redirect(`/dashboard/fidelite?error=${errorCode(error)}`);
+  }
   revalidateLoyalty();
   redirect("/dashboard/fidelite?cards_deleted=1");
 }
