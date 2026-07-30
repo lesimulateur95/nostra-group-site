@@ -1,0 +1,174 @@
+.shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(27, 120, 190, 0.16), transparent 30rem),
+    radial-gradient(circle at 84% 8%, rgba(212, 175, 55, 0.12), transparent 32rem),
+    #070707;
+}
+
+.card {
+  width: min(720px, 100%);
+  padding: 34px;
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  border-radius: 26px;
+  background: rgba(12, 12, 12, 0.94);
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.55);
+}
+
+.eyebrow {
+  display: block;
+  margin-bottom: 10px;
+  color: #f1d77a;
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.card h1 {
+  margin: 0;
+  font-size: clamp(2rem, 5vw, 3.4rem);
+}
+
+.intro {
+  margin: 14px 0 24px;
+  color: #c5c5c5;
+  line-height: 1.65;
+}
+
+.identity {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 26px;
+  padding: 16px;
+  border: 1px solid rgba(102, 192, 244, 0.24);
+  border-radius: 18px;
+  background: rgba(27, 120, 190, 0.08);
+}
+
+.avatar,
+.avatarFallback {
+  width: 72px;
+  height: 72px;
+  border-radius: 16px;
+  object-fit: cover;
+  border: 1px solid rgba(102, 192, 244, 0.42);
+  background: #0b1720;
+}
+
+.avatarFallback {
+  display: grid;
+  place-items: center;
+  color: #8ed0f5;
+  font-size: 1.8rem;
+  font-weight: 900;
+}
+
+.identity strong,
+.identity small {
+  display: block;
+}
+
+.identity strong {
+  font-size: 1.12rem;
+}
+
+.identity small {
+  margin-top: 5px;
+  color: #a9a9a9;
+  overflow-wrap: anywhere;
+}
+
+.options {
+  display: grid;
+  gap: 14px;
+}
+
+.option {
+  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.option h2 {
+  margin: 0 0 8px;
+  font-size: 1.12rem;
+}
+
+.option p {
+  margin: 0 0 15px;
+  color: #ababab;
+  line-height: 1.55;
+}
+
+.discordBlock {
+  display: grid;
+  gap: 8px;
+}
+
+.discordButton,
+.createButton,
+.cancelLink {
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 11px 18px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.discordButton {
+  border: 1px solid rgba(88, 101, 242, 0.72);
+  color: white;
+  background: linear-gradient(135deg, #5865f2, #4048b8);
+}
+
+.createButton {
+  width: 100%;
+  border: 1px solid rgba(212, 175, 55, 0.48);
+  color: #090909;
+  background: linear-gradient(135deg, #f1d77a, #9b7617);
+}
+
+.discordButton:disabled,
+.createButton:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.cancelLink {
+  margin-top: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #d0d0d0;
+  background: transparent;
+}
+
+.error {
+  margin: 0;
+  color: #ffb4b4;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 620px) {
+  .card {
+    padding: 24px 18px;
+  }
+
+  .identity {
+    grid-template-columns: 58px minmax(0, 1fr);
+  }
+
+  .avatar,
+  .avatarFallback {
+    width: 58px;
+    height: 58px;
+  }
+}

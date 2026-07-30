@@ -1,0 +1,118 @@
+.wrapper {
+  width: min(430px, 100%);
+  display: grid;
+  gap: 13px;
+}
+
+.steamButton,
+.discordButton {
+  width: 100%;
+  min-height: 58px;
+  border-radius: 16px;
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    filter 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.steamButton {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr);
+  gap: 13px;
+  align-items: center;
+  padding: 12px 18px;
+  border: 1px solid rgba(102, 192, 244, 0.58);
+  color: white;
+  text-align: left;
+  background:
+    radial-gradient(circle at 15% 20%, rgba(102, 192, 244, 0.28), transparent 40%),
+    linear-gradient(135deg, #182f43, #0b1720 66%);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.28);
+}
+
+.steamButton:hover,
+.discordButton:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.08);
+}
+
+.steamButton:disabled,
+.discordButton:disabled {
+  opacity: 0.65;
+  cursor: wait;
+  transform: none;
+}
+
+.steamLogo {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.steamLogo svg {
+  width: 30px;
+  height: 30px;
+  fill: currentColor;
+}
+
+.steamButton small,
+.steamButton strong {
+  display: block;
+}
+
+.steamButton small {
+  margin-bottom: 3px;
+  color: #8ed0f5;
+  font-size: 0.67rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+}
+
+.steamButton strong {
+  font-size: 1rem;
+}
+
+.separator {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 12px;
+  align-items: center;
+  color: #888;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.separator::before,
+.separator::after {
+  content: "";
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.discordButton {
+  border: 1px solid rgba(88, 101, 242, 0.55);
+  padding: 13px 18px;
+  color: white;
+  font-weight: 900;
+  background: rgba(88, 101, 242, 0.13);
+}
+
+.help,
+.error {
+  margin: 0;
+  text-align: center;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.help {
+  color: #999;
+}
+
+.error {
+  color: #ffb4b4;
+}
