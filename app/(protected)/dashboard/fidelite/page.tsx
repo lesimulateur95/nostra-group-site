@@ -1,322 +1,187 @@
 import { redirect } from "next/navigation";
 
 import {
-  assignLoyaltyTier,
-  removeLoyaltyTier,
-  updatePlateOrderStatus,
-  updatePlateSettings,
-} from "@/app/actions/loyalty";
+  deactivateLoyaltyCard,
+  generateLoyaltyCard,
+  updateLoyaltyCardTemplate,
+} from "@/app/actions/loyalty-cards";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
+import { LoyaltyCard } from "@/components/loyalty/loyalty-card";
 import { getUserRoleKeys } from "@/lib/auth/access";
-import { getLoyaltyAdminState } from "@/lib/loyalty/data";
+import { getLoyaltyCitizens } from "@/lib/loyalty-cards/data";
 import { createClient } from "@/lib/supabase/server";
-import styles from "./page.module.css";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
-
-function money(value: number): string {
-  return Number(value).toLocaleString("fr-FR", {
-    style: "currency",
-    currency: "EUR",
-    maximumFractionDigits: 0,
-  });
-}
-
-function dateTime(value: string): string {
-  if (!value) return "—";
-
-  return new Intl.DateTimeFormat("fr-FR", {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(new Date(value));
-}
-
-export default async function LoyaltyDashboardPage({
-  searchParams,
-}: {
+type PageProps = {
   searchParams: Promise<{
-    success?: string;
+    generated?: string;
+    deactivated?: string;
+    template_saved?: string;
     error?: string;
   }>;
-}) {
+};
+
+const tiers = ["Silver", "Gold", "Black Signature"] as const;
+
+export default async function LoyaltyDashboardPage({ searchParams }: PageProps) {
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
-
   if (!data.user) redirect("/");
 
   const roles = await getUserRoleKeys(data.user);
-  if (!roles.includes("manager")) redirect("/accueil");
+  if (!roles.includes("manager")) redirect("/dashboard");
 
-  const [state, params] = await Promise.all([
-    getLoyaltyAdminState(),
+  const [params, overview] = await Promise.all([
     searchParams,
+    getLoyaltyCitizens(),
   ]);
 
-  const success =
-    params.success === "assigned"
-      ? "Le grade de fidélité a été attribué."
-      : params.success === "removed"
-        ? "Le grade de fidélité a été retiré."
-        : params.success === "settings"
-          ? "Le tarif des plaques a été enregistré."
-          : params.success === "order"
-            ? "Le statut de la commande de plaque a été mis à jour."
+  const errorMessage =
+    params.error === "setup"
+      ? "Exécute le SQL V114 pour activer les cartes de fidélité."
+      : params.error === "name"
+        ? "Le citoyen doit avoir un prénom et un nom RP avant la génération."
+        : params.error === "tier"
+          ? "Le grade de fidélité sélectionné est invalide."
+          : params.error
+            ? "La carte n’a pas pu être enregistrée."
             : null;
 
   return (
-    <DashboardShell>
-      <main className={styles.page}>
-        <section className={styles.hero}>
-          <span>DIRECTION · NOSTRA MOTORS</span>
-          <h1>Programme de fidélité</h1>
-          <p>
-            Attribue ou retire un grade de fidélité à n’importe quel
-            compte du site, y compris le Gérant, les Commissaires,
-            les Employés et les Commerciaux.
+    <DashboardShell allowedRoles={["manager"]}>
+      <section className="dashboard-hero dashboard-hero-compact">
+        <div>
+          <span className="eyebrow">NOSTRA MOTORS</span>
+          <h1 className="page-title">Cartes et grades de fidélité</h1>
+          <p className="lead">
+            Génère une carte personnalisée avec le nom du citoyen et un numéro
+            unique. Une carte générée pour un autre citoyen ne désactive jamais
+            les cartes déjà actives.
           </p>
-        </section>
+        </div>
+      </section>
 
-        {success && (
-          <div className={styles.success}>{success}</div>
-        )}
+      {!overview.configured && (
+        <div className="dashboard-feedback dashboard-feedback-error">
+          Exécute le fichier SQL V114 avant d’utiliser ce module.
+        </div>
+      )}
+      {params.generated && (
+        <div className="dashboard-feedback dashboard-feedback-success">
+          Carte <strong>{params.generated}</strong> générée avec succès.
+        </div>
+      )}
+      {params.deactivated && (
+        <div className="dashboard-feedback dashboard-feedback-success">
+          La carte du citoyen a été désactivée.
+        </div>
+      )}
+      {params.template_saved && (
+        <div className="dashboard-feedback dashboard-feedback-success">
+          Le modèle de carte a été enregistré.
+        </div>
+      )}
+      {errorMessage && (
+        <div className="dashboard-feedback dashboard-feedback-error">
+          {errorMessage}
+        </div>
+      )}
 
-        {params.error && (
-          <div className={styles.error}>
-            L’action n’a pas pu être enregistrée.
-          </div>
-        )}
+      <section className="dashboard-section-heading dashboard-section-heading-tight">
+        <p className="eyebrow">MODÈLES</p>
+        <h2>Arrière-plans des cartes</h2>
+        <p>
+          Les modèles déjà utilisés par ton espace fidélité peuvent être reliés
+          ici avec leur URL d’image. Sans URL, le site utilise le modèle intégré.
+        </p>
+      </section>
 
-        {!state.configured && (
-          <div className={styles.error}>
-            Exécute le SQL V48 avant d’utiliser cette page.
-          </div>
-        )}
+      <div className="loyalty-template-grid-v114">
+        {tiers.map((tier) => {
+          const template = overview.templates.find((item) => item.tier === tier);
+          return (
+            <form
+              action={updateLoyaltyCardTemplate}
+              className="dashboard-panel loyalty-template-form-v114"
+              key={tier}
+            >
+              <input type="hidden" name="tier" value={tier} />
+              <strong>{tier}</strong>
+              <label>
+                <span>URL du modèle</span>
+                <input
+                  type="url"
+                  name="image_url"
+                  defaultValue={template?.image_url ?? ""}
+                  placeholder="https://.../carte-silver.png"
+                />
+              </label>
+              <button className="btn" type="submit">
+                Enregistrer le modèle
+              </button>
+            </form>
+          );
+        })}
+      </div>
 
-        <section className={styles.settings}>
-          <div>
-            <span>SERVICE PLAQUES</span>
-            <h2>Tarif et disponibilité</h2>
-          </div>
+      <section className="dashboard-section-heading dashboard-section-heading-tight">
+        <p className="eyebrow">CITOYENS</p>
+        <h2>Génération des cartes</h2>
+      </section>
 
-          <form action={updatePlateSettings}>
-            <label>
-              Tarif normal
-              <input
-                name="base_price"
-                type="number"
-                min={0}
-                step={1000}
-                defaultValue={state.plate_settings.base_price}
-                required
-              />
-            </label>
+      <div className="loyalty-citizen-list-v114">
+        {overview.citizens.map((citizen) => {
+          const fullName =
+            [citizen.rp_first_name, citizen.rp_last_name]
+              .filter(Boolean)
+              .join(" ") || citizen.discord_name || "Citoyen sans nom RP";
 
-            <label>
-              État du service
-              <select
-                name="active"
-                defaultValue={
-                  state.plate_settings.active
-                    ? "true"
-                    : "false"
-                }
-              >
-                <option value="true">
-                  Commandes ouvertes
-                </option>
-                <option value="false">
-                  Commandes fermées
-                </option>
-              </select>
-            </label>
-
-            <button type="submit">Enregistrer</button>
-          </form>
-        </section>
-
-        <section className={styles.section}>
-          <header>
-            <span>TOUS LES COMPTES</span>
-            <h2>Ajouter ou retirer un grade fidélité</h2>
-            <p>
-              Tous les comptes enregistrés apparaissent ici. Ton compte
-              Gérant est placé en premier dans la liste.
-            </p>
-          </header>
-
-          <div className={styles.citizenList}>
-            {state.citizens.length === 0 && (
-              <div className={styles.empty}>
-                Aucun compte trouvé.
+          return (
+            <article className="dashboard-panel loyalty-citizen-row-v114" key={citizen.user_id}>
+              <div className="loyalty-citizen-copy-v114">
+                <span className="eyebrow">CITOYEN</span>
+                <h3>{fullName}</h3>
+                <p>
+                  Grade actuel : <strong>{citizen.tier ?? "Aucun"}</strong> ·
+                  Achats : {citizen.purchases_count} · Remise : {citizen.discount_percent} %
+                </p>
               </div>
-            )}
 
-            {state.citizens.map((citizen) => (
-              <article
-                className={styles.citizen}
-                key={citizen.user_id}
-              >
-                <div>
-                  <strong>{citizen.name}</strong>
-                  <span>
-                    {citizen.email ?? "Adresse non renseignée"}
-                  </span>
-                  <span>
-                    Rôle :{" "}
-                    {citizen.roles?.length
-                      ? citizen.roles.join(" · ")
-                      : citizen.role ?? "Non renseigné"}
-                  </span>
-                  <b>
-                    {citizen.tier_label ??
-                      "Aucun grade fidélité"}
-                  </b>
-                </div>
-
-                <form action={assignLoyaltyTier}>
-                  <input
-                    type="hidden"
-                    name="user_id"
-                    value={citizen.user_id}
-                  />
-
-                  <select
-                    name="tier_code"
-                    defaultValue={
-                      citizen.tier_code ??
-                      state.tiers[0]?.code ??
-                      ""
-                    }
-                    required
-                  >
-                    {state.tiers.map((tier) => (
-                      <option
-                        key={tier.code}
-                        value={tier.code}
-                      >
-                        {tier.label} ·{" "}
-                        {tier.catalog_discount_percent} %
-                        catalogue
-                      </option>
-                    ))}
-                  </select>
-
-                  <button type="submit">
-                    Attribuer le grade
-                  </button>
-                </form>
-
-                {citizen.tier_code && (
-                  <form action={removeLoyaltyTier}>
+              {citizen.active_card ? (
+                <div className="loyalty-citizen-card-v114">
+                  <LoyaltyCard card={citizen.active_card} compact />
+                  <form action={deactivateLoyaltyCard}>
                     <input
                       type="hidden"
-                      name="user_id"
-                      value={citizen.user_id}
+                      name="card_id"
+                      value={citizen.active_card.id}
                     />
-                    <button
-                      className={styles.danger}
-                      type="submit"
-                    >
-                      Retirer le grade
+                    <button className="btn btn-secondary" type="submit">
+                      Désactiver cette carte
                     </button>
                   </form>
-                )}
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section className={styles.section}>
-          <header>
-            <span>COMMANDES DE PLAQUES</span>
-            <h2>Suivi des nouvelles plaques</h2>
-          </header>
-
-          <div className={styles.orderList}>
-            {state.plate_orders.length === 0 && (
-              <div className={styles.empty}>
-                Aucune commande de plaque.
-              </div>
-            )}
-
-            {state.plate_orders.map((order) => (
-              <article
-                className={styles.order}
-                key={order.id}
-              >
-                <div className={styles.orderHeading}>
-                  <div>
-                    <span>{order.order_number}</span>
-                    <h3>{order.plate_text}</h3>
-                    <p>
-                      {order.customer_name} ·{" "}
-                      {order.vehicle_label}
-                    </p>
-                  </div>
-
-                  <strong>{money(order.total)}</strong>
                 </div>
+              ) : (
+                <p className="empty-state">Aucune carte active.</p>
+              )}
 
-                <dl>
-                  <div>
-                    <dt>Tarif normal</dt>
-                    <dd>{money(order.base_price)}</dd>
-                  </div>
-                  <div>
-                    <dt>Remise fidélité</dt>
-                    <dd>{order.discount_percent} %</dd>
-                  </div>
-                  <div>
-                    <dt>Créée le</dt>
-                    <dd>{dateTime(order.created_at)}</dd>
-                  </div>
-                  <div>
-                    <dt>Statut</dt>
-                    <dd>{order.status}</dd>
-                  </div>
-                </dl>
-
-                {order.notes && <p>{order.notes}</p>}
-
-                <form action={updatePlateOrderStatus}>
-                  <input
-                    type="hidden"
-                    name="order_id"
-                    value={order.id}
-                  />
-
-                  <select
-                    name="status"
-                    defaultValue={order.status}
-                  >
-                    <option value="pending">
-                      En attente
-                    </option>
-                    <option value="confirmed">
-                      Confirmée
-                    </option>
-                    <option value="preparing">
-                      En préparation
-                    </option>
-                    <option value="ready">Prête</option>
-                    <option value="completed">
-                      Terminée
-                    </option>
-                    <option value="cancelled">
-                      Annulée
-                    </option>
+              <form action={generateLoyaltyCard} className="loyalty-generate-form-v114">
+                <input type="hidden" name="user_id" value={citizen.user_id} />
+                <label>
+                  <span>Nouveau grade</span>
+                  <select name="tier" defaultValue={citizen.tier ?? "Silver"}>
+                    {tiers.map((tier) => (
+                      <option value={tier} key={tier}>{tier}</option>
+                    ))}
                   </select>
-
-                  <button type="submit">
-                    Mettre à jour
-                  </button>
-                </form>
-              </article>
-            ))}
-          </div>
-        </section>
-      </main>
+                </label>
+                <button className="btn" type="submit">
+                  {citizen.active_card ? "Changer / régénérer la carte" : "Générer la carte"}
+                </button>
+              </form>
+            </article>
+          );
+        })}
+      </div>
     </DashboardShell>
   );
 }

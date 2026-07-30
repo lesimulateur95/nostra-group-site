@@ -83,6 +83,13 @@ const cards: NavigationCard[] = [
     countKey: "documents",
   },
   {
+    href: "/profil/fidelite",
+    icon: "◆",
+    label: "Ma carte de fidélité",
+    description:
+      "Afficher ma carte personnalisée, mon grade et mon numéro unique.",
+  },
+  {
     href: "/profil/favoris",
     icon: "★",
     label: "Mes favoris",

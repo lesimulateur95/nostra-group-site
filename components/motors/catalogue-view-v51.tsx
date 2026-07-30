@@ -7,6 +7,7 @@ import {
   CatalogueComparatorProviderV51,
   CatalogueCompareButtonV51,
 } from "@/components/motors/catalogue-comparator-v51";
+import { CatalogueFiltersV114 } from "@/components/motors/catalogue-filters-v114";
 import { VehicleFavoriteControls } from "@/components/motors/vehicle-favorite-controls";
 import {
   CATALOG_LABELS,
@@ -204,6 +205,8 @@ export async function CatalogueViewV51({
 
         {configured && vehicles.length > 0 && (
           <>
+            <CatalogueFiltersV114 brands={[...grouped.keys()]} />
+
             <nav
               className="catalogue-brand-nav"
               aria-label="Marques du catalogue"
@@ -215,12 +218,13 @@ export async function CatalogueViewV51({
               ))}
             </nav>
 
-            <div className="catalogue-brand-sections">
+            <div className="catalogue-brand-sections" data-catalogue-results-v114>
               {[...grouped.entries()].map(([brand, brandVehicles]) => (
                 <section
                   className="catalogue-brand-section"
                   id={brandAnchor(brand)}
                   key={brand}
+                  data-catalogue-brand-section-v114
                 >
                   <div className="catalogue-brand-heading">
                     <p className="eyebrow">MARQUE</p>
@@ -232,7 +236,7 @@ export async function CatalogueViewV51({
                   </div>
 
                   <div className="catalogue-vehicle-grid">
-                    {brandVehicles.map((vehicle) => {
+                    {brandVehicles.map((vehicle, vehicleIndex) => {
                       const formattedPrice = formatPrice(vehicle.price);
                       const availability = commerceAvailability.get(
                         Number(vehicle.id),
@@ -257,6 +261,15 @@ export async function CatalogueViewV51({
                         <article
                           className="catalogue-vehicle-card"
                           key={vehicle.id}
+                          data-catalogue-card-v114
+                          data-brand={vehicle.brand.toLocaleLowerCase("fr-FR")}
+                          data-search={`${vehicle.brand} ${vehicle.model}`.toLocaleLowerCase("fr-FR")}
+                          data-price={Number(vehicle.price)}
+                          data-stock={Number(vehicle.stock_quantity)}
+                          data-reserve={canReserve ? "true" : "false"}
+                          data-sale={canOrder ? "true" : "false"}
+                          data-status={catalogType === "used" ? (vehicle.used_vehicle_status || "available") : "available"}
+                          data-order={vehicleIndex}
                         >
                           <div className="catalogue-vehicle-media">
                             {vehicle.images[0] ? (
@@ -431,6 +444,10 @@ export async function CatalogueViewV51({
                 </section>
               ))}
             </div>
+            <section className="catalogue-empty" data-catalogue-no-results-v114 hidden>
+              <h2>Aucun véhicule ne correspond aux filtres</h2>
+              <p>Réinitialise les filtres ou élargis la recherche.</p>
+            </section>
           </>
         )}
       </article>

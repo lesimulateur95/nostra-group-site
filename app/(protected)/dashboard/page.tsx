@@ -807,6 +807,12 @@ export default async function DashboardPage() {
                       : undefined
                   }
                 />
+                <DashboardCard
+                  href="/dashboard/contrats"
+                  icon="📝"
+                  title="Contrats Nostra Circuit"
+                  description="Créer des contrats mensuels, modifier les futurs tarifs et suivre les reconductions placées dans le panier."
+                />
               </DashboardModuleSubgroup>
 
               <DashboardModuleSubgroup

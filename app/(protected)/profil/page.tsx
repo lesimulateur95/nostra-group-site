@@ -12,8 +12,10 @@ import {
 import { checkoutTombolaCart, removeTombolaCart } from "@/app/actions/tombola";
 import { checkoutBingoCart, removeBingoCart } from "@/app/actions/bingo";
 import { checkoutPilotLicenseCart, removePilotLicenseCart } from "@/app/actions/licenses";
+import { checkoutContractRenewals } from "@/app/actions/contracts";
 
 import { ProfileNavigation } from "@/components/profile/profile-navigation";
+import { LoyaltyCard } from "@/components/loyalty/loyalty-card";
 import { IdentityCard } from "@/components/profile/identity-card";
 
 import { NotificationLauncher } from "@/components/profile/notification-launcher";
@@ -45,11 +47,14 @@ import { getUserRoleLabel } from "@/lib/auth/access";
 import { createClient } from "@/lib/supabase/server";
 import { getOwnVehicleReservations } from "@/lib/vehicle-reservations/data";
 import { getOwnVehicleTradeInRequests } from "@/lib/vehicle-trade-ins/data";
+import { getActiveLoyaltyCard } from "@/lib/loyalty-cards/data";
+import { getOwnMemberRoles, MEMBER_ROLE_LABELS, type MemberRoleKey } from "@/lib/member-roles/data";
+import { getOwnContractCart } from "@/lib/contracts/data";
 import styles from "./profile-top-layout.module.css";
 
 type ProfilePageProps = {
 
- searchParams: Promise<{ error?: string; profile_saved?: string; vehicle_added?: string; reservation_added?: string; reservation_paid?: string; reservation_error?: string; balance_paid?: string; balance_error?: string; order_sent?: string; order_error?: string; cart_removed?: string; cart_error?: string; tombola_added?: string; tombola_removed?: string; tombola_cart_error?: string; tombola_order_error?: string; bingo_added?: string; bingo_removed?: string; bingo_cart_error?: string; bingo_order_error?: string; license_added?: string; license_removed?: string; license_paid?: string; license_order_error?: string }>;
+ searchParams: Promise<{ error?: string; profile_saved?: string; vehicle_added?: string; reservation_added?: string; reservation_paid?: string; reservation_error?: string; balance_paid?: string; balance_error?: string; order_sent?: string; order_error?: string; cart_removed?: string; cart_error?: string; tombola_added?: string; tombola_removed?: string; tombola_cart_error?: string; tombola_order_error?: string; bingo_added?: string; bingo_removed?: string; bingo_cart_error?: string; bingo_order_error?: string; license_added?: string; license_removed?: string; license_paid?: string; license_order_error?: string; contract_paid?: string; contract_error?: string }>;
 
 };
 
@@ -75,7 +80,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
  const rpName = getRpName(data.user);
 
  const complete = hasRpProfile(data.user);
- const [role, commerce, homologations, teamRegistrations, wheelSpins, tombolaCart, tombolaTickets, bingoCart, bingoCards, licenseCart, unreadNotifications, mailboxOverview, vehicleReservations, vehicleTradeIns] = await Promise.all([
+ const [role, commerce, homologations, teamRegistrations, wheelSpins, tombolaCart, tombolaTickets, bingoCart, bingoCards, licenseCart, unreadNotifications, mailboxOverview, vehicleReservations, vehicleTradeIns, activeLoyaltyCard, memberRoles, contractCart] = await Promise.all([
 
  getUserRoleLabel(data.user),
 
@@ -104,6 +109,12 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
 
  getOwnVehicleTradeInRequests(data.user.id),
 
+ getActiveLoyaltyCard(data.user.id),
+
+ getOwnMemberRoles(data.user.id),
+
+ getOwnContractCart(data.user.id),
+
  ]);
 
  const normalVehicleCart = commerce.cart.filter((item) => ["vehicle", "delivery"].includes(String(item.item_type)));
@@ -116,6 +127,8 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
  const bingoCartTotal = bingoCart ? Number(bingoCart.unit_price) * Number(bingoCart.quantity) : 0;
 
  const licenseCartTotal = licenseCart ? Number(licenseCart.unit_price) : 0;
+
+ const contractCartTotal = contractCart.items.reduce((sum, item) => sum + Number(item.amount), 0);
 
  const orderErrorMessage =
  params.order_error === "empty" ? "Ton panier est vide."
@@ -171,7 +184,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
 
  <div><dt>Compte Discord</dt><dd>{getDiscordName(data.user)}</dd></div>
 
- <div><dt>Rôle</dt><dd><span className="role-badge">{role}</span></dd></div>
+ <div><dt>Rôles</dt><dd className="profile-role-list-v114">{memberRoles.map((roleKey) => <span className="role-badge" key={roleKey}>{MEMBER_ROLE_LABELS[roleKey as MemberRoleKey] ?? roleKey}</span>)}</dd></div>
 
  <div><dt>Identifiant Discord</dt><dd>{getDiscordId(data.user) ?? "Non détecté"}</dd></div>
  <div><dt>E-mail</dt><dd>{data.user.email ?? "Non communiqué"}</dd></div>
@@ -252,13 +265,22 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
 
  {params.license_order_error && <div className="dashboard-feedback dashboard-feedback-error">La demande de licence n’a pas pu être payée. Vérifie que le dossier est toujours présent dans ton panier.</div>}
 
+ {params.contract_paid && <div className="dashboard-feedback dashboard-feedback-success">Paiement enregistré pour {params.contract_paid} reconduction(s) de contrat.</div>}
+ {params.contract_error && <div className="dashboard-feedback dashboard-feedback-error">{params.contract_error === "empty" ? "Aucune reconduction de contrat n’est actuellement à payer." : params.contract_error === "setup" ? "Le module Contrats doit être activé avec le SQL V114." : "Le paiement du contrat n’a pas pu être enregistré."}</div>}
+
  {orderErrorMessage && <div className="dashboard-feedback dashboard-feedback-error">{orderErrorMessage}</div>}
 
  <section className="profile-commerce-grid">
 
  <article className="profile-commerce-card loyalty-card">
 
- <div className="profile-commerce-head"><span>◆</span><div><p>STATUT DE FIDÉLITÉ</p><h2>{commerce.loyalty?.tier ?? "Aucun statut"}</h2></div></div>
+ <div className="profile-commerce-head"><span>◆</span><div><p>STATUT DE FIDÉLITÉ</p><h2>{activeLoyaltyCard?.tier ?? commerce.loyalty?.tier ?? "Aucun statut"}</h2></div></div>
+
+ {activeLoyaltyCard ? (
+ <LoyaltyCard card={activeLoyaltyCard} />
+ ) : (
+ <p className="empty-state">{commerce.loyalty?.tier ? "Ton grade est actif. La Direction doit encore générer ta carte personnalisée." : "Aucune carte de fidélité active."}</p>
+ )}
 
  <dl>
 
@@ -267,16 +289,16 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
 
  </dl>
 
- <p className="commerce-hint">Silver après 15 achats · Gold après 35 · Black Signature après 60.</p>
+ <p className="commerce-hint">Une seule carte peut être active par citoyen. Un changement de grade désactive uniquement l’ancienne carte de ce citoyen.</p>
 
  </article>
 
  <article className="profile-commerce-card">
 
- <div className="profile-commerce-head"><span></span><div><p>MON PANIER</p><h2>{commerce.cart.length + (tombolaCart ? 1 : 0) + (bingoCart ? 1 : 0) + (licenseCart ? 1 : 0)} article(s)</h2></div></div>
+ <div className="profile-commerce-head"><span></span><div><p>MON PANIER</p><h2>{commerce.cart.length + (tombolaCart ? 1 : 0) + (bingoCart ? 1 : 0) + (licenseCart ? 1 : 0) + contractCart.items.length} article(s)</h2></div></div>
 
  <div className="profile-mini-list">
- {commerce.cart.length === 0 && !tombolaCart && !bingoCart && !licenseCart && <p className="empty-state">Ton panier est vide.</p>}
+ {commerce.cart.length === 0 && !tombolaCart && !bingoCart && !licenseCart && contractCart.items.length === 0 && <p className="empty-state">Ton panier est vide.</p>}
 
  {commerce.cart.map((item) => {
  const isDeposit = item.item_type === "reservation_deposit";
@@ -336,10 +358,21 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
 
  )}
 
+ {contractCart.items.map((item) => (
+ <div className="profile-cart-row profile-cart-row-contract-v114" key={`contract-${item.id}`}>
+ <span>
+ 1 × {item.item_name}
+ <small className="order-client-note">Échéance contractuelle · paiement verrouillé</small>
+ </span>
+ <strong>{money(item.amount)}</strong>
+ <span className="role-badge">À payer</span>
+ </div>
+ ))}
+
 
  </div>
 
- <footer><span>Total du panier</span><strong>{money(cartTotal + tombolaCartTotal + bingoCartTotal + licenseCartTotal)}</strong></footer>
+ <footer><span>Total du panier</span><strong>{money(cartTotal + tombolaCartTotal + bingoCartTotal + licenseCartTotal + contractCartTotal)}</strong></footer>
 
  {normalVehicleCart.length > 0 && (
 
@@ -400,6 +433,13 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
 
  </form>
 
+ )}
+
+ {contractCart.items.length > 0 && (
+ <form action={checkoutContractRenewals} className="profile-order-form profile-contract-checkout-v114">
+ <p className="commerce-hint">Ces lignes correspondent à la reconduction mensuelle de ton contrat Nostra Circuit. Le libellé et le tarif applicable au mois sont enregistrés dans l’historique.</p>
+ <button className="btn" type="submit">Payer les reconductions de contrat</button>
+ </form>
  )}
 
 

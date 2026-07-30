@@ -4302,3 +4302,403 @@ select:focus { outline: 2px solid rgba(212,175,55,.32); outline-offset: 1px; }
     grid-column: 1 / -1;
   }
 }
+
+/* ========================================================================== */
+/* NOSTRA GROUP V114 — FIDÉLITÉ, RÔLES, FILTRES ET CONTRATS                  */
+/* ========================================================================== */
+
+.profile-role-list-v114 {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.loyalty-generated-card {
+  --loyalty-card-background: none;
+  position: relative;
+  isolation: isolate;
+  width: min(100%, 620px);
+  min-height: 300px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 24px;
+  padding: 28px;
+  background:
+    var(--loyalty-card-background) center / cover no-repeat,
+    radial-gradient(circle at 82% 12%, rgba(255, 255, 255, 0.2), transparent 34%),
+    linear-gradient(135deg, #555 0%, #181818 48%, #777 100%);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.35);
+  color: #fff;
+}
+
+.loyalty-generated-card-gold {
+  background:
+    var(--loyalty-card-background) center / cover no-repeat,
+    radial-gradient(circle at 82% 12%, rgba(255, 246, 189, 0.38), transparent 34%),
+    linear-gradient(135deg, #594313 0%, #15120c 48%, #b38a27 100%);
+}
+
+.loyalty-generated-card-black {
+  background:
+    var(--loyalty-card-background) center / cover no-repeat,
+    radial-gradient(circle at 82% 12%, rgba(217, 181, 93, 0.25), transparent 34%),
+    linear-gradient(135deg, #090909 0%, #242424 52%, #050505 100%);
+  border-color: rgba(218, 178, 82, 0.48);
+}
+
+.loyalty-generated-card-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(115deg, rgba(0, 0, 0, 0.68), rgba(0, 0, 0, 0.12) 58%, rgba(0, 0, 0, 0.55)),
+    repeating-linear-gradient(125deg, transparent 0 34px, rgba(255, 255, 255, 0.025) 35px 36px);
+}
+
+.loyalty-generated-card header,
+.loyalty-generated-card footer {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.loyalty-generated-card header > div,
+.loyalty-generated-card footer > div {
+  display: grid;
+  gap: 4px;
+}
+
+.loyalty-generated-card header small,
+.loyalty-generated-card footer span {
+  font-size: 0.68rem;
+  letter-spacing: 0.16em;
+  opacity: 0.75;
+}
+
+.loyalty-generated-card-logo {
+  display: grid;
+  width: 56px;
+  height: 56px;
+  place-items: center;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font-weight: 900;
+  letter-spacing: -0.08em;
+}
+
+.loyalty-generated-card-tier {
+  margin: 64px 0 70px;
+  font-size: clamp(2rem, 6vw, 4.6rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  text-shadow: 0 4px 18px rgba(0, 0, 0, 0.5);
+}
+
+.loyalty-generated-card footer {
+  align-items: end;
+}
+
+.loyalty-generated-card footer > div:last-child {
+  text-align: right;
+}
+
+.loyalty-generated-card-compact {
+  min-height: 210px;
+  padding: 20px;
+  border-radius: 18px;
+}
+
+.loyalty-generated-card-compact .loyalty-generated-card-tier {
+  margin: 32px 0 42px;
+  font-size: clamp(1.7rem, 4vw, 3rem);
+}
+
+.loyalty-generated-card-compact .loyalty-generated-card-logo {
+  width: 44px;
+  height: 44px;
+}
+
+.loyalty-template-grid-v114,
+.contract-actions-grid-v114 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.loyalty-template-form-v114,
+.loyalty-generate-form-v114,
+.contract-inline-form-v114 {
+  display: grid;
+  gap: 12px;
+}
+
+.loyalty-template-form-v114 label,
+.loyalty-generate-form-v114 label,
+.contract-form-grid-v114 label,
+.contract-inline-form-v114 label,
+.catalogue-filters-v114 label {
+  display: grid;
+  gap: 7px;
+}
+
+.loyalty-template-form-v114 input,
+.loyalty-generate-form-v114 select,
+.contract-form-grid-v114 input,
+.contract-form-grid-v114 select,
+.contract-form-grid-v114 textarea,
+.contract-inline-form-v114 input,
+.contract-inline-form-v114 select,
+.catalogue-filters-v114 input,
+.catalogue-filters-v114 select {
+  width: 100%;
+}
+
+.loyalty-citizen-list-v114,
+.member-role-list-v114,
+.contract-list-v114 {
+  display: grid;
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.loyalty-citizen-row-v114 {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.7fr) minmax(300px, 1.3fr) minmax(220px, 0.65fr);
+  align-items: center;
+  gap: 22px;
+}
+
+.loyalty-citizen-copy-v114,
+.loyalty-citizen-card-v114 {
+  display: grid;
+  gap: 12px;
+}
+
+.member-role-card-v114 {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.7fr) minmax(360px, 1.3fr) auto;
+  align-items: center;
+  gap: 22px;
+}
+
+.member-role-options-v114 {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.member-role-options-v114 label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.member-role-options-v114 input:disabled + span {
+  opacity: 0.8;
+}
+
+.contract-create-panel-v114 {
+  margin-bottom: 20px;
+}
+
+.contract-form-grid-v114 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.contract-form-wide-v114 {
+  grid-column: 1 / -1;
+}
+
+.contract-generation-bar-v114 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin: 18px 0;
+  padding: 18px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+}
+
+.contract-card-v114 {
+  display: grid;
+  gap: 18px;
+}
+
+.contract-card-v114 > header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.contract-summary-v114 {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.contract-summary-v114 > div {
+  display: grid;
+  gap: 5px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+}
+
+.contract-summary-v114 dt {
+  font-size: 0.74rem;
+  opacity: 0.68;
+}
+
+.contract-access-v114 {
+  padding: 14px;
+  border-left: 3px solid currentColor;
+  opacity: 0.88;
+}
+
+.contract-actions-grid-v114 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.contract-inline-form-v114 {
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+}
+
+.contract-history-v114 {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 14px;
+}
+
+.contract-history-v114 summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.contract-installment-list-v114 {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.contract-installment-list-v114 > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+}
+
+.contract-installment-list-v114 span:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.profile-cart-row-contract-v114 {
+  border-left: 3px solid currentColor;
+}
+
+.catalogue-filters-v114 {
+  display: grid;
+  gap: 12px;
+  margin: 18px 0 22px;
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.catalogue-filter-main-v114,
+.catalogue-filter-secondary-v114 {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: end;
+  gap: 12px;
+}
+
+.catalogue-filter-secondary-v114 {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+}
+
+.catalogue-filter-secondary-v114 button {
+  min-height: 44px;
+}
+
+[data-catalogue-card-v114][hidden],
+[data-catalogue-brand-section-v114][hidden],
+[data-catalogue-no-results-v114][hidden] {
+  display: none !important;
+}
+
+@media (max-width: 1050px) {
+  .loyalty-citizen-row-v114,
+  .member-role-card-v114 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .loyalty-template-grid-v114,
+  .contract-summary-v114 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .catalogue-filter-main-v114,
+  .catalogue-filter-secondary-v114 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .loyalty-template-grid-v114,
+  .contract-form-grid-v114,
+  .contract-actions-grid-v114,
+  .contract-summary-v114,
+  .catalogue-filter-main-v114,
+  .catalogue-filter-secondary-v114 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .contract-form-wide-v114 {
+    grid-column: auto;
+  }
+
+  .contract-generation-bar-v114,
+  .contract-card-v114 > header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .contract-installment-list-v114 > div {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .loyalty-generated-card {
+    min-height: 250px;
+    padding: 20px;
+  }
+
+  .loyalty-generated-card-tier {
+    margin: 40px 0 50px;
+  }
+
+  .loyalty-generated-card footer {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .loyalty-generated-card footer > div:last-child {
+    text-align: left;
+  }
+}
