@@ -111,7 +111,7 @@ export default async function LoyaltyDashboardPage({ searchParams }: PageProps) 
           <h2>Pourcentages officiels</h2>
           <p>
             Le statut, la carte et les remises du profil utilisent désormais la
-            même règle : Silver 2 %, Gold 5 % et Black Signature 15 %.
+            même règle : Silver 2 %, Gold 5 % et Black Signature 10 %.
           </p>
         </div>
         <dl className="contract-summary-v114">

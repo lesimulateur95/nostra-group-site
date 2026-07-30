@@ -45,7 +45,7 @@ export type LoyaltyCitizenRow = {
 export const LOYALTY_DISCOUNTS: Record<LoyaltyTier, number> = {
   Silver: 2,
   Gold: 5,
-  "Black Signature": 15,
+  "Black Signature": 10,
 };
 
 export function getLoyaltyDiscountPercent(tier: string | null | undefined): number {
