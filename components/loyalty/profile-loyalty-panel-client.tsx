@@ -18,6 +18,25 @@ function money(value: number): string {
   });
 }
 
+/**
+ * Règle officielle Nostra Motors.
+ * Elle sert de sécurité côté interface même si une ancienne valeur reste
+ * momentanément enregistrée dans Supabase.
+ */
+function officialCatalogDiscount(state: LoyaltyState): number {
+  const code = `${state.tier?.code ?? ""} ${state.tier?.label ?? ""}`
+    .trim()
+    .toLowerCase()
+    .replaceAll("_", " ")
+    .replaceAll("-", " ");
+
+  if (code.includes("black")) return 10;
+  if (code.includes("gold")) return 5;
+  if (code.includes("silver")) return 2;
+
+  return Math.max(0, Number(state.tier?.catalog_discount_percent) || 0);
+}
+
 export function ProfileLoyaltyPanelClient({
   state,
 }: {
@@ -28,11 +47,11 @@ export function ProfileLoyaltyPanelClient({
 
   if (pathname !== "/profil") return null;
 
-  const catalogDiscount =
-    state.tier?.catalog_discount_percent ?? 0;
-  const plateDiscount =
-    state.tier?.plate_discount_percent ?? 0;
-
+  const catalogDiscount = officialCatalogDiscount(state);
+  const plateDiscount = state.tier?.plate_discount_percent ?? 0;
+  const discountedVehicleSubtotal = Math.round(
+    state.catalog_cart.vehicle_subtotal * (100 - catalogDiscount) / 100,
+  );
   const plateTotal = state.plate_cart
     ? Math.round(
         state.plate_cart.base_price *
@@ -56,7 +75,6 @@ export function ProfileLoyaltyPanelClient({
             ne sont pas transformés automatiquement en réduction.
           </p>
         </div>
-
         <div className={styles.tierBadge}>
           <span>MON GRADE</span>
           <strong>{state.tier?.label ?? "Aucun grade"}</strong>
@@ -74,7 +92,6 @@ export function ProfileLoyaltyPanelClient({
           La plaque a été ajoutée à ton panier.
         </div>
       )}
-
       {searchParams.get("plate_order_sent") && (
         <div className={styles.success}>
           Commande de plaque{" "}
@@ -91,7 +108,6 @@ export function ProfileLoyaltyPanelClient({
           L’action n’a pas pu être enregistrée.
         </div>
       )}
-
       {!state.configured && (
         <div className={styles.error}>
           Le module V48 doit être activé dans Supabase.
@@ -104,7 +120,6 @@ export function ProfileLoyaltyPanelClient({
           <h3>
             Remise véhicules : {catalogDiscount} %
           </h3>
-
           <p>
             Sous-total véhicules :{" "}
             {money(state.catalog_cart.vehicle_subtotal)}
@@ -112,7 +127,6 @@ export function ProfileLoyaltyPanelClient({
             Livraison non remisée :{" "}
             {money(state.catalog_cart.delivery_subtotal)}
           </p>
-
           {state.tier && catalogDiscount > 0 ? (
             <form action={saveLoyaltyPreference}>
               <input
@@ -129,7 +143,6 @@ export function ProfileLoyaltyPanelClient({
                     : "true"
                 }
               />
-
               <button type="submit">
                 {state.preferences.apply_catalog_discount
                   ? "Ne pas appliquer la remise"
@@ -142,21 +155,16 @@ export function ProfileLoyaltyPanelClient({
               fidélité.
             </p>
           )}
-
           {state.preferences.apply_catalog_discount && (
             <strong className={styles.estimate}>
               Total estimé véhicules :{" "}
-              {money(
-                state.catalog_cart
-                  .discounted_vehicle_subtotal,
-              )}
+              {money(discountedVehicleSubtotal)}
             </strong>
           )}
         </article>
 
         <article className={styles.preferenceCard}>
           <span>COMMANDE DE PLAQUE</span>
-
           {!state.plate_cart ? (
             <>
               <h3>Aucune plaque dans le panier</h3>
@@ -173,7 +181,6 @@ export function ProfileLoyaltyPanelClient({
                 Tarif normal :{" "}
                 {money(state.plate_cart.base_price)}
               </p>
-
               {state.tier && plateDiscount > 0 && (
                 <form action={saveLoyaltyPreference}>
                   <input
@@ -190,7 +197,6 @@ export function ProfileLoyaltyPanelClient({
                         : "true"
                     }
                   />
-
                   <button type="submit">
                     {state.preferences.apply_plate_discount
                       ? "Retirer la remise plaque"
@@ -200,7 +206,6 @@ export function ProfileLoyaltyPanelClient({
                   </button>
                 </form>
               )}
-
               <div className={styles.plateTotal}>
                 <span>Total de la plaque</span>
                 <strong>{money(plateTotal)}</strong>
@@ -212,7 +217,6 @@ export function ProfileLoyaltyPanelClient({
                     Commander la plaque
                   </button>
                 </form>
-
                 <form action={removePlateCart}>
                   <button
                     className={styles.danger}
