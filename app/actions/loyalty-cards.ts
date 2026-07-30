@@ -30,6 +30,7 @@ function errorCode(error: { message?: string | null; code?: string | null }) {
   if (value.includes("missing_citizen_name")) return "name";
   if (value.includes("invalid_tier")) return "tier";
   if (value.includes("forbidden")) return "forbidden";
+  if (value.includes("cards_exist")) return "cards_exist";
   if (value.includes("pgrst202") || value.includes("loyalty_cards")) return "setup";
   return "save";
 }
@@ -92,3 +93,32 @@ export async function updateLoyaltyCardTemplate(formData: FormData) {
   revalidateLoyalty();
   redirect("/dashboard/fidelite?template_saved=1");
 }
+export async function resetLoyaltyCardCounters() {
+  const supabase = await requireManager();
+  const { error } = await (supabase as any).rpc(
+    "reset_loyalty_card_counters_v118",
+  );
+
+  if (error) redirect(`/dashboard/fidelite?error=${errorCode(error)}`);
+  revalidateLoyalty();
+  redirect("/dashboard/fidelite?counters_reset=1");
+}
+
+export async function deleteAllLoyaltyCardsAndResetCounters(
+  formData: FormData,
+) {
+  const confirmation = text(formData.get("confirmation"), 80);
+  if (confirmation !== "SUPPRIMER_TOUTES_LES_CARTES") {
+    redirect("/dashboard/fidelite?error=confirmation");
+  }
+
+  const supabase = await requireManager();
+  const { error } = await (supabase as any).rpc(
+    "delete_all_loyalty_cards_and_reset_v118",
+  );
+
+  if (error) redirect(`/dashboard/fidelite?error=${errorCode(error)}`);
+  revalidateLoyalty();
+  redirect("/dashboard/fidelite?cards_deleted=1");
+}
+

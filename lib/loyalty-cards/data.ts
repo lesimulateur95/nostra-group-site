@@ -24,6 +24,13 @@ export type LoyaltyCard = {
   deactivation_reason: string | null;
 };
 
+export type LoyaltyCardCounter = {
+  tier: LoyaltyTier;
+  card_year: number;
+  last_number: number;
+  updated_at: string;
+};
+
 export type LoyaltyCitizenRow = {
   user_id: string;
   rp_first_name: string | null;
@@ -34,6 +41,20 @@ export type LoyaltyCitizenRow = {
   discount_percent: number;
   active_card: LoyaltyCard | null;
 };
+
+export const LOYALTY_DISCOUNTS: Record<LoyaltyTier, number> = {
+  Silver: 2,
+  Gold: 5,
+  "Black Signature": 15,
+};
+
+export function getLoyaltyDiscountPercent(tier: string | null | undefined): number {
+  if (tier === "Silver" || tier === "Gold" || tier === "Black Signature") {
+    return LOYALTY_DISCOUNTS[tier];
+  }
+
+  return 0;
+}
 
 export async function getActiveLoyaltyCard(
   userId: string,
@@ -74,9 +95,12 @@ export async function getLoyaltyCitizens(): Promise<{
   configured: boolean;
   citizens: LoyaltyCitizenRow[];
   templates: LoyaltyCardTemplate[];
+  counters: LoyaltyCardCounter[];
+  cards_count: number;
+  active_cards_count: number;
 }> {
   const supabase = await createClient();
-  const [profiles, loyalty, cards, templates] = await Promise.all([
+  const [profiles, loyalty, cards, templates, counters] = await Promise.all([
     supabase
       .from("member_profiles")
       .select("user_id,rp_first_name,rp_last_name,discord_name")
@@ -90,11 +114,15 @@ export async function getLoyaltyCitizens(): Promise<{
       .select(
         "id,user_id,card_number,tier,first_name,last_name,template_image_url,active,issued_at,deactivated_at,deactivation_reason",
       )
-      .eq("active", true)
       .order("issued_at", { ascending: false }),
     supabase
       .from("loyalty_card_templates")
       .select("tier,label,image_url,enabled,updated_at")
+      .order("tier"),
+    supabase
+      .from("loyalty_card_counters_v116")
+      .select("tier,card_year,last_number,updated_at")
+      .order("card_year", { ascending: false })
       .order("tier"),
   ]);
 
@@ -106,28 +134,38 @@ export async function getLoyaltyCitizens(): Promise<{
   );
   const cardByUser = new Map<string, LoyaltyCard>();
   for (const row of cards.data ?? []) {
+    if (!row.active) continue;
     const key = String(row.user_id);
     if (!cardByUser.has(key)) cardByUser.set(key, row as LoyaltyCard);
   }
 
   const citizens = (profiles.data ?? []).map((profile) => {
     const loyaltyProfile = loyaltyByUser.get(String(profile.user_id));
+    const tier = loyaltyProfile?.tier ? String(loyaltyProfile.tier) : null;
+
     return {
       user_id: String(profile.user_id),
       rp_first_name: profile.rp_first_name,
       rp_last_name: profile.rp_last_name,
       discord_name: profile.discord_name,
-      tier: loyaltyProfile?.tier ? String(loyaltyProfile.tier) : null,
+      tier,
       purchases_count: Number(loyaltyProfile?.purchases_count ?? 0),
-      discount_percent: Number(loyaltyProfile?.discount_percent ?? 0),
+      discount_percent: getLoyaltyDiscountPercent(tier),
       active_card: cardByUser.get(String(profile.user_id)) ?? null,
     } satisfies LoyaltyCitizenRow;
   });
 
   return {
     configured:
-      !profiles.error && !loyalty.error && !cards.error && !templates.error,
+      !profiles.error &&
+      !loyalty.error &&
+      !cards.error &&
+      !templates.error &&
+      !counters.error,
     citizens,
     templates: (templates.data ?? []) as LoyaltyCardTemplate[],
+    counters: (counters.data ?? []) as LoyaltyCardCounter[],
+    cards_count: cards.data?.length ?? 0,
+    active_cards_count: (cards.data ?? []).filter((card) => card.active).length,
   };
 }

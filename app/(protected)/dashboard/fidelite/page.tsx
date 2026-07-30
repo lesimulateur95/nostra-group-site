@@ -2,7 +2,9 @@ import { redirect } from "next/navigation";
 
 import {
   deactivateLoyaltyCard,
+  deleteAllLoyaltyCardsAndResetCounters,
   generateLoyaltyCard,
+  resetLoyaltyCardCounters,
 } from "@/app/actions/loyalty-cards";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import {
@@ -10,13 +12,18 @@ import {
   LoyaltyCard,
 } from "@/components/loyalty/loyalty-card";
 import { getUserRoleKeys } from "@/lib/auth/access";
-import { getLoyaltyCitizens } from "@/lib/loyalty-cards/data";
+import {
+  getLoyaltyCitizens,
+  LOYALTY_DISCOUNTS,
+} from "@/lib/loyalty-cards/data";
 import { createClient } from "@/lib/supabase/server";
 
 type PageProps = {
   searchParams: Promise<{
     generated?: string;
     deactivated?: string;
+    cards_deleted?: string;
+    counters_reset?: string;
     error?: string;
   }>;
 };
@@ -35,17 +42,22 @@ export default async function LoyaltyDashboardPage({ searchParams }: PageProps) 
     searchParams,
     getLoyaltyCitizens(),
   ]);
+  const currentYear = new Date().getFullYear();
 
   const errorMessage =
     params.error === "setup"
-      ? "Exécute le SQL V114 pour activer les cartes de fidélité."
+      ? "Exécute le SQL V118 pour activer la gestion des cartes et des compteurs."
       : params.error === "name"
         ? "Le citoyen doit avoir un prénom et un nom RP avant la génération."
         : params.error === "tier"
           ? "Le grade de fidélité sélectionné est invalide."
-          : params.error
-            ? "La carte n’a pas pu être enregistrée."
-            : null;
+          : params.error === "cards_exist"
+            ? "Impossible de remettre seulement les compteurs à zéro tant que des cartes existent. Supprime d’abord toutes les cartes."
+            : params.error === "confirmation"
+              ? "La confirmation de suppression est invalide."
+              : params.error
+                ? "L’opération n’a pas pu être enregistrée."
+                : null;
 
   return (
     <DashboardShell allowedRoles={["manager"]}>
@@ -55,15 +67,15 @@ export default async function LoyaltyDashboardPage({ searchParams }: PageProps) 
           <h1 className="page-title">Cartes et grades de fidélité</h1>
           <p className="lead">
             Génère une carte personnalisée avec le nom du citoyen et un numéro
-            unique. Une carte générée pour un autre citoyen ne désactive jamais
-            les cartes déjà actives.
+            unique. Les compteurs Silver, Gold et Black Signature restent
+            indépendants.
           </p>
         </div>
       </section>
 
       {!overview.configured && (
         <div className="dashboard-feedback dashboard-feedback-error">
-          Exécute le fichier SQL V114 avant d’utiliser ce module.
+          Exécute le fichier SQL V118 avant d’utiliser ce module.
         </div>
       )}
       {params.generated && (
@@ -76,19 +88,94 @@ export default async function LoyaltyDashboardPage({ searchParams }: PageProps) 
           La carte du citoyen a été désactivée.
         </div>
       )}
+      {params.cards_deleted && (
+        <div className="dashboard-feedback dashboard-feedback-success">
+          Toutes les cartes ont été supprimées et les trois compteurs sont
+          repartis de zéro.
+        </div>
+      )}
+      {params.counters_reset && (
+        <div className="dashboard-feedback dashboard-feedback-success">
+          Les compteurs Silver, Gold et Black Signature ont été remis à zéro.
+        </div>
+      )}
       {errorMessage && (
         <div className="dashboard-feedback dashboard-feedback-error">
           {errorMessage}
         </div>
       )}
 
+      <section className="dashboard-panel">
+        <div className="dashboard-section-heading dashboard-section-heading-tight">
+          <p className="eyebrow">RÈGLES DE REMISE</p>
+          <h2>Pourcentages officiels</h2>
+          <p>
+            Le statut, la carte et les remises du profil utilisent désormais la
+            même règle : Silver 2 %, Gold 5 % et Black Signature 15 %.
+          </p>
+        </div>
+        <dl className="contract-summary-v114">
+          {tiers.map((tier) => (
+            <div key={tier}>
+              <dt>{tier}</dt>
+              <dd>{LOYALTY_DISCOUNTS[tier]} %</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
+
+      <section className="dashboard-panel">
+        <div className="dashboard-section-heading dashboard-section-heading-tight">
+          <p className="eyebrow">MAINTENANCE</p>
+          <h2>Cartes et compteurs</h2>
+          <p>
+            {overview.cards_count} carte(s) enregistrée(s), dont {overview.active_cards_count} active(s).
+            Une remise à zéro simple des compteurs est autorisée uniquement
+            lorsqu’aucune carte n’existe, afin d’éviter deux numéros identiques.
+          </p>
+        </div>
+
+        <dl className="contract-summary-v114">
+          {tiers.map((tier) => {
+            const counter = overview.counters.find(
+              (item) => item.tier === tier && item.card_year === currentYear,
+            );
+            return (
+              <div key={tier}>
+                <dt>{tier} — {currentYear}</dt>
+                <dd>{String(counter?.last_number ?? 0).padStart(6, "0")}</dd>
+              </div>
+            );
+          })}
+        </dl>
+
+        <div className="dashboard-actions">
+          <form action={resetLoyaltyCardCounters}>
+            <button className="btn btn-secondary" type="submit">
+              Remettre les compteurs à zéro
+            </button>
+          </form>
+
+          <form action={deleteAllLoyaltyCardsAndResetCounters}>
+            <input
+              type="hidden"
+              name="confirmation"
+              value="SUPPRIMER_TOUTES_LES_CARTES"
+            />
+            <button className="btn btn-danger-v98" type="submit">
+              Supprimer toutes les cartes et remettre à zéro
+            </button>
+          </form>
+        </div>
+      </section>
+
       <section className="dashboard-section-heading dashboard-section-heading-tight">
         <p className="eyebrow">MODÈLES OFFICIELS</p>
         <h2>Cartes Nostra Motors utilisées dans les profils</h2>
         <p>
-          Les cartes générées utilisent maintenant exactement les modèles Silver,
-          Gold et Black Signature de Nostra Motors. Le nom, le prénom et le numéro
-          unique sont ajoutés automatiquement sur la zone membre.
+          Les cartes générées utilisent exactement les modèles Silver, Gold et
+          Black Signature de Nostra Motors. Le nom, le prénom et le numéro unique
+          sont ajoutés automatiquement sur la zone membre.
         </p>
       </section>
 
