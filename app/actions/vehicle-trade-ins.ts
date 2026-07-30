@@ -10,7 +10,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { VehicleTradeInImage } from "@/lib/vehicle-trade-ins/data";
 
 const MAX_IMAGES = 8;
-const MAX_IMAGE_SIZE = 7 * 1024 * 1024;
+const MAX_IMAGE_SIZE = 2 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 function text(value: FormDataEntryValue | null, max = 5000): string {

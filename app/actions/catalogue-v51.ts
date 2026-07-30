@@ -16,9 +16,9 @@ import {
 } from "@/lib/catalogues-v51/data";
 import { createClient } from "@/lib/supabase/server";
 
-const MAX_IMAGES = 6;
+const MAX_IMAGES = 1;
 const MAX_IMAGE_SIZE =
-  5 * 1024 * 1024;
+  2 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = new Set([
   "image/jpeg",
   "image/png",
@@ -299,10 +299,15 @@ export async function saveCatalogVehicleV51(
       ),
   );
 
-  const kept = current.filter(
-    (image) =>
-      !removePaths.has(image.path),
-  );
+  // Une nouvelle photo remplace automatiquement l’ancienne.
+  const kept = (newImages.length > 0
+    ? []
+    : current.filter((image) => !removePaths.has(image.path))
+  ).slice(0, MAX_IMAGES);
+
+  const obsoletePaths = current
+    .filter((image) => !kept.some((keptImage) => keptImage.path === image.path))
+    .map((image) => image.path);
 
   if (
     kept.length +
@@ -432,10 +437,10 @@ export async function saveCatalogVehicleV51(
     );
   }
 
-  if (removePaths.size) {
+  if (obsoletePaths.length) {
     await supabase.storage
       .from("vehicle-images")
-      .remove([...removePaths]);
+      .remove(obsoletePaths);
   }
 
   revalidateCatalogs();

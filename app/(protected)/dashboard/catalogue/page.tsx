@@ -12,6 +12,7 @@ import {
 import {
   DashboardShell,
 } from "@/components/dashboard/dashboard-shell";
+import { OptimizedImageInput } from "@/components/forms/optimized-image-input";
 import {
   CATALOG_LABELS,
   CATALOG_TYPES,
@@ -39,9 +40,9 @@ function errorMessage(
     "image-type":
       "Les photos doivent être au format JPG, PNG ou WEBP.",
     "image-size":
-      "Chaque photo doit peser moins de 5 Mo.",
+      "La photo optimisée est encore trop lourde. Sélectionne-la de nouveau.",
     "too-many":
-      "Un véhicule peut contenir au maximum 6 photos.",
+      "Une seule photo est autorisée par véhicule.",
     upload:
       "Impossible d’envoyer une ou plusieurs photos.",
     delete:
@@ -297,13 +298,8 @@ export default async function DashboardCataloguePage({
               </label>
 
               <label className="form-span-2">
-                Photos
-                <input
-                  type="file"
-                  name="images"
-                  accept="image/jpeg,image/png,image/webp"
-                  multiple
-                />
+                Photo du véhicule
+                <OptimizedImageInput name="images" maxFiles={1} targetKilobytes={800} />
               </label>
 
               <label className="form-span-3">
@@ -532,13 +528,8 @@ export default async function DashboardCataloguePage({
                     </label>
 
                     <label className="form-span-2">
-                      Ajouter des photos
-                      <input
-                        type="file"
-                        name="images"
-                        accept="image/jpeg,image/png,image/webp"
-                        multiple
-                      />
+                      Remplacer la photo
+                      <OptimizedImageInput name="images" maxFiles={1} targetKilobytes={800} />
                     </label>
 
                     <label className="form-span-3">

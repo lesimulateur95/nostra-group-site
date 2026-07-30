@@ -7,8 +7,8 @@ import { getUserRoleKeys } from "@/lib/auth/access";
 import type { CatalogVehicleImage } from "@/lib/backoffice/data";
 import { createClient } from "@/lib/supabase/server";
 
-const MAX_IMAGES = 8;
-const MAX_IMAGE_SIZE = 7 * 1024 * 1024;
+const MAX_IMAGES = 1;
+const MAX_IMAGE_SIZE = 2 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 function text(value: FormDataEntryValue | null, max = 5000): string {
@@ -230,8 +230,15 @@ export async function updateUsedVehiclePurchase(formData: FormData) {
       .getAll("remove_images")
       .filter((value): value is string => typeof value === "string"),
   );
-  const kept = current.filter((image) => !removePaths.has(image.path));
   const selected = files(formData);
+  // Une nouvelle photo remplace automatiquement l’ancienne.
+  const kept = (selected.length > 0
+    ? []
+    : current.filter((image) => !removePaths.has(image.path))
+  ).slice(0, MAX_IMAGES);
+  const obsoletePaths = current
+    .filter((image) => !kept.some((keptImage) => keptImage.path === image.path))
+    .map((image) => image.path);
   const imageError = validateImages(selected, kept.length);
   if (imageError) redirect(`/dashboard/occasion/rachats?error=${imageError}`);
 
@@ -271,8 +278,8 @@ export async function updateUsedVehiclePurchase(formData: FormData) {
     redirect(`/dashboard/occasion/rachats?error=${errorCode(result.error)}`);
   }
 
-  if (removePaths.size > 0) {
-    await supabase.storage.from("vehicle-images").remove([...removePaths]);
+  if (obsoletePaths.length > 0) {
+    await supabase.storage.from("vehicle-images").remove(obsoletePaths);
   }
 
   revalidateUsedVehiclePaths(vehicleId);

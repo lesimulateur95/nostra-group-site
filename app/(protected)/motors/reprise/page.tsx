@@ -4,6 +4,7 @@ import {
   cancelOwnVehicleTradeInRequest,
   submitVehicleTradeInRequest,
 } from "@/app/actions/vehicle-trade-ins";
+import { OptimizedImageInput } from "@/components/forms/optimized-image-input";
 import { formatParisDateTime } from "@/lib/dates/paris";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -77,7 +78,7 @@ export default async function VehicleTradeInPage({
       {params.error && (
         <div className="dashboard-feedback dashboard-feedback-error">
           {params.error === "image-size"
-            ? "Chaque image doit faire moins de 7 Mo."
+            ? "Une image optimisée est encore trop lourde. Sélectionne-la de nouveau."
             : params.error === "image-type"
               ? "Formats autorisés : JPG, PNG et WEBP."
               : params.error === "too-many"
@@ -173,11 +174,10 @@ export default async function VehicleTradeInPage({
               </label>
               <label className="form-span-2">
                 Photos du véhicule — 8 maximum
-                <input
+                <OptimizedImageInput
                   name="images"
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  multiple
+                  maxFiles={8}
+                  targetKilobytes={800}
                 />
               </label>
               <button type="submit" className="btn form-span-2">

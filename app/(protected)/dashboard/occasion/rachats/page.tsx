@@ -7,6 +7,7 @@ import {
 } from "@/app/actions/used-vehicles";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
+import { OptimizedImageInput } from "@/components/forms/optimized-image-input";
 import { UsedVehicleDashboardNav } from "@/components/used-vehicles/used-dashboard-nav";
 import styles from "@/components/used-vehicles/used-vehicles.module.css";
 import {
@@ -29,8 +30,8 @@ function errorMessage(code?: string) {
   const messages: Record<string, string> = {
     invalid: "Vérifie les informations obligatoires et les montants.",
     "image-type": "Les photos doivent être au format JPG, PNG ou WEBP.",
-    "image-size": "Chaque photo doit peser moins de 7 Mo.",
-    "too-many": "Un véhicule peut contenir au maximum 8 photos.",
+    "image-size": "La photo optimisée est encore trop lourde. Sélectionne-la de nouveau.",
+    "too-many": "Une seule photo est autorisée par véhicule.",
     upload: "Impossible d’envoyer les photos dans Supabase Storage.",
     registration: "Cette immatriculation est déjà utilisée par un autre véhicule d’occasion.",
     "active-order": "Ce véhicule possède une commande active et ne peut pas être supprimé.",
@@ -191,13 +192,8 @@ export default async function UsedVehiclePurchasesPage({
                 <input name="sort_order" type="number" min="0" defaultValue="0" />
               </label>
               <label className={styles.span2}>
-                Photos du véhicule
-                <input
-                  name="images"
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  multiple
-                />
+                Photo du véhicule
+                <OptimizedImageInput name="images" maxFiles={1} targetKilobytes={800} />
               </label>
 
               <label className={styles.span2}>
@@ -394,13 +390,8 @@ export default async function UsedVehiclePurchasesPage({
                           />
                         </label>
                         <label className={styles.span2}>
-                          Ajouter des photos
-                          <input
-                            name="images"
-                            type="file"
-                            accept="image/jpeg,image/png,image/webp"
-                            multiple
-                          />
+                          Remplacer la photo
+                          <OptimizedImageInput name="images" maxFiles={1} targetKilobytes={800} />
                         </label>
                         <label className={styles.span2}>
                           Description publique
