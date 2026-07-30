@@ -75,6 +75,19 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
 
  const metadata = data.user.user_metadata ?? {};
 
+ const { data: steamProfile } = await supabase
+  .from("member_profiles")
+  .select("steam_id")
+  .eq("user_id", data.user.id)
+  .maybeSingle();
+
+ const steamId =
+  typeof steamProfile?.steam_id === "string" && steamProfile.steam_id.trim()
+   ? steamProfile.steam_id
+   : typeof metadata.steam_id === "string" && metadata.steam_id.trim()
+    ? metadata.steam_id
+    : null;
+
  const avatarUrl = getAvatarUrl(data.user);
 
  const rpName = getRpName(data.user);
@@ -187,6 +200,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
  <div><dt>Rôles</dt><dd className="profile-role-list-v114">{memberRoles.map((roleKey) => <span className="role-badge" key={roleKey}>{MEMBER_ROLE_LABELS[roleKey as MemberRoleKey] ?? roleKey}</span>)}</dd></div>
 
  <div><dt>Identifiant Discord</dt><dd>{getDiscordId(data.user) ?? "Non détecté"}</dd></div>
+ <div><dt>Identifiant Steam</dt><dd>{steamId ?? "Non lié"}</dd></div>
  <div><dt>E-mail</dt><dd>{data.user.email ?? "Non communiqué"}</dd></div>
 
  </dl>
