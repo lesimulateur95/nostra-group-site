@@ -6,7 +6,6 @@ import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { formatParisDateTime, toParisDateTimeLocal } from "@/lib/dates/paris";
 import {
   getRecruitmentApplications,
-  getRecruitmentConfigured,
   getRecruitmentHistory,
   type RecruitmentApplication,
   type RecruitmentHistoryEntry,
@@ -30,14 +29,13 @@ export default async function RecruitmentApplicationsDashboardPage({
 }: {
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
-  const [params, configured, applications] = await Promise.all([
+  const [params, applications] = await Promise.all([
     searchParams,
-    getRecruitmentConfigured(),
     getRecruitmentApplications(),
   ]);
-  const history = configured
-    ? await getRecruitmentHistory(applications.map((item) => item.id))
-    : [];
+  const history = await getRecruitmentHistory(
+    applications.map((item) => item.id),
+  );
   const historyByApplication = new Map<number, RecruitmentHistoryEntry[]>();
   history.forEach((entry) => {
     const values = historyByApplication.get(entry.application_id) ?? [];
@@ -57,16 +55,6 @@ export default async function RecruitmentApplicationsDashboardPage({
         description="Étudie les candidatures, planifie les entretiens, ajoute des notes privées et prépare les réponses d’acceptation ou de refus."
       />
 
-      {!configured && (
-        <section className="dashboard-setup">
-          <span className="module-status">Activation nécessaire</span>
-          <h2>Activer le recrutement V96</h2>
-          <p>
-            Exécute le fichier <strong>nostra-v96-recrutement-reservations-reprise.sql</strong>{" "}
-            dans Supabase.
-          </p>
-        </section>
-      )}
       {params.saved && (
         <div className="dashboard-feedback dashboard-feedback-success">
           Candidature mise à jour.
@@ -75,15 +63,14 @@ export default async function RecruitmentApplicationsDashboardPage({
       {params.error && (
         <div className="dashboard-feedback dashboard-feedback-error">
           {params.error === "setup"
-            ? "Le SQL V96 doit être exécuté dans Supabase."
+            ? "Le service de recrutement est momentanément indisponible."
             : params.error === "interview-date"
               ? "Renseigne la date et l’heure de l’entretien avant de choisir ce statut."
               : "Impossible de modifier cette candidature."}
         </div>
       )}
 
-      {configured && (
-        <>
+      <>
           <section className="reservation-admin-summary recruitment-summary-v96">
             <article>
               <span>Nouvelles</span>
@@ -143,8 +130,7 @@ export default async function RecruitmentApplicationsDashboardPage({
               </div>
             </section>
           )}
-        </>
-      )}
+      </>
     </DashboardShell>
   );
 }

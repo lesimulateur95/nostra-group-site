@@ -3,10 +3,7 @@ import { redirect } from "next/navigation";
 import { submitRecruitmentApplication } from "@/app/actions/recruitment";
 import { getDiscordName, getRpName } from "@/lib/auth/user-profile";
 import { formatParisDateTime } from "@/lib/dates/paris";
-import {
-  getOwnRecruitmentApplications,
-  getRecruitmentConfigured,
-} from "@/lib/recruitment/data";
+import { getOwnRecruitmentApplications } from "@/lib/recruitment/data";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -30,9 +27,8 @@ export default async function RecruitmentPage({
   const { data } = await supabase.auth.getUser();
   if (!data.user) redirect("/");
 
-  const [params, configured, applications] = await Promise.all([
+  const [params, applications] = await Promise.all([
     searchParams,
-    getRecruitmentConfigured(),
     getOwnRecruitmentApplications(data.user.id),
   ]);
   const metadata = data.user.user_metadata ?? {};
@@ -48,11 +44,6 @@ export default async function RecruitmentPage({
         </p>
       </section>
 
-      {!configured && (
-        <div className="dashboard-feedback dashboard-feedback-error">
-          Le module doit être activé avec le fichier SQL V96.
-        </div>
-      )}
       {params.sent && (
         <div className="dashboard-feedback dashboard-feedback-success">
           Candidature <strong>{params.sent}</strong> envoyée à la direction.
@@ -63,13 +54,12 @@ export default async function RecruitmentPage({
           {params.error === "already-active"
             ? "Tu as déjà une candidature active. Attends son traitement avant d’en envoyer une nouvelle."
             : params.error === "setup"
-              ? "Le SQL V96 doit être exécuté dans Supabase."
+              ? "Le service de recrutement est momentanément indisponible. Réessaie dans quelques instants."
               : "Vérifie les informations du formulaire puis réessaie."}
         </div>
       )}
 
-      {configured && (
-        <div className="recruitment-layout-v96">
+      <div className="recruitment-layout-v96">
           <section className="backoffice-panel">
             <div className="dashboard-section-heading dashboard-section-heading-tight">
               <p className="eyebrow">CANDIDATURE</p>
@@ -217,7 +207,6 @@ export default async function RecruitmentPage({
             </div>
           </section>
         </div>
-      )}
     </>
   );
 }

@@ -1,5 +1,4 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
 
 export type RecruitmentApplicationStatus =
   | "new"
@@ -72,32 +71,27 @@ function normalizeApplication(
 }
 
 /**
- * La disponibilité du module est vérifiée avec le client serveur secret.
- * Cela évite qu'une connexion Steam valide soit considérée comme non configurée
- * à cause d'une ancienne politique RLS prévue pour Discord.
+ * Vérification minimale : la page de recrutement ne doit pas être bloquée
+ * parce qu'une table de notes privées, une ancienne colonne ou une règle RLS
+ * renvoie une erreur. Le module est disponible dès que la table principale
+ * existe et répond côté serveur.
  */
 export async function getRecruitmentConfigured(): Promise<boolean> {
   try {
     const admin = createAdminClient();
-    const [applicationsResult, privateResult] = await Promise.all([
-      admin.from("recruitment_applications").select(applicationColumns).limit(1),
-      admin
-        .from("recruitment_application_private_v96")
-        .select("application_id,internal_notes")
-        .limit(1),
-    ]);
+    const { error } = await admin
+      .from("recruitment_applications")
+      .select("id")
+      .limit(1);
 
-    if (applicationsResult.error || privateResult.error) {
-      console.error("Recruitment configuration check failed", {
-        applications: applicationsResult.error,
-        privateNotes: privateResult.error,
-      });
+    if (error) {
+      console.error("Recruitment main table check failed", error);
       return false;
     }
 
     return true;
   } catch (error) {
-    console.error("Recruitment configuration check failed", error);
+    console.error("Recruitment main table check failed", error);
     return false;
   }
 }
@@ -158,17 +152,26 @@ export async function getRecruitmentApplications(): Promise<RecruitmentApplicati
 export async function getOwnRecruitmentApplications(
   userId: string,
 ): Promise<RecruitmentApplication[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("recruitment_applications")
-    .select(applicationColumns)
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false });
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("recruitment_applications")
+      .select(applicationColumns)
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
 
-  if (error) return [];
-  return ((data ?? []) as unknown as Record<string, unknown>[]).map((row) =>
-    normalizeApplication(row),
-  );
+    if (error) {
+      console.error("Own recruitment applications load failed", error);
+      return [];
+    }
+
+    return ((data ?? []) as unknown as Record<string, unknown>[]).map((row) =>
+      normalizeApplication(row),
+    );
+  } catch (error) {
+    console.error("Own recruitment applications load failed", error);
+    return [];
+  }
 }
 
 export async function getRecruitmentHistory(
