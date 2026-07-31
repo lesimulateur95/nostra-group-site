@@ -2,7 +2,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { LoyaltyCard } from "@/components/loyalty/loyalty-card";
-import { getActiveLoyaltyCard } from "@/lib/loyalty-cards/data";
+import {
+  getActiveLoyaltyCard,
+  getLoyaltyDiscountPercent,
+} from "@/lib/loyalty-cards/data";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function ProfileLoyaltyPage() {
@@ -18,6 +21,9 @@ export default async function ProfileLoyaltyPage() {
       .eq("user_id", data.user.id)
       .maybeSingle(),
   ]);
+  const loyaltyDiscountPercent = getLoyaltyDiscountPercent(
+    card?.tier ?? loyalty.data?.tier,
+  );
 
   return (
     <article className="profile-subpage">
@@ -59,7 +65,7 @@ export default async function ProfileLoyaltyPage() {
           </div>
           <div>
             <dt>Remise</dt>
-            <dd>{Number(loyalty.data?.discount_percent ?? 0)} %</dd>
+            <dd>{loyaltyDiscountPercent} %</dd>
           </div>
           <div>
             <dt>Numéro</dt>

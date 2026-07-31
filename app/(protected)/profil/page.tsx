@@ -47,7 +47,7 @@ import { getUserRoleLabel } from "@/lib/auth/access";
 import { createClient } from "@/lib/supabase/server";
 import { getOwnVehicleReservations } from "@/lib/vehicle-reservations/data";
 import { getOwnVehicleTradeInRequests } from "@/lib/vehicle-trade-ins/data";
-import { getActiveLoyaltyCard } from "@/lib/loyalty-cards/data";
+import { getActiveLoyaltyCard, getLoyaltyDiscountPercent } from "@/lib/loyalty-cards/data";
 import { getOwnMemberRoles, MEMBER_ROLE_LABELS, type MemberRoleKey } from "@/lib/member-roles/data";
 import { getOwnContractCart } from "@/lib/contracts/data";
 import styles from "./profile-top-layout.module.css";
@@ -134,6 +134,9 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
  const reservationDepositCart = commerce.cart.filter((item) => item.item_type === "reservation_deposit");
  const reservationBalanceCart = commerce.cart.filter((item) => item.item_type === "reservation_balance");
  const cartTotal = commerce.cart.reduce((sum, item) => sum + Number(item.unit_price) * Number(item.quantity), 0);
+ const loyaltyDiscountPercent = getLoyaltyDiscountPercent(
+  activeLoyaltyCard?.tier ?? commerce.loyalty?.tier,
+ );
 
  const tombolaCartTotal = tombolaCart ? Number(tombolaCart.unit_price) * Number(tombolaCart.quantity) : 0;
 
@@ -456,7 +459,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
  <div className="profile-loyalty-summary-v115">
  <dl>
  <div><dt>Achats comptabilisés</dt><dd>{commerce.loyalty?.purchases_count ?? 0}</dd></div>
- <div><dt>Remise actuelle</dt><dd>{Number(commerce.loyalty?.discount_percent ?? 0)} %</dd></div>
+ <div><dt>Remise actuelle</dt><dd>{loyaltyDiscountPercent} %</dd></div>
  <div><dt>Numéro de carte</dt><dd>{activeLoyaltyCard?.card_number ?? "Non généré"}</dd></div>
  <div><dt>Titulaire</dt><dd>{activeLoyaltyCard ? `${activeLoyaltyCard.first_name} ${activeLoyaltyCard.last_name}` : rpName || "À compléter"}</dd></div>
  </dl>
