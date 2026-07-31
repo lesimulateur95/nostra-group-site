@@ -99,34 +99,35 @@ type SanitizedRaceEntry = {
   team_name: string;
 };
 
-function parseRaceEntries(value: string): SanitizedRaceEntry[] | null {
-  let parsed: unknown;
+function entryText(value: FormDataEntryValue | undefined): string {
+  if (typeof value !== "string") return "";
+  return value.trim().slice(0, 120);
+}
 
-  try {
-    parsed = JSON.parse(value);
-  } catch {
-    return null;
-  }
+function parseRaceEntriesFromFormData(
+  formData: FormData,
+): SanitizedRaceEntry[] | null {
+  const driverValues = formData.getAll("driver_name");
+  const teamValues = formData.getAll("team_name");
 
-  if (!Array.isArray(parsed) || parsed.length < 1 || parsed.length > 40) {
+  if (
+    driverValues.length !== teamValues.length ||
+    driverValues.length < 1 ||
+    driverValues.length > 40
+  ) {
     return null;
   }
 
   const entries: SanitizedRaceEntry[] = [];
 
-  for (const item of parsed) {
-    if (!item || typeof item !== "object") return null;
+  for (let index = 0; index < driverValues.length; index += 1) {
+    const driverName = entryText(driverValues[index]);
+    const teamName = entryText(teamValues[index]);
 
-    const record = item as Record<string, unknown>;
-    const driverName =
-      typeof record.driver_name === "string"
-        ? record.driver_name.trim().slice(0, 120)
-        : "";
-    const teamName =
-      typeof record.team_name === "string"
-        ? record.team_name.trim().slice(0, 120)
-        : "";
+    // Les lignes entièrement vides sont seulement des emplacements libres.
+    if (!driverName && !teamName) continue;
 
+    // Une ligne commencée doit toujours contenir les deux informations.
     if (!driverName || !teamName) return null;
 
     entries.push({
@@ -135,7 +136,7 @@ function parseRaceEntries(value: string): SanitizedRaceEntry[] | null {
     });
   }
 
-  return entries;
+  return entries.length > 0 ? entries : null;
 }
 
 export async function createRaceControlEvent(
@@ -148,9 +149,7 @@ export async function createRaceControlEvent(
     20,
   );
   const targetLaps = integer(formData.get("target_laps"));
-  const entries = parseRaceEntries(
-    text(formData.get("entries_json"), 20000),
-  );
+  const entries = parseRaceEntriesFromFormData(formData);
 
   if (!title) {
     return {
