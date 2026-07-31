@@ -3,8 +3,11 @@ import { getCommissionerModuleConfigured, getCommissionerRaceBriefing } from "@/
 
 export default async function CommissionerBriefingPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const params = await searchParams;
-  const configured = await getCommissionerModuleConfigured();
-  const briefing = configured ? await getCommissionerRaceBriefing() : null;
+  const [configured, loadedBriefing] = await Promise.all([
+    getCommissionerModuleConfigured(),
+    getCommissionerRaceBriefing(),
+  ]);
+  const briefing = configured ? loadedBriefing : null;
 
   return (
     <article className="circuit-document commissioner-document">

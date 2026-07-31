@@ -1,18 +1,22 @@
 import { redirect } from "next/navigation";
 
 import { CommissionerBackLinkFix } from "@/components/commissaires/commissioner-back-link-fix";
-import { hasCommissionerAccess } from "@/lib/auth/access";
-import { createClient } from "@/lib/supabase/server";
+import { getRequestRoleKeys, getRequestUser } from "@/lib/auth/request-context";
 
 export default async function CommissionerToolsLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getUser();
+  const [user, roles] = await Promise.all([
+    getRequestUser(),
+    getRequestRoleKeys(),
+  ]);
 
-  if (!data.user || !(await hasCommissionerAccess(data.user))) {
+  if (
+    !user ||
+    (!roles.includes("manager") && !roles.includes("commissioner"))
+  ) {
     redirect("/accueil");
   }
 

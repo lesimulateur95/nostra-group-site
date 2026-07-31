@@ -3,8 +3,8 @@ import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { Topbar } from "@/components/site/topbar";
-import { getUserRoleKeys, type RoleKey } from "@/lib/auth/access";
-import { createClient } from "@/lib/supabase/server";
+import type { RoleKey } from "@/lib/auth/access";
+import { getRequestRoleKeys, getRequestUser } from "@/lib/auth/request-context";
 
 const OPERATIONS_DASHBOARD_PREFIXES = [
   "/dashboard/catalogue",
@@ -43,17 +43,15 @@ export async function DashboardShell({
   children: ReactNode;
   allowedRoles?: RoleKey[];
 }) {
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getUser();
-
-  if (!data.user) redirect("/");
-
-  const [roles, resolvedAllowedRoles] = await Promise.all([
-    getUserRoleKeys(data.user),
+  const [user, roles, resolvedAllowedRoles] = await Promise.all([
+    getRequestUser(),
+    getRequestRoleKeys(),
     allowedRoles
       ? Promise.resolve(allowedRoles)
       : getAllowedRolesForCurrentPath(),
   ]);
+
+  if (!user) redirect("/");
 
   if (!roles.some((role) => resolvedAllowedRoles.includes(role))) {
     redirect("/accueil");

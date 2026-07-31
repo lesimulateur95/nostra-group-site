@@ -7,7 +7,8 @@ export type SidebarNavItem = {
   key?: string;
   href: string;
   label: string;
-  children?: Array<{ key?: string; href: string; label: string }>;
+  prefetch?: boolean;
+  children?: Array<{ key?: string; href: string; label: string; prefetch?: boolean }>;
 };
 
 function cleanHref(href: string): string {
@@ -23,7 +24,7 @@ export function SidebarNav({ items }: { items: SidebarNavItem[] }) {
         if (!item.children?.length) {
           const active = pathname === cleanHref(item.href);
           return (
-            <Link className={`side-link${active ? " side-link-active" : ""}`} href={item.href} key={item.key ?? item.href}>
+            <Link className={`side-link${active ? " side-link-active" : ""}`} href={item.href} key={item.key ?? item.href} prefetch={item.prefetch}>
               {item.label}
             </Link>
           );
@@ -40,7 +41,7 @@ export function SidebarNav({ items }: { items: SidebarNavItem[] }) {
               {item.children.map((child) => {
                 const active = pathname === cleanHref(child.href);
                 return (
-                  <Link className={`side-sublink${active ? " side-sublink-active" : ""}`} href={child.href} key={child.key ?? child.href}>
+                  <Link className={`side-sublink${active ? " side-sublink-active" : ""}`} href={child.href} key={child.key ?? child.href} prefetch={child.prefetch}>
                     {child.label}
                   </Link>
                 );

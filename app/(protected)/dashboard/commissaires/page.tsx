@@ -10,8 +10,11 @@ export const revalidate = 0;
 
 export default async function CommissionerDashboardPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const params = await searchParams;
-  const configured = await getCommissionerModuleConfigured();
-  const briefing = configured ? await getCommissionerRaceBriefing() : null;
+  const [configured, loadedBriefing] = await Promise.all([
+    getCommissionerModuleConfigured(),
+    getCommissionerRaceBriefing(),
+  ]);
+  const briefing = configured ? loadedBriefing : null;
 
   return (
     <DashboardShell allowedRoles={["manager", "commissioner"]}>

@@ -60,7 +60,7 @@ export default function CommissionersPage() {
 
       <section className={styles.grid}>
         {tools.map((tool) => (
-          <Link className={styles.card} href={tool.href} key={tool.href}>
+          <Link className={styles.card} href={tool.href} key={tool.href} prefetch={false}>
             <span className={styles.icon} aria-hidden="true">
               {tool.icon}
             </span>

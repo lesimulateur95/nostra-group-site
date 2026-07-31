@@ -1,35 +1,40 @@
 import { redirect } from "next/navigation";
 
 import { SectionLayout } from "@/components/site/section-layout";
-import { getUserRoleKeys } from "@/lib/auth/access";
-import { createClient } from "@/lib/supabase/server";
+import { getRequestRoleKeys, getRequestUser } from "@/lib/auth/request-context";
 
 const commissionerNavigation = [
   {
     href: "/commissaires",
     label: "Gestion de course",
+    prefetch: false,
   },
   {
     href: "/commissaires/chronometrage",
     label: "Chronométrage et tours",
+    prefetch: false,
   },
   {
     href: "/commissaires/reglement",
     label: "Règlement des commissaires",
+    prefetch: false,
   },
   {
     href: "/commissaires/briefing-avant-course",
     label: "Planning visible par les citoyens",
+    prefetch: false,
   },
   {
     href: "/commissaires/incidents-circuit",
     label: "Rapports d’incident",
+    prefetch: false,
   },
 ];
 
 const disciplineNavigationItem = {
   href: "/commissaires/sanctions-disciplinaires",
   label: "Sanctions disciplinaires",
+  prefetch: false,
 };
 
 export default async function CommissionersLayout({
@@ -37,14 +42,15 @@ export default async function CommissionersLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getUser();
+  const [user, roles] = await Promise.all([
+    getRequestUser(),
+    getRequestRoleKeys(),
+  ]);
 
-  if (!data.user) {
+  if (!user) {
     redirect("/accueil");
   }
 
-  const roles = await getUserRoleKeys(data.user);
   const hasAccess =
     roles.includes("manager") || roles.includes("commissioner");
 

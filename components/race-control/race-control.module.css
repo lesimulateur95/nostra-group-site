@@ -839,6 +839,9 @@
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 10px;
   align-items: stretch;
+  content-visibility: auto;
+  contain: layout paint style;
+  contain-intrinsic-size: auto 112px;
 }
 
 .savedRaceLink {

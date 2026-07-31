@@ -1,15 +1,17 @@
 import { createCommissionerIncidentReport, deleteCommissionerIncidentReport } from "@/app/actions/commissioners";
 import { getCommissionerIncidentReports, getCommissionerModuleConfigured } from "@/lib/backoffice/data";
-import { hasDashboardAccess } from "@/lib/auth/access";
-import { createClient } from "@/lib/supabase/server";
+import { getRequestRoleKeys, getRequestUser } from "@/lib/auth/request-context";
 
 export default async function CommissionerIncidentsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const params = await searchParams;
-  const supabase = await createClient();
-  const { data: authData } = await supabase.auth.getUser();
-  const configured = await getCommissionerModuleConfigured();
-  const reports = configured ? await getCommissionerIncidentReports() : [];
-  const managerAccess = await hasDashboardAccess(authData.user);
+  const [user, roles, configured, loadedReports] = await Promise.all([
+    getRequestUser(),
+    getRequestRoleKeys(),
+    getCommissionerModuleConfigured(),
+    getCommissionerIncidentReports(),
+  ]);
+  const reports = configured ? loadedReports : [];
+  const managerAccess = roles.includes("manager");
 
   return (
     <article className="circuit-document commissioner-document">
@@ -96,7 +98,7 @@ export default async function CommissionerIncidentsPage({ searchParams }: { sear
                   <div><dt>Témoins</dt><dd>{report.witnesses || "Non renseigné"}</dd></div>
                   <div><dt>Décision Direction de Course</dt><dd>{report.race_direction_decision || "En attente"}</dd></div>
                 </dl>
-                {(managerAccess || report.created_by === authData.user?.id) && (
+                {(managerAccess || report.created_by === user?.id) && (
                   <form action={deleteCommissionerIncidentReport}>
                     <input type="hidden" name="id" value={report.id} />
                     <button className="danger-link-button" type="submit">Supprimer ce rapport</button>

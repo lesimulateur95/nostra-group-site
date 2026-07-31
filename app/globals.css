@@ -1914,6 +1914,9 @@ select:focus { outline: 2px solid rgba(212,175,55,.32); outline-offset: 1px; }
   border-radius: 13px;
   background: rgba(255,255,255,.025);
   overflow: hidden;
+  content-visibility: auto;
+  contain: layout paint style;
+  contain-intrinsic-size: auto 74px;
 }
 .commissioner-report-card summary {
   list-style: none;

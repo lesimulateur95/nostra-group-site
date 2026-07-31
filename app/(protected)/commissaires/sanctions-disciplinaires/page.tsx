@@ -6,13 +6,12 @@ import {
   completeCircuitDisciplinaryAction,
 } from "@/app/actions/circuit-discipline";
 import { DisciplineForm } from "@/components/discipline/discipline-form";
-import { getUserRoleKeys } from "@/lib/auth/access";
+import { getRequestRoleKeys, getRequestUser } from "@/lib/auth/request-context";
 import {
   getCircuitDisciplineDashboardData,
   type CircuitDisciplinaryAction,
   type DisciplineActionType,
 } from "@/lib/discipline/data";
-import { createClient } from "@/lib/supabase/server";
 
 import styles from "./page.module.css";
 
@@ -102,20 +101,19 @@ export default async function CircuitDisciplineCommissionersPage({
   }>;
 }) {
   const params = await searchParams;
-  const supabase = await createClient();
-  const { data: authData } = await supabase.auth.getUser();
+  const [user, roles, data] = await Promise.all([
+    getRequestUser(),
+    getRequestRoleKeys(),
+    getCircuitDisciplineDashboardData(),
+  ]);
 
-  if (!authData.user) redirect("/");
-
-  const roles = await getUserRoleKeys(authData.user);
+  if (!user) redirect("/");
   if (!roles.includes("manager")) redirect("/accueil");
-
-  const data = await getCircuitDisciplineDashboardData();
 
   if (!data.configured) {
     return (
       <main className={styles.page}>
-        <Link href="/commissaires" className={styles.backLink}>
+        <Link href="/commissaires" className={styles.backLink} prefetch={false}>
           ← Retour à l’espace commissaires
         </Link>
         <section className={styles.setupCard}>
@@ -181,10 +179,10 @@ export default async function CircuitDisciplineCommissionersPage({
   return (
     <main className={styles.page}>
       <div className={styles.topbar}>
-        <Link href="/commissaires" className={styles.backLink}>
+        <Link href="/commissaires" className={styles.backLink} prefetch={false}>
           ← Retour à l’espace commissaires
         </Link>
-        <Link href="/dashboard/licences-pilotes" className="btn btn-secondary">
+        <Link href="/dashboard/licences-pilotes" className="btn btn-secondary" prefetch={false}>
           Gérer les licences
         </Link>
       </div>
@@ -296,6 +294,7 @@ export default async function CircuitDisciplineCommissionersPage({
                 <Link
                   href={`/commissaires/sanctions-disciplinaires?licence=${encodeURIComponent(licence.id)}#nouvelle-decision`}
                   className={styles.pointsButton}
+                  prefetch={false}
                 >
                   Retirer des points
                 </Link>
