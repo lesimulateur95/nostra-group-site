@@ -1,0 +1,368 @@
+.page {
+  display: grid;
+  gap: 18px;
+}
+
+.identityBar,
+.heroBalance,
+.accountsSection,
+.unavailable,
+.securityNote {
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  border-radius: 18px;
+  background: linear-gradient(145deg, rgba(17, 17, 17, 0.98), rgba(8, 8, 8, 0.98));
+}
+
+.identityBar {
+  display: grid;
+  grid-template-columns: minmax(190px, 1fr) auto auto;
+  align-items: center;
+  gap: 18px;
+  padding: 15px 18px;
+}
+
+.identityBar > div:first-child {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.identityBar p,
+.identityBar dl,
+.identityBar dl div {
+  margin: 0;
+}
+
+.identityBar p {
+  display: grid;
+  gap: 2px;
+}
+
+.identityBar small,
+.identityBar dt {
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+
+.identityBar strong,
+.identityBar dd {
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.identityBar dl {
+  display: flex;
+  gap: 22px;
+}
+
+.identityBar dl div {
+  display: grid;
+  gap: 3px;
+}
+
+.onlineDot {
+  width: 10px;
+  height: 10px;
+  flex: 0 0 10px;
+  border-radius: 999px;
+  background: #d4af37;
+  box-shadow: 0 0 0 5px rgba(212, 175, 55, 0.11);
+}
+
+.refreshButton {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 8px 12px;
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 10px;
+  background: rgba(212, 175, 55, 0.08);
+  color: #f2d875;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.refreshButton:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.heroBalance {
+  position: relative;
+  overflow: hidden;
+  min-height: 230px;
+  display: flex;
+  align-items: center;
+  padding: 34px;
+  background:
+    radial-gradient(circle at 82% 30%, rgba(212, 175, 55, 0.19), transparent 33%),
+    linear-gradient(135deg, #17140d, #080808 62%);
+}
+
+.heroBalance::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.025) 50%, transparent 65%);
+}
+
+.heroBalance > div {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 7px;
+}
+
+.eyebrow {
+  margin: 0;
+  color: #d4af37;
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+}
+
+.heroBalance > div > span {
+  color: #d5d5d5;
+  font-size: 0.9rem;
+}
+
+.heroBalance strong {
+  color: #fff;
+  font-size: clamp(2.3rem, 7vw, 4.8rem);
+  line-height: 1;
+  letter-spacing: -0.055em;
+}
+
+.heroBalance small {
+  color: var(--muted);
+}
+
+.bankMark {
+  position: absolute;
+  right: 7%;
+  display: grid;
+  place-items: center;
+  width: 120px;
+  height: 120px;
+  border: 1px solid rgba(212, 175, 55, 0.32);
+  border-radius: 28px;
+  background: rgba(212, 175, 55, 0.055);
+  color: rgba(242, 216, 117, 0.72);
+  font-size: 2.1rem;
+  font-weight: 950;
+  transform: rotate(-7deg);
+}
+
+.accountsSection {
+  padding: 22px;
+}
+
+.accountsSection > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.accountsSection h2 {
+  margin: 4px 0 0;
+  color: #fff;
+  font-size: 1.15rem;
+}
+
+.readOnlyBadge,
+.activeBadge {
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  border-radius: 999px;
+  background: rgba(212, 175, 55, 0.07);
+  color: #f2d875;
+  font-size: 0.68rem;
+  font-weight: 850;
+}
+
+.readOnlyBadge {
+  padding: 6px 10px;
+}
+
+.accountGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.accountCard {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 13px;
+  min-height: 110px;
+  padding: 17px;
+  border: 1px solid rgba(212, 175, 55, 0.14);
+  border-radius: 14px;
+  background: #0b0b0b;
+}
+
+.cashCard {
+  border-color: rgba(91, 185, 132, 0.18);
+}
+
+.accountIcon {
+  width: 43px;
+  height: 43px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  border-radius: 12px;
+  background: rgba(212, 175, 55, 0.055);
+}
+
+.accountCard > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.accountCard small {
+  color: var(--muted);
+  font-size: 0.61rem;
+  font-weight: 850;
+  letter-spacing: 0.09em;
+}
+
+.accountCard h3 {
+  overflow: hidden;
+  margin: 0;
+  color: #ddd;
+  font-size: 0.8rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.accountCard strong {
+  color: #fff;
+  font-size: 1.28rem;
+}
+
+.activeBadge {
+  padding: 5px 8px;
+}
+
+.unavailable {
+  min-height: 330px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 9px;
+  padding: 45px 26px;
+  text-align: center;
+}
+
+.lockIcon {
+  width: 70px;
+  height: 70px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 8px;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 20px;
+  background: rgba(212, 175, 55, 0.06);
+  font-size: 1.75rem;
+}
+
+.unavailable h2 {
+  margin: 0;
+  color: #fff;
+  font-size: clamp(1.25rem, 3vw, 1.7rem);
+}
+
+.unavailable > p:not(.eyebrow) {
+  max-width: 570px;
+  margin: 0 0 10px;
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+.securityNote {
+  display: flex;
+  gap: 13px;
+  padding: 16px 18px;
+  border-color: rgba(77, 144, 214, 0.2);
+  background: rgba(25, 64, 103, 0.12);
+}
+
+.securityNote > span {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: rgba(77, 144, 214, 0.13);
+}
+
+.securityNote strong {
+  color: #dbeaff;
+  font-size: 0.78rem;
+}
+
+.securityNote p {
+  margin: 3px 0 0;
+  color: #a8b6c8;
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 760px) {
+  .identityBar {
+    grid-template-columns: 1fr;
+  }
+
+  .identityBar dl {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .refreshButton {
+    width: 100%;
+  }
+
+  .bankMark {
+    right: 4%;
+    opacity: 0.45;
+  }
+}
+
+@media (max-width: 560px) {
+  .heroBalance {
+    min-height: 200px;
+    padding: 24px 20px;
+  }
+
+  .bankMark {
+    width: 90px;
+    height: 90px;
+    font-size: 1.5rem;
+  }
+
+  .accountGrid,
+  .identityBar dl {
+    grid-template-columns: 1fr;
+  }
+
+  .accountCard {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .activeBadge {
+    grid-column: 2;
+    justify-self: start;
+  }
+}

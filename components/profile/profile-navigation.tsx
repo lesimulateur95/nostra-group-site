@@ -104,6 +104,13 @@ const cards: NavigationCard[] = [
       "Suivre mes véhicules, leur livraison, leur historique et leurs documents.",
   },
   {
+    href: "/profil/informations-bancaires",
+    icon: "🏦",
+    label: "Informations bancaires",
+    description:
+      "Consulter mes comptes, mon argent en banque et mes espèces en jeu.",
+  },
+  {
     href: "/profil/jeux",
     icon: "🎮",
     label: "Jeux",
