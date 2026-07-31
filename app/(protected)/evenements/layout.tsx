@@ -35,6 +35,11 @@ export default async function EventsLayout({
         href: "/evenements/a-prendre-ou-a-laisser",
         label: "À Prendre ou à Laisser",
       });
+      items.push({
+        key: "live-events",
+        href: "/evenements/evenements-en-direct",
+        label: "Événements en direct",
+      });
       continue;
     }
     items.push(item);

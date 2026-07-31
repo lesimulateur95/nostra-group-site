@@ -81,14 +81,20 @@ export function DashboardModuleGroup({
             {children}
 
             {isGamesGroup && (
-              <div style={{ gridColumn: "1 / -1" }}>
+              <>
                 <DashboardCard
                   href="/dashboard/jeux/chasse-au-tresor"
                   icon="🗺️"
                   title="Chasses au trésor"
                   description="Créer une chasse, préparer autant d’indices que nécessaire et les révéler progressivement."
                 />
-              </div>
+                <DashboardCard
+                  href="/dashboard/jeux/evenements-en-direct"
+                  icon="🏆"
+                  title="Événements en direct"
+                  description="Créer un tournoi à élimination ou un tableau libre et publier les résultats en direct."
+                />
+              </>
             )}
 
             {isSiteMembersGroup && (
