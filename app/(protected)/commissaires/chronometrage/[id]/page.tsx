@@ -2,9 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { RaceTimingConsole } from "@/components/race-control/race-timing-console";
-import { getUserRoleKeys } from "@/lib/auth/access";
 import { getRaceControlEventState } from "@/lib/race-control/data";
-import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -21,22 +19,7 @@ export default async function RaceControlLivePage({
     error?: string;
   }>;
 }) {
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getUser();
-
-  if (!data.user) redirect("/");
-
-  const roles = await getUserRoleKeys(data.user);
-
-  if (!roles.includes("manager") && !roles.includes("commissioner")) {
-    redirect("/accueil");
-  }
-
-  const isManager = roles.includes("manager");
-  const basePath = isManager
-    ? "/dashboard/commissaires/chronometrage"
-    : "/commissaires/chronometrage";
-
+  const basePath = "/commissaires/chronometrage";
   const route = await params;
   const query = await searchParams;
   const eventId = Number.parseInt(route.id, 10);
@@ -80,7 +63,10 @@ export default async function RaceControlLivePage({
         </div>
       )}
 
-      <RaceTimingConsole initialState={state} />
+      <RaceTimingConsole
+        initialState={state}
+        basePath="/commissaires/chronometrage"
+      />
     </main>
   );
 }

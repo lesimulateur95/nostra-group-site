@@ -11,7 +11,7 @@ const managementTools = [
       "Renseigner l’ouverture des stands, les qualifications, le départ, la météo et les annonces visibles par les citoyens.",
   },
   {
-    href: "/dashboard/commissaires/chronometrage",
+    href: "/commissaires/chronometrage",
     icon: "⏱️",
     title: "Chronométrage et tours",
     description:

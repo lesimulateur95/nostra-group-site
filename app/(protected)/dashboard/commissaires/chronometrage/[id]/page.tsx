@@ -29,19 +29,23 @@ export default async function RaceControlLivePage({
 
   const roles = await getUserRoleKeys(data.user);
 
-  if (
-    !roles.includes("manager") &&
-    !roles.includes("commissioner")
-  ) {
+  const route = await params;
+
+  if (!roles.includes("manager")) {
+    if (roles.includes("commissioner")) {
+      const commissionerEventId = Number.parseInt(route.id, 10);
+      redirect(
+        Number.isFinite(commissionerEventId) && commissionerEventId > 0
+          ? `/commissaires/chronometrage/${commissionerEventId}`
+          : "/commissaires/chronometrage",
+      );
+    }
+
     redirect("/accueil");
   }
 
-  const isManager = roles.includes("manager");
-  const basePath = isManager
-    ? "/dashboard/commissaires/chronometrage"
-    : "/commissaires/chronometrage";
+  const basePath = "/dashboard/commissaires/chronometrage";
 
-  const route = await params;
   const query = await searchParams;
   const eventId = Number.parseInt(route.id, 10);
 
@@ -52,9 +56,7 @@ export default async function RaceControlLivePage({
   const state = await getRaceControlEventState(eventId);
 
   return (
-    <DashboardShell
-      allowedRoles={["manager", "commissioner"]}
-    >
+    <DashboardShell allowedRoles={["manager"]}>
       <main className="dashboard-stack">
         <div>
           <Link
@@ -90,7 +92,10 @@ export default async function RaceControlLivePage({
           </div>
         )}
 
-        <RaceTimingConsole initialState={state} />
+        <RaceTimingConsole
+          initialState={state}
+          basePath="/dashboard/commissaires/chronometrage"
+        />
       </main>
     </DashboardShell>
   );

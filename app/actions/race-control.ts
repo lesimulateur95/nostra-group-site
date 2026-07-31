@@ -11,6 +11,15 @@ export type RaceControlActionResult = {
   error?: string;
 };
 
+type RaceControlBasePath =
+  | "/dashboard/commissaires/chronometrage"
+  | "/commissaires/chronometrage";
+
+const DASHBOARD_RACE_CONTROL_PATH: RaceControlBasePath =
+  "/dashboard/commissaires/chronometrage";
+const COMMISSIONER_RACE_CONTROL_PATH: RaceControlBasePath =
+  "/commissaires/chronometrage";
+
 function text(
   value: FormDataEntryValue | null,
   maxLength: number,
@@ -23,6 +32,20 @@ function integer(value: FormDataEntryValue | null): number {
   if (typeof value !== "string") return 0;
   const parsed = Number.parseInt(value, 10);
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function raceControlBasePath(formData: FormData): RaceControlBasePath {
+  return text(formData.get("return_base_path"), 80) ===
+    COMMISSIONER_RACE_CONTROL_PATH
+    ? COMMISSIONER_RACE_CONTROL_PATH
+    : DASHBOARD_RACE_CONTROL_PATH;
+}
+
+function raceControlEventPath(
+  basePath: RaceControlBasePath,
+  eventId: number,
+): string {
+  return `${basePath}/${eventId}`;
 }
 
 function actionErrorCode(error: {
@@ -127,6 +150,7 @@ function parseRaceEntriesFromFormData(
 }
 
 export async function createRaceControlEvent(formData: FormData) {
+  const basePath = raceControlBasePath(formData);
   const title = text(formData.get("title"), 160);
   const competitionType = text(
     formData.get("competition_type"),
@@ -142,9 +166,7 @@ export async function createRaceControlEvent(formData: FormData) {
     targetLaps > 999 ||
     !entries
   ) {
-    redirect(
-      "/dashboard/commissaires/chronometrage?error=invalid",
-    );
+    redirect(`${basePath}?error=invalid`);
   }
 
   const { supabase, authenticated, allowed } =
@@ -164,19 +186,11 @@ export async function createRaceControlEvent(formData: FormData) {
   );
 
   if (error || !data) {
-    redirect(
-      `/dashboard/commissaires/chronometrage?error=${actionErrorCode(
-        error,
-      )}`,
-    );
+    redirect(`${basePath}?error=${actionErrorCode(error)}`);
   }
 
   revalidateRaceLists(Number(data));
-  redirect(
-    `/dashboard/commissaires/chronometrage/${Number(
-      data,
-    )}?created=1`,
-  );
+  redirect(`${raceControlEventPath(basePath, Number(data))}?created=1`);
 }
 
 export async function startRaceControlEvent(
@@ -321,6 +335,7 @@ export async function stopRaceControlEvent(
 export async function publishRaceControlResults(
   formData: FormData,
 ) {
+  const basePath = raceControlBasePath(formData);
   const eventId = integer(formData.get("event_id"));
   const destination = text(formData.get("destination"), 20);
 
@@ -328,9 +343,7 @@ export async function publishRaceControlResults(
     eventId <= 0 ||
     !["f1", "gt3rs", "general"].includes(destination)
   ) {
-    redirect(
-      `/dashboard/commissaires/chronometrage/${eventId}?error=publish`,
-    );
+    redirect(`${raceControlEventPath(basePath, eventId)}?error=publish`);
   }
 
   const { supabase, authenticated, allowed } =
@@ -349,26 +362,23 @@ export async function publishRaceControlResults(
 
   if (error) {
     redirect(
-      `/dashboard/commissaires/chronometrage/${eventId}?error=${actionErrorCode(
-        error,
-      )}`,
+      `${raceControlEventPath(basePath, eventId)}?error=${actionErrorCode(error)}`,
     );
   }
 
   revalidateRaceLists(eventId);
   revalidatePublishedRacePages();
-  redirect(
-    `/dashboard/commissaires/chronometrage/${eventId}?published=1`,
-  );
+  redirect(`${raceControlEventPath(basePath, eventId)}?published=1`);
 }
 
 export async function unpublishRaceControlResults(
   formData: FormData,
 ) {
+  const basePath = raceControlBasePath(formData);
   const eventId = integer(formData.get("event_id"));
 
   if (eventId <= 0) {
-    redirect("/dashboard/commissaires/chronometrage?error=event");
+    redirect(`${basePath}?error=event`);
   }
 
   const { supabase, authenticated, allowed } =
@@ -386,29 +396,24 @@ export async function unpublishRaceControlResults(
 
   if (error) {
     redirect(
-      `/dashboard/commissaires/chronometrage/${eventId}?error=${actionErrorCode(
-        error,
-      )}`,
+      `${raceControlEventPath(basePath, eventId)}?error=${actionErrorCode(error)}`,
     );
   }
 
   revalidateRaceLists(eventId);
   revalidatePublishedRacePages();
-  redirect(
-    `/dashboard/commissaires/chronometrage/${eventId}?unpublished=1`,
-  );
+  redirect(`${raceControlEventPath(basePath, eventId)}?unpublished=1`);
 }
 
 export async function resetRaceControlStandings(
   formData: FormData,
 ) {
+  const basePath = raceControlBasePath(formData);
   const scope = text(formData.get("scope"), 20);
   const confirmed = formData.get("confirmed") === "yes";
 
   if (!["f1", "gt3rs", "all"].includes(scope) || !confirmed) {
-    redirect(
-      "/dashboard/commissaires/chronometrage?error=reset_confirmation",
-    );
+    redirect(`${basePath}?error=reset_confirmation`);
   }
 
   const { supabase, authenticated, allowed } =
@@ -425,29 +430,22 @@ export async function resetRaceControlStandings(
   );
 
   if (error) {
-    redirect(
-      `/dashboard/commissaires/chronometrage?error=${actionErrorCode(
-        error,
-      )}`,
-    );
+    redirect(`${basePath}?error=${actionErrorCode(error)}`);
   }
 
   revalidatePath("/dashboard/commissaires/chronometrage");
   revalidatePath("/commissaires/chronometrage");
   revalidatePublishedRacePages();
 
-  redirect(
-    `/dashboard/commissaires/chronometrage?reset=${scope}`,
-  );
+  redirect(`${basePath}?reset=${scope}`);
 }
 
 export async function deleteRaceControlEvent(formData: FormData) {
+  const basePath = raceControlBasePath(formData);
   const eventId = integer(formData.get("event_id"));
 
   if (eventId <= 0) {
-    redirect(
-      "/dashboard/commissaires/chronometrage?error=delete",
-    );
+    redirect(`${basePath}?error=delete`);
   }
 
   const { supabase, authenticated, allowed } =
@@ -464,13 +462,9 @@ export async function deleteRaceControlEvent(formData: FormData) {
   );
 
   if (error) {
-    redirect(
-      "/dashboard/commissaires/chronometrage?error=delete",
-    );
+    redirect(`${basePath}?error=delete`);
   }
 
   revalidateRaceLists(eventId);
-  redirect(
-    "/dashboard/commissaires/chronometrage?deleted=1",
-  );
+  redirect(`${basePath}?deleted=1`);
 }

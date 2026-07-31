@@ -134,6 +134,7 @@ export async function updateSession(request: NextRequest) {
   const user = data.user;
   const path = request.nextUrl.pathname;
   const isApi = path.startsWith("/api/");
+  const isRaceControlApi = path.startsWith("/api/race-control/");
   const isPublic =
     path === "/" ||
     path.startsWith("/auth/") ||
@@ -216,7 +217,16 @@ export async function updateSession(request: NextRequest) {
         // La matrice Supabase peut encore contenir les anciens réglages.
         // Pour les seules pages opérationnelles demandées, on vérifie le rôle
         // réel avant de refuser l'accès.
-        if (isOperationsDashboardPath(path) && !hasOperationsRole(resolvedRoles)) {
+        const needsOperationsRole =
+          isOperationsDashboardPath(path) &&
+          !hasOperationsRole(resolvedRoles);
+        const needsCommissionerRole =
+          isRaceControlApi &&
+          !resolvedRoles.some((role) =>
+            ["manager", "commissioner"].includes(role),
+          );
+
+        if (needsOperationsRole || needsCommissionerRole) {
           const rpcResult = await supabase.rpc("nostra_roles");
           if (!rpcResult.error) {
             resolvedRoles = normalizeRoles(rpcResult.data, null);
@@ -225,8 +235,13 @@ export async function updateSession(request: NextRequest) {
 
         const operationsOverride =
           isOperationsDashboardPath(path) && hasOperationsRole(resolvedRoles);
+        const raceControlOverride =
+          isRaceControlApi &&
+          resolvedRoles.some((role) =>
+            ["manager", "commissioner"].includes(role),
+          );
 
-        if (!operationsOverride) {
+        if (!operationsOverride && !raceControlOverride) {
           if (isApi) {
             return NextResponse.json({ error: "Accès refusé" }, { status: 403 });
           }

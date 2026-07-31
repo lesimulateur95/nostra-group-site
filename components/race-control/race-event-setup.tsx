@@ -45,10 +45,18 @@ function inspectRows(form: HTMLFormElement): InspectedRows {
   return { readyCount, incompleteRows };
 }
 
-export function RaceEventSetup() {
+export function RaceEventSetup({
+  basePath,
+}: {
+  basePath:
+    | "/dashboard/commissaires/chronometrage"
+    | "/commissaires/chronometrage";
+}) {
   const formRef = useRef<HTMLFormElement>(null);
   const readyCountRef = useRef<HTMLSpanElement>(null);
   const updateFrameRef = useRef<number | null>(null);
+  const submissionInFlightRef = useRef(false);
+  const submissionTimeoutRef = useRef<number | null>(null);
   const [nextId, setNextId] = useState(5);
   const [rowIds, setRowIds] = useState<number[]>(initialRowIds);
   const [clientError, setClientError] = useState<string | null>(null);
@@ -86,6 +94,14 @@ export function RaceEventSetup() {
     };
   }, [rowIds.length]);
 
+  useEffect(() => {
+    return () => {
+      if (submissionTimeoutRef.current !== null) {
+        window.clearTimeout(submissionTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const addEntry = () => {
     setClientError(null);
     setRowIds((current) => {
@@ -105,6 +121,11 @@ export function RaceEventSetup() {
   };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    if (submissionInFlightRef.current) {
+      event.preventDefault();
+      return;
+    }
+
     const { readyCount, incompleteRows } = inspectRows(
       event.currentTarget,
     );
@@ -130,7 +151,17 @@ export function RaceEventSetup() {
     }
 
     setClientError(null);
+    submissionInFlightRef.current = true;
     setSubmitting(true);
+
+    submissionTimeoutRef.current = window.setTimeout(() => {
+      submissionInFlightRef.current = false;
+      submissionTimeoutRef.current = null;
+      setSubmitting(false);
+      setClientError(
+        "La validation de la grille a pris trop de temps. Réessaie sans recharger toute la page.",
+      );
+    }, 15_000);
   };
 
   return (
@@ -140,6 +171,8 @@ export function RaceEventSetup() {
       className={styles.setupForm}
       onSubmit={handleSubmit}
     >
+      <input type="hidden" name="return_base_path" value={basePath} />
+
       <div className={styles.setupGrid}>
         <label>
           <span>Nom de la course</span>

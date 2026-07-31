@@ -8,6 +8,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
 } from "react";
 import {
   finishRaceControlEntry,
@@ -21,6 +22,54 @@ import {
 } from "@/app/actions/race-control";
 import type { RaceEventState } from "@/lib/race-control/types";
 import styles from "./race-control.module.css";
+
+type RaceControlBasePath =
+  | "/dashboard/commissaires/chronometrage"
+  | "/commissaires/chronometrage";
+
+const REFRESH_TIMEOUT_MS = 6_000;
+const SHARED_CLOCK_INTERVAL_MS = 250;
+const sharedClockListeners = new Set<() => void>();
+let sharedClockNow = Date.now();
+let sharedClockTimer: number | null = null;
+
+function emitSharedClock() {
+  sharedClockNow = Date.now();
+  sharedClockListeners.forEach((listener) => listener());
+}
+
+function subscribeSharedClock(listener: () => void) {
+  sharedClockListeners.add(listener);
+
+  if (sharedClockTimer === null) {
+    emitSharedClock();
+    sharedClockTimer = window.setInterval(
+      emitSharedClock,
+      SHARED_CLOCK_INTERVAL_MS,
+    );
+  }
+
+  return () => {
+    sharedClockListeners.delete(listener);
+
+    if (sharedClockListeners.size === 0 && sharedClockTimer !== null) {
+      window.clearInterval(sharedClockTimer);
+      sharedClockTimer = null;
+    }
+  };
+}
+
+function subscribeStoppedClock() {
+  return () => undefined;
+}
+
+function getSharedClockSnapshot() {
+  return sharedClockNow;
+}
+
+function getStoppedClockSnapshot() {
+  return 0;
+}
 
 function pad(value: number, size = 2): string {
   return Math.max(0, value).toString().padStart(size, "0");
@@ -106,17 +155,11 @@ function LiveRaceClock({
   running: boolean;
   clockOffset: { current: number };
 }) {
-  const [now, setNow] = useState(() => Date.now());
-
-  useEffect(() => {
-    if (!running || !startedAt) return;
-
-    const timer = window.setInterval(() => {
-      setNow(Date.now());
-    }, 100);
-
-    return () => window.clearInterval(timer);
-  }, [running, startedAt]);
+  const now = useSyncExternalStore(
+    running ? subscribeSharedClock : subscribeStoppedClock,
+    running ? getSharedClockSnapshot : getStoppedClockSnapshot,
+    getStoppedClockSnapshot,
+  );
 
   const elapsed =
     running && startedAt
@@ -131,12 +174,15 @@ function LiveRaceClock({
 
 export function RaceTimingConsole({
   initialState,
+  basePath,
 }: {
   initialState: RaceEventState;
+  basePath: RaceControlBasePath;
 }) {
   const [state, setState] = useState(initialState);
   const [error, setError] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
+  const pendingActionRef = useRef<string | null>(null);
   const clockOffset = useRef(
     Date.parse(initialState.server_now) - Date.now(),
   );
@@ -159,6 +205,10 @@ export function RaceTimingConsole({
       refreshSequence.current = sequence;
       refreshAbort.current = controller;
       refreshInFlight.current = true;
+      const timeout = window.setTimeout(
+        () => controller.abort(),
+        REFRESH_TIMEOUT_MS,
+      );
 
       try {
         const response = await fetch(`/api/race-control/${eventId}`, {
@@ -184,7 +234,17 @@ export function RaceTimingConsole({
           clockOffset.current = serverNow - Date.now();
         }
 
-        setState(nextState);
+        setState((currentState) => {
+          if (
+            currentState.event?.id === nextState.event?.id &&
+            currentState.event?.status === "running" &&
+            nextState.event?.status === "ready"
+          ) {
+            return currentState;
+          }
+
+          return nextState;
+        });
       } catch (refreshError) {
         if (
           !(
@@ -195,6 +255,8 @@ export function RaceTimingConsole({
           // Le chrono local continue pendant une coupure réseau brève.
         }
       } finally {
+        window.clearTimeout(timeout);
+
         if (sequence === refreshSequence.current) {
           refreshInFlight.current = false;
           refreshAbort.current = null;
@@ -264,9 +326,11 @@ export function RaceTimingConsole({
   const runAction = async (
     key: string,
     action: () => Promise<RaceControlActionResult>,
+    onSuccess?: () => void,
   ) => {
-    if (pendingAction) return;
+    if (pendingActionRef.current) return;
 
+    pendingActionRef.current = key;
     setError(null);
     setPendingAction(key);
 
@@ -278,10 +342,12 @@ export function RaceTimingConsole({
         return;
       }
 
-      await refresh(true);
+      onSuccess?.();
+      void refresh(true);
     } catch {
       setError("L’action n’a pas pu être enregistrée.");
     } finally {
+      pendingActionRef.current = null;
       setPendingAction(null);
     }
   };
@@ -320,6 +386,180 @@ export function RaceTimingConsole({
     (entry) =>
       entry.status === "finished" || entry.status === "dnf",
   );
+
+  const handleStart = () => {
+    const startedAt = new Date(
+      Date.now() + clockOffset.current,
+    ).toISOString();
+
+    void runAction(
+      "start-event",
+      () => startRaceControlEvent(event.id),
+      () => {
+        setState((current) => {
+          if (current.event?.id !== event.id) return current;
+
+          return {
+            ...current,
+            server_now: startedAt,
+            event: {
+              ...current.event,
+              status: "running" as const,
+              started_at: startedAt,
+              completed_at: null,
+            },
+            entries: current.entries.map((entry) =>
+              entry.status === "ready"
+                ? {
+                    ...entry,
+                    status: "running" as const,
+                    last_crossing_at: startedAt,
+                  }
+                : entry,
+            ),
+          };
+        });
+      },
+    );
+  };
+
+  const handleStop = () => {
+    const elapsedMs = getCurrentElapsed();
+    const completedAt = new Date(
+      Date.now() + clockOffset.current,
+    ).toISOString();
+
+    void runAction(
+      "stop-event",
+      () => stopRaceControlEvent(event.id),
+      () => {
+        setState((current) => {
+          if (current.event?.id !== event.id) return current;
+
+          return {
+            ...current,
+            event: {
+              ...current.event,
+              status: "finished" as const,
+              completed_at: completedAt,
+            },
+            entries: current.entries.map((entry) =>
+              entry.status === "running"
+                ? {
+                    ...entry,
+                    status: "dnf" as const,
+                    finished_at: completedAt,
+                    total_time_ms: elapsedMs,
+                  }
+                : entry,
+            ),
+          };
+        });
+      },
+    );
+  };
+
+  const handleLap = (entryId: number) => {
+    const elapsedMs = getCurrentElapsed();
+    const crossingAt = event.started_at
+      ? new Date(
+          Date.parse(event.started_at) + elapsedMs,
+        ).toISOString()
+      : new Date().toISOString();
+
+    void runAction(
+      `lap-${entryId}`,
+      () => recordRaceControlLap(entryId, elapsedMs),
+      () => {
+        setState((current) => ({
+          ...current,
+          entries: current.entries.map((entry) => {
+            if (entry.id !== entryId) return entry;
+
+            const previousCrossing = Date.parse(
+              entry.last_crossing_at ??
+                current.event?.started_at ??
+                crossingAt,
+            );
+            const currentCrossing = Date.parse(crossingAt);
+            const lapTime =
+              Number.isFinite(previousCrossing) &&
+              Number.isFinite(currentCrossing)
+                ? Math.max(0, currentCrossing - previousCrossing)
+                : entry.last_lap_ms;
+
+            return {
+              ...entry,
+              lap_count: entry.lap_count + 1,
+              last_crossing_at: crossingAt,
+              last_lap_ms: lapTime,
+              best_lap_ms:
+                lapTime === null
+                  ? entry.best_lap_ms
+                  : entry.best_lap_ms === null
+                    ? lapTime
+                    : Math.min(entry.best_lap_ms, lapTime),
+            };
+          }),
+        }));
+      },
+    );
+  };
+
+  const handleFinish = (entryId: number) => {
+    const elapsedMs = getCurrentElapsed();
+    const finishedAt = new Date(
+      Date.now() + clockOffset.current,
+    ).toISOString();
+
+    void runAction(
+      `finish-${entryId}`,
+      () => finishRaceControlEntry(entryId, elapsedMs),
+      () => {
+        setState((current) => ({
+          ...current,
+          entries: current.entries.map((entry) =>
+            entry.id === entryId
+              ? {
+                  ...entry,
+                  status: "finished" as const,
+                  lap_count: current.event?.target_laps ?? entry.lap_count,
+                  finished_at: finishedAt,
+                  total_time_ms: elapsedMs,
+                }
+              : entry,
+          ),
+        }));
+      },
+    );
+  };
+
+  const handleDnf = (entryId: number) => {
+    const elapsedMs = getCurrentElapsed();
+    const finishedAt = new Date(
+      Date.now() + clockOffset.current,
+    ).toISOString();
+
+    void runAction(
+      `dnf-${entryId}`,
+      () => markRaceControlEntryDnf(entryId, elapsedMs),
+      () => {
+        setState((current) => ({
+          ...current,
+          entries: current.entries.map((entry) =>
+            entry.id === entryId
+              ? {
+                  ...entry,
+                  status: "dnf" as const,
+                  finished_at: finishedAt,
+                  total_time_ms: elapsedMs,
+                }
+              : entry,
+          ),
+        }));
+      },
+    );
+  };
 
   return (
     <section className={styles.console}>
@@ -362,11 +602,7 @@ export function RaceTimingConsole({
             className={styles.masterClockStopButton}
             disabled={event.status !== "running" || isPending}
             type="button"
-            onClick={() =>
-              void runAction("stop-event", () =>
-                stopRaceControlEvent(event.id),
-              )
-            }
+            onClick={handleStop}
           >
             {event.status === "running"
               ? "■ Arrêter le chrono général"
@@ -386,11 +622,7 @@ export function RaceTimingConsole({
               className={styles.startButton}
               disabled={isPending}
               type="button"
-              onClick={() =>
-                void runAction("start-event", () =>
-                  startRaceControlEvent(event.id),
-                )
-              }
+              onClick={handleStart}
             >
               ▶ Lancer le départ et tous les chronomètres
             </button>
@@ -553,14 +785,7 @@ export function RaceTimingConsole({
                       className={styles.lapButton}
                       disabled={!canRecordLap || isPending}
                       type="button"
-                      onClick={() =>
-                        void runAction(`lap-${entry.id}`, () =>
-                          recordRaceControlLap(
-                            entry.id,
-                            getCurrentElapsed(),
-                          ),
-                        )
-                      }
+                      onClick={() => handleLap(entry.id)}
                     >
                       +1 tour
                     </button>
@@ -569,14 +794,7 @@ export function RaceTimingConsole({
                       className={styles.finishButton}
                       disabled={!canFinish || isPending}
                       type="button"
-                      onClick={() =>
-                        void runAction(`finish-${entry.id}`, () =>
-                          finishRaceControlEntry(
-                            entry.id,
-                            getCurrentElapsed(),
-                          ),
-                        )
-                      }
+                      onClick={() => handleFinish(entry.id)}
                     >
                       🏁 Arrivée
                     </button>
@@ -585,14 +803,7 @@ export function RaceTimingConsole({
                       className={styles.dnfButton}
                       disabled={isPending}
                       type="button"
-                      onClick={() =>
-                        void runAction(`dnf-${entry.id}`, () =>
-                          markRaceControlEntryDnf(
-                            entry.id,
-                            getCurrentElapsed(),
-                          ),
-                        )
-                      }
+                      onClick={() => handleDnf(entry.id)}
                     >
                       Abandon
                     </button>
@@ -644,6 +855,11 @@ export function RaceTimingConsole({
             action={publishRaceControlResults}
             className={styles.publishForm}
           >
+            <input
+              type="hidden"
+              name="return_base_path"
+              value={basePath}
+            />
             <input type="hidden" name="event_id" value={event.id} />
             <label>
               Destination
@@ -674,6 +890,11 @@ export function RaceTimingConsole({
               action={unpublishRaceControlResults}
               className={styles.unpublishForm}
             >
+              <input
+                type="hidden"
+                name="return_base_path"
+                value={basePath}
+              />
               <input type="hidden" name="event_id" value={event.id} />
               <p>
                 Cette action retire uniquement cette course des pages
