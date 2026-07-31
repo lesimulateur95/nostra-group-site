@@ -1,14 +1,20 @@
-
 "use client";
 
-import { useMemo, useState } from "react";
-import { createRaceControlEvent } from "@/app/actions/race-control";
+import { useActionState, useMemo, useState } from "react";
+import {
+  createRaceControlEvent,
+  type CreateRaceControlEventState,
+} from "@/app/actions/race-control";
 import styles from "./race-control.module.css";
 
 type EntryDraft = {
   id: number;
   driver_name: string;
   team_name: string;
+};
+
+const INITIAL_ACTION_STATE: CreateRaceControlEventState = {
+  ok: true,
 };
 
 function newEntry(id: number): EntryDraft {
@@ -27,6 +33,10 @@ export function RaceEventSetup() {
     newEntry(3),
     newEntry(4),
   ]);
+  const [actionState, formAction, isPending] = useActionState(
+    createRaceControlEvent,
+    INITIAL_ACTION_STATE,
+  );
 
   const validEntries = useMemo(
     () =>
@@ -41,6 +51,22 @@ export function RaceEventSetup() {
     [entries],
   );
 
+  const incompleteRows = useMemo(
+    () =>
+      entries
+        .map((entry, index) => ({
+          line: index + 1,
+          hasDriver: entry.driver_name.trim().length > 0,
+          hasTeam: entry.team_name.trim().length > 0,
+        }))
+        .filter((entry) => entry.hasDriver !== entry.hasTeam)
+        .map((entry) => entry.line),
+    [entries],
+  );
+
+  const canSubmit =
+    validEntries.length > 0 && incompleteRows.length === 0;
+
   const updateEntry = (
     id: number,
     key: "driver_name" | "team_name",
@@ -54,7 +80,10 @@ export function RaceEventSetup() {
   };
 
   const addEntry = () => {
-    setEntries((current) => [...current, newEntry(nextId)]);
+    setEntries((current) => {
+      if (current.length >= 40) return current;
+      return [...current, newEntry(nextId)];
+    });
     setNextId((value) => value + 1);
   };
 
@@ -67,7 +96,7 @@ export function RaceEventSetup() {
   };
 
   return (
-    <form action={createRaceControlEvent} className={styles.setupForm}>
+    <form action={formAction} className={styles.setupForm}>
       <input
         type="hidden"
         name="entries_json"
@@ -124,6 +153,7 @@ export function RaceEventSetup() {
 
           <button
             className={styles.secondaryButton}
+            disabled={entries.length >= 40 || isPending}
             type="button"
             onClick={addEntry}
           >
@@ -141,8 +171,8 @@ export function RaceEventSetup() {
                 <input
                   value={entry.driver_name}
                   maxLength={120}
-                  required={index === 0}
                   placeholder="Nom du pilote"
+                  autoComplete="off"
                   onChange={(event) =>
                     updateEntry(
                       entry.id,
@@ -158,8 +188,8 @@ export function RaceEventSetup() {
                 <input
                   value={entry.team_name}
                   maxLength={120}
-                  required={index === 0}
                   placeholder="Nom de l’écurie"
+                  autoComplete="off"
                   onChange={(event) =>
                     updateEntry(
                       entry.id,
@@ -173,6 +203,7 @@ export function RaceEventSetup() {
               <button
                 aria-label={`Supprimer la ligne ${index + 1}`}
                 className={styles.removeButton}
+                disabled={isPending}
                 type="button"
                 onClick={() => removeEntry(entry.id)}
               >
@@ -181,6 +212,19 @@ export function RaceEventSetup() {
             </div>
           ))}
         </div>
+
+        {incompleteRows.length > 0 && (
+          <p className={styles.error} role="alert">
+            Complète le pilote et l’écurie, ou vide entièrement la
+            ligne {incompleteRows.join(", ")}.
+          </p>
+        )}
+
+        {!actionState.ok && actionState.error && (
+          <p className={styles.error} role="alert">
+            {actionState.error}
+          </p>
+        )}
 
         <footer className={styles.setupFooter}>
           <span>
@@ -191,10 +235,12 @@ export function RaceEventSetup() {
 
           <button
             className={styles.primaryButton}
-            disabled={validEntries.length < 1}
+            disabled={!canSubmit || isPending}
             type="submit"
           >
-            Valider la grille et ouvrir les chronomètres →
+            {isPending
+              ? "Création de la course…"
+              : "Valider la grille et ouvrir les chronomètres →"}
           </button>
         </footer>
       </section>

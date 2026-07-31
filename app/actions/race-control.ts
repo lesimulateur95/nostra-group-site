@@ -3,7 +3,8 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { hasCommissionerAccess } from "@/lib/auth/access";
+import { getUserRoleKeys } from "@/lib/auth/access";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 export type RaceControlActionResult = {
@@ -53,15 +54,21 @@ async function requireCommissioner() {
   if (!data.user) {
     return {
       supabase,
+      user: null,
+      roles: [] as const,
       authenticated: false as const,
       allowed: false as const,
     };
   }
 
-  const allowed = await hasCommissionerAccess(data.user);
+  const roles = await getUserRoleKeys(data.user);
+  const allowed =
+    roles.includes("manager") || roles.includes("commissioner");
 
   return {
     supabase,
+    user: data.user,
+    roles,
     authenticated: true as const,
     allowed,
   };
@@ -73,6 +80,8 @@ function revalidateRace(eventId: number) {
   revalidatePath(
     `/dashboard/commissaires/chronometrage/${eventId}`,
   );
+  revalidatePath("/commissaires/chronometrage");
+  revalidatePath(`/commissaires/chronometrage/${eventId}`);
   revalidatePath("/circuit/championnat-f1/resultats");
   revalidatePath("/circuit/championnat-gt3rs/resultats");
   revalidatePath("/circuit/classement/f1");
@@ -80,66 +89,201 @@ function revalidateRace(eventId: number) {
   revalidatePath("/circuit/classement/ecuries");
 }
 
-export async function createRaceControlEvent(formData: FormData) {
+export type CreateRaceControlEventState = {
+  ok: boolean;
+  error?: string;
+};
+
+type SanitizedRaceEntry = {
+  driver_name: string;
+  team_name: string;
+};
+
+function parseRaceEntries(value: string): SanitizedRaceEntry[] | null {
+  let parsed: unknown;
+
+  try {
+    parsed = JSON.parse(value);
+  } catch {
+    return null;
+  }
+
+  if (!Array.isArray(parsed) || parsed.length < 1 || parsed.length > 40) {
+    return null;
+  }
+
+  const entries: SanitizedRaceEntry[] = [];
+
+  for (const item of parsed) {
+    if (!item || typeof item !== "object") return null;
+
+    const record = item as Record<string, unknown>;
+    const driverName =
+      typeof record.driver_name === "string"
+        ? record.driver_name.trim().slice(0, 120)
+        : "";
+    const teamName =
+      typeof record.team_name === "string"
+        ? record.team_name.trim().slice(0, 120)
+        : "";
+
+    if (!driverName || !teamName) return null;
+
+    entries.push({
+      driver_name: driverName,
+      team_name: teamName,
+    });
+  }
+
+  return entries;
+}
+
+export async function createRaceControlEvent(
+  _previousState: CreateRaceControlEventState,
+  formData: FormData,
+): Promise<CreateRaceControlEventState> {
   const title = text(formData.get("title"), 160);
   const competitionType = text(
     formData.get("competition_type"),
     20,
   );
   const targetLaps = integer(formData.get("target_laps"));
-  const entriesJson = text(formData.get("entries_json"), 20000);
+  const entries = parseRaceEntries(
+    text(formData.get("entries_json"), 20000),
+  );
 
-  let entries: unknown = null;
+  if (!title) {
+    return {
+      ok: false,
+      error: "Indique le nom de la course.",
+    };
+  }
+
+  if (!["f1", "gt3rs", "general"].includes(competitionType)) {
+    return {
+      ok: false,
+      error: "Le type de course sélectionné est invalide.",
+    };
+  }
+
+  if (targetLaps < 1 || targetLaps > 999) {
+    return {
+      ok: false,
+      error: "Le nombre de tours doit être compris entre 1 et 999.",
+    };
+  }
+
+  if (!entries) {
+    return {
+      ok: false,
+      error:
+        "Ajoute au moins un pilote et complète entièrement chaque ligne utilisée.",
+    };
+  }
+
+  const {
+    user,
+    roles,
+    authenticated,
+    allowed,
+  } = await requireCommissioner();
+
+  if (!authenticated || !user) {
+    return {
+      ok: false,
+      error: "Ta session a expiré. Recharge la page puis reconnecte-toi.",
+    };
+  }
+
+  if (!allowed) {
+    return {
+      ok: false,
+      error: "Ton compte n’a pas accès à la direction de course.",
+    };
+  }
 
   try {
-    entries = JSON.parse(entriesJson);
-  } catch {
-    redirect(
-      "/dashboard/commissaires/chronometrage?error=entries",
-    );
+    const admin = createAdminClient();
+
+    const { data: event, error: eventError } = await admin
+      .from("race_control_events")
+      .insert({
+        title,
+        competition_type: competitionType,
+        target_laps: targetLaps,
+        status: "ready",
+        created_by: user.id,
+      })
+      .select("id")
+      .single();
+
+    if (eventError || !event?.id) {
+      console.error("createRaceControlEvent event insert", eventError);
+      return {
+        ok: false,
+        error:
+          "La course n’a pas pu être créée. Vérifie que le module de chronométrage est activé.",
+      };
+    }
+
+    const eventId = Number(event.id);
+    const rows = entries.map((entry, index) => ({
+      event_id: eventId,
+      driver_name: entry.driver_name,
+      team_name: entry.team_name,
+      grid_position: index + 1,
+      status: "ready",
+    }));
+
+    const { error: entriesError } = await admin
+      .from("race_control_entries")
+      .insert(rows);
+
+    if (entriesError) {
+      console.error(
+        "createRaceControlEvent entries insert",
+        entriesError,
+      );
+
+      await admin
+        .from("race_control_events")
+        .delete()
+        .eq("id", eventId);
+
+      return {
+        ok: false,
+        error:
+          "La grille n’a pas pu être enregistrée. Aucune course incomplète n’a été conservée.",
+      };
+    }
+
+    revalidateRace(eventId);
+
+    const basePath = roles.includes("manager")
+      ? "/dashboard/commissaires/chronometrage"
+      : "/commissaires/chronometrage";
+
+    redirect(`${basePath}/${eventId}?created=1`);
+  } catch (error) {
+    const digest =
+      error && typeof error === "object" && "digest" in error
+        ? String((error as { digest?: unknown }).digest ?? "")
+        : "";
+
+    if (digest.startsWith("NEXT_REDIRECT")) {
+      throw error;
+    }
+
+    console.error("createRaceControlEvent unexpected error", error);
+
+    return {
+      ok: false,
+      error:
+        "Une erreur technique a empêché l’ouverture des chronomètres. Réessaie après avoir rechargé la page.",
+    };
   }
 
-  if (
-    !title ||
-    !["f1", "gt3rs", "general"].includes(competitionType) ||
-    targetLaps < 1 ||
-    targetLaps > 999
-  ) {
-    redirect(
-      "/dashboard/commissaires/chronometrage?error=invalid",
-    );
-  }
-
-  const { supabase, authenticated, allowed } =
-    await requireCommissioner();
-
-  if (!authenticated) redirect("/");
-  if (!allowed) redirect("/accueil");
-
-  const { data, error } = await supabase.rpc(
-    "nostra_create_race_control_event",
-    {
-      p_title: title,
-      p_competition_type: competitionType,
-      p_target_laps: targetLaps,
-      p_entries: entries,
-    },
-  );
-
-  if (error || !data) {
-    redirect(
-      `/dashboard/commissaires/chronometrage?error=${actionErrorCode(
-        error,
-      )}`,
-    );
-  }
-
-  revalidateRace(Number(data));
-  redirect(
-    `/dashboard/commissaires/chronometrage/${Number(
-      data,
-    )}?created=1`,
-  );
+  return { ok: true };
 }
 
 export async function startRaceControlEvent(
