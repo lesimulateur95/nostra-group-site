@@ -15,7 +15,6 @@ import {
   markRaceControlEntryDnf,
   publishRaceControlResults,
   unpublishRaceControlResults,
-  recordRaceControlLap,
   startRaceControlEvent,
   stopRaceControlEntry,
   stopRaceControlEvent,
@@ -221,13 +220,22 @@ export function RaceTimingConsole({
     Date.parse(initialState.server_now) - Date.now(),
   );
   const refreshInFlight = useRef(false);
+  const lapSyncCountRef = useRef(0);
+  const lapSyncChainsRef = useRef<Map<number, Promise<void>>>(new Map());
+  const lapClickLocksRef = useRef<Set<number>>(new Set());
   const refreshAbort = useRef<AbortController | null>(null);
   const refreshSequence = useRef(0);
   const eventId = state.event?.id ?? null;
 
   const refresh = useCallback(
     async (force = false) => {
-      if (!eventId || pendingActionRef.current.size > 0) return;
+      if (
+        !eventId ||
+        pendingActionRef.current.size > 0 ||
+        lapSyncCountRef.current > 0
+      ) {
+        return;
+      }
 
       if (refreshInFlight.current) {
         if (!force) return;
@@ -366,6 +374,77 @@ export function RaceTimingConsole({
 
     setPendingActions(new Set(pendingActionRef.current));
   };
+
+  const waitForLapSync = useCallback(async (entryId: number) => {
+    const pendingSync = lapSyncChainsRef.current.get(entryId);
+    if (pendingSync) await pendingSync;
+  }, []);
+
+  const waitForAllLapSyncs = useCallback(async () => {
+    const pendingSyncs = [...lapSyncChainsRef.current.values()];
+    if (pendingSyncs.length > 0) await Promise.all(pendingSyncs);
+  }, []);
+
+  const queueLapSync = useCallback(
+    (entryId: number, elapsedMs: number) => {
+      lapSyncCountRef.current += 1;
+
+      const previousSync =
+        lapSyncChainsRef.current.get(entryId) ?? Promise.resolve();
+
+      const nextSync = previousSync
+        .catch(() => undefined)
+        .then(async () => {
+          const response = await fetch(
+            `/api/race-control/${eventId}/lap`,
+            {
+              method: "POST",
+              cache: "no-store",
+              headers: {
+                Accept: "application/json",
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                entry_id: entryId,
+                elapsed_ms: elapsedMs,
+              }),
+            },
+          );
+
+          const result = (await response.json().catch(() => null)) as
+            | RaceControlActionResult
+            | null;
+
+          if (!response.ok || !result?.ok) {
+            throw new Error(result?.error ?? "save");
+          }
+        })
+        .catch((syncError: unknown) => {
+          const errorCode =
+            syncError instanceof Error ? syncError.message : "save";
+          setError(actionError(errorCode));
+        })
+        .finally(() => {
+          lapSyncCountRef.current = Math.max(
+            0,
+            lapSyncCountRef.current - 1,
+          );
+
+          if (lapSyncChainsRef.current.get(entryId) === nextSync) {
+            lapSyncChainsRef.current.delete(entryId);
+          }
+
+          if (lapSyncCountRef.current === 0) {
+            window.setTimeout(() => {
+              void refresh(true);
+            }, 80);
+          }
+        });
+
+      lapSyncChainsRef.current.set(entryId, nextSync);
+    },
+    [eventId, refresh],
+  );
 
   const updateEntryOptimistically = (
     entryId: number,
@@ -532,7 +611,10 @@ export function RaceTimingConsole({
 
     void runAction(
       "stop-event",
-      () => stopRaceControlEvent(event.id),
+      async () => {
+        await waitForAllLapSyncs();
+        return stopRaceControlEvent(event.id);
+      },
       {
         exclusive: true,
         optimistic: () => {
@@ -572,6 +654,22 @@ export function RaceTimingConsole({
   };
 
   const handleLap = (entryId: number) => {
+    if (
+      lapClickLocksRef.current.has(entryId) ||
+      pendingActionRef.current.has(`entry-${entryId}`) ||
+      pendingActionRef.current.has("stop-event") ||
+      pendingActionRef.current.has("start-event")
+    ) {
+      return;
+    }
+
+    lapClickLocksRef.current.add(entryId);
+    window.setTimeout(() => {
+      lapClickLocksRef.current.delete(entryId);
+    }, 100);
+
+    setError(null);
+
     const elapsedMs = getCurrentElapsed();
     const crossingAt = event.started_at
       ? new Date(
@@ -579,50 +677,45 @@ export function RaceTimingConsole({
         ).toISOString()
       : new Date().toISOString();
 
-    void runAction(
-      `entry-${entryId}`,
-      () => recordRaceControlLap(entryId, elapsedMs),
-      {
-        optimistic: () =>
-          updateEntryOptimistically(entryId, (entry) => {
-            const previousCrossing = Date.parse(
-              entry.last_crossing_at ?? event.started_at ?? crossingAt,
-            );
-            const currentCrossing = Date.parse(crossingAt);
-            const lapTime =
-              Number.isFinite(previousCrossing) &&
-              Number.isFinite(currentCrossing)
-                ? Math.max(0, currentCrossing - previousCrossing)
-                : entry.last_lap_ms;
-            const nextLapNumber = entry.lap_count + 1;
+    updateEntryOptimistically(entryId, (entry) => {
+      const previousCrossing = Date.parse(
+        entry.last_crossing_at ?? event.started_at ?? crossingAt,
+      );
+      const currentCrossing = Date.parse(crossingAt);
+      const lapTime =
+        Number.isFinite(previousCrossing) &&
+        Number.isFinite(currentCrossing)
+          ? Math.max(0, currentCrossing - previousCrossing)
+          : entry.last_lap_ms;
+      const nextLapNumber = entry.lap_count + 1;
 
-            return {
-              ...entry,
-              lap_count: nextLapNumber,
-              last_crossing_at: crossingAt,
-              last_lap_ms: lapTime,
-              best_lap_ms:
-                lapTime === null
-                  ? entry.best_lap_ms
-                  : entry.best_lap_ms === null
-                    ? lapTime
-                    : Math.min(entry.best_lap_ms, lapTime),
-              laps:
-                lapTime === null
-                  ? entry.laps
-                  : [
-                      ...entry.laps,
-                      {
-                        id: -(Date.now() + entryId),
-                        lap_number: nextLapNumber,
-                        lap_time_ms: lapTime,
-                        crossed_at: crossingAt,
-                      },
-                    ],
-            };
-          }),
-      },
-    );
+      return {
+        ...entry,
+        lap_count: nextLapNumber,
+        last_crossing_at: crossingAt,
+        last_lap_ms: lapTime,
+        best_lap_ms:
+          lapTime === null
+            ? entry.best_lap_ms
+            : entry.best_lap_ms === null
+              ? lapTime
+              : Math.min(entry.best_lap_ms, lapTime),
+        laps:
+          lapTime === null
+            ? entry.laps
+            : [
+                ...entry.laps,
+                {
+                  id: -(Date.now() + entryId),
+                  lap_number: nextLapNumber,
+                  lap_time_ms: lapTime,
+                  crossed_at: crossingAt,
+                },
+              ],
+      };
+    });
+
+    queueLapSync(entryId, elapsedMs);
   };
 
   const handlePitStop = (entryId: number) => {
@@ -632,7 +725,10 @@ export function RaceTimingConsole({
 
     void runAction(
       `entry-${entryId}`,
-      () => toggleRaceControlPitStop(entryId),
+      async () => {
+        await waitForLapSync(entryId);
+        return toggleRaceControlPitStop(entryId);
+      },
       {
         optimistic: () =>
           updateEntryOptimistically(entryId, (entry) => {
@@ -671,7 +767,10 @@ export function RaceTimingConsole({
 
     void runAction(
       `entry-${entryId}`,
-      () => stopRaceControlEntry(entryId, elapsedMs),
+      async () => {
+        await waitForLapSync(entryId);
+        return stopRaceControlEntry(entryId, elapsedMs);
+      },
       {
         optimistic: () =>
           updateEntryOptimistically(entryId, (entry) => {
@@ -712,7 +811,10 @@ export function RaceTimingConsole({
 
     void runAction(
       `entry-${entryId}`,
-      () => finishRaceControlEntry(entryId, elapsedMs),
+      async () => {
+        await waitForLapSync(entryId);
+        return finishRaceControlEntry(entryId, elapsedMs);
+      },
       {
         optimistic: () =>
           updateEntryOptimistically(entryId, (entry) => ({
@@ -735,7 +837,10 @@ export function RaceTimingConsole({
 
     void runAction(
       `entry-${entryId}`,
-      () => markRaceControlEntryDnf(entryId, elapsedMs),
+      async () => {
+        await waitForLapSync(entryId);
+        return markRaceControlEntryDnf(entryId, elapsedMs);
+      },
       {
         optimistic: () =>
           updateEntryOptimistically(entryId, (entry) => ({
@@ -832,7 +937,9 @@ export function RaceTimingConsole({
             </div>
             <p>
               À chaque passage, appuie sur <strong>+1 tour</strong>.
-              Le compteur change immédiatement. Utilise{" "}
+              Le compteur et le temps sont pris à l’instant exact du
+              clic, sans chargement et sans bloquer les autres pilotes.
+              Utilise{" "}
               <strong>Arrêt stand</strong> à l’entrée puis{" "}
               <strong>Sortie stand</strong> au retour en piste. Le bouton{" "}
               <strong>Stop chrono</strong> arrête uniquement le pilote
