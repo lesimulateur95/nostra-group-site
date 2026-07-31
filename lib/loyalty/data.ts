@@ -105,12 +105,18 @@ function parseTier(value: unknown): LoyaltyTier | null {
 
   if (!code || !label) return null;
 
+  const normalizedTier = `${code} ${label}`
+    .toLowerCase()
+    .replaceAll("_", " ")
+    .replaceAll("-", " ");
+  const catalogDiscount = normalizedTier.includes("black")
+    ? 15
+    : numeric(row.catalog_discount_percent);
+
   return {
     code,
     label,
-    catalog_discount_percent: numeric(
-      row.catalog_discount_percent,
-    ),
+    catalog_discount_percent: catalogDiscount,
     plate_discount_percent: numeric(
       row.plate_discount_percent,
     ),

@@ -22,7 +22,7 @@ GOLD — accès après 15 achats
 
 BLACK SIGNATURE — accès après 20 achats
 • Avantages Silver et Gold
-• 10 % de remise
+• 15 % de remise
 • Commande prioritaire
 • Statut de client privilégié` },
   "evenements-presentation-jeux": { title: "Jeux Nostra Group", content: `Nostra Group propose trois animations principales : le Bingo, la Tombola et la Roue de la chance.

@@ -30,7 +30,7 @@ function officialCatalogDiscount(state: LoyaltyState): number {
     .replaceAll("_", " ")
     .replaceAll("-", " ");
 
-  if (code.includes("black")) return 10;
+  if (code.includes("black")) return 15;
   if (code.includes("gold")) return 5;
   if (code.includes("silver")) return 2;
 

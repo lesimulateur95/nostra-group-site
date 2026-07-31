@@ -404,7 +404,7 @@ begin
   v_discount := case v_tier
     when 'Silver' then 2
     when 'Gold' then 5
-    else 10
+    else 15
   end;
 
   perform set_config('nostra.skip_loyalty_auto_card', '1', true);
