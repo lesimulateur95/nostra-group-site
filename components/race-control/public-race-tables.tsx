@@ -110,7 +110,12 @@ export function PublicRaceResults({
                     <td>
                       {entry.status === "dnf"
                         ? "ABANDON"
-                        : formatTime(entry.total_time_ms, true)}
+                        : entry.status === "stopped"
+                          ? `CHRONO ARRÊTÉ · ${formatTime(
+                              entry.total_time_ms,
+                              true,
+                            )}`
+                          : formatTime(entry.total_time_ms, true)}
                     </td>
                     <td>{formatTime(entry.best_lap_ms)}</td>
                     <td>

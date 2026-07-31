@@ -277,6 +277,62 @@ export async function finishRaceControlEntry(
   return { ok: true };
 }
 
+export async function stopRaceControlEntry(
+  entryId: number,
+  elapsedMs: number,
+): Promise<RaceControlActionResult> {
+  const { supabase, authenticated, allowed } =
+    await requireCommissioner();
+
+  if (!authenticated) return { ok: false, error: "auth" };
+  if (!allowed) return { ok: false, error: "access" };
+
+  const { data, error } = await supabase.rpc(
+    "nostra_stop_race_control_entry",
+    {
+      p_entry_id: entryId,
+      p_elapsed_ms: Math.max(0, Math.round(elapsedMs)),
+    },
+  );
+
+  if (error) {
+    return {
+      ok: false,
+      error: actionErrorCode(error),
+    };
+  }
+
+  void data;
+  return { ok: true };
+}
+
+export async function toggleRaceControlPitStop(
+  entryId: number,
+): Promise<RaceControlActionResult> {
+  const { supabase, authenticated, allowed } =
+    await requireCommissioner();
+
+  if (!authenticated) return { ok: false, error: "auth" };
+  if (!allowed) return { ok: false, error: "access" };
+
+  const { data, error } = await supabase.rpc(
+    "nostra_toggle_race_control_pit_stop",
+    {
+      p_entry_id: entryId,
+    },
+  );
+
+  if (error) {
+    return {
+      ok: false,
+      error: actionErrorCode(error),
+    };
+  }
+
+  void data;
+  return { ok: true };
+}
+
 export async function markRaceControlEntryDnf(
   entryId: number,
   elapsedMs: number,

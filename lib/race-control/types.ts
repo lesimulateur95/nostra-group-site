@@ -12,6 +12,7 @@ export type RaceEntryStatus =
   | "ready"
   | "running"
   | "finished"
+  | "stopped"
   | "dnf";
 
 export type RaceLap = {
@@ -31,6 +32,10 @@ export type RaceEntry = {
   last_crossing_at: string | null;
   finished_at: string | null;
   total_time_ms: number | null;
+  pit_started_at: string | null;
+  pit_stop_count: number;
+  last_pit_duration_ms: number | null;
+  total_pit_duration_ms: number;
   best_lap_ms: number | null;
   last_lap_ms: number | null;
   position: number | null;

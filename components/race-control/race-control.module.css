@@ -157,6 +157,8 @@
 .startButton,
 .stopAllButton,
 .lapButton,
+.pitButton,
+.stopEntryButton,
 .finishButton,
 .dnfButton,
 .unpublishButton,
@@ -367,6 +369,15 @@
   border-color: rgba(78, 190, 111, 0.38);
 }
 
+.driverStopped {
+  border-color: rgba(115, 164, 224, 0.46);
+}
+
+.driverPit {
+  border-color: rgba(86, 163, 221, 0.58);
+  box-shadow: inset 0 0 0 1px rgba(86, 163, 221, 0.12);
+}
+
 .driverDnf {
   border-color: rgba(224, 78, 78, 0.36);
   opacity: 0.8;
@@ -446,6 +457,34 @@
   font-size: 0.88rem;
 }
 
+.pitStatus {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid rgba(86, 163, 221, 0.28);
+  border-radius: 11px;
+  background: rgba(49, 104, 146, 0.1);
+}
+
+.pitStatus > div {
+  display: grid;
+  gap: 5px;
+}
+
+.pitStatus span {
+  color: #8aaecb;
+  font-size: 0.64rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+}
+
+.pitStatus strong {
+  color: #dceeff;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.86rem;
+}
+
 .lapHistory {
   padding: 10px 11px;
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -479,8 +518,20 @@
 
 .driverActions {
   display: grid;
-  grid-template-columns: 1fr 1fr auto;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 8px;
+}
+
+.pitButton {
+  border: 1px solid rgba(86, 163, 221, 0.46);
+  background: rgba(40, 91, 132, 0.28);
+  color: #d8ecff;
+}
+
+.stopEntryButton {
+  border: 1px solid rgba(126, 161, 201, 0.4);
+  background: #111820;
+  color: #dce8f5;
 }
 
 .finishButton {
@@ -709,7 +760,8 @@
     grid-template-columns: 1fr;
   }
 
-  .lapStats {
+  .lapStats,
+  .pitStatus {
     grid-template-columns: 1fr;
   }
 

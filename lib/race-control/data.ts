@@ -42,9 +42,13 @@ function nullableNumber(value: unknown): number | null {
 }
 
 function raceEntryStatus(value: unknown): RaceEntryStatus {
-  return ["ready", "running", "finished", "dnf"].includes(
-    String(value),
-  )
+  return [
+    "ready",
+    "running",
+    "finished",
+    "stopped",
+    "dnf",
+  ].includes(String(value))
     ? (String(value) as RaceEntryStatus)
     : "ready";
 }
@@ -99,6 +103,13 @@ function normalizeEntry(value: unknown): RaceEntry | null {
     last_crossing_at: nullableString(row.last_crossing_at),
     finished_at: nullableString(row.finished_at),
     total_time_ms: nullableNumber(row.total_time_ms),
+    pit_started_at: nullableString(row.pit_started_at),
+    pit_stop_count: Math.max(0, numberValue(row.pit_stop_count)),
+    last_pit_duration_ms: nullableNumber(row.last_pit_duration_ms),
+    total_pit_duration_ms: Math.max(
+      0,
+      numberValue(row.total_pit_duration_ms),
+    ),
     best_lap_ms: nullableNumber(row.best_lap_ms),
     last_lap_ms: nullableNumber(row.last_lap_ms),
     position: nullableNumber(row.position),
