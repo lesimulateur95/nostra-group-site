@@ -4,6 +4,7 @@ import Link from "next/link";
 import { CommissionerPortalCard } from "@/components/home/commissioner-portal-card";
 import { HomeReviewsLoader } from "@/components/reviews/home-reviews-loader";
 import { Topbar } from "@/components/site/topbar";
+import { getCasinoSettings } from "@/lib/casino/data";
 
 type Portal = {
   href: string;
@@ -84,6 +85,7 @@ export default async function HomePage({
   }>;
 }) {
   const params = await searchParams;
+  const casinoSettings = await getCasinoSettings();
 
   return (
     <div className="site-shell">
@@ -96,6 +98,17 @@ export default async function HomePage({
         </p>
 
         <section className="portal-grid">
+          {casinoSettings.publicEnabled && (
+            <PortalCard
+              portal={{
+                href: "/casino",
+                kicker: "CERCLE PRIVÉ",
+                title: casinoSettings.name.toUpperCase(),
+                description:
+                  "Poker, jeux de table, machines et espace joueur dans un univers entièrement séparé.",
+              }}
+            />
+          )}
           {publicPortals.map((portal) => (
             <PortalCard portal={portal} key={portal.href} />
           ))}

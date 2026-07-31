@@ -83,6 +83,12 @@ export function DashboardModuleGroup({
             {isGamesGroup && (
               <>
                 <DashboardCard
+                  href="/dashboard/jeux/casino"
+                  icon="♠"
+                  title="Casino — accès discret"
+                  description="Préparer le casino, masquer ou afficher son accès et administrer les jetons."
+                />
+                <DashboardCard
                   href="/dashboard/jeux/chasse-au-tresor"
                   icon="🗺️"
                   title="Chasses au trésor"
