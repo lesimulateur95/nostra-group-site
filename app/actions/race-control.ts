@@ -67,17 +67,63 @@ async function requireCommissioner() {
   };
 }
 
-function revalidateRace(eventId: number) {
-  revalidatePath("/dashboard");
+function revalidateRaceLists(eventId: number) {
   revalidatePath("/dashboard/commissaires/chronometrage");
+  revalidatePath("/commissaires/chronometrage");
   revalidatePath(
     `/dashboard/commissaires/chronometrage/${eventId}`,
   );
+  revalidatePath(`/commissaires/chronometrage/${eventId}`);
+}
+
+function revalidatePublishedRacePages() {
   revalidatePath("/circuit/championnat-f1/resultats");
   revalidatePath("/circuit/championnat-gt3rs/resultats");
   revalidatePath("/circuit/classement/f1");
   revalidatePath("/circuit/classement/gt3rs");
   revalidatePath("/circuit/classement/ecuries");
+}
+
+type SanitizedRaceEntry = {
+  driver_name: string;
+  team_name: string;
+};
+
+function entryText(value: FormDataEntryValue | undefined): string {
+  if (typeof value !== "string") return "";
+  return value.trim().slice(0, 120);
+}
+
+function parseRaceEntriesFromFormData(
+  formData: FormData,
+): SanitizedRaceEntry[] | null {
+  const driverValues = formData.getAll("driver_name");
+  const teamValues = formData.getAll("team_name");
+
+  if (
+    driverValues.length !== teamValues.length ||
+    driverValues.length < 1 ||
+    driverValues.length > 40
+  ) {
+    return null;
+  }
+
+  const entries: SanitizedRaceEntry[] = [];
+
+  for (let index = 0; index < driverValues.length; index += 1) {
+    const driverName = entryText(driverValues[index]);
+    const teamName = entryText(teamValues[index]);
+
+    if (!driverName && !teamName) continue;
+    if (!driverName || !teamName) return null;
+
+    entries.push({
+      driver_name: driverName,
+      team_name: teamName,
+    });
+  }
+
+  return entries.length > 0 ? entries : null;
 }
 
 export async function createRaceControlEvent(formData: FormData) {
@@ -87,23 +133,14 @@ export async function createRaceControlEvent(formData: FormData) {
     20,
   );
   const targetLaps = integer(formData.get("target_laps"));
-  const entriesJson = text(formData.get("entries_json"), 20000);
-
-  let entries: unknown = null;
-
-  try {
-    entries = JSON.parse(entriesJson);
-  } catch {
-    redirect(
-      "/dashboard/commissaires/chronometrage?error=entries",
-    );
-  }
+  const entries = parseRaceEntriesFromFormData(formData);
 
   if (
     !title ||
     !["f1", "gt3rs", "general"].includes(competitionType) ||
     targetLaps < 1 ||
-    targetLaps > 999
+    targetLaps > 999 ||
+    !entries
   ) {
     redirect(
       "/dashboard/commissaires/chronometrage?error=invalid",
@@ -134,7 +171,7 @@ export async function createRaceControlEvent(formData: FormData) {
     );
   }
 
-  revalidateRace(Number(data));
+  revalidateRaceLists(Number(data));
   redirect(
     `/dashboard/commissaires/chronometrage/${Number(
       data,
@@ -165,7 +202,6 @@ export async function startRaceControlEvent(
     };
   }
 
-  revalidateRace(eventId);
   return { ok: true };
 }
 
@@ -194,8 +230,7 @@ export async function recordRaceControlLap(
     };
   }
 
-  const eventId = Number(data);
-  if (eventId > 0) revalidateRace(eventId);
+  void data;
   return { ok: true };
 }
 
@@ -224,8 +259,7 @@ export async function finishRaceControlEntry(
     };
   }
 
-  const eventId = Number(data);
-  if (eventId > 0) revalidateRace(eventId);
+  void data;
   return { ok: true };
 }
 
@@ -254,8 +288,7 @@ export async function markRaceControlEntryDnf(
     };
   }
 
-  const eventId = Number(data);
-  if (eventId > 0) revalidateRace(eventId);
+  void data;
   return { ok: true };
 }
 
@@ -282,7 +315,6 @@ export async function stopRaceControlEvent(
     };
   }
 
-  revalidateRace(eventId);
   return { ok: true };
 }
 
@@ -323,7 +355,8 @@ export async function publishRaceControlResults(
     );
   }
 
-  revalidateRace(eventId);
+  revalidateRaceLists(eventId);
+  revalidatePublishedRacePages();
   redirect(
     `/dashboard/commissaires/chronometrage/${eventId}?published=1`,
   );
@@ -359,7 +392,8 @@ export async function unpublishRaceControlResults(
     );
   }
 
-  revalidateRace(eventId);
+  revalidateRaceLists(eventId);
+  revalidatePublishedRacePages();
   redirect(
     `/dashboard/commissaires/chronometrage/${eventId}?unpublished=1`,
   );
@@ -398,13 +432,9 @@ export async function resetRaceControlStandings(
     );
   }
 
-  revalidatePath("/dashboard");
   revalidatePath("/dashboard/commissaires/chronometrage");
-  revalidatePath("/circuit/championnat-f1/resultats");
-  revalidatePath("/circuit/championnat-gt3rs/resultats");
-  revalidatePath("/circuit/classement/f1");
-  revalidatePath("/circuit/classement/gt3rs");
-  revalidatePath("/circuit/classement/ecuries");
+  revalidatePath("/commissaires/chronometrage");
+  revalidatePublishedRacePages();
 
   redirect(
     `/dashboard/commissaires/chronometrage?reset=${scope}`,
@@ -439,7 +469,7 @@ export async function deleteRaceControlEvent(formData: FormData) {
     );
   }
 
-  revalidateRace(eventId);
+  revalidateRaceLists(eventId);
   redirect(
     "/dashboard/commissaires/chronometrage?deleted=1",
   );

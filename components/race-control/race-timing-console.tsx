@@ -3,11 +3,11 @@
 
 import Link from "next/link";
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
-  useTransition,
 } from "react";
 import {
   finishRaceControlEntry,
@@ -19,10 +19,7 @@ import {
   stopRaceControlEvent,
   type RaceControlActionResult,
 } from "@/app/actions/race-control";
-import type {
-  RaceEntry,
-  RaceEventState,
-} from "@/lib/race-control/types";
+import type { RaceEventState } from "@/lib/race-control/types";
 import styles from "./race-control.module.css";
 
 function pad(value: number, size = 2): string {
@@ -98,73 +95,182 @@ function statusLabel(value: string): string {
   }
 }
 
+function LiveRaceClock({
+  startedAt,
+  fixedMs,
+  running,
+  clockOffset,
+}: {
+  startedAt: string | null;
+  fixedMs: number;
+  running: boolean;
+  clockOffset: { current: number };
+}) {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (!running || !startedAt) return;
+
+    const timer = window.setInterval(() => {
+      setNow(Date.now());
+    }, 100);
+
+    return () => window.clearInterval(timer);
+  }, [running, startedAt]);
+
+  const elapsed =
+    running && startedAt
+      ? Math.max(
+          0,
+          now + clockOffset.current - Date.parse(startedAt),
+        )
+      : Math.max(0, fixedMs);
+
+  return <>{formatRaceTime(elapsed, true)}</>;
+}
+
 export function RaceTimingConsole({
   initialState,
 }: {
   initialState: RaceEventState;
 }) {
   const [state, setState] = useState(initialState);
-  const [now, setNow] = useState(Date.now());
   const [error, setError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [pendingAction, setPendingAction] = useState<string | null>(null);
   const clockOffset = useRef(
     Date.parse(initialState.server_now) - Date.now(),
   );
+  const refreshInFlight = useRef(false);
+  const refreshAbort = useRef<AbortController | null>(null);
+  const refreshSequence = useRef(0);
+  const eventId = state.event?.id ?? null;
 
-  const refresh = async () => {
-    if (!state.event) return;
+  const refresh = useCallback(
+    async (force = false) => {
+      if (!eventId) return;
 
-    try {
-      const response = await fetch(
-        `/api/race-control/${state.event.id}`,
-        {
+      if (refreshInFlight.current) {
+        if (!force) return;
+        refreshAbort.current?.abort();
+      }
+
+      const controller = new AbortController();
+      const sequence = refreshSequence.current + 1;
+      refreshSequence.current = sequence;
+      refreshAbort.current = controller;
+      refreshInFlight.current = true;
+
+      try {
+        const response = await fetch(`/api/race-control/${eventId}`, {
           cache: "no-store",
           headers: { Accept: "application/json" },
-        },
-      );
+          signal: controller.signal,
+        });
 
-      if (!response.ok) return;
+        if (!response.ok) return;
 
-      const nextState = (await response.json()) as RaceEventState;
-      clockOffset.current =
-        Date.parse(nextState.server_now) - Date.now();
-      setState(nextState);
-    } catch {
-      // La console locale continue de fonctionner pendant une coupure brève.
-    }
-  };
+        const nextState = (await response.json()) as RaceEventState;
+
+        if (
+          sequence !== refreshSequence.current ||
+          nextState.event?.id !== eventId ||
+          !Array.isArray(nextState.entries)
+        ) {
+          return;
+        }
+
+        const serverNow = Date.parse(nextState.server_now);
+        if (Number.isFinite(serverNow)) {
+          clockOffset.current = serverNow - Date.now();
+        }
+
+        setState(nextState);
+      } catch (refreshError) {
+        if (
+          !(
+            refreshError instanceof DOMException &&
+            refreshError.name === "AbortError"
+          )
+        ) {
+          // Le chrono local continue pendant une coupure réseau brève.
+        }
+      } finally {
+        if (sequence === refreshSequence.current) {
+          refreshInFlight.current = false;
+          refreshAbort.current = null;
+        }
+      }
+    },
+    [eventId],
+  );
 
   useEffect(() => {
-    const timer = window.setInterval(() => {
-      setNow(Date.now());
-    }, 50);
+    if (!eventId) return;
 
-    return () => window.clearInterval(timer);
+    const interval =
+      state.event?.status === "running" ? 2_000 : 4_000;
+
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === "visible") {
+        void refresh(false);
+      }
+    }, interval);
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        void refresh(true);
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener(
+        "visibilitychange",
+        handleVisibility,
+      );
+    };
+  }, [eventId, refresh, state.event?.status]);
+
+  useEffect(() => {
+    return () => {
+      refreshAbort.current?.abort();
+    };
   }, []);
 
-  useEffect(() => {
-    if (!state.event) return;
+  const getCurrentElapsed = useCallback(() => {
+    const currentEvent = state.event;
+    if (!currentEvent?.started_at) return 0;
 
-    const timer = window.setInterval(() => {
-      void refresh();
-    }, 1_500);
+    if (
+      currentEvent.status !== "running" &&
+      currentEvent.completed_at
+    ) {
+      return Math.max(
+        0,
+        Date.parse(currentEvent.completed_at) -
+          Date.parse(currentEvent.started_at),
+      );
+    }
 
-    return () => window.clearInterval(timer);
-  }, [state.event?.id]);
+    return Math.max(
+      0,
+      Date.now() + clockOffset.current -
+        Date.parse(currentEvent.started_at),
+    );
+  }, [state.event]);
 
-  const calibratedNow = now + clockOffset.current;
-  const startedAt = state.event?.started_at
-    ? Date.parse(state.event.started_at)
-    : null;
-  const liveElapsed =
-    startedAt === null ? 0 : Math.max(0, calibratedNow - startedAt);
-
-  const runAction = (
+  const runAction = async (
+    key: string,
     action: () => Promise<RaceControlActionResult>,
   ) => {
-    setError(null);
+    if (pendingAction) return;
 
-    startTransition(async () => {
+    setError(null);
+    setPendingAction(key);
+
+    try {
       const result = await action();
 
       if (!result.ok) {
@@ -172,9 +278,15 @@ export function RaceTimingConsole({
         return;
       }
 
-      await refresh();
-    });
+      await refresh(true);
+    } catch {
+      setError("L’action n’a pas pu être enregistrée.");
+    } finally {
+      setPendingAction(null);
+    }
   };
+
+  const isPending = pendingAction !== null;
 
   const sortedEntries = useMemo(() => {
     if (
@@ -204,10 +316,6 @@ export function RaceTimingConsole({
   }
 
   const event = state.event;
-  const activeEntries = state.entries.filter(
-    (entry) =>
-      entry.status === "ready" || entry.status === "running",
-  );
   const completedEntries = state.entries.filter(
     (entry) =>
       entry.status === "finished" || entry.status === "dnf",
@@ -233,9 +341,14 @@ export function RaceTimingConsole({
         <div className={styles.masterClock}>
           <span>CHRONOMÈTRE GÉNÉRAL</span>
           <strong>
-            {event.status === "ready"
-              ? "00:00.000"
-              : formatRaceTime(liveElapsed, true)}
+            <LiveRaceClock
+              startedAt={event.started_at}
+              fixedMs={
+                event.status === "ready" ? 0 : getCurrentElapsed()
+              }
+              running={event.status === "running"}
+              clockOffset={clockOffset}
+            />
           </strong>
           <small>
             {event.status === "finished"
@@ -250,7 +363,9 @@ export function RaceTimingConsole({
             disabled={event.status !== "running" || isPending}
             type="button"
             onClick={() =>
-              runAction(() => stopRaceControlEvent(event.id))
+              void runAction("stop-event", () =>
+                stopRaceControlEvent(event.id),
+              )
             }
           >
             {event.status === "running"
@@ -272,7 +387,9 @@ export function RaceTimingConsole({
               disabled={isPending}
               type="button"
               onClick={() =>
-                runAction(() => startRaceControlEvent(event.id))
+                void runAction("start-event", () =>
+                  startRaceControlEvent(event.id),
+                )
               }
             >
               ▶ Lancer le départ et tous les chronomètres
@@ -341,13 +458,11 @@ export function RaceTimingConsole({
             entry.lap_count >= event.target_laps - 1;
 
           const elapsedForEntry =
-            entry.status === "running"
-              ? liveElapsed
-              : entry.total_time_ms ??
-                (entry.finished_at && event.started_at
-                  ? Date.parse(entry.finished_at) -
-                    Date.parse(event.started_at)
-                  : 0);
+            entry.total_time_ms ??
+            (entry.finished_at && event.started_at
+              ? Date.parse(entry.finished_at) -
+                Date.parse(event.started_at)
+              : 0);
 
           return (
             <article
@@ -376,9 +491,19 @@ export function RaceTimingConsole({
               <div className={styles.driverClock}>
                 <span>CHRONOMÈTRE</span>
                 <strong>
-                  {event.status === "ready"
-                    ? "00:00.000"
-                    : formatRaceTime(elapsedForEntry, true)}
+                  <LiveRaceClock
+                    startedAt={event.started_at}
+                    fixedMs={
+                      event.status === "ready"
+                        ? 0
+                        : elapsedForEntry
+                    }
+                    running={
+                      event.status === "running" &&
+                      entry.status === "running"
+                    }
+                    clockOffset={clockOffset}
+                  />
                 </strong>
               </div>
 
@@ -429,10 +554,10 @@ export function RaceTimingConsole({
                       disabled={!canRecordLap || isPending}
                       type="button"
                       onClick={() =>
-                        runAction(() =>
+                        void runAction(`lap-${entry.id}`, () =>
                           recordRaceControlLap(
                             entry.id,
-                            liveElapsed,
+                            getCurrentElapsed(),
                           ),
                         )
                       }
@@ -445,10 +570,10 @@ export function RaceTimingConsole({
                       disabled={!canFinish || isPending}
                       type="button"
                       onClick={() =>
-                        runAction(() =>
+                        void runAction(`finish-${entry.id}`, () =>
                           finishRaceControlEntry(
                             entry.id,
-                            liveElapsed,
+                            getCurrentElapsed(),
                           ),
                         )
                       }
@@ -461,10 +586,10 @@ export function RaceTimingConsole({
                       disabled={isPending}
                       type="button"
                       onClick={() =>
-                        runAction(() =>
+                        void runAction(`dnf-${entry.id}`, () =>
                           markRaceControlEntryDnf(
                             entry.id,
-                            liveElapsed,
+                            getCurrentElapsed(),
                           ),
                         )
                       }
