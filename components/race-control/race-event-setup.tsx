@@ -1,135 +1,79 @@
+
 "use client";
 
-import {
-  type FormEvent,
-  useActionState,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
-import {
-  createRaceControlEvent,
-  type CreateRaceControlEventState,
-} from "@/app/actions/race-control";
+import { useMemo, useState } from "react";
+import { createRaceControlEvent } from "@/app/actions/race-control";
 import styles from "./race-control.module.css";
 
-const INITIAL_ACTION_STATE: CreateRaceControlEventState = {
-  ok: true,
+type EntryDraft = {
+  id: number;
+  driver_name: string;
+  team_name: string;
 };
 
-function initialRowIds(): number[] {
-  return [1, 2, 3, 4];
-}
-
-function getEntryInputs(form: HTMLFormElement) {
-  const drivers = Array.from(
-    form.querySelectorAll<HTMLInputElement>(
-      'input[name="driver_name"]',
-    ),
-  );
-  const teams = Array.from(
-    form.querySelectorAll<HTMLInputElement>(
-      'input[name="team_name"]',
-    ),
-  );
-
-  return { drivers, teams };
-}
-
-function inspectRows(form: HTMLFormElement) {
-  const { drivers, teams } = getEntryInputs(form);
-  const incompleteRows: number[] = [];
-  let readyCount = 0;
-
-  const rowCount = Math.min(drivers.length, teams.length);
-
-  for (let index = 0; index < rowCount; index += 1) {
-    const hasDriver = drivers[index].value.trim().length > 0;
-    const hasTeam = teams[index].value.trim().length > 0;
-
-    if (hasDriver && hasTeam) readyCount += 1;
-    if (hasDriver !== hasTeam) incompleteRows.push(index + 1);
-  }
-
-  return { readyCount, incompleteRows };
+function newEntry(id: number): EntryDraft {
+  return {
+    id,
+    driver_name: "",
+    team_name: "",
+  };
 }
 
 export function RaceEventSetup() {
-  const formRef = useRef<HTMLFormElement>(null);
-  const readyCountRef = useRef<HTMLSpanElement>(null);
   const [nextId, setNextId] = useState(5);
-  const [rowIds, setRowIds] = useState<number[]>(initialRowIds);
-  const [clientError, setClientError] = useState<string | null>(null);
-  const [actionState, formAction, isPending] = useActionState(
-    createRaceControlEvent,
-    INITIAL_ACTION_STATE,
+  const [entries, setEntries] = useState<EntryDraft[]>([
+    newEntry(1),
+    newEntry(2),
+    newEntry(3),
+    newEntry(4),
+  ]);
+
+  const validEntries = useMemo(
+    () =>
+      entries
+        .map((entry) => ({
+          driver_name: entry.driver_name.trim(),
+          team_name: entry.team_name.trim(),
+        }))
+        .filter(
+          (entry) => entry.driver_name && entry.team_name,
+        ),
+    [entries],
   );
 
-  const updateReadyCount = () => {
-    const form = formRef.current;
-    const target = readyCountRef.current;
-    if (!form || !target) return;
-
-    const { readyCount } = inspectRows(form);
-    target.textContent = `${readyCount} pilote${
-      readyCount > 1 ? "s" : ""
-    } prêt${readyCount > 1 ? "s" : ""}`;
+  const updateEntry = (
+    id: number,
+    key: "driver_name" | "team_name",
+    value: string,
+  ) => {
+    setEntries((current) =>
+      current.map((entry) =>
+        entry.id === id ? { ...entry, [key]: value } : entry,
+      ),
+    );
   };
 
-  useEffect(() => {
-    updateReadyCount();
-  }, [rowIds.length]);
-
   const addEntry = () => {
-    setRowIds((current) => {
-      if (current.length >= 40) return current;
-      return [...current, nextId];
-    });
+    setEntries((current) => [...current, newEntry(nextId)]);
     setNextId((value) => value + 1);
   };
 
   const removeEntry = (id: number) => {
-    setClientError(null);
-    setRowIds((current) =>
+    setEntries((current) =>
       current.length <= 1
         ? current
-        : current.filter((entryId) => entryId !== id),
+        : current.filter((entry) => entry.id !== id),
     );
-  };
-
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    const { readyCount, incompleteRows } = inspectRows(
-      event.currentTarget,
-    );
-
-    if (incompleteRows.length > 0) {
-      event.preventDefault();
-      setClientError(
-        `Complète le pilote et l’écurie, ou vide entièrement la ligne ${incompleteRows.join(
-          ", ",
-        )}.`,
-      );
-      return;
-    }
-
-    if (readyCount < 1) {
-      event.preventDefault();
-      setClientError(
-        "Ajoute au moins un pilote avec le nom de son écurie.",
-      );
-      return;
-    }
-
-    setClientError(null);
   };
 
   return (
-    <form
-      ref={formRef}
-      action={formAction}
-      className={styles.setupForm}
-      onSubmit={handleSubmit}
-    >
+    <form action={createRaceControlEvent} className={styles.setupForm}>
+      <input
+        type="hidden"
+        name="entries_json"
+        value={JSON.stringify(validEntries)}
+      />
+
       <div className={styles.setupGrid}>
         <label>
           <span>Nom de la course</span>
@@ -180,7 +124,6 @@ export function RaceEventSetup() {
 
           <button
             className={styles.secondaryButton}
-            disabled={rowIds.length >= 40 || isPending}
             type="button"
             onClick={addEntry}
           >
@@ -189,79 +132,69 @@ export function RaceEventSetup() {
         </header>
 
         <div className={styles.entryRows}>
-          {rowIds.map((rowId, index) => {
-            const driverId = `race-driver-${rowId}`;
-            const teamId = `race-team-${rowId}`;
+          {entries.map((entry, index) => (
+            <div className={styles.entryRow} key={entry.id}>
+              <strong>{index + 1}</strong>
 
-            return (
-              <div className={styles.entryRow} key={rowId}>
-                <strong>{index + 1}</strong>
+              <label>
+                <span>Pilote</span>
+                <input
+                  value={entry.driver_name}
+                  maxLength={120}
+                  required={index === 0}
+                  placeholder="Nom du pilote"
+                  onChange={(event) =>
+                    updateEntry(
+                      entry.id,
+                      "driver_name",
+                      event.target.value,
+                    )
+                  }
+                />
+              </label>
 
-                <label htmlFor={driverId}>
-                  <span>Pilote</span>
-                  <input
-                    id={driverId}
-                    name="driver_name"
-                    maxLength={120}
-                    placeholder="Nom du pilote"
-                    autoComplete="off"
-                    spellCheck={false}
-                    disabled={isPending}
-                    onInput={updateReadyCount}
-                  />
-                </label>
+              <label>
+                <span>Écurie</span>
+                <input
+                  value={entry.team_name}
+                  maxLength={120}
+                  required={index === 0}
+                  placeholder="Nom de l’écurie"
+                  onChange={(event) =>
+                    updateEntry(
+                      entry.id,
+                      "team_name",
+                      event.target.value,
+                    )
+                  }
+                />
+              </label>
 
-                <label htmlFor={teamId}>
-                  <span>Écurie</span>
-                  <input
-                    id={teamId}
-                    name="team_name"
-                    maxLength={120}
-                    placeholder="Nom de l’écurie"
-                    autoComplete="off"
-                    spellCheck={false}
-                    disabled={isPending}
-                    onInput={updateReadyCount}
-                  />
-                </label>
-
-                <button
-                  aria-label={`Supprimer la ligne ${index + 1}`}
-                  className={styles.removeButton}
-                  disabled={isPending}
-                  type="button"
-                  onClick={() => removeEntry(rowId)}
-                >
-                  ×
-                </button>
-              </div>
-            );
-          })}
+              <button
+                aria-label={`Supprimer la ligne ${index + 1}`}
+                className={styles.removeButton}
+                type="button"
+                onClick={() => removeEntry(entry.id)}
+              >
+                ×
+              </button>
+            </div>
+          ))}
         </div>
 
-        {clientError && (
-          <p className={styles.error} role="alert">
-            {clientError}
-          </p>
-        )}
-
-        {!actionState.ok && actionState.error && (
-          <p className={styles.error} role="alert">
-            {actionState.error}
-          </p>
-        )}
-
         <footer className={styles.setupFooter}>
-          <span ref={readyCountRef}>0 pilote prêt</span>
+          <span>
+            {validEntries.length} pilote
+            {validEntries.length > 1 ? "s" : ""} prêt
+            {validEntries.length > 1 ? "s" : ""}
+          </span>
 
           <button
             className={styles.primaryButton}
-            disabled={isPending}
+            disabled={validEntries.length < 1}
             type="submit"
           >
-            {isPending
-              ? "Création de la course…"
-              : "Valider la grille et ouvrir les chronomètres →"}
+            Valider la grille et ouvrir les chronomètres →
           </button>
         </footer>
       </section>

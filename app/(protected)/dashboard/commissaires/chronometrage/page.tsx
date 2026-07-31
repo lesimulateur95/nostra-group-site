@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import {
   deleteRaceControlEvent,
@@ -6,11 +7,13 @@ import {
 } from "@/app/actions/race-control";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { RaceEventSetup } from "@/components/race-control/race-event-setup";
-import { getRequestRoleKeys } from "@/lib/auth/request-context";
+import { getUserRoleKeys } from "@/lib/auth/access";
 import {
   getRaceControlDashboardState,
+  getRaceControlModuleConfigured,
 } from "@/lib/race-control/data";
 import { RACE_CONTROL_SETUP_SQL } from "@/lib/race-control/setup-sql";
+import { createClient } from "@/lib/supabase/server";
 import styles from "@/components/race-control/race-control.module.css";
 
 export const dynamic = "force-dynamic";
@@ -39,9 +42,20 @@ export default async function RaceControlSetupPage({
     deleted?: string;
   }>;
 }) {
-  // L’accès est déjà vérifié par le layout Commissaire et DashboardShell.
-  // On réutilise les rôles mis en cache pour éviter des appels Supabase doublés.
-  const roles = await getRequestRoleKeys();
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getUser();
+
+  if (!data.user) redirect("/");
+
+  const roles = await getUserRoleKeys(data.user);
+
+  if (
+    !roles.includes("manager") &&
+    !roles.includes("commissioner")
+  ) {
+    redirect("/accueil");
+  }
+
   const isManager = roles.includes("manager");
   const basePath = isManager
     ? "/dashboard/commissaires/chronometrage"
@@ -52,8 +66,10 @@ export default async function RaceControlSetupPage({
     : "Retour à l’espace Commissaire";
 
   const params = await searchParams;
-  const state = await getRaceControlDashboardState();
-  const configured = state.configured;
+  const configured = await getRaceControlModuleConfigured();
+  const state = configured
+    ? await getRaceControlDashboardState()
+    : { configured: false, events: [] };
 
   return (
     <DashboardShell
@@ -76,7 +92,6 @@ export default async function RaceControlSetupPage({
           <Link
             className="btn btn-secondary"
             href={backPath}
-            prefetch={false}
           >
             ← {backLabel}
           </Link>
@@ -226,7 +241,6 @@ export default async function RaceControlSetupPage({
                     <Link
                       className={`dashboard-card ${styles.savedRaceLink}`}
                       href={`${basePath}/${event.id}`}
-                      prefetch={false}
                     >
                       <span className="dashboard-card-icon">
                         ⏱️
