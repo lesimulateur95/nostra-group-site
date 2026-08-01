@@ -61,7 +61,13 @@ export type CasinoAdminWallet = CasinoWallet & {
   displayName: string;
 };
 
+export type CasinoAdminCitizen = {
+  userId: string;
+  displayName: string;
+};
+
 export type CasinoAdminData = {
   conversions: Array<CasinoConversion & { userId: string; citizenName: string }>;
   wallets: CasinoAdminWallet[];
+  citizens: CasinoAdminCitizen[];
 };

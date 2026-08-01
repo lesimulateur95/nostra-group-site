@@ -150,8 +150,24 @@ export async function getCasinoLeaderboard(): Promise<CasinoLeaderboardRow[]> {
 export async function getCasinoAdminData(): Promise<CasinoAdminData> {
   try {
     const supabase = await createClient();
-    const { data, error } = await (supabase as any).rpc("casino_admin_overview_v108");
-    if (error || !data) return { conversions: [], wallets: [] };
+    const [overviewResult, citizensResult] = await Promise.all([
+      (supabase as any).rpc("casino_admin_overview_v108"),
+      (supabase as any).rpc("nostra_citizen_directory"),
+    ]);
+    const { data, error } = overviewResult;
+    const citizenRows = Array.isArray(citizensResult.data)
+      ? citizensResult.data
+      : [];
+    const citizens = citizenRows
+      .map((row: Record<string, unknown>) => ({
+        userId: stringValue(row.user_id),
+        displayName: stringValue(row.name, "Compte citoyen"),
+      }))
+      .filter((citizen: { userId: string }) => Boolean(citizen.userId))
+      .sort((a: { displayName: string }, b: { displayName: string }) =>
+        a.displayName.localeCompare(b.displayName, "fr"),
+      );
+    if (error || !data) return { conversions: [], wallets: [], citizens };
     const source = data as Record<string, unknown>;
     const conversions = Array.isArray(source.conversions) ? source.conversions : [];
     const wallets = Array.isArray(source.wallets) ? source.wallets : [];
@@ -176,8 +192,9 @@ export async function getCasinoAdminData(): Promise<CasinoAdminData> {
         level: Math.max(1, numberValue(row.level, 1)),
         xp: numberValue(row.xp),
       })),
+      citizens,
     };
   } catch {
-    return { conversions: [], wallets: [] };
+    return { conversions: [], wallets: [], citizens: [] };
   }
 }

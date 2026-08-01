@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { RowDataPacket } from "mysql2/promise";
+import type { Connection, RowDataPacket } from "mysql2/promise";
 
 export type CitizenBankAccount = {
   key: string;
@@ -34,6 +34,31 @@ type BankRow = RowDataPacket & {
   cash_balance: unknown;
   [key: `account_${number}`]: unknown;
 };
+
+type DebitRow = RowDataPacket & {
+  [key: `payment_${number}`]: unknown;
+};
+
+type PaymentColumn = {
+  column: string;
+  label: string;
+};
+
+export type GameMoneyDebitResult =
+  | {
+      status: "paid";
+      amount: number;
+      availableBefore: number;
+      debits: Array<{ column: string; label: string; amount: number }>;
+    }
+  | {
+      status:
+        | "not_configured"
+        | "not_found"
+        | "insufficient_funds"
+        | "unavailable";
+      available: number | null;
+    };
 
 const SAFE_IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
@@ -118,6 +143,70 @@ function parseCitizenName(value: unknown): string | null {
   return normalized;
 }
 
+function databaseIdentifiers() {
+  const table = safeIdentifier(
+    optionalEnv("GAME_DB_PLAYERS_TABLE") ?? "players",
+    "players",
+  );
+  const uidColumn = safeIdentifier(
+    optionalEnv("GAME_DB_PLAYER_UID_COLUMN") ?? "playerid",
+    "playerid",
+  );
+  const nameColumn = safeIdentifier(
+    optionalEnv("GAME_DB_PLAYER_NAME_COLUMN") ?? "name",
+    "name",
+  );
+  const cashColumn = safeIdentifier(
+    optionalEnv("GAME_DB_PLAYER_CASH_COLUMN") ?? "cash",
+    "cash",
+  );
+
+  return { table, uidColumn, nameColumn, cashColumn };
+}
+
+function parsePaymentColumns(): PaymentColumn[] {
+  const { cashColumn } = databaseIdentifiers();
+  const accountColumns = parseAccountColumns();
+  const labels = new Map(
+    accountColumns.map((account) => [account.column, account.label]),
+  );
+  labels.set(cashColumn, "Argent liquide");
+
+  const configured = optionalEnv("GAME_DB_CASINO_DEBIT_ORDER");
+  const requested = configured
+    ? configured.split(",").map((column) => column.trim())
+    : [...accountColumns.map((account) => account.column), cashColumn];
+
+  const unique = [...new Set(requested)].filter((column) =>
+    SAFE_IDENTIFIER.test(column),
+  );
+
+  return unique.map((column) => ({
+    column,
+    label: labels.get(column) ?? column,
+  }));
+}
+
+async function openGameDatabaseConnection(): Promise<Connection | null> {
+  const configuration = requiredDatabaseConfiguration();
+  if (!configuration) return null;
+
+  const { createConnection } = await import("mysql2/promise");
+  return createConnection({
+    host: configuration.host,
+    port: parsePort(optionalEnv("GAME_DB_PORT")),
+    user: configuration.user,
+    password: configuration.password,
+    database: configuration.database,
+    connectTimeout: 5_000,
+    enableKeepAlive: false,
+    ssl:
+      optionalEnv("GAME_DB_SSL") === "true"
+        ? { rejectUnauthorized: true }
+        : undefined,
+  });
+}
+
 export function isGameBankConfigured(): boolean {
   return Boolean(requiredDatabaseConfiguration());
 }
@@ -150,22 +239,8 @@ export async function getCitizenBankInformation(
     };
   }
 
-  const table = safeIdentifier(
-    optionalEnv("GAME_DB_PLAYERS_TABLE") ?? "players",
-    "players",
-  );
-  const uidColumn = safeIdentifier(
-    optionalEnv("GAME_DB_PLAYER_UID_COLUMN") ?? "playerid",
-    "playerid",
-  );
-  const nameColumn = safeIdentifier(
-    optionalEnv("GAME_DB_PLAYER_NAME_COLUMN") ?? "name",
-    "name",
-  );
-  const cashColumn = safeIdentifier(
-    optionalEnv("GAME_DB_PLAYER_CASH_COLUMN") ?? "cash",
-    "cash",
-  );
+  const { table, uidColumn, nameColumn, cashColumn } =
+    databaseIdentifiers();
   const accountColumns = parseAccountColumns();
   const accountSelect = accountColumns
     .map(
@@ -179,20 +254,8 @@ export async function getCitizenBankInformation(
   > | null = null;
 
   try {
-    const { createConnection } = await import("mysql2/promise");
-    connection = await createConnection({
-      host: configuration.host,
-      port: parsePort(optionalEnv("GAME_DB_PORT")),
-      user: configuration.user,
-      password: configuration.password,
-      database: configuration.database,
-      connectTimeout: 5_000,
-      enableKeepAlive: false,
-      ssl:
-        optionalEnv("GAME_DB_SSL") === "true"
-          ? { rejectUnauthorized: true }
-          : undefined,
-    });
+    connection = await openGameDatabaseConnection();
+    if (!connection) throw new Error("game_database_not_configured");
 
     const query = `select \`${nameColumn}\` as \`citizen_name\`, \`${cashColumn}\` as \`cash_balance\`, ${accountSelect} from \`${table}\` where \`${uidColumn}\` = ? limit 1`;
     const [rows] = await connection.execute<BankRow[]>(query, [steamId]);
@@ -237,6 +300,125 @@ export async function getCitizenBankInformation(
       total: null,
       checkedAt: null,
     };
+  } finally {
+    if (connection) await connection.end().catch(() => undefined);
+  }
+}
+
+export async function debitCitizenGameMoney(
+  steamId: string,
+  requestedAmount: number,
+): Promise<GameMoneyDebitResult> {
+  if (!requiredDatabaseConfiguration()) {
+    return { status: "not_configured", available: null };
+  }
+  if (!Number.isSafeInteger(requestedAmount) || requestedAmount <= 0) {
+    return { status: "insufficient_funds", available: 0 };
+  }
+
+  const { table, uidColumn } = databaseIdentifiers();
+  const paymentColumns = parsePaymentColumns();
+  if (!paymentColumns.length) {
+    return { status: "not_configured", available: null };
+  }
+
+  let connection: Connection | null = null;
+  try {
+    connection = await openGameDatabaseConnection();
+    if (!connection) return { status: "not_configured", available: null };
+    await connection.beginTransaction();
+
+    const paymentSelect = paymentColumns
+      .map(
+        (payment, index) =>
+          `\`${payment.column}\` as \`payment_${index}\``,
+      )
+      .join(", ");
+    const [rows] = await connection.execute<DebitRow[]>(
+      `select ${paymentSelect} from \`${table}\` where \`${uidColumn}\` = ? limit 1 for update`,
+      [steamId],
+    );
+    const row = rows[0];
+    if (!row) {
+      await connection.rollback();
+      return { status: "not_found", available: 0 };
+    }
+
+    const balances = paymentColumns.map((_, index) =>
+      Math.max(0, Math.trunc(amount(row[`payment_${index}`]))),
+    );
+    const availableBefore = balances.reduce((sum, balance) => sum + balance, 0);
+    if (availableBefore < requestedAmount) {
+      await connection.rollback();
+      return { status: "insufficient_funds", available: availableBefore };
+    }
+
+    let remaining = requestedAmount;
+    const debits = paymentColumns.map((payment, index) => {
+      const debit = Math.min(balances[index], remaining);
+      remaining -= debit;
+      return { ...payment, amount: debit };
+    });
+    const changed = debits.filter((debit) => debit.amount > 0);
+    const assignments = changed
+      .map((debit) => `\`${debit.column}\` = \`${debit.column}\` - ?`)
+      .join(", ");
+    await connection.execute(
+      `update \`${table}\` set ${assignments} where \`${uidColumn}\` = ?`,
+      [...changed.map((debit) => debit.amount), steamId],
+    );
+    await connection.commit();
+
+    return {
+      status: "paid",
+      amount: requestedAmount,
+      availableBefore,
+      debits: changed,
+    };
+  } catch (error) {
+    if (connection) await connection.rollback().catch(() => undefined);
+    console.error("[game-bank] Débit Casino impossible.", error);
+    return { status: "unavailable", available: null };
+  } finally {
+    if (connection) await connection.end().catch(() => undefined);
+  }
+}
+
+export async function refundCitizenGameMoney(
+  steamId: string,
+  debits: Array<{ column: string; amount: number }>,
+): Promise<boolean> {
+  const safeDebits = debits.filter(
+    (debit) =>
+      SAFE_IDENTIFIER.test(debit.column) &&
+      Number.isSafeInteger(debit.amount) &&
+      debit.amount > 0,
+  );
+  if (!requiredDatabaseConfiguration() || !safeDebits.length) return false;
+
+  const { table, uidColumn } = databaseIdentifiers();
+  let connection: Connection | null = null;
+  try {
+    connection = await openGameDatabaseConnection();
+    if (!connection) return false;
+    await connection.beginTransaction();
+    const assignments = safeDebits
+      .map((debit) => `\`${debit.column}\` = \`${debit.column}\` + ?`)
+      .join(", ");
+    const [result] = await connection.execute(
+      `update \`${table}\` set ${assignments} where \`${uidColumn}\` = ?`,
+      [...safeDebits.map((debit) => debit.amount), steamId],
+    );
+    const affectedRows = Number(
+      (result as { affectedRows?: number }).affectedRows ?? 0,
+    );
+    if (affectedRows !== 1) throw new Error("casino_refund_player_not_found");
+    await connection.commit();
+    return true;
+  } catch (error) {
+    if (connection) await connection.rollback().catch(() => undefined);
+    console.error("[game-bank] Remboursement Casino impossible.", error);
+    return false;
   } finally {
     if (connection) await connection.end().catch(() => undefined);
   }

@@ -73,3 +73,30 @@ export async function adjustCasinoWallet(formData: FormData) {
   refresh();
   redirect("/dashboard/jeux/casino?saved=wallet");
 }
+
+export async function resetCasinoPlayer(formData: FormData) {
+  const supabase = await manager();
+  const userId = text(formData.get("user_id"), 80);
+  const scope = text(formData.get("scope"), 30);
+  const confirmation = text(formData.get("confirmation"), 80);
+  const confirmations: Record<string, string> = {
+    balance: "REMETTRE LE SOLDE A ZERO",
+    level: "REMETTRE LE NIVEAU A ZERO",
+    total: "REINITIALISER LE JOUEUR",
+  };
+  if (!userId || !confirmations[scope] || confirmation !== confirmations[scope]) {
+    redirect("/dashboard/jeux/casino?error=reset");
+  }
+
+  const { error } = await (supabase as any).rpc(
+    "casino_admin_reset_player_v109",
+    {
+      p_user_id: userId,
+      p_scope: scope,
+      p_reason: `Réinitialisation ${scope} depuis le Dashboard`,
+    },
+  );
+  if (error) redirect("/dashboard/jeux/casino?error=reset");
+  refresh();
+  redirect(`/dashboard/jeux/casino?saved=reset-${scope}`);
+}
