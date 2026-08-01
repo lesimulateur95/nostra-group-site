@@ -39,6 +39,7 @@ export default async function CasinoDashboardPage({ searchParams }: { searchPara
   const params = await searchParams;
   const [settings, admin] = await Promise.all([getCasinoSettings(), getCasinoAdminData()]);
   const recentPurchases = admin.conversions.slice(0, 30);
+  const recentCashouts = admin.cashouts.slice(0, 30);
   const chipsInCirculation = admin.wallets.reduce((sum, wallet) => sum + wallet.balance, 0);
   const totalWagered = admin.gameStats.reduce((sum, stat) => sum + stat.wagered, 0);
   const totalPaid = admin.gameStats.reduce((sum, stat) => sum + stat.paid, 0);
@@ -149,6 +150,11 @@ export default async function CasinoDashboardPage({ searchParams }: { searchPara
             <label><span>Valeur RP d’un jeton (€)</span><input name="rp_per_chip" type="number" min="1" defaultValue={settings.rpPerChip} required /></label>
             <label><span>Conversion minimum (jetons)</span><input name="min_conversion" type="number" min="1" defaultValue={settings.minConversion} required /></label>
             <label><span>Conversion maximum (jetons)</span><input name="max_conversion" type="number" min="1" defaultValue={settings.maxConversion} required /></label>
+            <label><span>Revente des jetons</span><select name="cashout_enabled" defaultValue={settings.cashoutEnabled ? "true" : "false"}><option value="true">Ouverte — crédit automatique en jeu</option><option value="false">Fermée — revente bloquée</option></select></label>
+            <label><span>Valeur de revente d’un jeton (€ RP)</span><input name="cashout_rp_per_chip" type="number" min="1" max={settings.rpPerChip} defaultValue={settings.cashoutRpPerChip} required /></label>
+            <label><span>Revente minimum (jetons)</span><input name="min_cashout" type="number" min="1" defaultValue={settings.minCashout} required /></label>
+            <label><span>Revente maximum (jetons)</span><input name="max_cashout" type="number" min="1" defaultValue={settings.maxCashout} required /></label>
+            <p className={styles.rateNote}>Le taux de revente ne peut pas dépasser le prix d’achat d’un jeton, afin d’empêcher toute création d’argent par achat/revente.</p>
             <button className="btn" type="submit">Enregistrer les réglages</button>
           </form>
           <Link className="secondary-link-button" href="/casino">Prévisualiser le casino →</Link>
@@ -172,6 +178,18 @@ export default async function CasinoDashboardPage({ searchParams }: { searchPara
           {recentPurchases.map((item) => (
             <article className="order-card" key={item.id}>
               <div><span className="module-status">{item.status === "approved" ? "PAYÉ" : item.status === "rejected" ? "REFUSÉ" : item.status === "cancelled" ? "ANNULÉ" : "À VÉRIFIER"}</span><h3>{item.citizenName}</h3><p>{n(item.rpAmount)} € RP → <strong>{n(item.chipAmount)} jetons</strong></p><small>{new Date(item.createdAt).toLocaleString("fr-FR")}</small></div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="backoffice-panel">
+        <div className="panel-heading"><span className="panel-icon">↗</span><div><h2>Reventes vers le compte en jeu</h2><p>Les jetons retirés et les virements RP vers le compte bancaire principal sont enregistrés ici.</p></div></div>
+        <div className="orders-list">
+          {recentCashouts.length === 0 && <p className="empty-state">Aucune revente enregistrée pour le moment.</p>}
+          {recentCashouts.map((item) => (
+            <article className="order-card" key={item.id}>
+              <div><span className="module-status">{item.status === "approved" ? "CRÉDITÉ" : item.status === "rejected" ? "REMBOURSÉ" : item.status === "cancelled" ? "ANNULÉ" : "EN COURS"}</span><h3>{item.citizenName}</h3><p><strong>{n(item.chipAmount)} jetons</strong> → {n(item.rpAmount)} € RP</p><small>{new Date(item.createdAt).toLocaleString("fr-FR")}</small></div>
             </article>
           ))}
         </div>

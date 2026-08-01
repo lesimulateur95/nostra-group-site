@@ -42,14 +42,22 @@ export async function saveCasinoSettings(formData: FormData) {
   const rpPerChip = integer(formData.get("rp_per_chip"));
   const minConversion = integer(formData.get("min_conversion"));
   const maxConversion = integer(formData.get("max_conversion"));
-  if (!name || rpPerChip < 1 || minConversion < 1 || maxConversion < minConversion) redirect("/dashboard/jeux/casino?error=settings");
-  const { error } = await (supabase as any).rpc("casino_update_settings_v108", {
+  const cashoutEnabled = text(formData.get("cashout_enabled"), 10) === "true";
+  const cashoutRpPerChip = integer(formData.get("cashout_rp_per_chip"));
+  const minCashout = integer(formData.get("min_cashout"));
+  const maxCashout = integer(formData.get("max_cashout"));
+  if (!name || rpPerChip < 1 || minConversion < 1 || maxConversion < minConversion || cashoutRpPerChip < 1 || cashoutRpPerChip > rpPerChip || minCashout < 1 || maxCashout < minCashout) redirect("/dashboard/jeux/casino?error=settings");
+  const { error } = await (supabase as any).rpc("casino_update_cashier_settings_v120", {
     p_public_enabled: publicEnabled,
     p_name: name,
     p_subtitle: subtitle,
     p_rp_per_chip: rpPerChip,
     p_min_conversion: minConversion,
     p_max_conversion: maxConversion,
+    p_cashout_enabled: cashoutEnabled,
+    p_cashout_rp_per_chip: cashoutRpPerChip,
+    p_min_cashout: minCashout,
+    p_max_cashout: maxCashout,
   });
   if (error) redirect("/dashboard/jeux/casino?error=setup");
   refresh();

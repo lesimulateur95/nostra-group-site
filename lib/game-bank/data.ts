@@ -60,6 +60,17 @@ export type GameMoneyDebitResult =
       available: number | null;
     };
 
+export type GameMoneyCreditResult =
+  | {
+      status: "credited";
+      amount: number;
+      accountLabel: string;
+      balanceAfter: number;
+    }
+  | {
+      status: "not_configured" | "not_found" | "unavailable";
+    };
+
 const SAFE_IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
 function optionalEnv(name: string): string | null {
@@ -419,6 +430,58 @@ export async function refundCitizenGameMoney(
     if (connection) await connection.rollback().catch(() => undefined);
     console.error("[game-bank] Remboursement Casino impossible.", error);
     return false;
+  } finally {
+    if (connection) await connection.end().catch(() => undefined);
+  }
+}
+
+export async function creditCitizenGameMoney(
+  steamId: string,
+  requestedAmount: number,
+): Promise<GameMoneyCreditResult> {
+  if (!requiredDatabaseConfiguration()) return { status: "not_configured" };
+  if (!Number.isSafeInteger(requestedAmount) || requestedAmount <= 0) {
+    return { status: "unavailable" };
+  }
+
+  const { table, uidColumn } = databaseIdentifiers();
+  const target = parseAccountColumns()[0];
+  if (!target || !SAFE_IDENTIFIER.test(target.column)) {
+    return { status: "not_configured" };
+  }
+
+  let connection: Connection | null = null;
+  try {
+    connection = await openGameDatabaseConnection();
+    if (!connection) return { status: "not_configured" };
+    await connection.beginTransaction();
+    const [result] = await connection.execute(
+      `update \`${table}\` set \`${target.column}\` = \`${target.column}\` + ? where \`${uidColumn}\` = ?`,
+      [requestedAmount, steamId],
+    );
+    const affectedRows = Number(
+      (result as { affectedRows?: number }).affectedRows ?? 0,
+    );
+    if (affectedRows !== 1) {
+      await connection.rollback();
+      return { status: "not_found" };
+    }
+    const [rows] = await connection.execute<DebitRow[]>(
+      `select \`${target.column}\` as \`payment_0\` from \`${table}\` where \`${uidColumn}\` = ? limit 1`,
+      [steamId],
+    );
+    const balanceAfter = Math.max(0, Math.trunc(amount(rows[0]?.payment_0)));
+    await connection.commit();
+    return {
+      status: "credited",
+      amount: requestedAmount,
+      accountLabel: target.label,
+      balanceAfter,
+    };
+  } catch (error) {
+    if (connection) await connection.rollback().catch(() => undefined);
+    console.error("[game-bank] Crédit de la revente Casino impossible.", error);
+    return { status: "unavailable" };
   } finally {
     if (connection) await connection.end().catch(() => undefined);
   }

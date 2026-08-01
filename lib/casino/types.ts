@@ -20,6 +20,10 @@ export type CasinoSettings = {
   rpPerChip: number;
   minConversion: number;
   maxConversion: number;
+  cashoutEnabled: boolean;
+  cashoutRpPerChip: number;
+  minCashout: number;
+  maxCashout: number;
 };
 
 export type CasinoDifficulty = "balanced" | "hard" | "expert" | "custom";
@@ -83,6 +87,17 @@ export type CasinoConversion = {
   userId?: string;
 };
 
+export type CasinoCashout = {
+  id: string;
+  rpAmount: number;
+  chipAmount: number;
+  rate: number;
+  status: "pending" | "approved" | "rejected" | "cancelled";
+  createdAt: string;
+  citizenName?: string;
+  userId?: string;
+};
+
 export type CasinoLeaderboardRow = {
   userId: string;
   displayName: string;
@@ -104,6 +119,7 @@ export type CasinoAdminCitizen = {
 
 export type CasinoAdminData = {
   conversions: Array<CasinoConversion & { userId: string; citizenName: string }>;
+  cashouts: Array<CasinoCashout & { userId: string; citizenName: string }>;
   wallets: CasinoAdminWallet[];
   citizens: CasinoAdminCitizen[];
   gameSettings: CasinoGameSettings[];
