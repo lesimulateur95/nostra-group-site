@@ -150,10 +150,167 @@
 .roundsTable article > span:not(.roundGame), .roundsTable small { color: #858d86; }
 .roundGame { color: #dcc06e; }
 
+.resetZone {
+  margin: 30px 0;
+  padding: clamp(22px, 3vw, 34px);
+  border: 1px solid rgba(221, 91, 91, .24);
+  background:
+    radial-gradient(circle at 90% 0, rgba(161, 38, 38, .11), transparent 30rem),
+    linear-gradient(145deg, #110d0d, #090b09);
+  box-shadow: inset 0 1px rgba(255, 255, 255, .025);
+}
+
+.resetHeading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, .42fr);
+  gap: 28px;
+  align-items: end;
+  margin-bottom: 22px;
+}
+
+.resetEyebrow {
+  color: #df7777;
+  font-size: .63rem;
+  font-weight: 800;
+  letter-spacing: .2em;
+}
+
+.resetHeading h2 {
+  margin: 8px 0 10px;
+  color: #f5e9df;
+  font: 400 clamp(1.8rem, 2.5vw, 2.8rem)/1.05 Georgia, serif;
+}
+
+.resetHeading p {
+  max-width: 760px;
+  margin: 0;
+  color: #938b88;
+  font-size: .76rem;
+  line-height: 1.65;
+}
+
+.resetWarning {
+  padding: 14px 16px;
+  border-left: 2px solid #b84c4c;
+  background: rgba(126, 37, 37, .09);
+}
+
+.resetWarning strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #e58a8a;
+  font-size: .68rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.resetGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.resetGrid article {
+  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, .075);
+  background: rgba(10, 13, 11, .86);
+}
+
+.resetGrid h3 {
+  margin: 10px 0 8px;
+  color: #f0e8dc;
+  font: 400 1.25rem Georgia, serif;
+}
+
+.resetGrid article > p {
+  min-height: 48px;
+  margin: 0 0 16px;
+  color: #888e89;
+  font-size: .7rem;
+  line-height: 1.6;
+}
+
+.resetIcon {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(214, 89, 89, .35);
+  color: #e68a8a;
+  background: rgba(169, 47, 47, .08);
+  font: 700 .9rem Georgia, serif;
+}
+
+.resetGrid details {
+  border-top: 1px solid rgba(255, 255, 255, .06);
+  padding-top: 13px;
+}
+
+.resetGrid summary {
+  width: fit-content;
+  color: #d97676;
+  cursor: pointer;
+  font-size: .66rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.resetGrid form {
+  margin-top: 14px;
+  display: grid;
+  gap: 11px;
+}
+
+.resetGrid label {
+  display: grid;
+  gap: 7px;
+}
+
+.resetGrid label span {
+  color: #9c9691;
+  font-size: .64rem;
+  line-height: 1.5;
+}
+
+.resetGrid label b { color: #e4b0a8; }
+
+.resetGrid input {
+  width: 100%;
+  height: 40px;
+  padding: 0 11px;
+  color: #f6ebe6;
+  border: 1px solid rgba(222, 105, 105, .22);
+  outline: none;
+  background: #080807;
+}
+
+.resetGrid input:focus { border-color: #bc5555; }
+
+.resetGrid button {
+  min-height: 40px;
+  border: 1px solid #9d4242;
+  color: #f4dede;
+  background: linear-gradient(135deg, #542020, #7e2c2c);
+  cursor: pointer;
+  font-size: .64rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.resetGrid button:hover { filter: brightness(1.12); }
+
+.totalResetCard {
+  border-color: rgba(225, 72, 72, .3) !important;
+  background: linear-gradient(145deg, rgba(88, 25, 25, .23), rgba(10, 12, 10, .9)) !important;
+}
+
 @media (max-width: 1100px) {
   .controlHero { grid-template-columns: 1fr; }
   .gameControlGrid { grid-template-columns: 1fr; }
   .roundsTable article { grid-template-columns: 1fr 1fr; }
+  .resetHeading { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 650px) {
@@ -162,4 +319,6 @@
   .bankMetrics, .formGrid { grid-template-columns: 1fr; }
   .wide { grid-column: auto; }
   .roundsTable article { grid-template-columns: 1fr; gap: 5px; }
+  .resetGrid { grid-template-columns: 1fr; }
+  .resetGrid article > p { min-height: 0; }
 }
