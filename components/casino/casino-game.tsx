@@ -62,6 +62,15 @@ const CHOICES: Partial<Record<CasinoGameKey, Array<{ value: string; label: strin
 const RED_NUMBERS = new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
 const DIFFICULTY_LABEL = { balanced: "Table équilibrée", hard: "Table difficile", expert: "Table haute difficulté", custom: "Règles de la Maison" } as const;
 
+const SLOT_MACHINES = [
+  { key: "imperiale", name: "L’Impériale", kicker: "GRAND CLASSIQUE", symbol: "♛", palette: "gold", symbols: ["◆", "♠", "✦", "7", "♛", "●"], text: "Boiseries, laiton et jackpots du Cercle." },
+  { key: "neon", name: "Neon 777", kicker: "NUIT ÉLECTRIQUE", symbol: "7", palette: "neon", symbols: ["⚡", "7", "★", "◆", "●", "♣"], text: "Une machine lumineuse inspirée des casinos nocturnes." },
+  { key: "pharaoh", name: "Trésor du Pharaon", kicker: "CHAMBRE D’OR", symbol: "☥", palette: "pharaoh", symbols: ["☥", "◈", "♛", "☀", "◆", "7"], text: "Hiéroglyphes, pierre noire et trésors antiques." },
+  { key: "lucky", name: "Lucky Sevens", kicker: "ROUGE & CHROME", symbol: "777", palette: "lucky", symbols: ["7", "★", "♥", "♦", "♣", "♠"], text: "La machine rapide dédiée au mythique triple 7." },
+  { key: "diamond", name: "Diamond Society", kicker: "SALON PRIVÉ", symbol: "◇", palette: "diamond", symbols: ["◇", "✦", "♛", "◆", "7", "●"], text: "Cristal, argent et lumière froide pour les hautes mises." },
+  { key: "jungle", name: "Jungle Fortune", kicker: "ÉMERAUDE SAUVAGE", symbol: "✦", palette: "jungle", symbols: ["✦", "◆", "●", "♣", "♛", "7"], text: "Une machine végétale aux reflets d’émeraude." },
+] as const;
+
 function cardLabel(rank: number): string { return rank === 14 ? "A" : rank === 13 ? "K" : rank === 12 ? "Q" : rank === 11 ? "J" : String(rank); }
 function chips(value: number): string { return Math.trunc(value).toLocaleString("fr-FR"); }
 
@@ -83,8 +92,10 @@ export function CasinoGame({ game, initialBalance, settings }: { game: CasinoGam
   const [balance, setBalance] = useState(initialBalance);
   const [result, setResult] = useState<GameResponse | null>(null);
   const [active, setActive] = useState(false);
+  const [slotMachine, setSlotMachine] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
+  const selectedSlot = SLOT_MACHINES.find((machine) => machine.key === slotMachine) ?? null;
   const canPlay = settings.enabled && wager >= settings.minBet && wager <= settings.maxBet && wager <= balance && (!choices.length || Boolean(choice));
 
   useEffect(() => {
@@ -116,7 +127,7 @@ export function CasinoGame({ game, initialBalance, settings }: { game: CasinoGam
       const response = await fetch("/api/casino/play", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ game, action, wager, choice, doubles: Number(result?.doubles ?? 0) }),
+        body: JSON.stringify({ game, action, wager, choice: game === "slots" ? selectedSlot?.key ?? "imperiale" : choice, doubles: Number(result?.doubles ?? 0) }),
       });
       const payload = await response.json().catch(() => ({ error: "Réponse de table invalide." })) as GameResponse;
       setResult(payload);
@@ -132,8 +143,8 @@ export function CasinoGame({ game, initialBalance, settings }: { game: CasinoGam
   return (
     <>
       <section className={styles.pageHeading}>
-        <div><p className={styles.eyebrow}>{copy.kicker}</p><h1>{copy.title}</h1></div>
-        <div className={styles.tableIntro}><p>{copy.text}</p><span>{settings.enabled ? "● TABLE OUVERTE" : "● TABLE FERMÉE"}</span><small>{DIFFICULTY_LABEL[settings.difficulty]}</small></div>
+        <div><p className={styles.eyebrow}>{selectedSlot?.kicker ?? copy.kicker}</p><h1>{selectedSlot?.name ?? copy.title}</h1></div>
+        <div className={styles.tableIntro}><p>{selectedSlot?.text ?? copy.text}</p><span>{settings.enabled ? "● TABLE OUVERTE" : "● TABLE FERMÉE"}</span><small>{DIFFICULTY_LABEL[settings.difficulty]}</small></div>
       </section>
 
       <div className={styles.gameLayout}>
@@ -158,13 +169,31 @@ export function CasinoGame({ game, initialBalance, settings }: { game: CasinoGam
             </div>
           )}
 
-          {settings.enabled && game === "slots" && (
+          {settings.enabled && game === "slots" && !selectedSlot && (
+            <div className={styles.slotHall}>
+              <div className={styles.slotHallHeading}><span>GALERIE DES JACKPOTS</span><h2>Choisis ta machine</h2><p>Six univers différents, un seul portefeuille de jetons et des résultats sécurisés côté serveur.</p></div>
+              <div className={styles.slotCabinetGrid}>
+                {SLOT_MACHINES.map((machine) => (
+                  <button className={`${styles.slotCabinet} ${styles[`slotTheme_${machine.palette}`]}`} key={machine.key} type="button" onClick={() => { setSlotMachine(machine.key); setResult(null); }}>
+                    <small>{machine.kicker}</small><strong>{machine.name}</strong><span>{machine.symbol}</span><p>{machine.text}</p><em>JOUER À CETTE MACHINE</em>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {settings.enabled && game === "slots" && selectedSlot && (
             <div className={styles.slotRoom}>
-              <div className={styles.slotMachine}>
-                <div className={styles.slotMarquee}><small>LE CERCLE PRÉSENTE</small><strong>L’IMPÉRIALE</strong><span>JACKPOT ×{settings.jackpotMultiplier}</span></div>
+              <button className={styles.slotBackButton} type="button" onClick={() => { setSlotMachine(null); setResult(null); }}>← Revenir aux 6 machines</button>
+              <div className={`${styles.slotMachine} ${styles[`slotTheme_${selectedSlot.palette}`]}`}>
+                <div className={styles.slotMarquee}><small>{selectedSlot.kicker}</small><strong>{selectedSlot.name}</strong><span>JACKPOT ×{settings.jackpotMultiplier}</span></div>
                 <div className={styles.slotBulbs} aria-hidden="true">{Array.from({ length: 16 }, (_, index) => <i key={index} />)}</div>
                 <div className={styles.slotWindow}><div className={styles.slotPayline} />
-                  <div className={styles.slotReels}>{(result?.symbols ?? ["◆", "♠", "✦"]).map((symbol, index) => <div className={`${styles.slotReel} ${pending ? styles.reelSpinning : ""}`} key={`${symbol}-${index}`}>{symbol}</div>)}</div>
+                  <div className={styles.slotReels}>{(result?.symbols ?? ["◆", "♠", "✦"]).map((symbol, index) => {
+                    const sourceIndex = ["◆", "♠", "✦", "7", "♛", "●"].indexOf(symbol);
+                    const themedSymbol = selectedSlot.symbols[sourceIndex >= 0 ? sourceIndex : index % selectedSlot.symbols.length];
+                    return <div className={`${styles.slotReel} ${pending ? styles.reelSpinning : ""}`} key={`${symbol}-${index}`}>{themedSymbol}</div>;
+                  })}</div>
                 </div>
                 <div className={styles.slotConsole}><span>MISE <b>{chips(wager)}</b></span><button className={styles.slotSpin} disabled={pending || !canPlay} onClick={simplePlay} type="button">{pending ? "EN COURS" : "JOUER"}</button><span>MAX <b>{chips(settings.maxPayout)}</b></span></div>
                 <span className={styles.slotLever} aria-hidden="true"><i /></span>

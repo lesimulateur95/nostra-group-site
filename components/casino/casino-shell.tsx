@@ -9,7 +9,8 @@ import styles from "./casino.module.css";
 const nav = [
   { href: "/casino", label: "Hall" },
   { href: "/casino/jeux/poker", label: "Poker" },
-  { href: "/casino/jeux/roulette", label: "Jeux" },
+  { href: "/casino/jeux/roulette", label: "Jeux solo" },
+  { href: "/casino/multijoueur", label: "Entre citoyens" },
   { href: "/casino/caisse", label: "La caisse" },
   { href: "/casino/profil", label: "Mon cercle" },
 ];

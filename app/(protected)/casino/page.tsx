@@ -9,7 +9,7 @@ const games = [
   { key: "double_or_quit", label: "Double ou quitte", kicker: "JUSQU’OÙ IRAS-TU ?", symbol: "×2", text: "Double ta mise encore et encore, ou quitte la table au bon moment pour encaisser.", meta: ["Solo", "À étapes", "Risque total"] },
   { key: "roulette", label: "Roulette", kicker: "TABLE CLASSIQUE", symbol: "◉", text: "La bille, le tapis et les mises mythiques du casino.", meta: ["Solo", "Direct"] },
   { key: "blackjack", label: "Blackjack", kicker: "VINGT-ET-UN", symbol: "21", text: "Approche 21 sans dépasser et bats la main de la maison.", meta: ["Solo", "Croupier"] },
-  { key: "slots", label: "Machines à sous", kicker: "JACKPOT", symbol: "✦", text: "Trois rouleaux, plusieurs combinaisons et des gains instantanés.", meta: ["Solo", "Instantané"] },
+  { key: "slots", label: "Machines à sous", kicker: "6 MACHINES", symbol: "✦", text: "Entre dans la galerie et choisis l’une des six machines aux ambiances différentes.", meta: ["Solo", "6 univers", "Jackpots"] },
   { key: "plinko", label: "Plinko", kicker: "LA BILLE TOMBE", symbol: "▽", text: "Choisis le risque et regarde la bille trouver son multiplicateur.", meta: ["Solo", "Risque"] },
   { key: "dice", label: "Dés", kicker: "LE SORT DES DÉS", symbol: "⚄", text: "Prédit au-dessus ou en dessous et laisse parler le hasard.", meta: ["Solo", "Rapide"] },
   { key: "coinflip", label: "Pile ou face", kicker: "50 / 50", symbol: "?", text: "Un choix, une pièce et un résultat immédiat.", meta: ["Solo", "Duel"] },
@@ -61,9 +61,37 @@ export default async function CasinoHomePage() {
       <section className={styles.section}>
         <div className={styles.sectionHeader}>
           <div>
-            <p className={styles.eyebrow}>TABLE OUVERTE</p>
-            <h2>Choisis ton jeu</h2>
-            <p>Des classiques du casino aux parties rapides, chaque résultat est calculé côté serveur.</p>
+            <p className={styles.eyebrow}>DEUX FAÇONS DE JOUER</p>
+            <h2>Choisis ton mode</h2>
+            <p>Entraîne-toi contre la Maison ou défie directement les autres citoyens du serveur.</p>
+          </div>
+        </div>
+        <div className={styles.modeGrid}>
+          <article className={`${styles.modeCard} ${styles.modeSolo}`}>
+            <span className={styles.modeNumber}>01</span>
+            <small>PARTIES IMMÉDIATES</small>
+            <h3>Solo contre des bots</h3>
+            <p>Poker face à trois adversaires virtuels, blackjack contre le croupier et tous les jeux rapides de la Maison.</p>
+            <div className={styles.gameMeta}><span>Disponible immédiatement</span><span>8 jeux</span></div>
+            <Link className={styles.secondaryButton} href="#jeux-solo">Voir les jeux solo</Link>
+          </article>
+          <article className={`${styles.modeCard} ${styles.modeCitizens}`}>
+            <span className={styles.modeNumber}>02</span>
+            <small>SALONS PUBLICS & PRIVÉS</small>
+            <h3>Citoyen contre citoyen</h3>
+            <p>Crée un défi, partage un code privé ou rejoins une table publique de poker, de dés ou de pile ou face.</p>
+            <div className={styles.gameMeta}><span>Mises sécurisées</span><span>Mise à jour en direct</span></div>
+            <Link className={styles.primaryButton} href="/casino/multijoueur">Entrer dans le salon</Link>
+          </article>
+        </div>
+      </section>
+
+      <section className={styles.section} id="jeux-solo">
+        <div className={styles.sectionHeader}>
+          <div>
+            <p className={styles.eyebrow}>MODE SOLO</p>
+            <h2>Jouer contre la Maison</h2>
+            <p>Les adversaires virtuels et chaque résultat sont calculés côté serveur.</p>
           </div>
           <Link className={styles.textLink} href="/casino/jeux/poker">Jeu signature →</Link>
         </div>

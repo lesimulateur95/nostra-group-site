@@ -181,6 +181,9 @@ export async function POST(request: Request) {
   const choice = String(body.choice ?? "").slice(0, 40);
   const expectedDoubles = Math.max(0, Math.trunc(Number(body.doubles ?? 0)));
   if (!["poker","blackjack","roulette","slots","dice","plinko","coinflip","double_or_quit"].includes(game)) return NextResponse.json({ error: "Jeu inconnu." }, { status: 404 });
+  if (game === "slots" && !["imperiale","neon","pharaoh","lucky","diamond","jungle"].includes(choice)) {
+    return NextResponse.json({ error: "Machine à sous inconnue." }, { status: 400 });
+  }
 
   const [settings, roles, config] = await Promise.all([getCasinoSettings(), getUserRoleKeys(data.user), getCasinoServerGameSettings(game as CasinoGameKey)]);
   if (!settings.publicEnabled && !roles.includes("manager")) return NextResponse.json({ error: "Le casino est fermé." }, { status: 403 });
