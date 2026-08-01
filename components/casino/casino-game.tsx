@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import type { CasinoGameKey, CasinoGameSettings } from "@/lib/casino/types";
@@ -31,6 +31,9 @@ type GameResponse = {
   playerValue?: number;
   dealerValue?: number;
   poker?: PokerView;
+  active?: boolean;
+  currentAmount?: number;
+  doubles?: number;
 };
 
 const GAME_COPY: Record<CasinoGameKey, { kicker: string; title: string; text: string }> = {
@@ -41,6 +44,7 @@ const GAME_COPY: Record<CasinoGameKey, { kicker: string; title: string; text: st
   dice: { kicker: "TABLE DES HAUTS & BAS", title: "Le Sort des dés", text: "Annonce moins ou plus de cinquante, puis laisse les deux dés numériques décider." },
   plinko: { kicker: "SALLE DES MULTIPLICATEURS", title: "La Chute dorée", text: "Choisis ton risque, lâche la bille et suis sa trajectoire entre les clous jusqu’à la case finale." },
   coinflip: { kicker: "DUEL 50 / 50", title: "Le Louis d’or", text: "Pile ou face. Une seule décision, un lancer et le verdict de la pièce du Cercle." },
+  double_or_quit: { kicker: "SALON DU RISQUE", title: "Double ou quitte", text: "Tente de doubler la somme à chaque tour. Quitte la table quand tu le souhaites pour encaisser, mais un seul échec fait tout perdre." },
 };
 
 const CHOICES: Partial<Record<CasinoGameKey, Array<{ value: string; label: string }>>> = {
@@ -83,6 +87,24 @@ export function CasinoGame({ game, initialBalance, settings }: { game: CasinoGam
   const router = useRouter();
   const canPlay = settings.enabled && wager >= settings.minBet && wager <= settings.maxBet && wager <= balance && (!choices.length || Boolean(choice));
 
+  useEffect(() => {
+    if (game !== "double_or_quit" || !settings.enabled) return;
+    let cancelled = false;
+    void fetch("/api/casino/play", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ game, action: "status", wager }),
+    }).then((response) => response.json()).then((payload: GameResponse) => {
+      if (cancelled || payload.error) return;
+      if (typeof payload.balance === "number") setBalance(payload.balance);
+      if (payload.active) {
+        setResult(payload);
+        setActive(true);
+      }
+    }).catch(() => undefined);
+    return () => { cancelled = true; };
+  }, [game, settings.enabled, wager]);
+
   const resultClass = useMemo(() => {
     if (!result || result.error) return "";
     return Number(result.payout ?? 0) > wager ? styles.resultWin : Number(result.payout ?? 0) === wager ? styles.resultPush : styles.resultLoss;
@@ -94,12 +116,12 @@ export function CasinoGame({ game, initialBalance, settings }: { game: CasinoGam
       const response = await fetch("/api/casino/play", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ game, action, wager, choice }),
+        body: JSON.stringify({ game, action, wager, choice, doubles: Number(result?.doubles ?? 0) }),
       });
       const payload = await response.json().catch(() => ({ error: "Réponse de table invalide." })) as GameResponse;
       setResult(payload);
       if (typeof payload.balance === "number") setBalance(payload.balance);
-      if (game === "blackjack" || game === "poker") setActive(response.ok && payload.finished !== true);
+      if (game === "blackjack" || game === "poker" || game === "double_or_quit") setActive(response.ok && payload.finished !== true);
       if (response.ok && payload.finished !== false) router.refresh();
     });
   }
@@ -203,6 +225,35 @@ export function CasinoGame({ game, initialBalance, settings }: { game: CasinoGam
               <div className={styles.coinPedestal}><div className={`${styles.casinoCoin} ${pending ? styles.coinFlipping : ""} ${result?.outcome === "tails" ? styles.coinTails : ""}`}><span>CN</span><em>LE CERCLE</em></div></div>
               <ChoiceButtons choices={choices} choice={choice} setChoice={setChoice} />
               <button className={styles.goldButton} disabled={pending || !canPlay} onClick={simplePlay} type="button">{pending ? "La pièce est en l’air…" : `Lancer la pièce · ${chips(wager)} jetons`}</button>
+            </div>
+          )}
+
+          {settings.enabled && game === "double_or_quit" && (
+            <div className={styles.doubleRoom}>
+              <div className={styles.doubleVault}>
+                <span className={styles.doubleKicker}>{active ? "SOMME EN JEU" : "MISE DE DÉPART"}</span>
+                <div className={`${styles.doubleAmount} ${pending ? styles.doublePulse : ""}`}>
+                  <small>◉</small>
+                  <strong>{chips(active ? Number(result?.currentAmount ?? wager) : wager)}</strong>
+                  <span>JETONS</span>
+                </div>
+                <div className={styles.doubleProgress}>
+                  {Array.from({ length: 6 }, (_, index) => <i className={index < Number(result?.doubles ?? 0) ? styles.doubleStepWon : ""} key={index}>×{2 ** (index + 1)}</i>)}
+                </div>
+                <p>{active ? `${Number(result?.doubles ?? 0)} double${Number(result?.doubles ?? 0) > 1 ? "s" : ""} réussi${Number(result?.doubles ?? 0) > 1 ? "s" : ""}. Tu peux encaisser maintenant ou tout risquer.` : "Lance la partie pour placer ta mise sur la table."}</p>
+                {active && result?.finished === false && result.result && <strong className={styles.doubleMessage}>{result.result}</strong>}
+              </div>
+              <div className={styles.doubleActions}>
+                {!active ? (
+                  <button className={styles.goldButton} disabled={pending || !canPlay} onClick={() => request("start")} type="button">Commencer · {chips(wager)} jetons</button>
+                ) : (
+                  <>
+                    <button className={styles.secondaryButton} disabled={pending} onClick={() => request("cashout")} type="button">Quitter et encaisser {chips(Number(result?.currentAmount ?? wager))}</button>
+                    <button className={styles.doubleButton} disabled={pending} onClick={() => request("double")} type="button">{pending ? "Verdict…" : `Doubler vers ${chips(Math.min(settings.maxPayout, Number(result?.currentAmount ?? wager) * 2))}`}</button>
+                  </>
+                )}
+              </div>
+              <small className={styles.doubleDisclaimer}>Chaque tentative est indépendante. Un échec remet immédiatement le gain de la partie à zéro.</small>
             </div>
           )}
 

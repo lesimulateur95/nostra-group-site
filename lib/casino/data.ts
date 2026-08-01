@@ -37,6 +37,7 @@ export const DEFAULT_GAME_SETTINGS: Record<CasinoGameKey, CasinoGameSettings> = 
   dice: { game: "dice", enabled: true, difficulty: "hard", winRatePercent: 40, minBet: 25, maxBet: 20_000, baseMultiplier: 1.9, jackpotMultiplier: 4, maxPayout: 100_000 },
   plinko: { game: "plinko", enabled: true, difficulty: "expert", winRatePercent: 28, minBet: 25, maxBet: 20_000, baseMultiplier: 1.6, jackpotMultiplier: 12, maxPayout: 150_000 },
   coinflip: { game: "coinflip", enabled: true, difficulty: "hard", winRatePercent: 40, minBet: 25, maxBet: 20_000, baseMultiplier: 1.9, jackpotMultiplier: 3, maxPayout: 100_000 },
+  double_or_quit: { game: "double_or_quit", enabled: true, difficulty: "hard", winRatePercent: 42, minBet: 100, maxBet: 25_000, baseMultiplier: 2, jackpotMultiplier: 2, maxPayout: 500_000 },
 };
 
 function numberValue(value: unknown, fallback = 0): number {

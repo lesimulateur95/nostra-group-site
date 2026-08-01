@@ -6,6 +6,7 @@ import styles from "@/components/casino/casino.module.css";
 
 const games = [
   { key: "poker", label: "Texas Hold’em", kicker: "JEU SIGNATURE", symbol: "♠", text: "Affronte les joueurs du Cercle ou entraîne-toi face aux croupiers virtuels.", meta: ["Solo", "Tables privées", "2–8 joueurs"] },
+  { key: "double_or_quit", label: "Double ou quitte", kicker: "JUSQU’OÙ IRAS-TU ?", symbol: "×2", text: "Double ta mise encore et encore, ou quitte la table au bon moment pour encaisser.", meta: ["Solo", "À étapes", "Risque total"] },
   { key: "roulette", label: "Roulette", kicker: "TABLE CLASSIQUE", symbol: "◉", text: "La bille, le tapis et les mises mythiques du casino.", meta: ["Solo", "Direct"] },
   { key: "blackjack", label: "Blackjack", kicker: "VINGT-ET-UN", symbol: "21", text: "Approche 21 sans dépasser et bats la main de la maison.", meta: ["Solo", "Croupier"] },
   { key: "slots", label: "Machines à sous", kicker: "JACKPOT", symbol: "✦", text: "Trois rouleaux, plusieurs combinaisons et des gains instantanés.", meta: ["Solo", "Instantané"] },

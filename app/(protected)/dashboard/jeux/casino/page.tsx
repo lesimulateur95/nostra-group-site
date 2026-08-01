@@ -17,6 +17,7 @@ const GAME_LABELS: Record<CasinoGameKey, { label: string; icon: string }> = {
   dice: { label: "Dés", icon: "⚄" },
   plinko: { label: "Plinko", icon: "▽" },
   coinflip: { label: "Pile ou face", icon: "½" },
+  double_or_quit: { label: "Double ou quitte", icon: "×2" },
 };
 
 const DIFFICULTIES = {
@@ -115,10 +116,18 @@ export default async function CasinoDashboardPage({ searchParams }: { searchPara
                 <div className={styles.formGrid}>
                   <label className={styles.wide}><span>Difficulté affichée</span><select name="difficulty" defaultValue={game.difficulty}>{Object.entries(DIFFICULTIES).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
                   <label><span>Taux de victoire cible</span><div className={styles.inputSuffix}><input name="win_rate_percent" type="number" min="1" max="95" step="0.1" defaultValue={game.winRatePercent} required /><b>%</b></div></label>
-                  <label><span>Gain standard</span><div className={styles.inputSuffix}><input name="base_multiplier" type="number" min="0.1" max="100" step="0.1" defaultValue={game.baseMultiplier} required /><b>×</b></div></label>
+                  {game.game === "double_or_quit" ? (
+                    <label><span>Multiplicateur d’un double</span><div className={styles.inputSuffix}><input type="number" value="2" readOnly aria-label="Multiplicateur fixe" /><b>×</b></div></label>
+                  ) : (
+                    <label><span>Gain standard</span><div className={styles.inputSuffix}><input name="base_multiplier" type="number" min="0.1" max="100" step="0.1" defaultValue={game.baseMultiplier} required /><b>×</b></div></label>
+                  )}
                   <label><span>Mise minimum</span><input name="min_bet" type="number" min="1" step="1" defaultValue={game.minBet} required /></label>
                   <label><span>Mise maximum</span><input name="max_bet" type="number" min="1" step="1" defaultValue={game.maxBet} required /></label>
-                  <label><span>Jackpot / gros gain</span><div className={styles.inputSuffix}><input name="jackpot_multiplier" type="number" min="0.1" max="1000" step="0.1" defaultValue={game.jackpotMultiplier} required /><b>×</b></div></label>
+                  {game.game === "double_or_quit" ? (
+                    <><input type="hidden" name="base_multiplier" value="2" /><input type="hidden" name="jackpot_multiplier" value="2" /></>
+                  ) : (
+                    <label><span>Jackpot / gros gain</span><div className={styles.inputSuffix}><input name="jackpot_multiplier" type="number" min="0.1" max="1000" step="0.1" defaultValue={game.jackpotMultiplier} required /><b>×</b></div></label>
+                  )}
                   <label><span>Gain maximum</span><input name="max_payout" type="number" min="1" step="1" defaultValue={game.maxPayout} required /></label>
                 </div>
                 <button className={styles.saveGameButton} type="submit">Enregistrer {meta.label}</button>

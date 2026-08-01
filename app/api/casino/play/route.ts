@@ -179,7 +179,8 @@ export async function POST(request: Request) {
   const action = String(body.action ?? "play");
   const wager = Math.trunc(Number(body.wager));
   const choice = String(body.choice ?? "").slice(0, 40);
-  if (!["poker","blackjack","roulette","slots","dice","plinko","coinflip"].includes(game)) return NextResponse.json({ error: "Jeu inconnu." }, { status: 404 });
+  const expectedDoubles = Math.max(0, Math.trunc(Number(body.doubles ?? 0)));
+  if (!["poker","blackjack","roulette","slots","dice","plinko","coinflip","double_or_quit"].includes(game)) return NextResponse.json({ error: "Jeu inconnu." }, { status: 404 });
 
   const [settings, roles, config] = await Promise.all([getCasinoSettings(), getUserRoleKeys(data.user), getCasinoServerGameSettings(game as CasinoGameKey)]);
   if (!settings.publicEnabled && !roles.includes("manager")) return NextResponse.json({ error: "Le casino est fermé." }, { status: 403 });
@@ -192,6 +193,16 @@ export async function POST(request: Request) {
 
   try {
     await (supabase as any).rpc("casino_recover_stale_rounds_v108");
+
+    if (game === "double_or_quit") {
+      const { data: result, error } = await (supabase as any).rpc("casino_double_or_quit_v115", {
+        p_action: action,
+        p_wager: wager,
+        p_expected_doubles: expectedDoubles,
+      });
+      if (error) throw new Error(String(error.message));
+      return NextResponse.json(result);
+    }
 
     if (!["blackjack", "poker"].includes(game)) {
       const { data: result, error } = await (supabase as any).rpc("casino_play_simple_v108", { p_game: game, p_wager: wager, p_choice: choice });
@@ -280,7 +291,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ finished: true, result, payout, poker: publicPoker(state, true), balance: await walletBalance(admin, data.user.id) });
   } catch (error) {
     const message = String(error instanceof Error ? error.message : error).toLowerCase();
-    const friendly = message.includes("insufficient_balance") ? "Solde de jetons insuffisant." : message.includes("active_game_exists") ? "Termine d’abord ta partie active." : message.includes("game_closed") ? "Cette table est momentanément fermée." : message.includes("wager_out_of_bounds") ? "Cette mise dépasse les limites fixées par la Direction." : "La table n’a pas pu traiter l’action. Réessaie.";
+    const friendly = message.includes("insufficient_balance") ? "Solde de jetons insuffisant." : message.includes("active_game_exists") ? "Termine d’abord ta partie active." : message.includes("stale_double_action") ? "Cette action a déjà été traitée. Actualise la page pour resynchroniser le montant." : message.includes("no_active_double_game") ? "Cette partie est déjà terminée." : message.includes("game_closed") ? "Cette table est momentanément fermée." : message.includes("wager_out_of_bounds") ? "Cette mise dépasse les limites fixées par la Direction." : "La table n’a pas pu traiter l’action. Réessaie.";
     return NextResponse.json({ error: friendly }, { status: 400 });
   }
 }
