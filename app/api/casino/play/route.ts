@@ -243,7 +243,7 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
   const game = String(body.game ?? "");
   const action = String(body.action ?? "play");
-  const rouletteBets = Array.isArray(body.bets) ? body.bets.slice(0, 24) : [];
+  const rouletteBets = Array.isArray(body.bets) ? body.bets.slice(0, 64) : [];
   const rouletteWager = rouletteBets.reduce((sum: number, bet: { amount?: unknown }) => sum + Math.max(0, Math.trunc(Number(bet?.amount ?? 0))), 0);
   const wager = game === "roulette" ? rouletteWager : Math.trunc(Number(body.wager));
   const choice = String(body.choice ?? "").slice(0, 40);
@@ -281,7 +281,7 @@ export async function POST(request: Request) {
         choice: String(bet.choice ?? "").slice(0, 24),
         amount: Math.max(0, Math.trunc(Number(bet.amount ?? 0))),
       })).filter((bet: { choice: string; amount: number }) => bet.choice && bet.amount > 0);
-      const { data: result, error } = await (supabase as any).rpc("casino_play_roulette_v117", { p_bets: bets });
+      const { data: result, error } = await (supabase as any).rpc("casino_play_roulette_v118", { p_bets: bets });
       if (error) throw new Error(String(error.message));
       return NextResponse.json(result);
     }
@@ -433,7 +433,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ finished: true, result, payout, poker: publicPoker(state, Number(balanceAfterAction), config, true), balance: await walletBalance(admin, data.user.id) });
   } catch (error) {
     const message = String(error instanceof Error ? error.message : error).toLowerCase();
-    const friendly = message.includes("insufficient_balance") ? "Solde de jetons insuffisant." : message.includes("active_game_exists") ? "Termine d’abord ta partie active." : message.includes("stale_poker_action") ? "Cette action de poker a déjà été traitée. La table va se resynchroniser." : message.includes("function") || message.includes("schema cache") ? "Exécute le SQL Casino V117 dans Supabase avant de jouer." : message.includes("stale_double_action") ? "Cette action a déjà été traitée. Actualise la page pour resynchroniser le montant." : message.includes("no_active_double_game") ? "Cette partie est déjà terminée." : message.includes("game_closed") ? "Cette table est momentanément fermée." : message.includes("wager_out_of_bounds") ? "Cette mise dépasse les limites fixées par la Direction." : "La table n’a pas pu traiter l’action. Réessaie.";
+    const friendly = message.includes("insufficient_balance") ? "Solde de jetons insuffisant." : message.includes("active_game_exists") ? "Termine d’abord ta partie active." : message.includes("stale_poker_action") ? "Cette action de poker a déjà été traitée. La table va se resynchroniser." : message.includes("function") || message.includes("schema cache") ? "Exécute le SQL Casino V118 dans Supabase avant de jouer." : message.includes("invalid_bets") ? "Un ou plusieurs jetons du tapis sont invalides. Retire les jetons puis replace-les." : message.includes("stale_double_action") ? "Cette action a déjà été traitée. Actualise la page pour resynchroniser le montant." : message.includes("no_active_double_game") ? "Cette partie est déjà terminée." : message.includes("game_closed") ? "Cette table est momentanément fermée." : message.includes("wager_out_of_bounds") ? "Le total posé sur le tapis dépasse les limites fixées par la Direction." : "La table n’a pas pu traiter l’action. Réessaie.";
     return NextResponse.json({ error: friendly }, { status: 400 });
   }
 }

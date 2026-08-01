@@ -172,6 +172,7 @@ export function CasinoGame({ game, initialBalance, settings }: { game: CasinoGam
       const payload = await response.json().catch(() => ({ error: "Réponse de table invalide." })) as GameResponse;
       setResult(payload);
       if (typeof payload.balance === "number") setBalance(payload.balance);
+      if (response.ok && game === "roulette") setRouletteBets({});
       if (response.ok && (game === "blackjack" || game === "poker" || game === "double_or_quit")) setActive(payload.finished !== true);
       if (response.ok && payload.finished !== false) router.refresh();
     });
