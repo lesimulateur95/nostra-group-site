@@ -1,11 +1,30 @@
 import Link from "next/link";
 
-import { adjustCasinoWallet, resetCasinoPlayer, saveCasinoSettings } from "@/app/actions/casino";
+import { adjustCasinoWallet, resetCasinoPlayer, saveCasinoGameSettings, saveCasinoSettings } from "@/app/actions/casino";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { getCasinoAdminData, getCasinoSettings } from "@/lib/casino/data";
+import type { CasinoGameKey } from "@/lib/casino/types";
+import styles from "./casino-admin.module.css";
 
 function n(value: number): string { return Math.trunc(value).toLocaleString("fr-FR"); }
+
+const GAME_LABELS: Record<CasinoGameKey, { label: string; icon: string }> = {
+  poker: { label: "Texas Hold’em", icon: "♠" },
+  blackjack: { label: "Blackjack", icon: "21" },
+  roulette: { label: "Roulette", icon: "◉" },
+  slots: { label: "Machines à sous", icon: "✦" },
+  dice: { label: "Dés", icon: "⚄" },
+  plinko: { label: "Plinko", icon: "▽" },
+  coinflip: { label: "Pile ou face", icon: "½" },
+};
+
+const DIFFICULTIES = {
+  balanced: "Équilibré",
+  hard: "Difficile",
+  expert: "Très difficile",
+  custom: "Personnalisé",
+} as const;
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -15,6 +34,9 @@ export default async function CasinoDashboardPage({ searchParams }: { searchPara
   const [settings, admin] = await Promise.all([getCasinoSettings(), getCasinoAdminData()]);
   const recentPurchases = admin.conversions.slice(0, 30);
   const chipsInCirculation = admin.wallets.reduce((sum, wallet) => sum + wallet.balance, 0);
+  const totalWagered = admin.gameStats.reduce((sum, stat) => sum + stat.wagered, 0);
+  const totalPaid = admin.gameStats.reduce((sum, stat) => sum + stat.paid, 0);
+  const houseProfit = totalWagered - totalPaid;
   const walletByUser = new Map(admin.wallets.map((wallet) => [wallet.userId, wallet]));
 
   return (
@@ -23,13 +45,66 @@ export default async function CasinoDashboardPage({ searchParams }: { searchPara
 
       {!settings.configured && <section className="dashboard-setup"><span className="module-status">Activation V108 nécessaire</span><h2>Le casino reste entièrement masqué</h2><p>Exécute d’abord <strong>supabase/casino-le-cercle-v108.sql</strong>, puis le correctif <strong>supabase/casino-paiements-rp-reinitialisations-v109.sql</strong>. Tant que le premier SQL n’est pas exécuté, aucun citoyen ne voit le bouton Casino.</p></section>}
       {params.saved && <div className="dashboard-feedback dashboard-feedback-success">La gestion du casino a bien été mise à jour.</div>}
-      {params.error && <div className="dashboard-feedback dashboard-feedback-error">L’opération n’a pas pu être enregistrée. {params.error === "setup" ? "Vérifie que les SQL V108 et V109 ont bien été exécutés." : params.error === "reset" ? "La réinitialisation a été bloquée. Vérifie la confirmation ou termine d’abord la partie active du joueur." : "Vérifie les valeurs saisies."}</div>}
+      {params.error && <div className="dashboard-feedback dashboard-feedback-error">L’opération n’a pas pu être enregistrée. {params.error === "setup" ? "Vérifie que les SQL V108, V109 et V110 ont bien été exécutés." : params.error === "reset" ? "La réinitialisation a été bloquée. Vérifie la confirmation ou termine d’abord la partie active du joueur." : params.error === "game-settings" ? "Vérifie les pourcentages, les mises et les multiplicateurs de ce jeu." : "Vérifie les valeurs saisies."}</div>}
 
       <section className="dashboard-kpi-grid">
         <article><span>Accès accueil</span><strong>{settings.publicEnabled ? "VISIBLE" : "MASQUÉ"}</strong></article>
         <article><span>Citoyens sélectionnables</span><strong>{admin.citizens.length}</strong></article>
         <article><span>Jetons en circulation</span><strong>{n(chipsInCirculation)}</strong></article>
         <article><span>Joueurs enregistrés</span><strong>{admin.wallets.length}</strong></article>
+      </section>
+
+      <section className={styles.controlHero}>
+        <div>
+          <span className={styles.controlEyebrow}>CENTRE DE CONTRÔLE</span>
+          <h2>La banque garde la main sur chaque table.</h2>
+          <p>Active les jeux un par un, impose les limites de mise et règle directement leur difficulté. Le taux de victoire est appliqué côté serveur : les joueurs ne peuvent ni le lire ni le modifier.</p>
+        </div>
+        <div className={styles.bankMetrics}>
+          <article><span>Total misé</span><strong>{n(totalWagered)}</strong><small>jetons</small></article>
+          <article><span>Total reversé</span><strong>{n(totalPaid)}</strong><small>jetons</small></article>
+          <article className={houseProfit >= 0 ? styles.profit : styles.loss}><span>Résultat maison</span><strong>{houseProfit >= 0 ? "+" : ""}{n(houseProfit)}</strong><small>jetons</small></article>
+          <article><span>RTP réel</span><strong>{totalWagered ? `${Math.round((totalPaid / totalWagered) * 10_000) / 100} %` : "—"}</strong><small>retour joueurs</small></article>
+        </div>
+      </section>
+
+      <section className={styles.gamesSection}>
+        <div className={styles.sectionHeading}>
+          <div><span>RÉGLAGES INDÉPENDANTS</span><h2>Difficulté et gains par jeu</h2></div>
+          <p>Plus le pourcentage est bas, plus le jeu est difficile. Les plafonds empêchent un gain supérieur au montant fixé, même avec un jackpot.</p>
+        </div>
+        <div className={styles.gameControlGrid}>
+          {admin.gameSettings.map((game) => {
+            const meta = GAME_LABELS[game.game];
+            const stat = admin.gameStats.find((item) => item.game === game.game);
+            return (
+              <form action={saveCasinoGameSettings} className={styles.gameControlCard} key={game.game}>
+                <input type="hidden" name="game" value={game.game} />
+                <header>
+                  <span className={styles.gameIcon}>{meta.icon}</span>
+                  <div><small>{game.enabled ? "TABLE OUVERTE" : "TABLE FERMÉE"}</small><h3>{meta.label}</h3></div>
+                  <label className={styles.switch}><input type="checkbox" name="enabled" value="true" defaultChecked={game.enabled} /><span /></label>
+                </header>
+                <div className={styles.liveStat}>
+                  <span>{n(stat?.rounds ?? 0)} parties</span>
+                  <span>{stat?.rtpPercent ? `${stat.rtpPercent} % RTP` : "Aucune donnée"}</span>
+                  <span className={(stat?.houseProfit ?? 0) >= 0 ? styles.profitText : styles.lossText}>{(stat?.houseProfit ?? 0) >= 0 ? "+" : ""}{n(stat?.houseProfit ?? 0)} maison</span>
+                </div>
+                <div className={styles.formGrid}>
+                  <label className={styles.wide}><span>Difficulté affichée</span><select name="difficulty" defaultValue={game.difficulty}>{Object.entries(DIFFICULTIES).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+                  <label><span>Taux de victoire cible</span><div className={styles.inputSuffix}><input name="win_rate_percent" type="number" min="1" max="95" step="0.1" defaultValue={game.winRatePercent} required /><b>%</b></div></label>
+                  <label><span>Gain standard</span><div className={styles.inputSuffix}><input name="base_multiplier" type="number" min="0.1" max="100" step="0.1" defaultValue={game.baseMultiplier} required /><b>×</b></div></label>
+                  <label><span>Mise minimum</span><input name="min_bet" type="number" min="1" step="1" defaultValue={game.minBet} required /></label>
+                  <label><span>Mise maximum</span><input name="max_bet" type="number" min="1" step="1" defaultValue={game.maxBet} required /></label>
+                  <label><span>Jackpot / gros gain</span><div className={styles.inputSuffix}><input name="jackpot_multiplier" type="number" min="0.1" max="1000" step="0.1" defaultValue={game.jackpotMultiplier} required /><b>×</b></div></label>
+                  <label><span>Gain maximum</span><input name="max_payout" type="number" min="1" step="1" defaultValue={game.maxPayout} required /></label>
+                </div>
+                <button className={styles.saveGameButton} type="submit">Enregistrer {meta.label}</button>
+              </form>
+            );
+          })}
+        </div>
+        <p className={styles.rateNote}>Le taux est une cible serveur. Au poker et au blackjack, les décisions du joueur peuvent encore réduire ses chances s’il se couche ou dépasse 21.</p>
       </section>
 
       <section className="tombola-dashboard-controls">
@@ -65,6 +140,22 @@ export default async function CasinoDashboardPage({ searchParams }: { searchPara
           {recentPurchases.map((item) => (
             <article className="order-card" key={item.id}>
               <div><span className="module-status">{item.status === "approved" ? "PAYÉ" : item.status === "rejected" ? "REFUSÉ" : item.status === "cancelled" ? "ANNULÉ" : "À VÉRIFIER"}</span><h3>{item.citizenName}</h3><p>{n(item.rpAmount)} € RP → <strong>{n(item.chipAmount)} jetons</strong></p><small>{new Date(item.createdAt).toLocaleString("fr-FR")}</small></div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="backoffice-panel">
+        <div className="panel-heading"><span className="panel-icon">⌁</span><div><h2>Dernières parties contrôlées</h2><p>Les mises, gains, remboursements et parties en cours sont visibles ici pour surveiller le fonctionnement réel du Casino.</p></div></div>
+        <div className={styles.roundsTable}>
+          {admin.recentRounds.length === 0 && <p className="empty-state">Aucune partie enregistrée pour le moment.</p>}
+          {admin.recentRounds.map((round) => (
+            <article key={round.id}>
+              <span className={styles.roundGame}>{GAME_LABELS[round.game]?.icon} {GAME_LABELS[round.game]?.label}</span>
+              <strong>{round.citizenName}</strong>
+              <span>Mise {n(round.wager)}</span>
+              <span className={round.payout > round.wager ? styles.profitText : round.payout === round.wager ? styles.neutralText : styles.lossText}>Gain {n(round.payout)}</span>
+              <small>{new Date(round.createdAt).toLocaleString("fr-FR")}</small>
             </article>
           ))}
         </div>

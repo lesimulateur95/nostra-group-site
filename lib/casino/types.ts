@@ -20,6 +20,40 @@ export type CasinoSettings = {
   maxConversion: number;
 };
 
+export type CasinoDifficulty = "balanced" | "hard" | "expert" | "custom";
+
+export type CasinoGameSettings = {
+  game: CasinoGameKey;
+  enabled: boolean;
+  difficulty: CasinoDifficulty;
+  winRatePercent: number;
+  minBet: number;
+  maxBet: number;
+  baseMultiplier: number;
+  jackpotMultiplier: number;
+  maxPayout: number;
+};
+
+export type CasinoGameStat = {
+  game: CasinoGameKey;
+  rounds: number;
+  wagered: number;
+  paid: number;
+  houseProfit: number;
+  rtpPercent: number;
+};
+
+export type CasinoRound = {
+  id: string;
+  userId: string;
+  citizenName: string;
+  game: CasinoGameKey;
+  wager: number;
+  payout: number;
+  status: "pending" | "settled" | "refunded";
+  createdAt: string;
+};
+
 export type CasinoWallet = {
   balance: number;
   lifetimeWagered: number;
@@ -70,4 +104,7 @@ export type CasinoAdminData = {
   conversions: Array<CasinoConversion & { userId: string; citizenName: string }>;
   wallets: CasinoAdminWallet[];
   citizens: CasinoAdminCitizen[];
+  gameSettings: CasinoGameSettings[];
+  gameStats: CasinoGameStat[];
+  recentRounds: CasinoRound[];
 };

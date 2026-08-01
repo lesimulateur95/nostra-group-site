@@ -1,6 +1,7 @@
 import Link from "next/link";
 
-import { getCasinoLeaderboard, getCasinoProfile, getCasinoSettings, getCasinoWallet } from "@/lib/casino/data";
+import { getCasinoGameSettings, getCasinoLeaderboard, getCasinoProfile, getCasinoSettings, getCasinoWallet } from "@/lib/casino/data";
+import type { CasinoGameKey } from "@/lib/casino/types";
 import styles from "@/components/casino/casino.module.css";
 
 const games = [
@@ -18,12 +19,14 @@ function n(value: number): string {
 }
 
 export default async function CasinoHomePage() {
-  const [profile, settings, wallet, leaderboard] = await Promise.all([
+  const [profile, settings, wallet, leaderboard, gameSettings] = await Promise.all([
     getCasinoProfile(),
     getCasinoSettings(),
     getCasinoWallet(),
     getCasinoLeaderboard(),
+    getCasinoGameSettings(),
   ]);
+  const availability = new Map(gameSettings.map((game) => [game.game, game.enabled]));
 
   return (
     <>
@@ -64,7 +67,9 @@ export default async function CasinoHomePage() {
           <Link className={styles.textLink} href="/casino/jeux/poker">Jeu signature →</Link>
         </div>
         <div className={styles.gameGrid}>
-          {games.map((game) => (
+          {games.map((game) => {
+            const enabled = availability.get(game.key as CasinoGameKey) !== false;
+            return enabled ? (
             <Link className={styles.gameCard} href={`/casino/jeux/${game.key}`} key={game.key}>
               <span className={styles.gameArt} aria-hidden="true" />
               <span className={styles.gameSymbol}>{game.symbol}</span>
@@ -73,7 +78,15 @@ export default async function CasinoHomePage() {
               <p>{game.text}</p>
               <span className={styles.gameMeta}>{game.meta.map((item) => <span key={item}>{item}</span>)}</span>
             </Link>
-          ))}
+            ) : (
+              <article className={`${styles.gameCard} ${styles.gameCardClosed}`} key={game.key}>
+                <span className={styles.gameArt} aria-hidden="true" />
+                <span className={styles.gameSymbol}>{game.symbol}</span>
+                <small>TABLE FERMÉE</small><h3>{game.label}</h3><p>La Direction prépare actuellement cette salle.</p>
+                <span className={styles.gameMeta}><span>Indisponible</span></span>
+              </article>
+            );
+          })}
         </div>
       </section>
 

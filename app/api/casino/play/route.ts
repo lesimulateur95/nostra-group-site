@@ -3,14 +3,15 @@ import { randomInt } from "crypto";
 import { NextResponse } from "next/server";
 
 import { getUserRoleKeys } from "@/lib/auth/access";
-import { getCasinoSettings } from "@/lib/casino/data";
+import { getCasinoServerGameSettings, getCasinoSettings } from "@/lib/casino/data";
+import type { CasinoGameKey, CasinoGameSettings } from "@/lib/casino/types";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 type Card = { rank: number; suit: "♠" | "♥" | "♦" | "♣" };
-type BlackjackState = { roundId: string; wager: number; deck: Card[]; player: Card[]; dealer: Card[] };
+type BlackjackState = { roundId: string; wager: number; deck: Card[]; player: Card[]; dealer: Card[]; targetWin: boolean };
 type PokerBot = { name: string; cards: Card[]; folded: boolean };
-type PokerState = { roundId: string; wager: number; deck: Card[]; player: Card[]; bots: PokerBot[]; board: Card[]; phase: number; pot: number };
+type PokerState = { roundId: string; wager: number; deck: Card[]; player: Card[]; bots: PokerBot[]; board: Card[]; phase: number; pot: number; targetWin: boolean };
 
 const SUITS: Card["suit"][] = ["♠", "♥", "♦", "♣"];
 const BOT_NAMES = ["La Marquise", "Vega", "Le Baron"];
@@ -80,6 +81,49 @@ function bestScore(cards: Card[]): number[] {
   return combinations(cards, 5).map(fiveCardScore).sort((a, b) => compareScore(b, a))[0];
 }
 
+function configuredWin(config: CasinoGameSettings): boolean {
+  return randomInt(10_000) < Math.round(config.winRatePercent * 100);
+}
+
+function dealerHandForTarget(state: BlackjackState, playerValue: number): Card[] {
+  const visible = state.dealer[0];
+  const pool = [state.dealer[1], ...state.deck].filter(Boolean);
+  const candidates: Card[][] = [];
+  for (let count = 1; count <= 4; count += 1) {
+    for (const extra of combinations(pool.slice(0, 28), count)) {
+      const hand = [visible, ...extra];
+      const value = blackjackValue(hand);
+      if (value < 17 && value <= 21) continue;
+      const playerWins = value > 21 || value < playerValue;
+      const houseWins = value <= 21 && value > playerValue;
+      if ((state.targetWin && playerWins) || (!state.targetWin && houseWins)) candidates.push(hand);
+      if (candidates.length >= 60) break;
+    }
+    if (candidates.length) break;
+  }
+  if (candidates.length) return candidates[randomInt(candidates.length)];
+  const fallback = [...state.dealer];
+  while (blackjackValue(fallback) < 17 && state.deck.length) fallback.push(state.deck.pop()!);
+  return fallback;
+}
+
+function rigPokerBots(state: PokerState, playerScore: number[]): void {
+  const active = state.bots.filter((bot) => !bot.folded);
+  if (!active.length) return;
+  const pairs = combinations(state.deck.slice(0, 36), 2)
+    .map((cards) => ({ cards, score: bestScore([...cards, ...state.board]) }))
+    .sort((a, b) => compareScore(a.score, b.score));
+  if (state.targetWin) {
+    const weaker = pairs.filter((entry) => compareScore(entry.score, playerScore) < 0);
+    if (!weaker.length) return;
+    active.slice(1).forEach((bot) => { bot.folded = true; });
+    active[0].cards = weaker[0].cards;
+  } else {
+    const stronger = pairs.filter((entry) => compareScore(entry.score, playerScore) > 0);
+    if (stronger.length) active[0].cards = stronger[stronger.length - 1].cards;
+  }
+}
+
 const HAND_LABELS = ["Carte haute", "Paire", "Deux paires", "Brelan", "Suite", "Couleur", "Full", "Carré", "Quinte flush"];
 
 function publicPoker(state: PokerState, showdown = false) {
@@ -130,21 +174,26 @@ export async function POST(request: Request) {
   const { data } = await supabase.auth.getUser();
   if (!data.user) return NextResponse.json({ error: "Connexion requise." }, { status: 401 });
 
-  const [settings, roles] = await Promise.all([getCasinoSettings(), getUserRoleKeys(data.user)]);
-  if (!settings.publicEnabled && !roles.includes("manager")) return NextResponse.json({ error: "Le casino est fermé." }, { status: 403 });
-  if (!settings.configured) return NextResponse.json({ error: "Exécute le SQL V108 avant de jouer." }, { status: 503 });
-
   const body = await request.json().catch(() => ({}));
   const game = String(body.game ?? "");
   const action = String(body.action ?? "play");
   const wager = Math.trunc(Number(body.wager));
   const choice = String(body.choice ?? "").slice(0, 40);
+  if (!["poker","blackjack","roulette","slots","dice","plinko","coinflip"].includes(game)) return NextResponse.json({ error: "Jeu inconnu." }, { status: 404 });
+
+  const [settings, roles, config] = await Promise.all([getCasinoSettings(), getUserRoleKeys(data.user), getCasinoServerGameSettings(game as CasinoGameKey)]);
+  if (!settings.publicEnabled && !roles.includes("manager")) return NextResponse.json({ error: "Le casino est fermé." }, { status: 403 });
+  if (!settings.configured) return NextResponse.json({ error: "Exécute le SQL V108 avant de jouer." }, { status: 503 });
+
+  if (!config.enabled) return NextResponse.json({ error: "Cette table est momentanément fermée." }, { status: 403 });
+  if (!Number.isFinite(wager) || wager < config.minBet || wager > config.maxBet) {
+    return NextResponse.json({ error: `La mise doit être comprise entre ${config.minBet.toLocaleString("fr-FR")} et ${config.maxBet.toLocaleString("fr-FR")} jetons.` }, { status: 400 });
+  }
 
   try {
     await (supabase as any).rpc("casino_recover_stale_rounds_v108");
 
     if (!["blackjack", "poker"].includes(game)) {
-      if (!Number.isFinite(wager) || wager < 1) return NextResponse.json({ error: "Mise invalide." }, { status: 400 });
       const { data: result, error } = await (supabase as any).rpc("casino_play_simple_v108", { p_game: game, p_wager: wager, p_choice: choice });
       if (error) throw new Error(String(error.message));
       return NextResponse.json(result);
@@ -155,11 +204,12 @@ export async function POST(request: Request) {
       if (action === "start") {
         const roundId = await begin(supabase, game, wager);
         const cards = deck();
-        const state: BlackjackState = { roundId, wager, deck: cards, player: [cards.pop()!, cards.pop()!], dealer: [cards.pop()!, cards.pop()!] };
+        const state: BlackjackState = { roundId, wager, deck: cards, player: [cards.pop()!, cards.pop()!], dealer: [cards.pop()!, cards.pop()!], targetWin: configuredWin(config) };
         if (blackjackValue(state.player) === 21) {
-          while (blackjackValue(state.dealer) < 17) state.dealer.push(state.deck.pop()!);
+          state.targetWin = true;
+          state.dealer = dealerHandForTarget(state, 21);
           const dealerValue = blackjackValue(state.dealer);
-          const payout = dealerValue === 21 ? wager : Math.trunc(wager * 2.5);
+          const payout = dealerValue === 21 ? wager : Math.min(config.maxPayout, Math.trunc(wager * config.jackpotMultiplier));
           await settle(admin, data.user.id, roundId, payout, { result: payout > wager ? "blackjack" : "push", player: state.player, dealer: state.dealer });
           return NextResponse.json({ finished: true, result: payout > wager ? "Blackjack !" : "Égalité", payout, player: state.player, dealer: state.dealer, playerValue: 21, dealerValue, balance: await walletBalance(admin, data.user.id) });
         }
@@ -175,9 +225,9 @@ export async function POST(request: Request) {
         await saveActive(admin, data.user.id, game, state.roundId, state);
         return NextResponse.json({ finished: false, player: state.player, dealer: [state.dealer[0]], playerValue, dealerValue: cardValue(state.dealer[0]), balance: await walletBalance(admin, data.user.id) });
       }
-      while (playerValue <= 21 && blackjackValue(state.dealer) < 17) state.dealer.push(state.deck.pop()!);
+      if (playerValue <= 21) state.dealer = dealerHandForTarget(state, playerValue);
       const dealerValue = blackjackValue(state.dealer);
-      const payout = playerValue > 21 ? 0 : dealerValue > 21 || playerValue > dealerValue ? state.wager * 2 : playerValue === dealerValue ? state.wager : 0;
+      const payout = playerValue > 21 ? 0 : dealerValue > 21 || playerValue > dealerValue ? Math.min(config.maxPayout, Math.trunc(state.wager * config.baseMultiplier)) : playerValue === dealerValue ? state.wager : 0;
       const result = playerValue > 21 ? "Dépassé" : dealerValue > 21 ? "Le croupier dépasse" : playerValue > dealerValue ? "Victoire" : playerValue === dealerValue ? "Égalité" : "Le croupier gagne";
       await settle(admin, data.user.id, state.roundId, payout, { result, player: state.player, dealer: state.dealer });
       await clearActive(admin, data.user.id, game);
@@ -193,7 +243,8 @@ export async function POST(request: Request) {
         bots: BOT_NAMES.map((name) => ({ name, cards: [cards.pop()!, cards.pop()!], folded: false })),
         board: [cards.pop()!, cards.pop()!, cards.pop()!, cards.pop()!, cards.pop()!],
         phase: 0,
-        pot: wager * 4,
+        pot: Math.min(config.maxPayout, Math.trunc(wager * config.baseMultiplier)),
+        targetWin: configuredWin(config),
       };
       await saveActive(admin, data.user.id, game, roundId, state);
       return NextResponse.json({ finished: false, poker: publicPoker(state), balance: await walletBalance(admin, data.user.id) });
@@ -207,7 +258,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ finished: true, result: "Tu t’es couché", payout: 0, poker: publicPoker(state), balance: await walletBalance(admin, data.user.id) });
     }
 
-    const foldChance = action === "raise" ? 36 : 17;
+    const foldChance = action === "raise" ? (config.difficulty === "expert" ? 14 : config.difficulty === "hard" ? 24 : 36) : (config.difficulty === "expert" ? 5 : config.difficulty === "hard" ? 10 : 17);
     state.bots.forEach((bot) => { if (!bot.folded && randomInt(100) < foldChance) bot.folded = true; });
     if (state.bots.every((bot) => bot.folded)) state.bots[randomInt(state.bots.length)].folded = false;
     state.phase += 1;
@@ -217,18 +268,19 @@ export async function POST(request: Request) {
     }
 
     const playerScore = bestScore([...state.player, ...state.board]);
+    rigPokerBots(state, playerScore);
     const contenders = state.bots.filter((bot) => !bot.folded).map((bot) => ({ bot, score: bestScore([...bot.cards, ...state.board]) }));
     const bestBot = contenders.map((entry) => entry.score).sort((a,b) => compareScore(b,a))[0];
     const comparison = bestBot ? compareScore(playerScore, bestBot) : 1;
     const winners = comparison === 0 ? 1 + contenders.filter((entry) => compareScore(entry.score, playerScore) === 0).length : 1;
-    const payout = comparison > 0 ? state.pot : comparison === 0 ? Math.trunc(state.pot / winners) : 0;
+    const payout = comparison > 0 ? Math.min(config.maxPayout, state.pot) : comparison === 0 ? Math.trunc(state.pot / winners) : 0;
     const result = comparison > 0 ? `Victoire · ${HAND_LABELS[playerScore[0]]}` : comparison === 0 ? `Partage · ${HAND_LABELS[playerScore[0]]}` : `${HAND_LABELS[playerScore[0]]} battue`;
     await settle(admin, data.user.id, state.roundId, payout, { result, hand: HAND_LABELS[playerScore[0]], board: state.board });
     await clearActive(admin, data.user.id, game);
     return NextResponse.json({ finished: true, result, payout, poker: publicPoker(state, true), balance: await walletBalance(admin, data.user.id) });
   } catch (error) {
     const message = String(error instanceof Error ? error.message : error).toLowerCase();
-    const friendly = message.includes("insufficient_balance") ? "Solde de jetons insuffisant." : message.includes("active_game_exists") ? "Termine d’abord ta partie active." : "La table n’a pas pu traiter l’action. Réessaie.";
+    const friendly = message.includes("insufficient_balance") ? "Solde de jetons insuffisant." : message.includes("active_game_exists") ? "Termine d’abord ta partie active." : message.includes("game_closed") ? "Cette table est momentanément fermée." : message.includes("wager_out_of_bounds") ? "Cette mise dépasse les limites fixées par la Direction." : "La table n’a pas pu traiter l’action. Réessaie.";
     return NextResponse.json({ error: friendly }, { status: 400 });
   }
 }

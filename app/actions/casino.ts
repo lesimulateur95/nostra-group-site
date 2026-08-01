@@ -6,12 +6,17 @@ import { redirect } from "next/navigation";
 
 import { getUserRoleKeys } from "@/lib/auth/access";
 import { createClient } from "@/lib/supabase/server";
+import { CASINO_GAMES } from "@/lib/casino/types";
 
 function text(value: FormDataEntryValue | null, max = 180): string {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
 }
 function integer(value: FormDataEntryValue | null): number {
   const parsed = Number.parseInt(text(value, 40), 10);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+function decimal(value: FormDataEntryValue | null): number {
+  const parsed = Number(text(value, 40).replace(",", "."));
   return Number.isFinite(parsed) ? parsed : 0;
 }
 async function manager() {
@@ -49,6 +54,40 @@ export async function saveCasinoSettings(formData: FormData) {
   if (error) redirect("/dashboard/jeux/casino?error=setup");
   refresh();
   redirect(`/dashboard/jeux/casino?saved=${publicEnabled ? "visible" : "hidden"}`);
+}
+
+export async function saveCasinoGameSettings(formData: FormData) {
+  const supabase = await manager();
+  const game = text(formData.get("game"), 30);
+  const enabled = text(formData.get("enabled"), 10) === "true";
+  const difficulty = text(formData.get("difficulty"), 20);
+  const winRate = decimal(formData.get("win_rate_percent"));
+  const minBet = integer(formData.get("min_bet"));
+  const maxBet = integer(formData.get("max_bet"));
+  const baseMultiplier = decimal(formData.get("base_multiplier"));
+  const jackpotMultiplier = decimal(formData.get("jackpot_multiplier"));
+  const maxPayout = integer(formData.get("max_payout"));
+  if (
+    !CASINO_GAMES.includes(game as (typeof CASINO_GAMES)[number]) ||
+    !["balanced", "hard", "expert", "custom"].includes(difficulty) ||
+    winRate < 1 || winRate > 95 || minBet < 1 || maxBet < minBet ||
+    baseMultiplier < 0.1 || jackpotMultiplier < baseMultiplier || maxPayout < 1
+  ) redirect("/dashboard/jeux/casino?error=game-settings");
+
+  const { error } = await (supabase as any).rpc("casino_update_game_settings_v110", {
+    p_game: game,
+    p_enabled: enabled,
+    p_difficulty: difficulty,
+    p_win_rate_percent: winRate,
+    p_min_bet: minBet,
+    p_max_bet: maxBet,
+    p_base_multiplier: baseMultiplier,
+    p_jackpot_multiplier: jackpotMultiplier,
+    p_max_payout: maxPayout,
+  });
+  if (error) redirect("/dashboard/jeux/casino?error=game-settings");
+  refresh();
+  redirect(`/dashboard/jeux/casino?saved=game-${game}`);
 }
 
 export async function reviewCasinoConversion(formData: FormData) {
