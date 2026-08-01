@@ -5,7 +5,7 @@ import type { CasinoGameKey } from "@/lib/casino/types";
 import styles from "@/components/casino/casino.module.css";
 
 const games = [
-  { key: "poker", label: "Texas Hold’em", kicker: "JEU SIGNATURE", symbol: "♠", text: "Affronte les joueurs du Cercle ou entraîne-toi face aux croupiers virtuels.", meta: ["Solo", "Tables privées", "2–8 joueurs"] },
+  { key: "poker", label: "Texas Hold’em", kicker: "JEU SIGNATURE", symbol: "♠", text: "Affronte un citoyen sur une vraie main ou entraîne-toi face aux adversaires virtuels.", meta: ["Solo", "Duel citoyen", "Enchères réelles"] },
   { key: "double_or_quit", label: "Double ou quitte", kicker: "JUSQU’OÙ IRAS-TU ?", symbol: "×2", text: "Double ta mise encore et encore, ou quitte la table au bon moment pour encaisser.", meta: ["Solo", "À étapes", "Risque total"] },
   { key: "roulette", label: "Roulette", kicker: "TABLE CLASSIQUE", symbol: "◉", text: "La bille, le tapis et les mises mythiques du casino.", meta: ["Solo", "Direct"] },
   { key: "blackjack", label: "Blackjack", kicker: "VINGT-ET-UN", symbol: "21", text: "Approche 21 sans dépasser et bats la main de la maison.", meta: ["Solo", "Croupier"] },
@@ -79,8 +79,8 @@ export default async function CasinoHomePage() {
             <span className={styles.modeNumber}>02</span>
             <small>SALONS PUBLICS & PRIVÉS</small>
             <h3>Citoyen contre citoyen</h3>
-            <p>Crée un défi, partage un code privé ou rejoins une table publique de poker, de dés ou de pile ou face.</p>
-            <div className={styles.gameMeta}><span>Mises sécurisées</span><span>Mise à jour en direct</span></div>
+            <p>Prends place à une roulette partagée, un blackjack jusqu’à six joueurs, un baccarat live ou un duel de poker.</p>
+            <div className={styles.gameMeta}><span>Tables animées</span><span>Mise à jour en direct</span><span>Mises sécurisées</span></div>
             <Link className={styles.primaryButton} href="/casino/multijoueur">Entrer dans le salon</Link>
           </article>
         </div>

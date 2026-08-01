@@ -54,6 +54,7 @@ const GAME_COPY: Record<CasinoGameKey, { kicker: string; title: string; text: st
   plinko: { kicker: "SALLE DES MULTIPLICATEURS", title: "La Chute dorée", text: "Choisis ton risque, lâche la bille et suis sa trajectoire entre les clous jusqu’à la case finale." },
   coinflip: { kicker: "DUEL 50 / 50", title: "Le Louis d’or", text: "Pile ou face. Une seule décision, un lancer et le verdict de la pièce du Cercle." },
   double_or_quit: { kicker: "SALON DU RISQUE", title: "Double ou quitte", text: "Tente de doubler la somme à chaque tour. Quitte la table quand tu le souhaites pour encaisser, mais un seul échec fait tout perdre." },
+  baccarat: { kicker: "TABLE LIVE UNIQUEMENT", title: "Baccarat", text: "Rejoins les autres citoyens autour d’une table partagée et mise sur Joueur, Banque ou Égalité." },
 };
 
 const CHOICES: Partial<Record<CasinoGameKey, Array<{ value: string; label: string }>>> = {
@@ -336,6 +337,16 @@ export function CasinoGame({ game, initialBalance, settings }: { game: CasinoGam
                 )}
               </div>
               <small className={styles.doubleDisclaimer}>Chaque tentative est indépendante. Un échec remet immédiatement le gain de la partie à zéro.</small>
+            </div>
+          )}
+
+          {settings.enabled && game === "baccarat" && (
+            <div className={styles.liveOnlyGame}>
+              <span>B</span>
+              <p className={styles.eyebrow}>JEU EXCLUSIVEMENT MULTIJOUEUR</p>
+              <h2>Le baccarat se joue à la table live.</h2>
+              <p>Rejoins une table publique ou crée un salon privé pour miser avec les autres citoyens sur Joueur, Banque ou Égalité.</p>
+              <a className={styles.goldButton} href="/casino/multijoueur">Entrer dans les tables live</a>
             </div>
           )}
 

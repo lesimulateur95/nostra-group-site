@@ -18,6 +18,7 @@ const GAME_LABELS: Record<CasinoGameKey, { label: string; icon: string }> = {
   plinko: { label: "Plinko", icon: "▽" },
   coinflip: { label: "Pile ou face", icon: "½" },
   double_or_quit: { label: "Double ou quitte", icon: "×2" },
+  baccarat: { label: "Baccarat live", icon: "B" },
 };
 
 const DIFFICULTIES = {
@@ -135,7 +136,7 @@ export default async function CasinoDashboardPage({ searchParams }: { searchPara
             );
           })}
         </div>
-        <p className={styles.rateNote}>Le taux est une cible serveur. Au poker et au blackjack, les décisions du joueur peuvent encore réduire ses chances s’il se couche ou dépasse 21. Les limites d’ouverture et de mise du poker, des dés et de pile ou face s’appliquent aussi aux salons entre citoyens ; leurs duels restent équitables et ne sont pas influencés par le taux de victoire de la Maison.</p>
+        <p className={styles.rateNote}>Le taux est une cible serveur pour les jeux contre la Maison. Les tables live entre citoyens utilisent les règles réelles : roulette européenne, blackjack au croupier et baccarat sans résultat forcé. Les limites d’ouverture et de mise restent imposées par la Direction.</p>
       </section>
 
       <section className="tombola-dashboard-controls">
