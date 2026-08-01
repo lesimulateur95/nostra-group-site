@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { adjustCasinoWallet, resetCasinoData, resetCasinoPlayer, saveCasinoGameSettings, saveCasinoSettings } from "@/app/actions/casino";
+import { adjustCasinoWallet, resetCasinoBeforeOpening, resetCasinoPlayer, saveCasinoGameSettings, saveCasinoSettings } from "@/app/actions/casino";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { getCasinoAdminData, getCasinoSettings } from "@/lib/casino/data";
@@ -27,10 +27,7 @@ const DIFFICULTIES = {
 } as const;
 
 const RESET_SUCCESS: Record<string, string> = {
-  "global-reset-purchases": "L’historique des achats et conversions Casino a été effacé.",
-  "global-reset-activity": "Les parties, les statistiques, l’XP et les niveaux ont été remis à zéro.",
-  "global-reset-players": "Tous les joueurs ont été remis à zéro : soldes, niveaux, statistiques et parties.",
-  "global-reset-all": "Le Casino a été entièrement réinitialisé. Tous les réglages de Direction ont été conservés.",
+  "opening-reset-complete": "Remise à zéro terminée : toutes les données Casino de test ont été définitivement effacées. Les réglages de Direction sont conservés.",
 };
 
 export const dynamic = "force-dynamic";
@@ -52,7 +49,25 @@ export default async function CasinoDashboardPage({ searchParams }: { searchPara
 
       {!settings.configured && <section className="dashboard-setup"><span className="module-status">Activation V108 nécessaire</span><h2>Le casino reste entièrement masqué</h2><p>Exécute d’abord <strong>supabase/casino-le-cercle-v108.sql</strong>, puis le correctif <strong>supabase/casino-paiements-rp-reinitialisations-v109.sql</strong>. Tant que le premier SQL n’est pas exécuté, aucun citoyen ne voit le bouton Casino.</p></section>}
       {params.saved && <div className="dashboard-feedback dashboard-feedback-success">{RESET_SUCCESS[params.saved] ?? "La gestion du casino a bien été mise à jour."}</div>}
-      {params.error && <div className="dashboard-feedback dashboard-feedback-error">L’opération n’a pas pu être enregistrée. {params.error === "setup" ? "Vérifie que les SQL V108, V109, V110 et V111 ont bien été exécutés." : params.error === "reset" ? "La réinitialisation a été bloquée. Vérifie la confirmation ou termine d’abord la partie active du joueur." : params.error === "global-reset-confirmation" ? "Recopie exactement la phrase de confirmation indiquée." : params.error === "global-reset" ? "Vérifie que le SQL V111 a bien été exécuté dans Supabase." : params.error === "game-settings" ? "Vérifie les pourcentages, les mises et les multiplicateurs de ce jeu." : "Vérifie les valeurs saisies."}</div>}
+      {params.error && <div className="dashboard-feedback dashboard-feedback-error">L’opération n’a pas pu être enregistrée. {params.error === "setup" ? "Vérifie que les SQL Casino ont bien été exécutés." : params.error === "reset" ? "La réinitialisation a été bloquée. Vérifie la confirmation ou termine d’abord la partie active du joueur." : params.error === "opening-reset-confirmation" ? "Recopie exactement OUVRIR LE CASINO A ZERO." : params.error === "opening-reset" ? "Vérifie que le SQL V112 a bien été exécuté dans Supabase." : params.error === "game-settings" ? "Vérifie les pourcentages, les mises et les multiplicateurs de ce jeu." : "Vérifie les valeurs saisies."}</div>}
+
+      <section className={styles.openingReset}>
+        <div className={styles.openingResetCopy}>
+          <span>PRÉPARATION AVANT OUVERTURE</span>
+          <h2>Remettre le Casino à zéro à 100 %</h2>
+          <p>Cette action efface définitivement tous les achats et conversions, transactions, parties, mises, gains, remboursements, tables de poker, soldes, niveaux, XP, statistiques et anciens journaux de réinitialisation.</p>
+          <strong>Les réglages de Direction restent conservés : visibilité, taux RP, difficultés, pourcentages, mises et multiplicateurs.</strong>
+        </div>
+        <form action={resetCasinoBeforeOpening} className={styles.openingResetForm}>
+          <label>
+            <span>Pour confirmer, recopie exactement :</span>
+            <b>OUVRIR LE CASINO A ZERO</b>
+            <input name="confirmation" required autoComplete="off" spellCheck={false} />
+          </label>
+          <button type="submit">Tout effacer et repartir à zéro</button>
+          <small>L’argent RP de la base du serveur n’est jamais modifié par cette remise à zéro.</small>
+        </form>
+      </section>
 
       <section className="dashboard-kpi-grid">
         <article><span>Accès accueil</span><strong>{settings.publicEnabled ? "VISIBLE" : "MASQUÉ"}</strong></article>
@@ -149,78 +164,6 @@ export default async function CasinoDashboardPage({ searchParams }: { searchPara
               <div><span className="module-status">{item.status === "approved" ? "PAYÉ" : item.status === "rejected" ? "REFUSÉ" : item.status === "cancelled" ? "ANNULÉ" : "À VÉRIFIER"}</span><h3>{item.citizenName}</h3><p>{n(item.rpAmount)} € RP → <strong>{n(item.chipAmount)} jetons</strong></p><small>{new Date(item.createdAt).toLocaleString("fr-FR")}</small></div>
             </article>
           ))}
-        </div>
-      </section>
-
-      <section className={styles.resetZone}>
-        <div className={styles.resetHeading}>
-          <div>
-            <span className={styles.resetEyebrow}>ZONE DE RÉINITIALISATION</span>
-            <h2>Nettoyer les données de test du Casino</h2>
-            <p>Choisis précisément ce que tu veux effacer. Tes réglages de Direction restent conservés : visibilité, taux de conversion, difficulté, pourcentages de gains, mises et multiplicateurs.</p>
-          </div>
-          <div className={styles.resetWarning}>
-            <strong>Important</strong>
-            <p>Ces actions ne remboursent et ne modifient jamais l’argent RP dans la base du serveur.</p>
-          </div>
-        </div>
-
-        <div className={styles.resetGrid}>
-          <article>
-            <span className={styles.resetIcon}>€</span>
-            <h3>Historique des achats</h3>
-            <p>Efface les achats de jetons et les conversions affichés dans le Dashboard. Les soldes actuels des joueurs ne changent pas.</p>
-            <details>
-              <summary>Effacer les achats</summary>
-              <form action={resetCasinoData}>
-                <input type="hidden" name="scope" value="purchases" />
-                <label><span>Recopie : <b>EFFACER LES ACHATS CASINO</b></span><input name="confirmation" required autoComplete="off" /></label>
-                <button type="submit">Confirmer l’effacement</button>
-              </form>
-            </details>
-          </article>
-
-          <article>
-            <span className={styles.resetIcon}>↻</span>
-            <h3>Parties et statistiques</h3>
-            <p>Efface toutes les parties, les mises et les gains. Remet aussi les statistiques, l’XP et les niveaux à zéro, sans retirer les jetons.</p>
-            <details>
-              <summary>Réinitialiser l’activité</summary>
-              <form action={resetCasinoData}>
-                <input type="hidden" name="scope" value="activity" />
-                <label><span>Recopie : <b>EFFACER LES PARTIES CASINO</b></span><input name="confirmation" required autoComplete="off" /></label>
-                <button type="submit">Confirmer la remise à zéro</button>
-              </form>
-            </details>
-          </article>
-
-          <article>
-            <span className={styles.resetIcon}>♙</span>
-            <h3>Tous les joueurs</h3>
-            <p>Remet tous les soldes, niveaux, XP et statistiques à zéro. Efface aussi les parties et les tables de poker de test.</p>
-            <details>
-              <summary>Remettre les joueurs à zéro</summary>
-              <form action={resetCasinoData}>
-                <input type="hidden" name="scope" value="players" />
-                <label><span>Recopie : <b>REMETTRE TOUS LES JOUEURS A ZERO</b></span><input name="confirmation" required autoComplete="off" /></label>
-                <button type="submit">Confirmer la remise à zéro</button>
-              </form>
-            </details>
-          </article>
-
-          <article className={styles.totalResetCard}>
-            <span className={styles.resetIcon}>!</span>
-            <h3>Casino complet</h3>
-            <p>Efface achats, conversions, transactions, parties, tables, soldes, niveaux et toutes les statistiques de test. Seuls les réglages sont conservés.</p>
-            <details>
-              <summary>Réinitialiser tout le Casino</summary>
-              <form action={resetCasinoData}>
-                <input type="hidden" name="scope" value="all" />
-                <label><span>Recopie : <b>REINITIALISER TOUT LE CASINO</b></span><input name="confirmation" required autoComplete="off" /></label>
-                <button type="submit">Oui, tout réinitialiser</button>
-              </form>
-            </details>
-          </article>
         </div>
       </section>
 

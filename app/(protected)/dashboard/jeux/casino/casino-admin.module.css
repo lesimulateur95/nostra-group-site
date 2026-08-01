@@ -150,6 +150,103 @@
 .roundsTable article > span:not(.roundGame), .roundsTable small { color: #858d86; }
 .roundGame { color: #dcc06e; }
 
+.openingReset {
+  margin: 22px 0 30px;
+  padding: clamp(22px, 3vw, 34px);
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(320px, .8fr);
+  gap: clamp(22px, 4vw, 54px);
+  align-items: center;
+  border: 1px solid rgba(235, 78, 78, .46);
+  background:
+    radial-gradient(circle at 12% 0, rgba(192, 45, 45, .22), transparent 24rem),
+    linear-gradient(135deg, #180a0b, #0b0909 62%, #110708);
+  box-shadow: 0 18px 70px rgba(0, 0, 0, .3), inset 0 1px rgba(255, 255, 255, .035);
+}
+
+.openingResetCopy > span {
+  color: #ff8585;
+  font-size: .63rem;
+  font-weight: 900;
+  letter-spacing: .2em;
+}
+
+.openingResetCopy h2 {
+  margin: 9px 0 12px;
+  color: #fff2ec;
+  font: 400 clamp(1.8rem, 3vw, 3rem)/1.02 Georgia, serif;
+}
+
+.openingResetCopy p {
+  max-width: 760px;
+  margin: 0 0 13px;
+  color: #b6a6a2;
+  font-size: .78rem;
+  line-height: 1.7;
+}
+
+.openingResetCopy strong {
+  display: block;
+  color: #dfc18b;
+  font-size: .7rem;
+  line-height: 1.55;
+}
+
+.openingResetForm {
+  padding: 18px;
+  display: grid;
+  gap: 13px;
+  border: 1px solid rgba(255, 255, 255, .08);
+  background: rgba(5, 5, 5, .58);
+}
+
+.openingResetForm label {
+  display: grid;
+  gap: 7px;
+}
+
+.openingResetForm label span,
+.openingResetForm small {
+  color: #a69b97;
+  font-size: .63rem;
+  line-height: 1.5;
+}
+
+.openingResetForm label b {
+  color: #ffb4ab;
+  font-size: .72rem;
+  letter-spacing: .08em;
+}
+
+.openingResetForm input {
+  width: 100%;
+  height: 44px;
+  padding: 0 12px;
+  color: #fff4ef;
+  border: 1px solid rgba(239, 103, 103, .42);
+  outline: none;
+  background: #080606;
+}
+
+.openingResetForm input:focus {
+  border-color: #ff6f6f;
+  box-shadow: 0 0 0 3px rgba(255, 91, 91, .1);
+}
+
+.openingResetForm button {
+  min-height: 48px;
+  border: 1px solid #e15a5a;
+  color: #fff4f0;
+  background: linear-gradient(135deg, #7c2026, #b83438 52%, #721a20);
+  cursor: pointer;
+  font-size: .68rem;
+  font-weight: 900;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.openingResetForm button:hover { filter: brightness(1.14); }
+
 .resetZone {
   margin: 30px 0;
   padding: clamp(22px, 3vw, 34px);
@@ -310,6 +407,7 @@
   .controlHero { grid-template-columns: 1fr; }
   .gameControlGrid { grid-template-columns: 1fr; }
   .roundsTable article { grid-template-columns: 1fr 1fr; }
+  .openingReset { grid-template-columns: 1fr; }
   .resetHeading { grid-template-columns: 1fr; }
 }
 

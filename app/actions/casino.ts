@@ -140,27 +140,19 @@ export async function resetCasinoPlayer(formData: FormData) {
   redirect(`/dashboard/jeux/casino?saved=reset-${scope}`);
 }
 
-export async function resetCasinoData(formData: FormData) {
+export async function resetCasinoBeforeOpening(formData: FormData) {
   const supabase = await manager();
-  const scope = text(formData.get("scope"), 30);
   const confirmation = text(formData.get("confirmation"), 100);
-  const confirmations: Record<string, string> = {
-    purchases: "EFFACER LES ACHATS CASINO",
-    activity: "EFFACER LES PARTIES CASINO",
-    players: "REMETTRE TOUS LES JOUEURS A ZERO",
-    all: "REINITIALISER TOUT LE CASINO",
-  };
 
-  if (!confirmations[scope] || confirmation !== confirmations[scope]) {
-    redirect("/dashboard/jeux/casino?error=global-reset-confirmation");
+  if (confirmation !== "OUVRIR LE CASINO A ZERO") {
+    redirect("/dashboard/jeux/casino?error=opening-reset-confirmation");
   }
 
-  const { error } = await (supabase as any).rpc("casino_admin_reset_data_v111", {
-    p_scope: scope,
+  const { error } = await (supabase as any).rpc("casino_admin_opening_reset_v112", {
     p_confirmation: confirmation,
   });
 
-  if (error) redirect("/dashboard/jeux/casino?error=global-reset");
+  if (error) redirect("/dashboard/jeux/casino?error=opening-reset");
   refresh();
-  redirect(`/dashboard/jeux/casino?saved=global-reset-${scope}`);
+  redirect("/dashboard/jeux/casino?saved=opening-reset-complete");
 }
