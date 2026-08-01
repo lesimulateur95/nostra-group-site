@@ -286,6 +286,12 @@ export async function POST(request: Request) {
       return NextResponse.json(result);
     }
 
+    if (game === "plinko") {
+      const { data: result, error } = await (supabase as any).rpc("casino_play_plinko_v121", { p_wager: wager, p_choice: choice });
+      if (error) throw new Error(String(error.message));
+      return NextResponse.json(result);
+    }
+
     if (!["blackjack", "poker"].includes(game)) {
       const { data: result, error } = await (supabase as any).rpc("casino_play_simple_v108", { p_game: game, p_wager: wager, p_choice: choice });
       if (error) throw new Error(String(error.message));

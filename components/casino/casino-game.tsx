@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
+import type { CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 
 import type { CasinoGameKey, CasinoGameSettings } from "@/lib/casino/types";
@@ -33,6 +34,7 @@ type GameResponse = {
   symbols?: string[];
   number?: number;
   multiplier?: number;
+  slot?: number;
   wager?: number;
   winningBets?: Array<{ choice: string; amount: number }>;
   player?: Card[];
@@ -83,6 +85,8 @@ const POKER_HANDS = [
   ["Paire", "Deux cartes de même valeur"], ["Carte haute", "La plus haute carte départage"],
 ];
 const DIFFICULTY_LABEL = { balanced: "Table équilibrée", hard: "Table difficile", expert: "Table haute difficulté", custom: "Règles de la Maison" } as const;
+const PLINKO_ROWS = 6;
+const PLINKO_STEP = 45 / 7;
 
 const SLOT_MACHINES = [
   { key: "imperiale", name: "L’Impériale", kicker: "GRAND CLASSIQUE", symbol: "♛", palette: "gold", symbols: ["◆", "♠", "✦", "7", "♛", "●"], text: "Boiseries, laiton et jackpots du Cercle." },
@@ -95,6 +99,28 @@ const SLOT_MACHINES = [
 
 function cardLabel(rank: number): string { return rank === 14 ? "A" : rank === 13 ? "K" : rank === 12 ? "Q" : rank === 11 ? "J" : String(rank); }
 function chips(value: number): string { return Math.trunc(value).toLocaleString("fr-FR"); }
+
+function plinkoSlotForResult(payload: GameResponse, settings: CasinoGameSettings): number {
+  if (Number.isInteger(payload.slot) && Number(payload.slot) >= 0 && Number(payload.slot) <= PLINKO_ROWS) return Number(payload.slot);
+  const multiplier = Number(payload.multiplier ?? 0);
+  const board = [settings.jackpotMultiplier, 0.5, settings.baseMultiplier, 0, settings.baseMultiplier, 0.5, settings.jackpotMultiplier];
+  const matchingSlots = board.flatMap((value, index) => Math.abs(value - multiplier) < 0.0001 ? [index] : []);
+  return matchingSlots[Math.floor(Math.random() * matchingSlots.length)] ?? 3;
+}
+
+function createPlinkoPath(slot: number): number[] {
+  const directions = Array.from({ length: PLINKO_ROWS }, (_, index) => index < slot);
+  for (let index = directions.length - 1; index > 0; index -= 1) {
+    const swapWith = Math.floor(Math.random() * (index + 1));
+    [directions[index], directions[swapWith]] = [directions[swapWith], directions[index]];
+  }
+  let rightBounces = 0;
+  return directions.map((goesRight, index) => {
+    if (goesRight) rightBounces += 1;
+    const completedBounces = index + 1;
+    return 50 + (2 * rightBounces - completedBounces) * PLINKO_STEP;
+  });
+}
 
 function PlayingCard({ card, hidden = false }: { card?: Card; hidden?: boolean }) {
   if (hidden || !card) return <span className={`${styles.playingCard} ${styles.cardBack}`}><i>CN</i></span>;
@@ -118,6 +144,7 @@ export function CasinoGame({ game, initialBalance, settings }: { game: CasinoGam
   const [rouletteChip, setRouletteChip] = useState(settings.minBet);
   const [rouletteBets, setRouletteBets] = useState<Record<string, number>>({});
   const [slotMachine, setSlotMachine] = useState<string | null>(null);
+  const [plinkoDrop, setPlinkoDrop] = useState<{ key: number; slot: number; path: number[] } | null>(null);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
   const selectedSlot = SLOT_MACHINES.find((machine) => machine.key === slotMachine) ?? null;
@@ -159,6 +186,7 @@ export function CasinoGame({ game, initialBalance, settings }: { game: CasinoGam
 
   function request(action: string, amount = 0) {
     setResult((previous) => action === "start" || action === "play" ? null : previous);
+    if (game === "plinko" && action === "play") setPlinkoDrop(null);
     startTransition(async () => {
       const response = await fetch("/api/casino/play", {
         method: "POST",
@@ -171,6 +199,11 @@ export function CasinoGame({ game, initialBalance, settings }: { game: CasinoGam
         }),
       });
       const payload = await response.json().catch(() => ({ error: "Réponse de table invalide." })) as GameResponse;
+      if (response.ok && game === "plinko" && action === "play" && !payload.error) {
+        const slot = plinkoSlotForResult(payload, settings);
+        setPlinkoDrop({ key: Date.now(), slot, path: createPlinkoPath(slot) });
+        await new Promise((resolve) => window.setTimeout(resolve, 2750));
+      }
       setResult(payload);
       if (typeof payload.balance === "number") setBalance(payload.balance);
       if (response.ok && game === "roulette") setRouletteBets({});
@@ -182,6 +215,14 @@ export function CasinoGame({ game, initialBalance, settings }: { game: CasinoGam
   const simplePlay = () => request("play");
   const resultWager = Number(result?.wager ?? wager);
   const net = Number(result?.payout ?? 0) - resultWager;
+  const plinkoBallStyle = plinkoDrop ? {
+    "--plinko-x1": `${plinkoDrop.path[0]}%`,
+    "--plinko-x2": `${plinkoDrop.path[1]}%`,
+    "--plinko-x3": `${plinkoDrop.path[2]}%`,
+    "--plinko-x4": `${plinkoDrop.path[3]}%`,
+    "--plinko-x5": `${plinkoDrop.path[4]}%`,
+    "--plinko-x6": `${plinkoDrop.path[5]}%`,
+  } as CSSProperties : undefined;
 
   return (
     <>
@@ -294,9 +335,10 @@ export function CasinoGame({ game, initialBalance, settings }: { game: CasinoGam
           {settings.enabled && game === "plinko" && (
             <div className={styles.plinkoRoom}>
               <div className={styles.plinkoBoard}>
-                <span className={`${styles.plinkoBall} ${pending ? styles.ballDropping : ""}`} style={typeof result?.number === "number" ? { left: `${12 + result.number * 9.5}%` } : undefined} />
-                <div className={styles.plinkoPegs}>{Array.from({ length: 66 }, (_, index) => <i key={index} />)}</div>
-                <div className={styles.plinkoSlots}>{[settings.jackpotMultiplier, .5, settings.baseMultiplier, 0, settings.baseMultiplier, .5, settings.jackpotMultiplier].map((multiplier, index) => <span key={index}>×{multiplier}</span>)}</div>
+                <div className={styles.plinkoLauncher}><i /><span>LÂCHER</span></div>
+                <span key={plinkoDrop?.key ?? 0} className={`${styles.plinkoBall} ${plinkoDrop ? styles.plinkoBallDropping : ""}`} style={plinkoBallStyle} />
+                <div className={styles.plinkoPegs}>{Array.from({ length: PLINKO_ROWS }, (_, row) => <div className={styles.plinkoPegRow} key={row}>{Array.from({ length: row + 1 }, (_, index) => <i key={index} />)}</div>)}</div>
+                <div className={styles.plinkoSlots}>{[settings.jackpotMultiplier, .5, settings.baseMultiplier, 0, settings.baseMultiplier, .5, settings.jackpotMultiplier].map((multiplier, index) => <span className={index === plinkoDrop?.slot ? styles.plinkoSlotTarget : ""} key={index}>×{multiplier}</span>)}</div>
               </div>
               <ChoiceButtons choices={choices} choice={choice} setChoice={setChoice} />
               <button className={styles.goldButton} disabled={pending || !canPlay} onClick={simplePlay} type="button">{pending ? "La bille descend…" : `Lâcher la bille · ${chips(wager)} jetons`}</button>
