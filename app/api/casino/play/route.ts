@@ -10,8 +10,23 @@ import { createClient } from "@/lib/supabase/server";
 
 type Card = { rank: number; suit: "♠" | "♥" | "♦" | "♣" };
 type BlackjackState = { roundId: string; wager: number; deck: Card[]; player: Card[]; dealer: Card[]; targetWin: boolean };
-type PokerBot = { name: string; cards: Card[]; folded: boolean };
-type PokerState = { roundId: string; wager: number; deck: Card[]; player: Card[]; bots: PokerBot[]; board: Card[]; phase: number; pot: number; targetWin: boolean };
+type PokerBot = { name: string; cards: Card[]; folded: boolean; committed: number; streetBet: number };
+type PokerState = {
+  roundId: string;
+  wager: number;
+  deck: Card[];
+  player: Card[];
+  bots: PokerBot[];
+  board: Card[];
+  phase: number;
+  pot: number;
+  targetWin: boolean;
+  committed: number;
+  playerStreetBet: number;
+  currentBet: number;
+  minRaise: number;
+  actionVersion: number;
+};
 
 const SUITS: Card["suit"][] = ["♠", "♥", "♦", "♣"];
 const BOT_NAMES = ["La Marquise", "Vega", "Le Baron"];
@@ -126,13 +141,64 @@ function rigPokerBots(state: PokerState, playerScore: number[]): void {
 
 const HAND_LABELS = ["Carte haute", "Paire", "Deux paires", "Brelan", "Suite", "Couleur", "Full", "Carré", "Quinte flush"];
 
-function publicPoker(state: PokerState, showdown = false) {
+function pokerPots(state: PokerState) {
+  normalizePokerState(state);
+  const mainPot = state.committed + state.bots.reduce((sum, bot) => sum + Math.min(bot.committed, state.committed), 0);
+  return { mainPot: Math.min(state.pot, mainPot), sidePot: Math.max(0, state.pot - mainPot) };
+}
+
+function normalizePokerState(state: PokerState) {
+  if (!Number.isFinite(state.committed)) state.committed = state.wager;
+  if (!Number.isFinite(state.playerStreetBet)) state.playerStreetBet = 0;
+  if (!Number.isFinite(state.currentBet)) state.currentBet = 0;
+  if (!Number.isFinite(state.minRaise)) state.minRaise = Math.max(1,state.wager);
+  if (!Number.isFinite(state.actionVersion)) state.actionVersion = 0;
+  state.bots.forEach((bot) => {
+    if (!Number.isFinite(bot.committed)) bot.committed = state.wager;
+    if (!Number.isFinite(bot.streetBet)) bot.streetBet = 0;
+  });
+}
+
+function prepareBotBet(state: PokerState, available: number, config: CasinoGameSettings) {
+  normalizePokerState(state);
+  state.playerStreetBet = 0;
+  state.currentBet = 0;
+  state.bots.forEach((bot) => { bot.streetBet = 0; });
+  const active = state.bots.filter((bot) => !bot.folded);
+  const room = Math.max(0, Math.min(available, config.maxBet - state.committed));
+  const bet = Math.min(state.wager, room);
+  if (!active.length || bet < 1 || state.phase >= 4) return;
+  const opener = active[randomInt(active.length)];
+  opener.streetBet = bet;
+  opener.committed += bet;
+  state.pot += bet;
+  active.filter((bot) => bot !== opener).forEach((bot) => {
+    if (randomInt(100) < 58) {
+      bot.streetBet = bet;
+      bot.committed += bet;
+      state.pot += bet;
+    }
+  });
+  state.currentBet = bet;
+  state.minRaise = Math.max(1, bet);
+}
+
+function publicPoker(state: PokerState, available: number, config: CasinoGameSettings, showdown = false) {
+  normalizePokerState(state);
   const visibleBoard = state.phase === 0 ? [] : state.phase === 1 ? state.board.slice(0, 3) : state.phase === 2 ? state.board.slice(0, 4) : state.board;
+  const pots = pokerPots(state);
   return {
     phase: ["Préflop", "Flop", "Turn", "River", "Abattage"][state.phase] ?? "Abattage",
     phaseIndex: state.phase,
     wager: state.wager,
     pot: state.pot,
+    mainPot: pots.mainPot,
+    sidePot: pots.sidePot,
+    committed: state.committed,
+    toCall: Math.max(0, state.currentBet - state.playerStreetBet),
+    minRaise: state.minRaise,
+    available,
+    maxTotalBet: config.maxBet,
     player: state.player,
     board: visibleBoard,
     bots: state.bots.map((bot) => ({ name: bot.name, folded: bot.folded, cards: showdown && !bot.folded ? bot.cards : [] })),
@@ -177,8 +243,11 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
   const game = String(body.game ?? "");
   const action = String(body.action ?? "play");
-  const wager = Math.trunc(Number(body.wager));
+  const rouletteBets = Array.isArray(body.bets) ? body.bets.slice(0, 24) : [];
+  const rouletteWager = rouletteBets.reduce((sum: number, bet: { amount?: unknown }) => sum + Math.max(0, Math.trunc(Number(bet?.amount ?? 0))), 0);
+  const wager = game === "roulette" ? rouletteWager : Math.trunc(Number(body.wager));
   const choice = String(body.choice ?? "").slice(0, 40);
+  const raiseAmount = Math.max(0, Math.trunc(Number(body.raiseAmount ?? 0)));
   const expectedDoubles = Math.max(0, Math.trunc(Number(body.doubles ?? 0)));
   if (!["poker","blackjack","roulette","slots","dice","plinko","coinflip","double_or_quit"].includes(game)) return NextResponse.json({ error: "Jeu inconnu." }, { status: 404 });
   if (game === "slots" && !["imperiale","neon","pharaoh","lucky","diamond","jungle"].includes(choice)) {
@@ -203,6 +272,16 @@ export async function POST(request: Request) {
         p_wager: wager,
         p_expected_doubles: expectedDoubles,
       });
+      if (error) throw new Error(String(error.message));
+      return NextResponse.json(result);
+    }
+
+    if (game === "roulette") {
+      const bets = rouletteBets.map((bet: { choice?: unknown; amount?: unknown }) => ({
+        choice: String(bet.choice ?? "").slice(0, 24),
+        amount: Math.max(0, Math.trunc(Number(bet.amount ?? 0))),
+      })).filter((bet: { choice: string; amount: number }) => bet.choice && bet.amount > 0);
+      const { data: result, error } = await (supabase as any).rpc("casino_play_roulette_v117", { p_bets: bets });
       if (error) throw new Error(String(error.message));
       return NextResponse.json(result);
     }
@@ -248,37 +327,96 @@ export async function POST(request: Request) {
       return NextResponse.json({ finished: true, result, payout, player: state.player, dealer: state.dealer, playerValue, dealerValue, balance: await walletBalance(admin, data.user.id) });
     }
 
+    if (action === "status") {
+      const state = await getActive<PokerState>(admin, data.user.id, game);
+      const available = await walletBalance(admin, data.user.id);
+      return NextResponse.json(state ? { active: true, finished: false, poker: publicPoker(state, available, config), balance: available } : { active: false, balance: available });
+    }
+
     if (action === "start") {
       const roundId = await begin(supabase, game, wager);
       const cards = deck();
       const state: PokerState = {
         roundId, wager, deck: cards,
         player: [cards.pop()!, cards.pop()!],
-        bots: BOT_NAMES.map((name) => ({ name, cards: [cards.pop()!, cards.pop()!], folded: false })),
+        bots: BOT_NAMES.map((name) => ({ name, cards: [cards.pop()!, cards.pop()!], folded: false, committed: wager, streetBet: 0 })),
         board: [cards.pop()!, cards.pop()!, cards.pop()!, cards.pop()!, cards.pop()!],
         phase: 0,
-        pot: Math.min(config.maxPayout, Math.trunc(wager * config.baseMultiplier)),
+        pot: wager * 4,
         targetWin: configuredWin(config),
+        committed: wager,
+        playerStreetBet: 0,
+        currentBet: 0,
+        minRaise: Math.max(1, wager),
+        actionVersion: 0,
       };
+      const available = await walletBalance(admin, data.user.id);
+      prepareBotBet(state, available, config);
       await saveActive(admin, data.user.id, game, roundId, state);
-      return NextResponse.json({ finished: false, poker: publicPoker(state), balance: await walletBalance(admin, data.user.id) });
+      return NextResponse.json({ finished: false, poker: publicPoker(state, available, config), balance: available });
     }
 
     const state = await getActive<PokerState>(admin, data.user.id, game);
     if (!state) return NextResponse.json({ error: "Aucune table solo active." }, { status: 409 });
+    normalizePokerState(state);
+    const availableBefore = await walletBalance(admin, data.user.id);
     if (action === "fold") {
+      const { error } = await (supabase as any).rpc("casino_poker_lock_action_v117", { p_round_id: state.roundId, p_expected_version: state.actionVersion, p_amount: 0 });
+      if (error) throw new Error(String(error.message));
       await settle(admin, data.user.id, state.roundId, 0, { result: "fold" });
       await clearActive(admin, data.user.id, game);
-      return NextResponse.json({ finished: true, result: "Tu t’es couché", payout: 0, poker: publicPoker(state), balance: await walletBalance(admin, data.user.id) });
+      return NextResponse.json({ finished: true, result: "Tu t’es couché", payout: 0, poker: publicPoker(state, availableBefore, config), balance: await walletBalance(admin, data.user.id) });
     }
 
-    const foldChance = action === "raise" ? (config.difficulty === "expert" ? 14 : config.difficulty === "hard" ? 24 : 36) : (config.difficulty === "expert" ? 5 : config.difficulty === "hard" ? 10 : 17);
-    state.bots.forEach((bot) => { if (!bot.folded && randomInt(100) < foldChance) bot.folded = true; });
-    if (state.bots.every((bot) => bot.folded)) state.bots[randomInt(state.bots.length)].folded = false;
+    const toCall = Math.max(0, state.currentBet - state.playerStreetBet);
+    let additional = 0;
+    if (action === "check" && toCall > 0) return NextResponse.json({ error: `Tu dois suivre ${toCall.toLocaleString("fr-FR")} jetons, relancer ou te coucher.` }, { status: 400 });
+    if (action === "check" || action === "call") additional = toCall;
+    else if (action === "raise") {
+      if (raiseAmount < state.minRaise) return NextResponse.json({ error: `La relance minimum est de ${state.minRaise.toLocaleString("fr-FR")} jetons.` }, { status: 400 });
+      additional = toCall + raiseAmount;
+    } else if (action === "allin") additional = Math.min(availableBefore, Math.max(0, config.maxBet - state.committed));
+    else return NextResponse.json({ error: "Action de poker inconnue." }, { status: 400 });
+    if (additional > availableBefore || state.committed + additional > config.maxBet) return NextResponse.json({ error: "Cette enchère dépasse ton solde ou la limite de la table." }, { status: 400 });
+
+    const { data: balanceAfterAction, error: lockError } = await (supabase as any).rpc("casino_poker_lock_action_v117", {
+      p_round_id: state.roundId,
+      p_expected_version: state.actionVersion,
+      p_amount: additional,
+    });
+    if (lockError) throw new Error(String(lockError.message));
+    state.actionVersion += 1;
+    state.committed += additional;
+    state.playerStreetBet += additional;
+    state.pot += additional;
+
+    if (action === "raise" || action === "allin") {
+      const foldChance = config.difficulty === "expert" ? 12 : config.difficulty === "hard" ? 22 : 34;
+      state.bots.forEach((bot) => {
+        if (bot.folded) return;
+        if (randomInt(100) < foldChance) { bot.folded = true; return; }
+        const call = Math.max(0, state.playerStreetBet - bot.streetBet);
+        bot.streetBet += call;
+        bot.committed += call;
+        state.pot += call;
+      });
+    }
+    if (state.bots.every((bot) => bot.folded)) {
+      const payout = Math.min(config.maxPayout, pokerPots(state).mainPot);
+      const label = "Tous les adversaires se couchent";
+      await settle(admin, data.user.id, state.roundId, payout, { result: label, pot: state.pot });
+      await clearActive(admin, data.user.id, game);
+      return NextResponse.json({ finished: true, result: label, payout, poker: publicPoker(state, Number(balanceAfterAction), config), balance: await walletBalance(admin, data.user.id) });
+    }
+
     state.phase += 1;
     if (state.phase < 4) {
+      state.playerStreetBet = 0;
+      state.currentBet = 0;
+      state.bots.forEach((bot) => { bot.streetBet = 0; });
+      prepareBotBet(state, Number(balanceAfterAction), config);
       await saveActive(admin, data.user.id, game, state.roundId, state);
-      return NextResponse.json({ finished: false, poker: publicPoker(state), balance: await walletBalance(admin, data.user.id) });
+      return NextResponse.json({ finished: false, poker: publicPoker(state, Number(balanceAfterAction), config), balance: Number(balanceAfterAction) });
     }
 
     const playerScore = bestScore([...state.player, ...state.board]);
@@ -287,14 +425,15 @@ export async function POST(request: Request) {
     const bestBot = contenders.map((entry) => entry.score).sort((a,b) => compareScore(b,a))[0];
     const comparison = bestBot ? compareScore(playerScore, bestBot) : 1;
     const winners = comparison === 0 ? 1 + contenders.filter((entry) => compareScore(entry.score, playerScore) === 0).length : 1;
-    const payout = comparison > 0 ? Math.min(config.maxPayout, state.pot) : comparison === 0 ? Math.trunc(state.pot / winners) : 0;
+    const mainPot = pokerPots(state).mainPot;
+    const payout = comparison > 0 ? Math.min(config.maxPayout, mainPot) : comparison === 0 ? Math.trunc(mainPot / winners) : 0;
     const result = comparison > 0 ? `Victoire · ${HAND_LABELS[playerScore[0]]}` : comparison === 0 ? `Partage · ${HAND_LABELS[playerScore[0]]}` : `${HAND_LABELS[playerScore[0]]} battue`;
     await settle(admin, data.user.id, state.roundId, payout, { result, hand: HAND_LABELS[playerScore[0]], board: state.board });
     await clearActive(admin, data.user.id, game);
-    return NextResponse.json({ finished: true, result, payout, poker: publicPoker(state, true), balance: await walletBalance(admin, data.user.id) });
+    return NextResponse.json({ finished: true, result, payout, poker: publicPoker(state, Number(balanceAfterAction), config, true), balance: await walletBalance(admin, data.user.id) });
   } catch (error) {
     const message = String(error instanceof Error ? error.message : error).toLowerCase();
-    const friendly = message.includes("insufficient_balance") ? "Solde de jetons insuffisant." : message.includes("active_game_exists") ? "Termine d’abord ta partie active." : message.includes("stale_double_action") ? "Cette action a déjà été traitée. Actualise la page pour resynchroniser le montant." : message.includes("no_active_double_game") ? "Cette partie est déjà terminée." : message.includes("game_closed") ? "Cette table est momentanément fermée." : message.includes("wager_out_of_bounds") ? "Cette mise dépasse les limites fixées par la Direction." : "La table n’a pas pu traiter l’action. Réessaie.";
+    const friendly = message.includes("insufficient_balance") ? "Solde de jetons insuffisant." : message.includes("active_game_exists") ? "Termine d’abord ta partie active." : message.includes("stale_poker_action") ? "Cette action de poker a déjà été traitée. La table va se resynchroniser." : message.includes("function") || message.includes("schema cache") ? "Exécute le SQL Casino V117 dans Supabase avant de jouer." : message.includes("stale_double_action") ? "Cette action a déjà été traitée. Actualise la page pour resynchroniser le montant." : message.includes("no_active_double_game") ? "Cette partie est déjà terminée." : message.includes("game_closed") ? "Cette table est momentanément fermée." : message.includes("wager_out_of_bounds") ? "Cette mise dépasse les limites fixées par la Direction." : "La table n’a pas pu traiter l’action. Réessaie.";
     return NextResponse.json({ error: friendly }, { status: 400 });
   }
 }
