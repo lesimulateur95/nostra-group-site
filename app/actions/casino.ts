@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 
 import { getUserRoleKeys } from "@/lib/auth/access";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { CASINO_GAMES } from "@/lib/casino/types";
 
 function text(value: FormDataEntryValue | null, max = 180): string {
@@ -141,18 +142,39 @@ export async function resetCasinoPlayer(formData: FormData) {
 }
 
 export async function resetCasinoBeforeOpening(formData: FormData) {
-  const supabase = await manager();
+  // Le rôle Gérant est contrôlé ici avec la même source que le Dashboard.
+  // L'effacement est ensuite exécuté avec le client privé du serveur : la RPC
+  // n'a donc plus besoin de revérifier le rôle via une ancienne fonction SQL.
+  await manager();
   const confirmation = text(formData.get("confirmation"), 100);
 
   if (confirmation !== "OUVRIR LE CASINO A ZERO") {
     redirect("/dashboard/jeux/casino?error=opening-reset-confirmation");
   }
 
-  const { error } = await (supabase as any).rpc("casino_admin_opening_reset_v112", {
-    p_confirmation: confirmation,
-  });
+  let result: unknown = null;
+  let resetFailed = false;
 
-  if (error) redirect("/dashboard/jeux/casino?error=opening-reset");
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await (admin as any).rpc(
+      "casino_admin_opening_reset_v113",
+      { p_confirmation: confirmation },
+    );
+    result = data;
+    resetFailed = Boolean(error);
+  } catch {
+    resetFailed = true;
+  }
+
+  if (
+    resetFailed ||
+    !result ||
+    typeof result !== "object" ||
+    (result as { complete?: unknown }).complete !== true
+  ) {
+    redirect("/dashboard/jeux/casino?error=opening-reset-v113");
+  }
   refresh();
   redirect("/dashboard/jeux/casino?saved=opening-reset-complete");
 }
