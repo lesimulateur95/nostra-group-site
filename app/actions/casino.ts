@@ -6,7 +6,6 @@ import { redirect } from "next/navigation";
 
 import { getUserRoleKeys } from "@/lib/auth/access";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { CASINO_GAMES } from "@/lib/casino/types";
 
 function text(value: FormDataEntryValue | null, max = 180): string {
@@ -142,10 +141,9 @@ export async function resetCasinoPlayer(formData: FormData) {
 }
 
 export async function resetCasinoBeforeOpening(formData: FormData) {
-  // Le rôle Gérant est contrôlé ici avec la même source que le Dashboard.
-  // L'effacement est ensuite exécuté avec le client privé du serveur : la RPC
-  // n'a donc plus besoin de revérifier le rôle via une ancienne fonction SQL.
-  await manager();
+  // La RPC utilise directement la session Supabase du Gérant. Le bouton ne
+  // dépend donc plus d'une clé service_role configurée séparément sur Vercel.
+  const supabase = await manager();
   const confirmation = text(formData.get("confirmation"), 100);
 
   if (confirmation !== "OUVRIR LE CASINO A ZERO") {
@@ -156,9 +154,8 @@ export async function resetCasinoBeforeOpening(formData: FormData) {
   let resetFailed = false;
 
   try {
-    const admin = createAdminClient();
-    const { data, error } = await (admin as any).rpc(
-      "casino_admin_opening_reset_v113",
+    const { data, error } = await (supabase as any).rpc(
+      "casino_admin_opening_reset_v114",
       { p_confirmation: confirmation },
     );
     result = data;
@@ -173,7 +170,7 @@ export async function resetCasinoBeforeOpening(formData: FormData) {
     typeof result !== "object" ||
     (result as { complete?: unknown }).complete !== true
   ) {
-    redirect("/dashboard/jeux/casino?error=opening-reset-v113");
+    redirect("/dashboard/jeux/casino?error=opening-reset-v114");
   }
   refresh();
   redirect("/dashboard/jeux/casino?saved=opening-reset-complete");

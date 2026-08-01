@@ -49,7 +49,7 @@ export default async function CasinoDashboardPage({ searchParams }: { searchPara
 
       {!settings.configured && <section className="dashboard-setup"><span className="module-status">Activation V108 nécessaire</span><h2>Le casino reste entièrement masqué</h2><p>Exécute d’abord <strong>supabase/casino-le-cercle-v108.sql</strong>, puis le correctif <strong>supabase/casino-paiements-rp-reinitialisations-v109.sql</strong>. Tant que le premier SQL n’est pas exécuté, aucun citoyen ne voit le bouton Casino.</p></section>}
       {params.saved && <div className="dashboard-feedback dashboard-feedback-success">{RESET_SUCCESS[params.saved] ?? "La gestion du casino a bien été mise à jour."}</div>}
-      {params.error && <div className="dashboard-feedback dashboard-feedback-error">L’opération n’a pas pu être enregistrée. {params.error === "setup" ? "Vérifie que les SQL Casino ont bien été exécutés." : params.error === "reset" ? "La réinitialisation a été bloquée. Vérifie la confirmation ou termine d’abord la partie active du joueur." : params.error === "opening-reset-confirmation" ? "Recopie exactement OUVRIR LE CASINO A ZERO." : params.error === "opening-reset-v113" ? "Vérifie que le nouveau SQL V113 a bien été exécuté et que la clé privée Supabase est configurée sur Vercel." : params.error === "opening-reset" ? "L’ancien bouton V112 est encore déployé. Remplace les fichiers du correctif V113." : params.error === "game-settings" ? "Vérifie les pourcentages, les mises et les multiplicateurs de ce jeu." : "Vérifie les valeurs saisies."}</div>}
+      {params.error && <div className="dashboard-feedback dashboard-feedback-error">L’opération n’a pas pu être enregistrée. {params.error === "setup" ? "Vérifie que les SQL Casino ont bien été exécutés." : params.error === "reset" ? "La réinitialisation a été bloquée. Vérifie la confirmation ou termine d’abord la partie active du joueur." : params.error === "opening-reset-confirmation" ? "Recopie exactement OUVRIR LE CASINO A ZERO." : params.error === "opening-reset-v114" ? "Vérifie que le SQL V114 a bien été exécuté, puis reconnecte-toi au site avant de réessayer." : params.error === "opening-reset-v113" ? "L’ancien bouton V113 est encore déployé. Remplace les fichiers du correctif V114." : params.error === "opening-reset" ? "Un ancien bouton de réinitialisation est encore déployé. Remplace les fichiers du correctif V114." : params.error === "game-settings" ? "Vérifie les pourcentages, les mises et les multiplicateurs de ce jeu." : "Vérifie les valeurs saisies."}</div>}
 
       <section className={styles.openingReset}>
         <div className={styles.openingResetCopy}>
@@ -86,7 +86,7 @@ export default async function CasinoDashboardPage({ searchParams }: { searchPara
           <article><span>Total misé</span><strong>{n(totalWagered)}</strong><small>jetons</small></article>
           <article><span>Total reversé</span><strong>{n(totalPaid)}</strong><small>jetons</small></article>
           <article className={houseProfit >= 0 ? styles.profit : styles.loss}><span>Résultat maison</span><strong>{houseProfit >= 0 ? "+" : ""}{n(houseProfit)}</strong><small>jetons</small></article>
-          <article><span>RTP réel</span><strong>{totalWagered ? `${Math.round((totalPaid / totalWagered) * 10_000) / 100} %` : "—"}</strong><small>retour joueurs</small></article>
+          <article><span>RTP réel</span><strong>{totalWagered ? `${Math.round((totalPaid / totalWagered) * 10_000) / 100} %` : "0 %"}</strong><small>retour joueurs</small></article>
         </div>
       </section>
 
