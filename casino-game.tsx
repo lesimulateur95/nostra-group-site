@@ -19,6 +19,7 @@ type PokerView = {
   toCall: number;
   minRaise: number;
   available: number;
+  allInAmount: number;
   maxTotalBet: number;
   player: Card[];
   board: Card[];
@@ -57,6 +58,11 @@ const GAME_COPY: Record<CasinoGameKey, { kicker: string; title: string; text: st
   coinflip: { kicker: "DUEL 50 / 50", title: "Le Louis d’or", text: "Pile ou face. Une seule décision, un lancer et le verdict de la pièce du Cercle." },
   double_or_quit: { kicker: "SALON DU RISQUE", title: "Double ou quitte", text: "Tente de doubler la somme à chaque tour. Quitte la table quand tu le souhaites pour encaisser, mais un seul échec fait tout perdre." },
   baccarat: { kicker: "TABLE LIVE UNIQUEMENT", title: "Baccarat", text: "Rejoins les autres citoyens autour d’une table partagée et mise sur Joueur, Banque ou Égalité." },
+  mines: { kicker: "SALLE DU DÉMINEUR", title: "Mines", text: "Révèle les cases sûres et encaisse avant de toucher une bombe." },
+  mystery_boxes: { kicker: "CHAMBRE DES COFFRES", title: "Coffres mystères", text: "Choisis un coffre et découvre le lot attribué par la Maison." },
+  horse_racing: { kicker: "COURSE MULTI LIVE", title: "Courses hippiques", text: "Rejoins une course partagée depuis le salon multijoueur." },
+  slots_tournament: { kicker: "TOURNOI MULTIJOUEUR", title: "Tournoi de machines", text: "Affronte les citoyens sur le même nombre de tours." },
+  card_battle: { kicker: "DUEL DE CARTES", title: "Bataille de cartes", text: "Deux citoyens, deux cartes et une cagnotte commune." },
 };
 
 const CHOICES: Partial<Record<CasinoGameKey, Array<{ value: string; label: string }>>> = {
@@ -430,7 +436,7 @@ export function CasinoGame({ game, initialBalance, settings }: { game: CasinoGam
               {!active ? <div className={styles.gameActions}><button className={styles.goldButton} disabled={pending || !canPlay} onClick={() => request("start")} type="button">Prendre place · {chips(wager)} jetons</button></div> : <div className={styles.pokerBettingConsole}>
                 <div className={styles.pokerBetStatus}><span>Déjà engagé <b>{chips(result?.poker?.committed ?? wager)}</b></span><span>À suivre <b>{chips(result?.poker?.toCall ?? 0)}</b></span><span>Disponible <b>{chips(result?.poker?.available ?? balance)}</b></span></div>
                 <div className={styles.pokerRaiseControl}><label htmlFor="poker-raise">Montant de la relance</label><input id="poker-raise" type="number" min={result?.poker?.minRaise ?? 1} max={Math.max(result?.poker?.minRaise ?? 1, Math.min(result?.poker?.available ?? balance, (result?.poker?.maxTotalBet ?? settings.maxBet) - (result?.poker?.committed ?? wager)))} value={raiseAmount} onChange={(event) => setRaiseAmount(Math.max(0,Math.trunc(Number(event.target.value))))} /><small>Minimum {chips(result?.poker?.minRaise ?? 1)}</small></div>
-                <div className={styles.gameActions}><button className={styles.dangerButton} disabled={pending} onClick={() => request("fold")} type="button">Se coucher</button><button className={styles.secondaryButton} disabled={pending || Number(result?.poker?.toCall ?? 0) > 0} onClick={() => request("check")} type="button">Parole</button><button className={styles.secondaryButton} disabled={pending || Number(result?.poker?.toCall ?? 0) === 0} onClick={() => request("call")} type="button">Suivre {chips(result?.poker?.toCall ?? 0)}</button><button className={styles.goldButton} disabled={pending || raiseAmount < Number(result?.poker?.minRaise ?? 1)} onClick={() => request("raise",raiseAmount)} type="button">Relancer de {chips(raiseAmount)}</button><button className={styles.allInButton} disabled={pending || Number(result?.poker?.available ?? 0) < 1} onClick={() => request("allin")} type="button">Tapis</button></div>
+                <div className={styles.gameActions}><button className={styles.dangerButton} disabled={pending} onClick={() => request("fold")} type="button">Se coucher</button><button className={styles.secondaryButton} disabled={pending || Number(result?.poker?.toCall ?? 0) > 0} onClick={() => request("check")} type="button">Parole</button><button className={styles.secondaryButton} disabled={pending || Number(result?.poker?.toCall ?? 0) === 0} onClick={() => request("call")} type="button">Suivre {chips(result?.poker?.toCall ?? 0)}</button><button className={styles.goldButton} disabled={pending || raiseAmount < Number(result?.poker?.minRaise ?? 1)} onClick={() => request("raise",raiseAmount)} type="button">Relancer de {chips(raiseAmount)}</button><button className={styles.allInButton} disabled={pending || Number(result?.poker?.available ?? 0) < 1} onClick={() => request("allin")} type="button">Tapis · {chips(result?.poker?.allInAmount ?? result?.poker?.available ?? 0)}</button></div>
               </div>}
             </div>
           )}
