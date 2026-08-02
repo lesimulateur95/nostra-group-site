@@ -3964,6 +3964,49 @@ select:focus { outline: 2px solid rgba(212,175,55,.32); outline-offset: 1px; }
   color: var(--muted);
 }
 
+.catalog-admin-commerce-v127 {
+  display: grid;
+  gap: 16px;
+  margin-top: 20px;
+  padding: 18px;
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  border-radius: 16px;
+  background: rgba(212, 175, 55, 0.035);
+}
+
+.catalog-admin-commerce-heading-v127 {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.catalog-admin-commerce-heading-v127 h3 {
+  margin: 5px 0 0;
+}
+
+.catalog-admin-commerce-heading-v127 p {
+  max-width: 430px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  text-align: right;
+}
+
+.catalog-admin-commerce-grid-v127 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.catalog-admin-commerce-grid-v127 .vehicle-commerce-control-v99 {
+  align-content: space-between;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 13px;
+  background: rgba(0, 0, 0, 0.2);
+}
+
 @media (max-width: 760px) {
   .vehicle-commerce-heading-v99,
   .vehicle-commerce-catalog-head-v99 {
@@ -3974,6 +4017,19 @@ select:focus { outline: 2px solid rgba(212,175,55,.32); outline-offset: 1px; }
   .vehicle-commerce-count-v99,
   .vehicle-commerce-catalog-head-v99 .reservation-setting-status-v98 {
     align-self: flex-start;
+  }
+
+  .catalog-admin-commerce-heading-v127 {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .catalog-admin-commerce-heading-v127 p {
+    text-align: left;
+  }
+
+  .catalog-admin-commerce-grid-v127 {
+    grid-template-columns: 1fr;
   }
 }
 

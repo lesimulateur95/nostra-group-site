@@ -6,6 +6,7 @@ import {
   deleteCatalogVehicleV51,
   saveCatalogVehicleV51,
 } from "@/app/actions/catalogue-v51";
+import { setVehicleCommerceAvailability } from "@/app/actions/vehicle-reservation-settings";
 import {
   DashboardHeader,
 } from "@/components/dashboard/dashboard-header";
@@ -25,6 +26,7 @@ import {
   getCatalogModuleConfigured,
   getStockCommerceConfigured,
 } from "@/lib/backoffice/data";
+import { getVehicleCommerceAvailabilityMap } from "@/lib/vehicle-commerce-settings/data";
 
 import styles from "@/components/motors/catalogue-v51.module.css";
 
@@ -65,6 +67,8 @@ export default async function DashboardCataloguePage({
     saved?: string;
     deleted?: string;
     error?: string;
+    commerce_saved?: string;
+    commerce_error?: string;
   }>;
 }) {
   const params = await searchParams;
@@ -88,6 +92,9 @@ export default async function DashboardCataloguePage({
 
   const managedTypes = CATALOG_TYPES.filter((type) => type !== "used");
   const managedVehicles = allVehicles.filter((vehicle) => vehicle.catalog_type !== "used");
+  const commerceAvailability = await getVehicleCommerceAvailabilityMap(
+    managedVehicles.map((vehicle) => Number(vehicle.id)),
+  );
 
   const selectedType:
     | CatalogType
@@ -129,6 +136,22 @@ export default async function DashboardCataloguePage({
       {params.deleted && (
         <div className="dashboard-feedback">
           Le véhicule a été supprimé.
+        </div>
+      )}
+
+      {params.commerce_saved && (
+        <div className="dashboard-feedback dashboard-feedback-success">
+          La réservation et la vente du véhicule ont bien été mises à jour.
+        </div>
+      )}
+
+      {params.commerce_error && (
+        <div className="dashboard-feedback dashboard-feedback-error">
+          {params.commerce_error === "setup-v99"
+            ? "Exécute le SQL V127 dans Supabase avant d’utiliser le blocage par véhicule."
+            : params.commerce_error === "forbidden"
+              ? "Seule la Direction peut modifier la vente d’un véhicule."
+              : "Impossible de modifier la disponibilité commerciale de ce véhicule."}
         </div>
       )}
 
@@ -336,9 +359,17 @@ export default async function DashboardCataloguePage({
             )}
 
             {visibleVehicles.map(
-              (vehicle) => (
+              (vehicle) => {
+                const availability = commerceAvailability.get(Number(vehicle.id)) ?? {
+                  vehicle_id: Number(vehicle.id),
+                  reservation_enabled: true,
+                  sale_enabled: true,
+                };
+
+                return (
                 <article
                   className="catalog-admin-card"
+                  id={`vehicule-${vehicle.id}`}
                   key={vehicle.id}
                 >
                   <div className="catalog-admin-card-head">
@@ -562,6 +593,92 @@ export default async function DashboardCataloguePage({
                     </button>
                   </form>
 
+                  <section className="catalog-admin-commerce-v127">
+                    <div className="catalog-admin-commerce-heading-v127">
+                      <div>
+                        <span className="eyebrow">DISPONIBILITÉ COMMERCIALE</span>
+                        <h3>Réservation et vente</h3>
+                      </div>
+                      <p>Le véhicule reste visible même si une action est bloquée.</p>
+                    </div>
+
+                    <div className="catalog-admin-commerce-grid-v127">
+                      <div className="vehicle-commerce-control-v99">
+                        <span
+                          className={`vehicle-commerce-chip-v99${
+                            availability.reservation_enabled
+                              ? " is-enabled"
+                              : " is-disabled"
+                          }`}
+                        >
+                          Réservation {availability.reservation_enabled ? "autorisée" : "bloquée"}
+                        </span>
+                        <form action={setVehicleCommerceAvailability}>
+                          <input type="hidden" name="vehicle_id" value={vehicle.id} />
+                          <input
+                            type="hidden"
+                            name="reservation_enabled"
+                            value={availability.reservation_enabled ? "false" : "true"}
+                          />
+                          <input
+                            type="hidden"
+                            name="sale_enabled"
+                            value={availability.sale_enabled ? "true" : "false"}
+                          />
+                          <input
+                            type="hidden"
+                            name="return_to"
+                            value={`/dashboard/catalogue?type=${selectedType}#vehicule-${vehicle.id}`}
+                          />
+                          <button
+                            className={availability.reservation_enabled ? "btn btn-danger-v98" : "btn"}
+                            type="submit"
+                          >
+                            {availability.reservation_enabled
+                              ? "Bloquer la réservation"
+                              : "Autoriser la réservation"}
+                          </button>
+                        </form>
+                      </div>
+
+                      <div className="vehicle-commerce-control-v99">
+                        <span
+                          className={`vehicle-commerce-chip-v99${
+                            availability.sale_enabled ? " is-enabled" : " is-disabled"
+                          }`}
+                        >
+                          Vente {availability.sale_enabled ? "autorisée" : "bloquée"}
+                        </span>
+                        <form action={setVehicleCommerceAvailability}>
+                          <input type="hidden" name="vehicle_id" value={vehicle.id} />
+                          <input
+                            type="hidden"
+                            name="reservation_enabled"
+                            value={availability.reservation_enabled ? "true" : "false"}
+                          />
+                          <input
+                            type="hidden"
+                            name="sale_enabled"
+                            value={availability.sale_enabled ? "false" : "true"}
+                          />
+                          <input
+                            type="hidden"
+                            name="return_to"
+                            value={`/dashboard/catalogue?type=${selectedType}#vehicule-${vehicle.id}`}
+                          />
+                          <button
+                            className={availability.sale_enabled ? "btn btn-danger-v98" : "btn"}
+                            type="submit"
+                          >
+                            {availability.sale_enabled
+                              ? "Bloquer la vente"
+                              : "Autoriser la vente"}
+                          </button>
+                        </form>
+                      </div>
+                    </div>
+                  </section>
+
                   <form
                     action={
                       deleteCatalogVehicleV51
@@ -585,7 +702,8 @@ export default async function DashboardCataloguePage({
                     </button>
                   </form>
                 </article>
-              ),
+                );
+              },
             )}
           </section>
         </>

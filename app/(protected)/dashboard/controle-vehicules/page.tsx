@@ -41,24 +41,24 @@ export default async function VehicleCommerceSettingsPage({
           <span className="module-status">Mise à jour nécessaire</span>
           <h2>Activer le contrôle véhicule par véhicule</h2>
           <p>
-            Le SQL V99 doit être présent dans Supabase avant d’utiliser cette page.
+            Le SQL V127 doit être présent dans Supabase avant d’utiliser cette page.
           </p>
         </section>
       )}
 
-      {params.vehicle_saved && (
+      {(params.vehicle_saved || params.commerce_saved) && (
         <div className="dashboard-feedback dashboard-feedback-success">
           Les autorisations du véhicule ont bien été enregistrées.
         </div>
       )}
 
-      {params.error && (
+      {(params.error || params.commerce_error) && (
         <div className="dashboard-feedback dashboard-feedback-error">
-          {params.error === "setup-v99"
-            ? "Le SQL V99 doit être exécuté dans Supabase."
-            : params.error === "forbidden"
+          {(params.error || params.commerce_error) === "setup-v99"
+            ? "Le SQL V127 doit être exécuté dans Supabase."
+            : (params.error || params.commerce_error) === "forbidden"
               ? "Seule la direction peut modifier ces paramètres."
-              : params.error === "vehicle"
+              : (params.error || params.commerce_error) === "vehicle"
                 ? "Le véhicule sélectionné est introuvable."
                 : "Impossible d’enregistrer les autorisations du véhicule."}
         </div>

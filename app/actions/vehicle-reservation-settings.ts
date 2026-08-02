@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -53,6 +54,32 @@ function revalidateReservationSettings(vehicleId?: number) {
   if (vehicleId && vehicleId > 0) {
     revalidatePath(`/motors/catalogue/${vehicleId}/commande`);
   }
+}
+
+function commerceReturnUrl(
+  value: FormDataEntryValue | null,
+  vehicleId: number,
+  result: string,
+): string {
+  const requested = text(value, 320);
+  const allowed = [
+    "/dashboard/controle-vehicules",
+    "/dashboard/catalogue",
+    "/dashboard/occasion/catalogue",
+  ];
+  const safeTarget = allowed.some(
+    (path) =>
+      requested === path ||
+      requested.startsWith(`${path}?`) ||
+      requested.startsWith(`${path}#`),
+  )
+    ? requested
+    : "/dashboard/controle-vehicules";
+  const [pathAndQuery, existingHash] = safeTarget.split("#", 2);
+  const separator = pathAndQuery.includes("?") ? "&" : "?";
+  const hash = existingHash || `vehicule-${vehicleId}`;
+
+  return `${pathAndQuery}${separator}${result}#${hash}`;
 }
 
 function errorCode(error: { code?: string | null; message?: string | null }) {
@@ -134,7 +161,13 @@ export async function setVehicleCommerceAvailability(formData: FormData) {
   const saleEnabled = booleanValue(formData.get("sale_enabled"));
 
   if (vehicleId <= 0) {
-    redirect("/dashboard/controle-vehicules?error=vehicle");
+    redirect(
+      commerceReturnUrl(
+        formData.get("return_to"),
+        vehicleId,
+        "commerce_error=vehicle",
+      ),
+    );
   }
 
   const supabase = await requireManager();
@@ -149,12 +182,20 @@ export async function setVehicleCommerceAvailability(formData: FormData) {
 
   if (error) {
     redirect(
-      `/dashboard/controle-vehicules?error=${errorCode(error)}#vehicule-${vehicleId}`,
+      commerceReturnUrl(
+        formData.get("return_to"),
+        vehicleId,
+        `commerce_error=${errorCode(error)}`,
+      ),
     );
   }
 
   revalidateReservationSettings(vehicleId);
   redirect(
-    `/dashboard/controle-vehicules?vehicle_saved=1#vehicule-${vehicleId}`,
+    commerceReturnUrl(
+      formData.get("return_to"),
+      vehicleId,
+      "commerce_saved=1",
+    ),
   );
 }

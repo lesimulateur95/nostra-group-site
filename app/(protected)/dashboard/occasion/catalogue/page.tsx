@@ -1,13 +1,17 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import {
   deleteUsedVehiclePurchase,
   toggleUsedVehiclePublication,
 } from "@/app/actions/used-vehicles";
+import { setVehicleCommerceAvailability } from "@/app/actions/vehicle-reservation-settings";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { UsedVehicleDashboardNav } from "@/components/used-vehicles/used-dashboard-nav";
 import styles from "@/components/used-vehicles/used-vehicles.module.css";
 import { getRequestRoleKeys } from "@/lib/auth/request-context";
 import { createClient } from "@/lib/supabase/server";
+import { getVehicleCommerceAvailabilityMap } from "@/lib/vehicle-commerce-settings/data";
 
 type UsedCatalogueVehicle = {
   id: number;
@@ -56,6 +60,9 @@ export default async function UsedVehicleCataloguePage({
 
   const configured = !result.error;
   const vehicles = (result.data ?? []) as UsedCatalogueVehicle[];
+  const commerceAvailability = await getVehicleCommerceAvailabilityMap(
+    vehicles.map((vehicle) => Number(vehicle.id)),
+  );
   const canDelete = roles.includes("manager");
 
   return (
@@ -74,6 +81,20 @@ export default async function UsedVehicleCataloguePage({
       {params.deleted && (
         <div className="dashboard-feedback dashboard-feedback-success">
           Le véhicule a été supprimé définitivement.
+        </div>
+      )}
+      {params.commerce_saved && (
+        <div className="dashboard-feedback dashboard-feedback-success">
+          La vente du véhicule d’occasion a bien été mise à jour.
+        </div>
+      )}
+      {params.commerce_error && (
+        <div className="dashboard-feedback dashboard-feedback-error">
+          {params.commerce_error === "forbidden"
+            ? "Seule la Direction peut modifier la vente d’un véhicule."
+            : params.commerce_error === "setup-v99"
+              ? "Exécute le SQL V127 dans Supabase avant d’utiliser le blocage par véhicule."
+              : "Impossible de modifier la disponibilité commerciale de ce véhicule."}
         </div>
       )}
       {params.error && (
@@ -118,13 +139,21 @@ export default async function UsedVehicleCataloguePage({
                     <th>Prix de vente</th>
                     <th>Stock</th>
                     <th>Statut</th>
+                    <th>Vente</th>
                     <th>Catalogue public</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {vehicles.map((vehicle) => (
-                    <tr key={vehicle.id}>
+                  {vehicles.map((vehicle) => {
+                    const availability = commerceAvailability.get(Number(vehicle.id)) ?? {
+                      vehicle_id: Number(vehicle.id),
+                      reservation_enabled: true,
+                      sale_enabled: true,
+                    };
+
+                    return (
+                    <tr id={`vehicule-${vehicle.id}`} key={vehicle.id}>
                       <td>
                         <strong>
                           {vehicle.brand} {vehicle.model}
@@ -139,6 +168,45 @@ export default async function UsedVehicleCataloguePage({
                         <span className={styles.badge}>
                           {statusLabel(vehicle.used_vehicle_status)}
                         </span>
+                      </td>
+                      <td>
+                        {canDelete ? (
+                          <div className="vehicle-commerce-control-v99">
+                            <span
+                              className={`vehicle-commerce-chip-v99${
+                                availability.sale_enabled ? " is-enabled" : " is-disabled"
+                              }`}
+                            >
+                              {availability.sale_enabled ? "Autorisée" : "Bloquée"}
+                            </span>
+                            <form action={setVehicleCommerceAvailability}>
+                              <input type="hidden" name="vehicle_id" value={vehicle.id} />
+                              <input
+                                type="hidden"
+                                name="reservation_enabled"
+                                value={availability.reservation_enabled ? "true" : "false"}
+                              />
+                              <input
+                                type="hidden"
+                                name="sale_enabled"
+                                value={availability.sale_enabled ? "false" : "true"}
+                              />
+                              <input
+                                type="hidden"
+                                name="return_to"
+                                value={`/dashboard/occasion/catalogue#vehicule-${vehicle.id}`}
+                              />
+                              <button
+                                className={availability.sale_enabled ? styles.danger : styles.primary}
+                                type="submit"
+                              >
+                                {availability.sale_enabled ? "Bloquer la vente" : "Autoriser la vente"}
+                              </button>
+                            </form>
+                          </div>
+                        ) : (
+                          <span className={styles.muted}>Gérant uniquement</span>
+                        )}
                       </td>
                       <td>
                         <form action={toggleUsedVehiclePublication}>
@@ -184,7 +252,8 @@ export default async function UsedVehicleCataloguePage({
                         )}
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
