@@ -362,12 +362,7 @@ export default async function VehicleConfigurationPage({
           {financingEligible && (
             <div className={styles.financingFile}>
               <p className={styles.eyebrow}>DOSSIER DE FINANCEMENT</p>
-              <h3>Informations transmises à la Direction</h3>
-              <p>
-                Le Gérant verra le véhicule, l’apport, les frais, les échéances
-                et le solde actuel de ton compte en jeu lié à Steam avant de
-                rendre sa décision.
-              </p>
+              <h3>Accompagne ta demande</h3>
               <label htmlFor="financing_note">
                 Message pour accompagner le dossier <small>(facultatif)</small>
               </label>

@@ -36,6 +36,12 @@ export const BUILT_IN_SECTION_CATEGORIES: Record<
       editableSlug: "motors-catalogue",
     },
     {
+      key: "financement",
+      label: "Financement",
+      href: "/motors/financement",
+      editableSlug: "motors-financement",
+    },
+    {
       key: "fidelite",
       label: "Programme fidélité",
       href: "/motors/fidelite",
