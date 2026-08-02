@@ -13,6 +13,11 @@ const games = [
   { key: "plinko", label: "Plinko", kicker: "LA BILLE TOMBE", symbol: "▽", text: "Choisis le risque et regarde la bille trouver son multiplicateur.", meta: ["Solo", "Risque"] },
   { key: "dice", label: "Dés", kicker: "LE SORT DES DÉS", symbol: "⚄", text: "Prédit au-dessus ou en dessous et laisse parler le hasard.", meta: ["Solo", "Rapide"] },
   { key: "coinflip", label: "Pile ou face", kicker: "50 / 50", symbol: "?", text: "Un choix, une pièce et un résultat immédiat.", meta: ["Solo", "Duel"] },
+  { key: "mines", label: "Mines", kicker: "ENCAISSE AVANT L’EXPLOSION", symbol: "✹", text: "Révèle les cases sûres, fais grimper le multiplicateur et encaisse avant de toucher une bombe.", meta: ["Solo", "À étapes", "Risque réglable"] },
+  { key: "mystery_boxes", label: "Coffres mystères", kicker: "UN COFFRE · UN VERDICT", symbol: "▣", text: "Choisis l’un des coffres animés : perte, remboursement, multiplicateur ou jackpot.", meta: ["Solo", "Choix", "Jackpot"] },
+  { key: "horse_racing", label: "Courses hippiques", kicker: "COURSE PARTAGÉE", symbol: "♞", text: "Parie avec les autres citoyens et regarde la même course animée jusqu’à la ligne d’arrivée.", meta: ["Multi live", "6 chevaux", "Pari commun"] },
+  { key: "slots_tournament", label: "Tournoi de machines", kicker: "10 TOURS PAR JOUEUR", symbol: "777", text: "Même nombre de tours pour tous : le meilleur score remporte la cagnotte.", meta: ["Multi", "Classement live", "Cagnotte"] },
+  { key: "card_battle", label: "Bataille de cartes", kicker: "CITOYEN CONTRE CITOYEN", symbol: "A", text: "Deux mises identiques, deux cartes retournées et la plus forte remporte le pot.", meta: ["Multi", "Duel", "Cartes animées"] },
 ];
 
 function n(value: number): string {
@@ -72,7 +77,7 @@ export default async function CasinoHomePage() {
             <small>PARTIES IMMÉDIATES</small>
             <h3>Solo contre des bots</h3>
             <p>Poker face à trois adversaires virtuels, blackjack contre le croupier et tous les jeux rapides de la Maison.</p>
-            <div className={styles.gameMeta}><span>Disponible immédiatement</span><span>8 jeux</span></div>
+            <div className={styles.gameMeta}><span>Disponible immédiatement</span><span>13 jeux</span></div>
             <Link className={styles.secondaryButton} href="#jeux-solo">Voir les jeux solo</Link>
           </article>
           <article className={`${styles.modeCard} ${styles.modeCitizens}`}>

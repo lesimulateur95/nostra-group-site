@@ -8,6 +8,11 @@ export const CASINO_GAMES = [
   "coinflip",
   "double_or_quit",
   "baccarat",
+  "mines",
+  "mystery_boxes",
+  "horse_racing",
+  "slots_tournament",
+  "card_battle",
 ] as const;
 
 export type CasinoGameKey = (typeof CASINO_GAMES)[number];

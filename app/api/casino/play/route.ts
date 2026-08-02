@@ -10,6 +10,7 @@ import { createClient } from "@/lib/supabase/server";
 
 type Card = { rank: number; suit: "♠" | "♥" | "♦" | "♣" };
 type BlackjackState = { roundId: string; wager: number; deck: Card[]; player: Card[]; dealer: Card[]; targetWin: boolean };
+type MinesState = { roundId: string; wager: number; bombs: number[]; revealed: number[]; bombCount: number };
 type PokerBot = { name: string; cards: Card[]; folded: boolean; committed: number; streetBet: number };
 type PokerState = {
   roundId: string;
@@ -236,6 +237,27 @@ async function clearActive(admin: ReturnType<typeof createAdminClient>, userId: 
   await admin.from("casino_active_games").delete().eq("user_id", userId).eq("game", game);
 }
 
+function minesMultiplier(state: MinesState, config: CasinoGameSettings): number {
+  let probability = 1;
+  const safeCells = 25 - state.bombCount;
+  for (let index = 0; index < state.revealed.length; index += 1) probability *= (safeCells - index) / (25 - index);
+  const fair = probability > 0 ? 0.96 / probability : config.jackpotMultiplier;
+  return Math.max(1, Math.min(config.jackpotMultiplier, Math.round(fair * 100) / 100));
+}
+
+function publicMines(state: MinesState, config: CasinoGameSettings, active = true, exploded?: number) {
+  const multiplier = minesMultiplier(state, config);
+  return {
+    active,
+    wager: state.wager,
+    bombCount: state.bombCount,
+    revealed: state.revealed,
+    multiplier,
+    potentialPayout: Math.min(config.maxPayout, Math.trunc(state.wager * multiplier)),
+    ...(typeof exploded === "number" ? { exploded } : {}),
+  };
+}
+
 export async function POST(request: Request) {
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
@@ -250,7 +272,7 @@ export async function POST(request: Request) {
   const choice = String(body.choice ?? "").slice(0, 40);
   const raiseAmount = Math.max(0, Math.trunc(Number(body.raiseAmount ?? 0)));
   const expectedDoubles = Math.max(0, Math.trunc(Number(body.doubles ?? 0)));
-  if (!["poker","blackjack","roulette","slots","dice","plinko","coinflip","double_or_quit"].includes(game)) return NextResponse.json({ error: "Jeu inconnu." }, { status: 404 });
+  if (!["poker","blackjack","roulette","slots","dice","plinko","coinflip","double_or_quit","mines","mystery_boxes"].includes(game)) return NextResponse.json({ error: "Jeu inconnu." }, { status: 404 });
   if (game === "slots" && !["imperiale","neon","pharaoh","lucky","diamond","jungle"].includes(choice)) {
     return NextResponse.json({ error: "Machine à sous inconnue." }, { status: 400 });
   }
@@ -291,6 +313,62 @@ export async function POST(request: Request) {
       const { data: result, error } = await (supabase as any).rpc("casino_play_plinko_v121", { p_wager: wager, p_choice: choice });
       if (error) throw new Error(String(error.message));
       return NextResponse.json(result);
+    }
+
+    if (game === "mystery_boxes") {
+      const selectedBox = Math.max(0, Math.min(5, Math.trunc(Number(choice))));
+      const { data: result, error } = await (supabase as any).rpc("casino_play_mystery_boxes_v131", { p_wager: wager, p_box: selectedBox });
+      if (error) throw new Error(String(error.message));
+      return NextResponse.json(result);
+    }
+
+    if (game === "mines") {
+      const admin = createAdminClient();
+      if (action === "status") {
+        const state = await getActive<MinesState>(admin, data.user.id, game);
+        return NextResponse.json(state ? { active: true, finished: false, mines: publicMines(state, config), balance: await walletBalance(admin, data.user.id) } : { active: false, balance: await walletBalance(admin, data.user.id) });
+      }
+      if (action === "start") {
+        const bombCount = [3, 5, 7, 10].includes(Number(choice)) ? Number(choice) : 3;
+        const roundId = await begin(supabase, game, wager);
+        const cells = Array.from({ length: 25 }, (_, index) => index);
+        for (let index = cells.length - 1; index > 0; index -= 1) {
+          const target = randomInt(index + 1);
+          [cells[index], cells[target]] = [cells[target], cells[index]];
+        }
+        const state: MinesState = { roundId, wager, bombs: cells.slice(0, bombCount), revealed: [], bombCount };
+        await saveActive(admin, data.user.id, game, roundId, state);
+        return NextResponse.json({ active: true, finished: false, mines: publicMines(state, config), balance: await walletBalance(admin, data.user.id) });
+      }
+      const state = await getActive<MinesState>(admin, data.user.id, game);
+      if (!state) return NextResponse.json({ error: "Aucune grille Mines active." }, { status: 409 });
+      if (action === "reveal") {
+        const cell = Math.trunc(Number(body.cell));
+        if (!Number.isInteger(cell) || cell < 0 || cell >= 25) return NextResponse.json({ error: "Case invalide." }, { status: 400 });
+        if (state.revealed.includes(cell)) return NextResponse.json({ error: "Cette case est déjà révélée." }, { status: 409 });
+        if (state.bombs.includes(cell)) {
+          await settle(admin, data.user.id, state.roundId, 0, { result: "Bombe", bombCount: state.bombCount, revealed: state.revealed.length, exploded: cell });
+          await clearActive(admin, data.user.id, game);
+          return NextResponse.json({ finished: true, result: "Bombe touchée · mise perdue", payout: 0, wager: state.wager, mines: publicMines(state, config, false, cell), balance: await walletBalance(admin, data.user.id) });
+        }
+        state.revealed.push(cell);
+        const view = publicMines(state, config);
+        if (state.revealed.length === 25 - state.bombCount) {
+          await settle(admin, data.user.id, state.roundId, view.potentialPayout, { result: "Grille entièrement sécurisée", bombCount: state.bombCount, revealed: state.revealed.length, multiplier: view.multiplier });
+          await clearActive(admin, data.user.id, game);
+          return NextResponse.json({ finished: true, result: "Toutes les cases sûres révélées", payout: view.potentialPayout, wager: state.wager, mines: { ...view, active: false }, balance: await walletBalance(admin, data.user.id) });
+        }
+        await saveActive(admin, data.user.id, game, state.roundId, state);
+        return NextResponse.json({ active: true, finished: false, mines: view, balance: await walletBalance(admin, data.user.id) });
+      }
+      if (action === "cashout") {
+        if (state.revealed.length < 1) return NextResponse.json({ error: "Révèle au moins une case avant d’encaisser." }, { status: 400 });
+        const view = publicMines(state, config);
+        await settle(admin, data.user.id, state.roundId, view.potentialPayout, { result: "Encaissement Mines", bombCount: state.bombCount, revealed: state.revealed.length, multiplier: view.multiplier });
+        await clearActive(admin, data.user.id, game);
+        return NextResponse.json({ finished: true, result: `Encaissement après ${state.revealed.length} case${state.revealed.length > 1 ? "s" : ""}`, payout: view.potentialPayout, wager: state.wager, mines: { ...view, active: false }, balance: await walletBalance(admin, data.user.id) });
+      }
+      return NextResponse.json({ error: "Action Mines inconnue." }, { status: 400 });
     }
 
     if (!["blackjack", "poker"].includes(game)) {
@@ -448,7 +526,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ finished: true, result, payout, poker: publicPoker(state, Number(balanceAfterAction), config, true), balance: await walletBalance(admin, data.user.id) });
   } catch (error) {
     const message = String(error instanceof Error ? error.message : error).toLowerCase();
-    const friendly = message.includes("insufficient_balance") ? "Solde de jetons insuffisant." : message.includes("active_game_exists") ? "Termine d’abord ta partie active." : message.includes("stale_poker_action") ? "Cette action de poker a déjà été traitée. La table va se resynchroniser." : message.includes("casino_poker_lock_action_v130") ? "Exécute le SQL Casino V130 dans Supabase avant d’utiliser Tapis." : message.includes("function") || message.includes("schema cache") ? "Une fonction du Casino manque dans Supabase." : message.includes("invalid_bets") ? "Un ou plusieurs jetons du tapis sont invalides. Retire les jetons puis replace-les." : message.includes("stale_double_action") ? "Cette action a déjà été traitée. Actualise la page pour resynchroniser le montant." : message.includes("no_active_double_game") ? "Cette partie est déjà terminée." : message.includes("game_closed") ? "Cette table est momentanément fermée." : message.includes("wager_out_of_bounds") ? "Le total posé sur le tapis dépasse les limites fixées par la Direction." : "La table n’a pas pu traiter l’action. Réessaie.";
+    const friendly = message.includes("insufficient_balance") ? "Solde de jetons insuffisant." : message.includes("active_game_exists") ? "Termine d’abord ta partie active." : message.includes("stale_poker_action") ? "Cette action de poker a déjà été traitée. La table va se resynchroniser." : message.includes("casino_poker_lock_action_v130") ? "Exécute le SQL Casino V130 dans Supabase avant d’utiliser Tapis." : message.includes("casino_play_mystery_boxes_v131") ? "Exécute le SQL Casino V131 avant d’ouvrir les coffres." : message.includes("function") || message.includes("schema cache") ? "Une fonction du Casino manque dans Supabase." : message.includes("invalid_bets") ? "Un ou plusieurs jetons du tapis sont invalides. Retire les jetons puis replace-les." : message.includes("stale_double_action") ? "Cette action a déjà été traitée. Actualise la page pour resynchroniser le montant." : message.includes("no_active_double_game") ? "Cette partie est déjà terminée." : message.includes("game_closed") ? "Cette table est momentanément fermée." : message.includes("wager_out_of_bounds") ? "Le total posé sur le tapis dépasse les limites fixées par la Direction." : "La table n’a pas pu traiter l’action. Réessaie.";
     return NextResponse.json({ error: friendly }, { status: 400 });
   }
 }

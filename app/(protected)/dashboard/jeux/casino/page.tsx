@@ -19,6 +19,11 @@ const GAME_LABELS: Record<CasinoGameKey, { label: string; icon: string }> = {
   coinflip: { label: "Pile ou face", icon: "½" },
   double_or_quit: { label: "Double ou quitte", icon: "×2" },
   baccarat: { label: "Baccarat live", icon: "B" },
+  mines: { label: "Mines", icon: "✹" },
+  mystery_boxes: { label: "Coffres mystères", icon: "▣" },
+  horse_racing: { label: "Courses hippiques", icon: "♞" },
+  slots_tournament: { label: "Tournoi de machines", icon: "777" },
+  card_battle: { label: "Bataille de cartes", icon: "A" },
 };
 
 const DIFFICULTIES = {

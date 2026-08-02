@@ -44,6 +44,11 @@ export const DEFAULT_GAME_SETTINGS: Record<CasinoGameKey, CasinoGameSettings> = 
   coinflip: { game: "coinflip", enabled: true, difficulty: "hard", winRatePercent: 40, minBet: 25, maxBet: 20_000, baseMultiplier: 1.9, jackpotMultiplier: 3, maxPayout: 100_000 },
   double_or_quit: { game: "double_or_quit", enabled: true, difficulty: "hard", winRatePercent: 42, minBet: 100, maxBet: 25_000, baseMultiplier: 2, jackpotMultiplier: 2, maxPayout: 500_000 },
   baccarat: { game: "baccarat", enabled: true, difficulty: "balanced", winRatePercent: 45, minBet: 50, maxBet: 50_000, baseMultiplier: 2, jackpotMultiplier: 9, maxPayout: 250_000 },
+  mines: { game: "mines", enabled: true, difficulty: "hard", winRatePercent: 38, minBet: 25, maxBet: 25_000, baseMultiplier: 1.12, jackpotMultiplier: 25, maxPayout: 250_000 },
+  mystery_boxes: { game: "mystery_boxes", enabled: true, difficulty: "hard", winRatePercent: 36, minBet: 25, maxBet: 25_000, baseMultiplier: 2, jackpotMultiplier: 20, maxPayout: 250_000 },
+  horse_racing: { game: "horse_racing", enabled: true, difficulty: "balanced", winRatePercent: 45, minBet: 50, maxBet: 50_000, baseMultiplier: 2, jackpotMultiplier: 8, maxPayout: 500_000 },
+  slots_tournament: { game: "slots_tournament", enabled: true, difficulty: "balanced", winRatePercent: 45, minBet: 100, maxBet: 25_000, baseMultiplier: 2, jackpotMultiplier: 10, maxPayout: 500_000 },
+  card_battle: { game: "card_battle", enabled: true, difficulty: "balanced", winRatePercent: 50, minBet: 50, maxBet: 50_000, baseMultiplier: 2, jackpotMultiplier: 2, maxPayout: 100_000 },
 };
 
 function numberValue(value: unknown, fallback = 0): number {

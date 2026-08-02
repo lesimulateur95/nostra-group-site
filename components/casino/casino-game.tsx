@@ -58,6 +58,11 @@ const GAME_COPY: Record<CasinoGameKey, { kicker: string; title: string; text: st
   coinflip: { kicker: "DUEL 50 / 50", title: "Le Louis d’or", text: "Pile ou face. Une seule décision, un lancer et le verdict de la pièce du Cercle." },
   double_or_quit: { kicker: "SALON DU RISQUE", title: "Double ou quitte", text: "Tente de doubler la somme à chaque tour. Quitte la table quand tu le souhaites pour encaisser, mais un seul échec fait tout perdre." },
   baccarat: { kicker: "TABLE LIVE UNIQUEMENT", title: "Baccarat", text: "Rejoins les autres citoyens autour d’une table partagée et mise sur Joueur, Banque ou Égalité." },
+  mines: { kicker: "SALLE DU DÉMINEUR", title: "Mines", text: "Révèle les cases sûres et encaisse avant de toucher une bombe." },
+  mystery_boxes: { kicker: "CHAMBRE DES COFFRES", title: "Coffres mystères", text: "Choisis un coffre et découvre le lot attribué par la Maison." },
+  horse_racing: { kicker: "COURSE MULTI LIVE", title: "Courses hippiques", text: "Rejoins une course partagée depuis le salon multijoueur." },
+  slots_tournament: { kicker: "TOURNOI MULTIJOUEUR", title: "Tournoi de machines", text: "Affronte les citoyens sur le même nombre de tours." },
+  card_battle: { kicker: "DUEL DE CARTES", title: "Bataille de cartes", text: "Deux citoyens, deux cartes et une cagnotte commune." },
 };
 
 const CHOICES: Partial<Record<CasinoGameKey, Array<{ value: string; label: string }>>> = {
