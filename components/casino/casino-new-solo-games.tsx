@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import type { CasinoGameKey, CasinoGameSettings } from "@/lib/casino/types";
@@ -47,7 +47,18 @@ export function CasinoNewSoloGame({ game, initialBalance, settings }: { game: Ex
   const [openingBox, setOpeningBox] = useState<number | null>(null);
   const [openedBox, setOpenedBox] = useState<number | null>(null);
   const [pending, startTransition] = useTransition();
+  const minesActiveRef = useRef(false);
   const router = useRouter();
+
+  useEffect(() => () => {
+    if (game !== "mines" || !minesActiveRef.current) return;
+    void fetch("/api/casino/abandon", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ game: "mines" }),
+      keepalive: true,
+    }).catch(() => undefined);
+  }, [game]);
 
   useEffect(() => {
     if (game !== "mines" || !settings.enabled) return;
@@ -60,6 +71,7 @@ export function CasinoNewSoloGame({ game, initialBalance, settings }: { game: Ex
       if (cancelled || payload.error) return;
       if (typeof payload.balance === "number") setBalance(payload.balance);
       if (payload.mines?.active) {
+        minesActiveRef.current = true;
         setMines(payload.mines);
         setWager(payload.mines.wager);
         setBombCount(payload.mines.bombCount);
@@ -80,9 +92,32 @@ export function CasinoNewSoloGame({ game, initialBalance, settings }: { game: Ex
       });
       const payload = await response.json().catch(() => ({ error: "Réponse de table invalide." })) as SoloResponse;
       if (typeof payload.balance === "number") setBalance(payload.balance);
-      if (payload.mines) setMines(payload.mines.active ? payload.mines : null);
+      if (payload.mines) {
+        minesActiveRef.current = payload.mines.active;
+        setMines(payload.mines.active ? payload.mines : null);
+      }
       setResult(payload);
       if (response.ok && payload.finished !== false) router.refresh();
+    });
+  }
+
+  function abandonMines() {
+    startTransition(async () => {
+      const response = await fetch("/api/casino/abandon", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ game: "mines" }),
+      });
+      const payload = await response.json().catch(() => ({ error: "La sortie de la grille n’a pas pu être confirmée." })) as SoloResponse;
+      if (!response.ok || payload.error) {
+        setResult({ error: payload.error ?? "La sortie de la grille n’a pas pu être confirmée." });
+        return;
+      }
+      minesActiveRef.current = false;
+      setMines(null);
+      setResult({ finished: true, result: "Grille quittée · mise perdue", payout: 0, wager, balance: payload.balance });
+      if (typeof payload.balance === "number") setBalance(payload.balance);
+      router.refresh();
     });
   }
 
@@ -126,7 +161,7 @@ export function CasinoNewSoloGame({ game, initialBalance, settings }: { game: Ex
               return <button type="button" key={index} disabled={pending || !mines?.active || revealed || exploded} className={`${styles.mineCell} ${revealed ? styles.mineSafe : ""} ${exploded ? styles.mineExploded : ""}`} onClick={() => request({ action: "reveal", cell: index })}><span>{exploded ? "✹" : revealed ? "◆" : "?"}</span></button>;
             })}
           </div>
-          {!mines?.active ? <button className={base.goldButton} disabled={pending || !canStart} onClick={() => request({ action: "start", choice: String(bombCount) })} type="button">{pending ? "Préparation de la grille…" : `Commencer · ${chips(wager)} jetons`}</button> : <button className={styles.cashButton} disabled={pending || mines.revealed.length === 0} onClick={() => request({ action: "cashout" })} type="button">Encaisser {chips(mines.potentialPayout)} jetons</button>}
+          {!mines?.active ? <button className={base.goldButton} disabled={pending || !canStart} onClick={() => request({ action: "start", choice: String(bombCount) })} type="button">{pending ? "Préparation de la grille…" : `Commencer · ${chips(wager)} jetons`}</button> : <><button className={styles.cashButton} disabled={pending || mines.revealed.length === 0} onClick={() => request({ action: "cashout" })} type="button">Encaisser {chips(mines.potentialPayout)} jetons</button><button className={base.dangerButton} disabled={pending} onClick={abandonMines} type="button">Quitter · mise perdue</button></>}
         </> : <>
           <div className={styles.vault}><span className={styles.vaultGlow} /><div className={styles.boxGrid}>
             {Array.from({ length: 6 }, (_, index) => <button aria-label={`Choisir le coffre ${index + 1}`} className={`${styles.mysteryBox} ${openingBox === index ? styles.boxOpening : ""} ${openedBox === index ? styles.boxOpened : ""}`} disabled={pending || !canStart} onClick={() => openBox(index)} type="button" key={index}><i /><b>CN</b><span>{index + 1}</span></button>)}

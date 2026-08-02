@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import type { CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 
@@ -192,6 +192,7 @@ export function CasinoGame({ game, initialBalance, settings }: { game: CasinoGam
   const [diceFaces, setDiceFaces] = useState<[number, number]>([1, 1]);
   const [plinkoDrop, setPlinkoDrop] = useState<({ key: number; slot: number } & PlinkoPath) | null>(null);
   const [pending, startTransition] = useTransition();
+  const activeRef = useRef(false);
   const router = useRouter();
   const selectedSlot = SLOT_MACHINES.find((machine) => machine.key === slotMachine) ?? null;
   const rouletteTotal = Object.values(rouletteBets).reduce((sum, amount) => sum + amount, 0);
@@ -200,8 +201,23 @@ export function CasinoGame({ game, initialBalance, settings }: { game: CasinoGam
     ? rouletteTotal >= settings.minBet && rouletteTotal <= settings.maxBet && rouletteTotal <= balance
     : wager >= settings.minBet && wager <= settings.maxBet && wager <= balance && (!choices.length || Boolean(choice)));
 
+  function setGameActive(value: boolean) {
+    activeRef.current = value;
+    setActive(value);
+  }
+
+  useEffect(() => () => {
+    if (!activeRef.current) return;
+    void fetch("/api/casino/abandon", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ game }),
+      keepalive: true,
+    }).catch(() => undefined);
+  }, [game]);
+
   useEffect(() => {
-    if ((game !== "double_or_quit" && game !== "poker") || !settings.enabled) return;
+    if ((game !== "double_or_quit" && game !== "poker" && game !== "blackjack") || !settings.enabled) return;
     let cancelled = false;
     void fetch("/api/casino/play", {
       method: "POST",
@@ -212,7 +228,7 @@ export function CasinoGame({ game, initialBalance, settings }: { game: CasinoGam
       if (typeof payload.balance === "number") setBalance(payload.balance);
       if (payload.active) {
         setResult(payload);
-        setActive(true);
+        setGameActive(true);
       }
     }).catch(() => undefined);
     return () => { cancelled = true; };
@@ -305,8 +321,27 @@ export function CasinoGame({ game, initialBalance, settings }: { game: CasinoGam
       setResult(payload);
       if (typeof payload.balance === "number") setBalance(payload.balance);
       if (response.ok && game === "roulette") setRouletteBets({});
-      if (response.ok && (game === "blackjack" || game === "poker" || game === "double_or_quit")) setActive(payload.finished !== true);
+      if (response.ok && (game === "blackjack" || game === "poker" || game === "double_or_quit")) setGameActive(payload.finished !== true);
       if (response.ok && payload.finished !== false) router.refresh();
+    });
+  }
+
+  function abandonGame() {
+    startTransition(async () => {
+      const response = await fetch("/api/casino/abandon", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ game }),
+      });
+      const payload = await response.json().catch(() => ({ error: "La sortie de table n’a pas pu être confirmée." })) as GameResponse;
+      if (!response.ok || payload.error) {
+        setResult({ error: payload.error ?? "La sortie de table n’a pas pu être confirmée." });
+        return;
+      }
+      setGameActive(false);
+      setResult({ finished: true, result: "Partie quittée · mise perdue", payout: 0, wager, balance: payload.balance });
+      if (typeof payload.balance === "number") setBalance(payload.balance);
+      router.refresh();
     });
   }
 
@@ -418,7 +453,7 @@ export function CasinoGame({ game, initialBalance, settings }: { game: CasinoGam
                 <div className={`${styles.hand} ${styles.playerHand}`}><span className={styles.handLabel}>TA MAIN · {result?.playerValue ?? "—"}</span>{result?.player?.length ? result.player.map((card, index) => <PlayingCard card={card} key={`p-${index}`} />) : <><PlayingCard hidden /><PlayingCard hidden /></>}</div>
                 <div className={styles.betCircle}><span>{active ? "EN JEU" : chips(wager)}</span><small>JETONS</small></div>
               </div>
-              <div className={styles.gameActions}>{!active ? <button className={styles.goldButton} disabled={pending || !canPlay} onClick={() => request("start")} type="button">Distribuer les cartes · {chips(wager)}</button> : <><button className={styles.secondaryButton} disabled={pending} onClick={() => request("hit")} type="button">Tirer une carte</button><button className={styles.goldButton} disabled={pending} onClick={() => request("stand")} type="button">Rester</button></>}</div>
+              <div className={styles.gameActions}>{!active ? <button className={styles.goldButton} disabled={pending || !canPlay} onClick={() => request("start")} type="button">Distribuer les cartes · {chips(wager)}</button> : <><button className={styles.secondaryButton} disabled={pending} onClick={() => request("hit")} type="button">Tirer une carte</button><button className={styles.goldButton} disabled={pending} onClick={() => request("stand")} type="button">Rester</button><button className={styles.dangerButton} disabled={pending} onClick={abandonGame} type="button">Quitter · mise perdue</button></>}</div>
             </div>
           )}
 
@@ -436,7 +471,7 @@ export function CasinoGame({ game, initialBalance, settings }: { game: CasinoGam
               {!active ? <div className={styles.gameActions}><button className={styles.goldButton} disabled={pending || !canPlay} onClick={() => request("start")} type="button">Prendre place · {chips(wager)} jetons</button></div> : <div className={styles.pokerBettingConsole}>
                 <div className={styles.pokerBetStatus}><span>Déjà engagé <b>{chips(result?.poker?.committed ?? wager)}</b></span><span>À suivre <b>{chips(result?.poker?.toCall ?? 0)}</b></span><span>Disponible <b>{chips(result?.poker?.available ?? balance)}</b></span></div>
                 <div className={styles.pokerRaiseControl}><label htmlFor="poker-raise">Montant de la relance</label><input id="poker-raise" type="number" min={result?.poker?.minRaise ?? 1} max={Math.max(result?.poker?.minRaise ?? 1, Math.min(result?.poker?.available ?? balance, (result?.poker?.maxTotalBet ?? settings.maxBet) - (result?.poker?.committed ?? wager)))} value={raiseAmount} onChange={(event) => setRaiseAmount(Math.max(0,Math.trunc(Number(event.target.value))))} /><small>Minimum {chips(result?.poker?.minRaise ?? 1)}</small></div>
-                <div className={styles.gameActions}><button className={styles.dangerButton} disabled={pending} onClick={() => request("fold")} type="button">Se coucher</button><button className={styles.secondaryButton} disabled={pending || Number(result?.poker?.toCall ?? 0) > 0} onClick={() => request("check")} type="button">Parole</button><button className={styles.secondaryButton} disabled={pending || Number(result?.poker?.toCall ?? 0) === 0} onClick={() => request("call")} type="button">Suivre {chips(result?.poker?.toCall ?? 0)}</button><button className={styles.goldButton} disabled={pending || raiseAmount < Number(result?.poker?.minRaise ?? 1)} onClick={() => request("raise",raiseAmount)} type="button">Relancer de {chips(raiseAmount)}</button><button className={styles.allInButton} disabled={pending || Number(result?.poker?.available ?? 0) < 1} onClick={() => request("allin")} type="button">Tapis · {chips(result?.poker?.allInAmount ?? result?.poker?.available ?? 0)}</button></div>
+                <div className={styles.gameActions}><button className={styles.dangerButton} disabled={pending} onClick={() => request("fold")} type="button">Se coucher</button><button className={styles.secondaryButton} disabled={pending || Number(result?.poker?.toCall ?? 0) > 0} onClick={() => request("check")} type="button">Parole</button><button className={styles.secondaryButton} disabled={pending || Number(result?.poker?.toCall ?? 0) === 0} onClick={() => request("call")} type="button">Suivre {chips(result?.poker?.toCall ?? 0)}</button><button className={styles.goldButton} disabled={pending || raiseAmount < Number(result?.poker?.minRaise ?? 1)} onClick={() => request("raise",raiseAmount)} type="button">Relancer de {chips(raiseAmount)}</button><button className={styles.allInButton} disabled={pending || Number(result?.poker?.available ?? 0) < 1} onClick={() => request("allin")} type="button">Tapis · {chips(result?.poker?.allInAmount ?? result?.poker?.available ?? 0)}</button><button className={styles.dangerButton} disabled={pending} onClick={abandonGame} type="button">Quitter · jetons engagés perdus</button></div>
               </div>}
             </div>
           )}
@@ -492,6 +527,7 @@ export function CasinoGame({ game, initialBalance, settings }: { game: CasinoGam
                   <>
                     <button className={styles.secondaryButton} disabled={pending} onClick={() => request("cashout")} type="button">Quitter et encaisser {chips(Number(result?.currentAmount ?? wager))}</button>
                     <button className={styles.doubleButton} disabled={pending} onClick={() => request("double")} type="button">{pending ? "Verdict…" : `Doubler vers ${chips(Math.min(settings.maxPayout, Number(result?.currentAmount ?? wager) * 2))}`}</button>
+                    <button className={styles.dangerButton} disabled={pending} onClick={abandonGame} type="button">Abandonner · tout perdre</button>
                   </>
                 )}
               </div>
@@ -515,7 +551,7 @@ export function CasinoGame({ game, initialBalance, settings }: { game: CasinoGam
         <aside className={styles.gameSidebar}>
           <section className={styles.panel}><div className={styles.panelHeader}><div><p className={styles.eyebrow}>TON PORTEFEUILLE</p><h3>{chips(balance)} jetons</h3></div><span className={styles.chipIcon}>◉</span></div><div className={styles.betControls}>{game !== "roulette" && <><div className={styles.field}><label htmlFor="casino-wager">{game === "poker" ? "Mise d’entrée" : "Mise de la partie"}</label><input id="casino-wager" type="number" min={settings.minBet} max={Math.min(settings.maxBet, Math.max(settings.minBet, balance))} value={wager} disabled={active} onChange={(event) => setWager(Math.max(0, Math.trunc(Number(event.target.value))))} /></div><div className={styles.quickBets}><button disabled={active} onClick={() => setWager(settings.minBet)} type="button">MIN</button><button disabled={active} onClick={() => setWager(Math.min(settings.maxBet, Math.max(settings.minBet, Math.trunc(balance / 2))))} type="button">½</button><button disabled={active} onClick={() => setWager(Math.min(settings.maxBet, balance))} type="button">MAX</button></div></>} {game === "roulette" && <div className={styles.rouletteSidebarTotal}><span>TOTAL POSÉ</span><strong>{chips(rouletteTotal)}</strong><small>Choisis la valeur d’un jeton puis clique directement sur le tapis.</small></div>}<div className={styles.tableLimits}><span>Minimum <b>{chips(settings.minBet)}</b></span><span>Maximum <b>{chips(settings.maxBet)}</b></span><span>Plafond gain <b>{chips(settings.maxPayout)}</b></span></div></div></section>
           {game === "poker" && <section className={`${styles.panel} ${styles.pokerHelp}`}><p className={styles.eyebrow}>AIDE DES MAINS</p><h3>Combinaisons du poker</h3><div>{POKER_HANDS.map(([name,description],index) => <span key={name}><i>{index+1}</i><b>{name}</b><small>{description}</small></span>)}</div></section>}
-          <section className={styles.panel}><p className={styles.eyebrow}>RÈGLES DE LA MAISON</p><p className={styles.responsibleCopy}>Les mises et résultats sont traités sur le serveur. Une partie interrompue est remboursée automatiquement après le délai de sécurité.</p></section>
+          <section className={styles.panel}><p className={styles.eyebrow}>RÈGLES DE LA MAISON</p><p className={styles.responsibleCopy}>Les mises et résultats sont traités sur le serveur. Quitter une partie active entraîne la perte définitive de tous les jetons engagés, sans remboursement.</p></section>
         </aside>
       </div>
     </>

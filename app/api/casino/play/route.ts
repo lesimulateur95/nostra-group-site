@@ -379,6 +379,20 @@ export async function POST(request: Request) {
 
     const admin = createAdminClient();
     if (game === "blackjack") {
+      if (action === "status") {
+        const state = await getActive<BlackjackState>(admin, data.user.id, game);
+        const balance = await walletBalance(admin, data.user.id);
+        return NextResponse.json(state ? {
+          active: true,
+          finished: false,
+          player: state.player,
+          dealer: [state.dealer[0]],
+          playerValue: blackjackValue(state.player),
+          dealerValue: cardValue(state.dealer[0]),
+          wager: state.wager,
+          balance,
+        } : { active: false, balance });
+      }
       if (action === "start") {
         const roundId = await begin(supabase, game, wager);
         const cards = deck();
