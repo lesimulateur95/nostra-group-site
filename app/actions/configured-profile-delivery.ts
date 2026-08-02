@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -5,6 +6,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isVehicleReservationEnabled } from "@/lib/vehicle-reservation-settings/data";
 import { getVehicleCommerceAvailability } from "@/lib/vehicle-commerce-settings/data";
+import { getDiscordName, getRpName } from "@/lib/auth/user-profile";
 
 function text(value: FormDataEntryValue | null, max = 2000): string {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
@@ -32,6 +34,7 @@ function configuredCartErrorCode(
   if (
     value.includes("pgrst202") ||
     value.includes("add_vehicle_purchase_to_cart_v93") ||
+    value.includes("submit_vehicle_financing_v125") ||
     value.includes("reservation_id") ||
     value.includes("original_unit_price") ||
     value.includes("delivery_phone")
@@ -45,6 +48,11 @@ function configuredCartErrorCode(
   if (value.includes("vehicle_reservation_disabled")) return "reservation-vehicle-disabled";
   if (value.includes("vehicle_reservations_disabled")) return "reservation-disabled";
   if (value.includes("vehicle_sale_disabled")) return "sale-disabled";
+  if (value.includes("financing_disabled")) return "financing-disabled";
+  if (value.includes("financing_term_disabled")) return "financing-term";
+  if (value.includes("financing_minimum_price")) return "financing-minimum";
+  if (value.includes("financing_already_exists")) return "financing-exists";
+  if (value.includes("steam_identity_required")) return "financing-steam";
   if (value.includes("insufficient_stock")) return "stock";
   if (value.includes("vehicle_unavailable")) return "not-found";
   if (value.includes("invalid_purchase_mode")) return "purchase";
@@ -61,7 +69,9 @@ export async function addConfiguredVehicleWithProfileDelivery(
   const deliveryMode = text(formData.get("delivery_mode"), 30);
   const deliveryAddress = text(formData.get("delivery_address"), 500);
   const deliveryPhone = text(formData.get("delivery_phone"), 40);
+  const profilePhone = text(formData.get("profile_phone"), 40);
   const purchaseMode = text(formData.get("purchase_mode"), 30);
+  const financingNote = text(formData.get("financing_note"), 1500);
 
   if (vehicleId <= 0) {
     redirect("/motors/catalogue?cart_error=invalid");
@@ -71,7 +81,17 @@ export async function addConfiguredVehicleWithProfileDelivery(
     redirect(`/motors/catalogue/${vehicleId}/commande?error=delivery`);
   }
 
-  if (purchaseMode !== "order" && purchaseMode !== "reservation") {
+  const financingTerm =
+    purchaseMode === "financing_3"
+      ? 3
+      : purchaseMode === "financing_4"
+        ? 4
+        : null;
+  if (
+    purchaseMode !== "order" &&
+    purchaseMode !== "reservation" &&
+    financingTerm === null
+  ) {
     redirect(`/motors/catalogue/${vehicleId}/commande?error=purchase`);
   }
 
@@ -81,7 +101,7 @@ export async function addConfiguredVehicleWithProfileDelivery(
 
   const { data: vehicle, error: vehicleError } = await (supabase as any)
     .from("catalog_vehicles")
-    .select("id,catalog_type,used_vehicle_status,stock_quantity,published")
+    .select("id,catalog_type,used_vehicle_status,stock_quantity,published,price")
     .eq("id", vehicleId)
     .maybeSingle();
 
@@ -117,7 +137,7 @@ export async function addConfiguredVehicleWithProfileDelivery(
     );
   }
 
-  if (purchaseMode === "order" && !vehicleAvailability.sale_enabled) {
+  if ((purchaseMode === "order" || financingTerm) && !vehicleAvailability.sale_enabled) {
     redirect(`/motors/catalogue/${vehicleId}/commande?error=sale-disabled`);
   }
 
@@ -131,6 +151,47 @@ export async function addConfiguredVehicleWithProfileDelivery(
 
   if (deliveryMode === "home" && deliveryPhone.length < 3) {
     redirect(`/motors/catalogue/${vehicleId}/commande?error=phone`);
+  }
+
+  if (financingTerm) {
+    const customerName =
+      getRpName(authData.user) ||
+      getDiscordName(authData.user) ||
+      "Client Nostra Motors";
+    const { data: result, error } = await (supabase as any).rpc(
+      "submit_vehicle_financing_v125",
+      {
+        p_vehicle_id: vehicleId,
+        p_term_count: financingTerm,
+        p_delivery_mode: deliveryMode,
+        p_delivery_address: deliveryMode === "home" ? deliveryAddress : null,
+        p_delivery_phone:
+          deliveryMode === "home" ? deliveryPhone : profilePhone || null,
+        p_customer_name: customerName,
+        p_customer_phone: deliveryPhone || profilePhone || null,
+        p_customer_note: financingNote || null,
+      },
+    );
+
+    if (error) {
+      redirect(
+        `/motors/catalogue/${vehicleId}/commande?error=${configuredCartErrorCode(
+          error,
+        )}`,
+      );
+    }
+
+    const response =
+      result && typeof result === "object"
+        ? (result as Record<string, unknown>)
+        : {};
+    revalidatePath("/profil/financements");
+    revalidatePath("/dashboard/financements-vehicules");
+    redirect(
+      `/profil/financements?submitted=${encodeURIComponent(
+        String(response.application_number ?? "1"),
+      )}`,
+    );
   }
 
   const { error } = await supabase.rpc("add_vehicle_purchase_to_cart_v93", {

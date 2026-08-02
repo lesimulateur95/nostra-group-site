@@ -50,6 +50,7 @@ import { getOwnVehicleTradeInRequests } from "@/lib/vehicle-trade-ins/data";
 import { getActiveLoyaltyCard, getLoyaltyDiscountPercent } from "@/lib/loyalty-cards/data";
 import { getOwnMemberRoles, MEMBER_ROLE_LABELS, type MemberRoleKey } from "@/lib/member-roles/data";
 import { getOwnContractCart } from "@/lib/contracts/data";
+import { getOwnVehicleFinancingApplications } from "@/lib/vehicle-financing/data";
 import styles from "./profile-top-layout.module.css";
 
 type ProfilePageProps = {
@@ -93,7 +94,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
  const rpName = getRpName(data.user);
 
  const complete = hasRpProfile(data.user);
- const [role, commerce, homologations, teamRegistrations, wheelSpins, tombolaCart, tombolaTickets, bingoCart, bingoCards, licenseCart, unreadNotifications, mailboxOverview, vehicleReservations, vehicleTradeIns, activeLoyaltyCard, memberRoles, contractCart] = await Promise.all([
+ const [role, commerce, homologations, teamRegistrations, wheelSpins, tombolaCart, tombolaTickets, bingoCart, bingoCards, licenseCart, unreadNotifications, mailboxOverview, vehicleReservations, vehicleTradeIns, activeLoyaltyCard, memberRoles, contractCart, vehicleFinancing] = await Promise.all([
 
  getUserRoleLabel(data.user),
 
@@ -128,11 +129,14 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
 
  getOwnContractCart(data.user.id),
 
+ getOwnVehicleFinancingApplications(data.user.id),
+
  ]);
 
  const normalVehicleCart = commerce.cart.filter((item) => ["vehicle", "delivery"].includes(String(item.item_type)));
  const reservationDepositCart = commerce.cart.filter((item) => item.item_type === "reservation_deposit");
  const reservationBalanceCart = commerce.cart.filter((item) => item.item_type === "reservation_balance");
+ const financingPaymentCart = commerce.cart.filter((item) => ["financing_deposit", "financing_installment"].includes(String(item.item_type)));
  const cartTotal = commerce.cart.reduce((sum, item) => sum + Number(item.unit_price) * Number(item.quantity), 0);
  const loyaltyDiscountPercent = getLoyaltyDiscountPercent(
   activeLoyaltyCard?.tier ?? commerce.loyalty?.tier,
@@ -241,7 +245,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
 
  </div>
 
- <ProfileNavigation orders={commerce.orders.length} reservations={vehicleReservations.length} tradeIns={vehicleTradeIns.length} homologations={homologations.length} teams={teamRegistrations.length} documents={commerce.invoices.length} games={wheelSpins.length + tombolaTickets.length + bingoCards.length} />
+ <ProfileNavigation orders={commerce.orders.length} reservations={vehicleReservations.length} financing={vehicleFinancing.length} tradeIns={vehicleTradeIns.length} homologations={homologations.length} teams={teamRegistrations.length} documents={commerce.invoices.length} games={wheelSpins.length + tombolaTickets.length + bingoCards.length} />
  {!commerce.configured && <div className="dashboard-feedback">Les rubriques commerciales seront disponibles dès que le script SQL du Dashboard aura été exécuté.</div>}
 
  {params.vehicle_added && <div className="dashboard-feedback dashboard-feedback-success">Le véhicule et son mode de livraison ont été ajoutés à ton panier au prix total.</div>}
@@ -299,12 +303,14 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
  {commerce.cart.map((item) => {
  const isDeposit = item.item_type === "reservation_deposit";
  const isBalance = item.item_type === "reservation_balance";
+ const isFinancingPayment = ["financing_deposit", "financing_installment"].includes(String(item.item_type));
  return (
- <div className={`profile-cart-row${isDeposit ? " profile-cart-row-reservation" : ""}${isBalance ? " profile-cart-row-balance" : ""}`} key={item.id}>
+ <div className={`profile-cart-row${isDeposit ? " profile-cart-row-reservation" : ""}${isBalance ? " profile-cart-row-balance" : ""}${isFinancingPayment ? " profile-cart-row-financing-v125" : ""}`} key={item.id}>
  <span>
  {item.quantity} × {item.item_name}
  {isDeposit && <small className="order-client-note">Acompte de 15 % · validation de la concession requise</small>}
  {isBalance && <small className="order-client-note">Solde de 85 % après validation · montant verrouillé</small>}
+ {isFinancingPayment && <small className="order-client-note">Paiement de financement verrouillé · ouvre Mes financements pour le régler</small>}
  </span>
  <strong>{money(Number(item.unit_price) * Number(item.quantity))}</strong>
  {!isBalance && !item.locked ? (
@@ -396,6 +402,13 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
  <p className="commerce-hint">Nostra Motors a validé la réservation. Le montant ci-dessus correspond aux 85 % restants, avec la livraison à domicile si elle a été choisie.</p>
  <button className="btn" type="submit">Payer les soldes de réservation</button>
  </form>
+ )}
+
+ {financingPaymentCart.length > 0 && (
+ <div className="profile-order-form profile-financing-checkout-v125">
+ <p className="commerce-hint">Un apport ou une échéance de financement est prêt à être payé. Le montant et l’échéancier complet sont disponibles dans ton dossier.</p>
+ <Link className="btn" href="/profil/financements">Ouvrir mes financements</Link>
+ </div>
  )}
 
  {tombolaCart && (

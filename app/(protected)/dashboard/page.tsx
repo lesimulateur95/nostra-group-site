@@ -14,6 +14,7 @@ import { getRecruitmentSummary } from "@/lib/recruitment/data";
 import { getUsedVehicleDashboardSummary } from "@/lib/used-vehicles/data";
 import { getVehicleReservationSummary } from "@/lib/vehicle-reservations/data";
 import { getVehicleTradeInSummary } from "@/lib/vehicle-trade-ins/data";
+import { getVehicleFinancingSummary } from "@/lib/vehicle-financing/data";
 
 type DashboardModuleSubgroupProps = {
   eyebrow: string;
@@ -74,6 +75,7 @@ export default async function DashboardPage() {
     vehicleReservationOverview,
     recruitmentOverview,
     tradeInOverview,
+    financingOverview,
   ] = await Promise.all([
     getDashboardOverview({
       managerAccess,
@@ -83,6 +85,7 @@ export default async function DashboardPage() {
     getVehicleReservationSummary(),
     getRecruitmentSummary(),
     getVehicleTradeInSummary(),
+    getVehicleFinancingSummary(),
   ]);
 
   const accessLabel = managerAccess
@@ -98,7 +101,8 @@ export default async function DashboardPage() {
     overview.pendingOrders +
     vehicleReservationOverview.pending +
     recruitmentOverview.pending +
-    tradeInOverview.pending;
+    tradeInOverview.pending +
+    financingOverview.pending;
 
   return (
     <DashboardShell allowedRoles={["manager", "employee", "commercial"]}>
@@ -253,6 +257,25 @@ export default async function DashboardPage() {
                         : undefined
                 }
               />
+              {managerAccess && (
+                <DashboardCard
+                  href="/dashboard/financements-vehicules"
+                  icon="💳"
+                  title="Dossiers de financement"
+                  description="Étudier les paiements 3×/4×, consulter le solde bancaire en jeu et accepter ou refuser les dossiers."
+                  badge={
+                    !financingOverview.configured
+                      ? "À activer"
+                      : financingOverview.pending
+                        ? `${financingOverview.pending} à examiner`
+                        : financingOverview.depositDue
+                          ? `${financingOverview.depositDue} apport(s)`
+                          : financingOverview.active
+                            ? `${financingOverview.active} en cours`
+                            : undefined
+                  }
+                />
+              )}
             </DashboardModuleSubgroup>
 
             <DashboardModuleSubgroup

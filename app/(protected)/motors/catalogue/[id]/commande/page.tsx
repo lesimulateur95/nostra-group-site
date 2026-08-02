@@ -7,6 +7,7 @@ import { addConfiguredVehicleWithProfileDelivery } from "@/app/actions/configure
 import type { CatalogVehicleImage } from "@/lib/backoffice/data";
 import { isVehicleReservationEnabled } from "@/lib/vehicle-reservation-settings/data";
 import { getVehicleCommerceAvailability } from "@/lib/vehicle-commerce-settings/data";
+import { getVehicleFinancingSettings } from "@/lib/vehicle-financing/data";
 import { createClient } from "@/lib/supabase/server";
 
 import styles from "./page.module.css";
@@ -101,13 +102,34 @@ export default async function VehicleConfigurationPage({
   const isUsedVehicle = vehicle.catalog_type === "used";
   const usedStatus = String(vehicle.used_vehicle_status ?? "available");
   const canOrderUsedVehicle = !isUsedVehicle || usedStatus === "available";
-  const [catalogReservationsEnabled, vehicleAvailability] = await Promise.all([
+  const [catalogReservationsEnabled, vehicleAvailability, financingSettings] = await Promise.all([
     isVehicleReservationEnabled(String(vehicle.catalog_type ?? "standard")),
     getVehicleCommerceAvailability(vehicleId),
+    getVehicleFinancingSettings(),
   ]);
   const canReserve =
     catalogReservationsEnabled && vehicleAvailability.reservation_enabled;
   const canOrder = vehicleAvailability.sale_enabled;
+  const financingEligible =
+    financingSettings.configured &&
+    financingSettings.enabled &&
+    canOrder &&
+    vehiclePrice > financingSettings.minimumVehiclePrice &&
+    (financingSettings.threeTimesEnabled || financingSettings.fourTimesEnabled);
+  const financingDeposit = Math.round(vehiclePrice * 0.3 * 100) / 100;
+  const financingPrincipal = Math.max(0, vehiclePrice - financingDeposit);
+  const financingThreeFee =
+    Math.round(
+      financingPrincipal * (financingSettings.threeTimesFeePercent / 100) * 100,
+    ) / 100;
+  const financingFourFee =
+    Math.round(
+      financingPrincipal * (financingSettings.fourTimesFeePercent / 100) * 100,
+    ) / 100;
+  const financingThreePayment =
+    Math.round(((financingPrincipal + financingThreeFee) / 3) * 100) / 100;
+  const financingFourPayment =
+    Math.round(((financingPrincipal + financingFourFee) / 4) * 100) / 100;
   const canPurchase = canReserve || canOrder;
   const cataloguePath =
     vehicle.catalog_type === "heavy"
@@ -143,6 +165,16 @@ export default async function VehicleConfigurationPage({
                       ? "La réservation est temporairement bloquée pour ce véhicule précis."
                     : query.error === "sale-disabled"
                       ? "La vente directe est temporairement bloquée pour ce véhicule précis."
+                    : query.error === "financing-disabled"
+                      ? "Les dossiers de financement sont actuellement fermés."
+                    : query.error === "financing-term"
+                      ? "Le nombre d’échéances choisi est actuellement indisponible."
+                    : query.error === "financing-minimum"
+                      ? "Le financement 3×/4× est réservé aux véhicules strictement supérieurs à 500 000 €."
+                    : query.error === "financing-exists"
+                      ? "Tu as déjà un dossier de financement actif pour ce véhicule."
+                    : query.error === "financing-steam"
+                      ? "Associe ton compte Steam avant de déposer un dossier de financement."
                     : query.error
                       ? "Impossible d’ajouter cette configuration au panier."
                       : null;
@@ -233,6 +265,7 @@ export default async function VehicleConfigurationPage({
           className={styles.deliveryCard}
         >
           <input type="hidden" name="vehicle_id" value={vehicle.id} />
+          <input type="hidden" name="profile_phone" value={profilePhone} />
 
           <div className={styles.deliveryHeading}>
             <p className={styles.eyebrow}>CHOIX D’ACHAT</p>
@@ -289,6 +322,78 @@ export default async function VehicleConfigurationPage({
               </span>
             </label>
           )}
+
+          {financingEligible && financingSettings.threeTimesEnabled && (
+            <label className={`${styles.option} ${styles.financingOption}`}>
+              <input type="radio" name="purchase_mode" value="financing_3" />
+              <span className={styles.optionIcon}>3×</span>
+              <span className={styles.optionText}>
+                <strong>Demander un financement en 3 fois</strong>
+                <small>
+                  Dossier soumis au Gérant. Apport obligatoire de 30 %, puis 3
+                  échéances avec {financingSettings.threeTimesFeePercent} % de
+                  frais sur le montant financé.
+                </small>
+              </span>
+              <span className={styles.optionPrice}>
+                {formatPrice(financingThreePayment)} / échéance
+              </span>
+            </label>
+          )}
+
+          {financingEligible && financingSettings.fourTimesEnabled && (
+            <label className={`${styles.option} ${styles.financingOption}`}>
+              <input type="radio" name="purchase_mode" value="financing_4" />
+              <span className={styles.optionIcon}>4×</span>
+              <span className={styles.optionText}>
+                <strong>Demander un financement en 4 fois</strong>
+                <small>
+                  Dossier soumis au Gérant. Apport obligatoire de 30 %, puis 4
+                  échéances avec {financingSettings.fourTimesFeePercent} % de
+                  frais sur le montant financé.
+                </small>
+              </span>
+              <span className={styles.optionPrice}>
+                {formatPrice(financingFourPayment)} / échéance
+              </span>
+            </label>
+          )}
+
+          {financingEligible && (
+            <div className={styles.financingFile}>
+              <p className={styles.eyebrow}>DOSSIER DE FINANCEMENT</p>
+              <h3>Informations transmises à la Direction</h3>
+              <p>
+                Le Gérant verra le véhicule, l’apport, les frais, les échéances
+                et le solde actuel de ton compte en jeu lié à Steam avant de
+                rendre sa décision.
+              </p>
+              <label htmlFor="financing_note">
+                Message pour accompagner le dossier <small>(facultatif)</small>
+              </label>
+              <textarea
+                id="financing_note"
+                name="financing_note"
+                rows={3}
+                maxLength={1500}
+                placeholder="Exemple : informations utiles pour l’étude de mon dossier…"
+              />
+              <div className={styles.financingSummary}>
+                <span>Apport obligatoire</span>
+                <strong>{formatPrice(financingDeposit)}</strong>
+                <span>Reste financé avant frais</span>
+                <strong>{formatPrice(financingPrincipal)}</strong>
+              </div>
+            </div>
+          )}
+
+          {financingSettings.configured &&
+            vehiclePrice <= financingSettings.minimumVehiclePrice && (
+              <div className={styles.notice}>
+                Le paiement en 3×/4× est disponible uniquement pour les
+                véhicules dont le prix dépasse 500 000 €.
+              </div>
+            )}
 
           {!vehicleAvailability.sale_enabled && (
             <div className={styles.notice}>
@@ -478,7 +583,9 @@ export default async function VehicleConfigurationPage({
             disabled={stock <= 0 || !canOrderUsedVehicle || !canPurchase}
           >
             {stock > 0 && canOrderUsedVehicle && canPurchase
-              ? canReserve && canOrder
+              ? financingEligible
+                ? "Valider mon choix"
+                : canReserve && canOrder
                 ? "Ajouter le choix au panier"
                 : canReserve
                   ? "Ajouter la réservation au panier"

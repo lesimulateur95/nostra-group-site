@@ -54,3 +54,16 @@
 .purchaseOption { min-height: 112px; }
 .purchaseOption .optionIcon { width: 48px; font-size: 0.72rem; font-weight: 900; }
 .sectionDivider { height: 1px; margin: 8px 0; background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.42), transparent); }
+.financingOption { min-height: 126px; border-color: rgba(71, 155, 255, 0.25); }
+.financingOption .optionIcon { width: 48px; color: #9bc8ff; border-color: rgba(71, 155, 255, 0.4); font-weight: 900; }
+.financingFile { display: none; gap: 10px; padding: 18px; border: 1px solid rgba(71, 155, 255, 0.35); border-radius: 17px; background: linear-gradient(145deg, rgba(19, 55, 95, 0.28), rgba(7, 9, 12, 0.98)); }
+.deliveryCard:has(input[name="purchase_mode"][value="financing_3"]:checked) .financingFile,
+.deliveryCard:has(input[name="purchase_mode"][value="financing_4"]:checked) .financingFile { display: grid; }
+.financingFile h3, .financingFile p { margin: 0; }
+.financingFile h3 { color: #fff; font-size: 1.12rem; }
+.financingFile > p:not(.eyebrow) { color: #aeb8c5; font-size: 0.88rem; line-height: 1.55; }
+.financingFile label { color: #c8dcf5; font-size: 0.86rem; font-weight: 800; }
+.financingFile textarea { width: 100%; min-height: 90px; padding: 12px 13px; resize: vertical; border: 1px solid rgba(255, 255, 255, 0.13); border-radius: 12px; outline: none; background: #080a0c; color: #fff; font: inherit; }
+.financingFile textarea:focus { border-color: #579fe9; box-shadow: 0 0 0 3px rgba(71, 155, 255, 0.12); }
+.financingSummary { display: grid; grid-template-columns: 1fr auto; gap: 7px 16px; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.09); color: #aeb8c5; }
+.financingSummary strong { color: #fff; text-align: right; }

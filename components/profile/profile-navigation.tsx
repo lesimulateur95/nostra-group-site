@@ -3,6 +3,7 @@ import Link from "next/link";
 type ProfileNavigationProps = {
   orders: number;
   reservations: number;
+  financing: number;
   tradeIns: number;
   homologations: number;
   teams: number;
@@ -36,6 +37,14 @@ const cards: NavigationCard[] = [
     description:
       "Suivre l’acompte, la validation et le solde restant de chaque véhicule.",
     countKey: "reservations",
+  },
+  {
+    href: "/profil/financements",
+    icon: "💳",
+    label: "Mes financements",
+    description:
+      "Suivre mes dossiers 3×/4×, mon apport de 30 % et mes échéances.",
+    countKey: "financing",
   },
   {
     href: "/motors/reprise",
@@ -129,6 +138,7 @@ const cards: NavigationCard[] = [
 export function ProfileNavigation({
   orders,
   reservations,
+  financing,
   tradeIns,
   homologations,
   teams,
@@ -138,6 +148,7 @@ export function ProfileNavigation({
   const counts: Record<CountKey, number> = {
     orders,
     reservations,
+    financing,
     tradeIns,
     homologations,
     teams,

@@ -1,0 +1,60 @@
+.page { display: grid; gap: 24px; padding-bottom: 48px; }
+.hero { display: flex; justify-content: space-between; gap: 24px; padding: 28px; border: 1px solid rgba(65, 145, 230, .32); border-radius: 25px; background: radial-gradient(circle at 90% 0, rgba(44, 127, 215, .18), transparent 38%), linear-gradient(135deg, #111923, #07090c); }
+.hero h1 { margin: 6px 0 10px; font-size: clamp(2.2rem, 5vw, 4.6rem); font-weight: 550; line-height: .96; }
+.hero p { max-width: 760px; margin: 0; color: #aeb8c5; line-height: 1.6; }
+.eyebrow { margin: 0 !important; color: #75b7ff !important; font-size: .72rem; font-weight: 900; letter-spacing: .16em; }
+.heroStats { display: flex; align-items: flex-start; gap: 10px; }
+.heroStats span { min-width: 112px; padding: 13px; border: 1px solid rgba(255,255,255,.1); border-radius: 14px; color: #aeb8c5; text-align: center; }
+.heroStats strong { display: block; color: #fff; font-size: 1.65rem; }
+.success, .error, .empty { padding: 16px 18px; border-radius: 14px; }
+.success { border: 1px solid rgba(69, 196, 126, .35); background: rgba(22, 105, 61, .18); color: #aaf2c8; }
+.error { border: 1px solid rgba(238, 79, 79, .4); background: rgba(117, 26, 26, .2); color: #ffb1b1; }
+.empty { border: 1px dashed rgba(255,255,255,.14); color: #89929e; text-align: center; }
+.settingsPanel, .card { border: 1px solid rgba(255,255,255,.1); border-radius: 22px; background: #0a0d11; }
+.settingsPanel { display: grid; gap: 18px; padding: 23px; }
+.settingsPanel > header, .section > header, .cardHeader, .bankPanel > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
+.settingsPanel h2, .section h2 { margin: 5px 0 0; }
+.open, .closed, .status { padding: 8px 11px; border-radius: 999px; font-size: .75rem; font-weight: 900; white-space: nowrap; }
+.open { background: rgba(61, 190, 117, .15); color: #8aeab1; }
+.closed { background: rgba(220, 71, 71, .15); color: #ffaaaa; }
+.fixedRules { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.fixedRules div { display: flex; justify-content: space-between; gap: 12px; padding: 15px; border-radius: 14px; background: #11161c; color: #8e9aaa; }
+.fixedRules strong { color: #fff; text-align: right; }
+.settingsForm { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 13px; }
+.settingsForm label, .reviewForm label { display: grid; gap: 7px; color: #b6c0cd; font-size: .82rem; font-weight: 750; }
+.settingsForm input, .settingsForm select, .reviewForm textarea { width: 100%; padding: 11px 12px; border: 1px solid rgba(255,255,255,.13); border-radius: 11px; background: #07090b; color: #fff; font: inherit; }
+.settingsForm button { grid-column: 1 / -1; padding: 13px; border: 0; border-radius: 999px; background: linear-gradient(135deg, #74baff, #327bc9); color: #06111d; font-weight: 900; cursor: pointer; }
+.section { display: grid; gap: 14px; }
+.section > header { align-items: center; }
+.section > header span { display: grid; width: 34px; height: 34px; place-items: center; border-radius: 50%; background: #161c24; color: #fff; font-weight: 900; }
+.list { display: grid; gap: 15px; }
+.card { display: grid; gap: 16px; padding: 22px; }
+.cardHeader h3 { margin: 5px 0 4px; font-size: 1.55rem; }
+.cardHeader div > span { color: #a8b1bd; }
+.status { background: rgba(72, 145, 221, .14); color: #9dcbff; }
+.moneyGrid, .bankAmounts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.moneyGrid div, .bankAmounts div { display: grid; gap: 5px; padding: 13px; border-radius: 13px; background: #11151a; }
+.moneyGrid span, .bankAmounts span { color: #8994a2; font-size: .77rem; }
+.moneyGrid strong, .bankAmounts strong { color: #fff; }
+.bankPanel { display: grid; gap: 13px; padding: 16px; border: 1px solid rgba(255,255,255,.1); border-radius: 16px; }
+.bankPositive { border-color: rgba(62, 194, 119, .3); background: rgba(31, 106, 63, .1); }
+.bankWarning { border-color: rgba(234, 159, 54, .3); background: rgba(120, 74, 17, .1); }
+.bankPanel h4 { margin: 4px 0 0; font-size: 1.1rem; }
+.bankPanel header > span { color: #98a5b4; font-size: .75rem; }
+.bankPanel > small { color: #7f8995; }
+.bankUnavailable { margin: 0; color: #c8a873; }
+.note { padding: 14px; border-left: 3px solid #4d96e4; border-radius: 0 12px 12px 0; background: #10141a; }
+.note span { color: #7cbcff; font-size: .72rem; font-weight: 900; letter-spacing: .1em; }
+.note p { margin: 7px 0 0; color: #ccd2da; line-height: 1.55; }
+.schedule { display: grid; gap: 7px; }
+.schedule div { display: grid; grid-template-columns: 1fr auto auto; gap: 14px; align-items: center; padding: 11px 13px; border-radius: 12px; background: #11151a; color: #a8b1bd; }
+.schedule strong { color: #fff; }
+.schedule em { color: #76baff; font-size: .75rem; font-style: normal; font-weight: 900; }
+.reviewForm { display: grid; gap: 12px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,.1); }
+.reviewForm textarea { resize: vertical; min-height: 88px; }
+.reviewForm > div { display: flex; gap: 10px; }
+.reviewForm button { flex: 1; padding: 12px; border: 0; border-radius: 999px; font-weight: 900; cursor: pointer; }
+.approve { background: #54cc89; color: #062314; }
+.reject { background: #e45d5d; color: #270707; }
+@media (max-width: 900px) { .hero { flex-direction: column; } .settingsForm, .moneyGrid, .bankAmounts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 620px) { .heroStats, .reviewForm > div { flex-direction: column; } .heroStats span { width: 100%; } .fixedRules, .settingsForm, .moneyGrid, .bankAmounts { grid-template-columns: 1fr; } .schedule div { grid-template-columns: 1fr auto; } .schedule em { grid-column: 1 / -1; } }

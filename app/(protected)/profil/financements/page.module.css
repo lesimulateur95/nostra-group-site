@@ -1,0 +1,46 @@
+.page { display: grid; gap: 18px; }
+.success, .error { margin-bottom: 18px; padding: 15px 17px; border-radius: 14px; }
+.success { border: 1px solid rgba(61, 194, 116, .35); background: rgba(26, 111, 63, .16); color: #a9efc5; }
+.error { border: 1px solid rgba(234, 80, 80, .4); background: rgba(117, 28, 28, .18); color: #ffb0b0; }
+.heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.heading p { margin: 0; color: #72b5ff; font-size: .72rem; font-weight: 900; letter-spacing: .16em; }
+.heading h2 { margin: 5px 0 0; }
+.heading > span { display: grid; width: 38px; height: 38px; place-items: center; border-radius: 50%; background: #151a21; font-weight: 900; }
+.list { display: grid; gap: 16px; }
+.empty { padding: 28px; border: 1px dashed rgba(255,255,255,.14); border-radius: 18px; color: #929ba7; text-align: center; }
+.empty p { margin-top: 0; }
+.empty a { color: #80bdff; }
+.card { display: grid; gap: 17px; padding: 22px; border: 1px solid rgba(255,255,255,.1); border-radius: 21px; background: linear-gradient(145deg, #0f1318, #080a0d); }
+.card > header, .schedule > header, .payment { display: flex; justify-content: space-between; gap: 18px; align-items: flex-start; }
+.card > header p { margin: 0 0 5px; color: #72b5ff; font-size: .72rem; font-weight: 900; letter-spacing: .14em; }
+.card > header h3 { margin: 0 0 5px; font-size: 1.55rem; }
+.card > header div > span { color: #8e98a5; font-size: .82rem; }
+.status { padding: 8px 11px; border-radius: 999px; background: rgba(69, 139, 211, .15); color: #9bcbff; font-size: .74rem; font-weight: 900; white-space: nowrap; }
+.status_completed { background: rgba(54, 188, 111, .15); color: #8ae6b0; }
+.status_rejected, .status_cancelled { background: rgba(218, 72, 72, .14); color: #ffaaaa; }
+.summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.summary div { display: grid; gap: 5px; padding: 13px; border-radius: 13px; background: #151a20; }
+.summary span { color: #8f99a6; font-size: .77rem; }
+.summary strong { color: #fff; }
+.waiting { padding: 14px; border: 1px solid rgba(71, 151, 234, .25); border-radius: 13px; background: rgba(28, 81, 137, .13); color: #b4d7ff; line-height: 1.55; }
+.note { padding: 14px; border-left: 3px solid #579fe9; border-radius: 0 12px 12px 0; background: #13181f; }
+.note span { color: #78baff; font-size: .7rem; font-weight: 900; letter-spacing: .1em; }
+.note p { margin: 7px 0 0; color: #d0d5db; }
+.schedule { display: grid; gap: 8px; }
+.schedule > header { align-items: center; }
+.schedule h4 { margin: 0; }
+.schedule > header span { color: #8994a1; font-size: .78rem; }
+.schedule > div { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; padding: 12px; border-radius: 13px; background: #13181e; }
+.number { display: grid; width: 30px; height: 30px; place-items: center; border: 1px solid rgba(97, 168, 242, .3); border-radius: 50%; color: #85c3ff; font-weight: 900; }
+.schedule > div > div { display: grid; gap: 3px; }
+.schedule small { color: #8e98a5; }
+.paid { opacity: .72; }
+.paid .number { border-color: rgba(65, 197, 119, .35); color: #78e4a5; }
+.payment { align-items: center; padding: 17px; border: 1px solid rgba(211, 175, 55, .35); border-radius: 16px; background: rgba(138, 103, 18, .11); }
+.payment > div { display: grid; gap: 4px; }
+.payment span, .payment small { color: #b7a776; }
+.payment strong { color: #fff; font-size: 1.35rem; }
+.payment button { padding: 12px 17px; border: 0; border-radius: 999px; background: linear-gradient(135deg, #e2bd35, #ad8212); color: #080808; font-weight: 900; cursor: pointer; }
+.order { margin: 0; color: #aab3be; }
+@media (max-width: 780px) { .summary { grid-template-columns: repeat(2, minmax(0, 1fr)); } .payment { align-items: stretch; flex-direction: column; } }
+@media (max-width: 540px) { .card > header { flex-direction: column; } .summary { grid-template-columns: 1fr; } .schedule > div { grid-template-columns: auto 1fr; } .schedule > div > strong:last-child { grid-column: 2; } }
