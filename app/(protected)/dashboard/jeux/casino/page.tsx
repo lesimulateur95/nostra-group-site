@@ -24,6 +24,9 @@ const GAME_LABELS: Record<CasinoGameKey, { label: string; icon: string }> = {
   horse_racing: { label: "Courses hippiques", icon: "♞" },
   slots_tournament: { label: "Tournoi de machines", icon: "777" },
   card_battle: { label: "Bataille de cartes", icon: "A" },
+  hi_lo: { label: "Hi-Lo", icon: "↕" },
+  skyscraper: { label: "Gratte-ciel", icon: "▥" },
+  memory: { label: "Memory Casino", icon: "◫" },
 };
 
 const DIFFICULTIES = {

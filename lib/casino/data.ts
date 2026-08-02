@@ -49,6 +49,9 @@ export const DEFAULT_GAME_SETTINGS: Record<CasinoGameKey, CasinoGameSettings> = 
   horse_racing: { game: "horse_racing", enabled: true, difficulty: "balanced", winRatePercent: 45, minBet: 50, maxBet: 50_000, baseMultiplier: 2, jackpotMultiplier: 8, maxPayout: 500_000 },
   slots_tournament: { game: "slots_tournament", enabled: true, difficulty: "balanced", winRatePercent: 45, minBet: 100, maxBet: 25_000, baseMultiplier: 2, jackpotMultiplier: 10, maxPayout: 500_000 },
   card_battle: { game: "card_battle", enabled: true, difficulty: "balanced", winRatePercent: 50, minBet: 50, maxBet: 50_000, baseMultiplier: 2, jackpotMultiplier: 2, maxPayout: 100_000 },
+  hi_lo: { game: "hi_lo", enabled: true, difficulty: "hard", winRatePercent: 46, minBet: 25, maxBet: 25_000, baseMultiplier: 1.45, jackpotMultiplier: 8, maxPayout: 250_000 },
+  skyscraper: { game: "skyscraper", enabled: true, difficulty: "hard", winRatePercent: 42, minBet: 25, maxBet: 25_000, baseMultiplier: 1.6, jackpotMultiplier: 12, maxPayout: 300_000 },
+  memory: { game: "memory", enabled: true, difficulty: "hard", winRatePercent: 50, minBet: 25, maxBet: 20_000, baseMultiplier: 2, jackpotMultiplier: 8, maxPayout: 200_000 },
 };
 
 function numberValue(value: unknown, fallback = 0): number {

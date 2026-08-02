@@ -63,6 +63,9 @@ const GAME_COPY: Record<CasinoGameKey, { kicker: string; title: string; text: st
   horse_racing: { kicker: "COURSE MULTI LIVE", title: "Courses hippiques", text: "Rejoins une course partagée depuis le salon multijoueur." },
   slots_tournament: { kicker: "TOURNOI MULTIJOUEUR", title: "Tournoi de machines", text: "Affronte les citoyens sur le même nombre de tours." },
   card_battle: { kicker: "DUEL DE CARTES", title: "Bataille de cartes", text: "Deux citoyens, deux cartes et une cagnotte commune." },
+  hi_lo: { kicker: "SALON DES CARTES", title: "Hi-Lo", text: "Plus haute ou plus basse : enchaîne les bonnes réponses avant d’encaisser." },
+  skyscraper: { kicker: "TOUR DU CERCLE", title: "Gratte-ciel", text: "Choisis une porte, gagne un étage et décide si tu poursuis l’ascension." },
+  memory: { kicker: "SALLE DES PAIRES", title: "Memory Casino", text: "Retrouve toutes les paires avant la fin du nombre de coups autorisé." },
 };
 
 const CHOICES: Partial<Record<CasinoGameKey, Array<{ value: string; label: string }>>> = {

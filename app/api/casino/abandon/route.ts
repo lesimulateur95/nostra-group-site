@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 
 import { createClient } from "@/lib/supabase/server";
 
-const ACTIVE_GAMES = new Set(["poker", "blackjack", "double_or_quit", "mines"]);
+const ACTIVE_GAMES = new Set(["poker", "blackjack", "double_or_quit", "mines", "hi_lo", "skyscraper", "memory"]);
 
 export async function POST(request: Request) {
   const supabase = await createClient();

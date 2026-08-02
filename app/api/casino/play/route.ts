@@ -11,6 +11,9 @@ import { createClient } from "@/lib/supabase/server";
 type Card = { rank: number; suit: "♠" | "♥" | "♦" | "♣" };
 type BlackjackState = { roundId: string; wager: number; deck: Card[]; player: Card[]; dealer: Card[]; targetWin: boolean };
 type MinesState = { roundId: string; wager: number; bombs: number[]; revealed: number[]; bombCount: number };
+type HiLoState = { roundId: string; wager: number; current: Card; streak: number; history: Card[] };
+type SkyscraperState = { roundId: string; wager: number; floor: number; maxFloors: number };
+type MemoryState = { roundId: string; wager: number; cards: string[]; matched: number[]; first: number | null; moves: number; moveLimit: number };
 type PokerBot = { name: string; cards: Card[]; folded: boolean; committed: number; streetBet: number };
 type PokerState = {
   roundId: string;
@@ -258,6 +261,69 @@ function publicMines(state: MinesState, config: CasinoGameSettings, active = tru
   };
 }
 
+function progressiveMultiplier(step: number, config: CasinoGameSettings, finalStep: number): number {
+  if (step >= finalStep) return config.jackpotMultiplier;
+  const value = 1 + Math.max(0.05, config.baseMultiplier - 1) * step;
+  return Math.min(config.jackpotMultiplier, Math.round(value * 100) / 100);
+}
+
+function progressivePayout(wager: number, multiplier: number, config: CasinoGameSettings): number {
+  return Math.min(config.maxPayout, Math.trunc(wager * multiplier));
+}
+
+function publicHiLo(state: HiLoState, config: CasinoGameSettings, active = true) {
+  const multiplier = progressiveMultiplier(state.streak, config, 7);
+  return {
+    active,
+    wager: state.wager,
+    current: state.current,
+    streak: state.streak,
+    multiplier,
+    potentialPayout: progressivePayout(state.wager, multiplier, config),
+  };
+}
+
+function publicSkyscraper(state: SkyscraperState, config: CasinoGameSettings, active = true) {
+  const multiplier = progressiveMultiplier(state.floor, config, state.maxFloors);
+  return {
+    active,
+    wager: state.wager,
+    floor: state.floor,
+    maxFloors: state.maxFloors,
+    multiplier,
+    potentialPayout: progressivePayout(state.wager, multiplier, config),
+  };
+}
+
+function memoryMoveLimit(config: CasinoGameSettings): number {
+  const base = config.difficulty === "balanced" ? 18 : config.difficulty === "expert" ? 12 : config.difficulty === "custom" ? 14 : 15;
+  return Math.max(10, Math.min(24, base + Math.round((config.winRatePercent - 50) / 10)));
+}
+
+function publicMemory(state: MemoryState, active = true, reveal: number[] = [], solution = false) {
+  const visible = new Set([...state.matched, ...(state.first === null ? [] : [state.first]), ...reveal]);
+  return {
+    active,
+    wager: state.wager,
+    cards: state.cards.map((symbol, index) => solution || visible.has(index) ? symbol : null),
+    matched: state.matched,
+    selected: state.first,
+    moves: state.moves,
+    moveLimit: state.moveLimit,
+    pairs: Math.trunc(state.matched.length / 2),
+  };
+}
+
+function nextHiLoCard(current: Card, direction: "higher" | "lower", success: boolean): Card {
+  const validRanks: number[] = [];
+  for (let rank = 2; rank <= 14; rank += 1) {
+    const wins = direction === "higher" ? rank > current.rank : rank < current.rank;
+    if (wins === success) validRanks.push(rank);
+  }
+  const ranks = validRanks.length ? validRanks : [current.rank];
+  return { rank: ranks[randomInt(ranks.length)], suit: SUITS[randomInt(SUITS.length)] };
+}
+
 export async function POST(request: Request) {
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
@@ -272,7 +338,7 @@ export async function POST(request: Request) {
   const choice = String(body.choice ?? "").slice(0, 40);
   const raiseAmount = Math.max(0, Math.trunc(Number(body.raiseAmount ?? 0)));
   const expectedDoubles = Math.max(0, Math.trunc(Number(body.doubles ?? 0)));
-  if (!["poker","blackjack","roulette","slots","dice","plinko","coinflip","double_or_quit","mines","mystery_boxes"].includes(game)) return NextResponse.json({ error: "Jeu inconnu." }, { status: 404 });
+  if (!["poker","blackjack","roulette","slots","dice","plinko","coinflip","double_or_quit","mines","mystery_boxes","hi_lo","skyscraper","memory"].includes(game)) return NextResponse.json({ error: "Jeu inconnu." }, { status: 404 });
   if (game === "slots" && !["imperiale","neon","pharaoh","lucky","diamond","jungle"].includes(choice)) {
     return NextResponse.json({ error: "Machine à sous inconnue." }, { status: 400 });
   }
@@ -369,6 +435,148 @@ export async function POST(request: Request) {
         return NextResponse.json({ finished: true, result: `Encaissement après ${state.revealed.length} case${state.revealed.length > 1 ? "s" : ""}`, payout: view.potentialPayout, wager: state.wager, mines: { ...view, active: false }, balance: await walletBalance(admin, data.user.id) });
       }
       return NextResponse.json({ error: "Action Mines inconnue." }, { status: 400 });
+    }
+
+    if (game === "hi_lo") {
+      const admin = createAdminClient();
+      if (action === "status") {
+        const state = await getActive<HiLoState>(admin, data.user.id, game);
+        return NextResponse.json(state ? { active: true, finished: false, hiLo: publicHiLo(state, config), balance: await walletBalance(admin, data.user.id) } : { active: false, balance: await walletBalance(admin, data.user.id) });
+      }
+      if (action === "start") {
+        const roundId = await begin(supabase, game, wager);
+        const cards = deck();
+        const current = cards.pop()!;
+        const state: HiLoState = { roundId, wager, current, streak: 0, history: [current] };
+        await saveActive(admin, data.user.id, game, roundId, state);
+        return NextResponse.json({ active: true, finished: false, hiLo: publicHiLo(state, config), balance: await walletBalance(admin, data.user.id) });
+      }
+      const state = await getActive<HiLoState>(admin, data.user.id, game);
+      if (!state) return NextResponse.json({ error: "Aucune partie Hi-Lo active." }, { status: 409 });
+      if (action === "cashout") {
+        if (state.streak < 1) return NextResponse.json({ error: "Réussis au moins une prédiction avant d’encaisser." }, { status: 400 });
+        const view = publicHiLo(state, config);
+        await settle(admin, data.user.id, state.roundId, view.potentialPayout, { result: "Encaissement Hi-Lo", streak: state.streak, multiplier: view.multiplier, history: state.history });
+        await clearActive(admin, data.user.id, game);
+        return NextResponse.json({ finished: true, result: `Encaissement après ${state.streak} bonne${state.streak > 1 ? "s" : ""} réponse${state.streak > 1 ? "s" : ""}`, payout: view.potentialPayout, wager: state.wager, hiLo: { ...view, active: false }, balance: await walletBalance(admin, data.user.id) });
+      }
+      if (action !== "higher" && action !== "lower") return NextResponse.json({ error: "Choisis plus haut ou plus bas." }, { status: 400 });
+      if ((action === "higher" && state.current.rank === 14) || (action === "lower" && state.current.rank === 2)) {
+        return NextResponse.json({ error: "Cette direction est impossible avec la carte actuelle." }, { status: 400 });
+      }
+      const success = configuredWin(config);
+      const previous = state.current;
+      const next = nextHiLoCard(previous, action, success);
+      state.current = next;
+      state.history.push(next);
+      if (!success) {
+        await settle(admin, data.user.id, state.roundId, 0, { result: "Prédiction incorrecte", direction: action, previous, next, streak: state.streak });
+        await clearActive(admin, data.user.id, game);
+        return NextResponse.json({ finished: true, result: "Mauvaise prédiction · mise perdue", payout: 0, wager: state.wager, previous, hiLo: publicHiLo(state, config, false), balance: await walletBalance(admin, data.user.id) });
+      }
+      state.streak += 1;
+      const view = publicHiLo(state, config);
+      if (state.streak >= 7) {
+        await settle(admin, data.user.id, state.roundId, view.potentialPayout, { result: "Série parfaite Hi-Lo", streak: state.streak, multiplier: view.multiplier, history: state.history });
+        await clearActive(admin, data.user.id, game);
+        return NextResponse.json({ finished: true, result: "Série parfaite · jackpot", payout: view.potentialPayout, wager: state.wager, previous, hiLo: { ...view, active: false }, balance: await walletBalance(admin, data.user.id) });
+      }
+      await saveActive(admin, data.user.id, game, state.roundId, state);
+      return NextResponse.json({ active: true, finished: false, result: "Bonne prédiction", previous, hiLo: view, balance: await walletBalance(admin, data.user.id) });
+    }
+
+    if (game === "skyscraper") {
+      const admin = createAdminClient();
+      if (action === "status") {
+        const state = await getActive<SkyscraperState>(admin, data.user.id, game);
+        return NextResponse.json(state ? { active: true, finished: false, skyscraper: publicSkyscraper(state, config), balance: await walletBalance(admin, data.user.id) } : { active: false, balance: await walletBalance(admin, data.user.id) });
+      }
+      if (action === "start") {
+        const roundId = await begin(supabase, game, wager);
+        const state: SkyscraperState = { roundId, wager, floor: 0, maxFloors: 8 };
+        await saveActive(admin, data.user.id, game, roundId, state);
+        return NextResponse.json({ active: true, finished: false, skyscraper: publicSkyscraper(state, config), balance: await walletBalance(admin, data.user.id) });
+      }
+      const state = await getActive<SkyscraperState>(admin, data.user.id, game);
+      if (!state) return NextResponse.json({ error: "Aucune ascension active." }, { status: 409 });
+      if (action === "cashout") {
+        if (state.floor < 1) return NextResponse.json({ error: "Atteins au moins le premier étage avant d’encaisser." }, { status: 400 });
+        const view = publicSkyscraper(state, config);
+        await settle(admin, data.user.id, state.roundId, view.potentialPayout, { result: "Encaissement Gratte-ciel", floor: state.floor, multiplier: view.multiplier });
+        await clearActive(admin, data.user.id, game);
+        return NextResponse.json({ finished: true, result: `Sortie sécurisée au ${state.floor}e étage`, payout: view.potentialPayout, wager: state.wager, skyscraper: { ...view, active: false }, balance: await walletBalance(admin, data.user.id) });
+      }
+      if (action !== "climb") return NextResponse.json({ error: "Choisis une porte pour monter." }, { status: 400 });
+      const door = Math.trunc(Number(body.door));
+      if (![0, 1, 2].includes(door)) return NextResponse.json({ error: "Porte invalide." }, { status: 400 });
+      const success = configuredWin(config);
+      if (!success) {
+        await settle(admin, data.user.id, state.roundId, 0, { result: "Porte condamnée", floor: state.floor + 1, door });
+        await clearActive(admin, data.user.id, game);
+        return NextResponse.json({ finished: true, result: `Porte condamnée au ${state.floor + 1}e étage · mise perdue`, payout: 0, wager: state.wager, chosenDoor: door, doorSafe: false, skyscraper: publicSkyscraper(state, config, false), balance: await walletBalance(admin, data.user.id) });
+      }
+      state.floor += 1;
+      const view = publicSkyscraper(state, config);
+      if (state.floor >= state.maxFloors) {
+        await settle(admin, data.user.id, state.roundId, view.potentialPayout, { result: "Sommet du Gratte-ciel", floor: state.floor, door, multiplier: view.multiplier });
+        await clearActive(admin, data.user.id, game);
+        return NextResponse.json({ finished: true, result: "Sommet atteint · jackpot", payout: view.potentialPayout, wager: state.wager, chosenDoor: door, doorSafe: true, skyscraper: { ...view, active: false }, balance: await walletBalance(admin, data.user.id) });
+      }
+      await saveActive(admin, data.user.id, game, state.roundId, state);
+      return NextResponse.json({ active: true, finished: false, result: `Étage ${state.floor} sécurisé`, chosenDoor: door, doorSafe: true, skyscraper: view, balance: await walletBalance(admin, data.user.id) });
+    }
+
+    if (game === "memory") {
+      const admin = createAdminClient();
+      if (action === "status") {
+        const state = await getActive<MemoryState>(admin, data.user.id, game);
+        return NextResponse.json(state ? { active: true, finished: false, memory: publicMemory(state), balance: await walletBalance(admin, data.user.id) } : { active: false, balance: await walletBalance(admin, data.user.id) });
+      }
+      if (action === "start") {
+        const roundId = await begin(supabase, game, wager);
+        const cards = ["♠", "♥", "♦", "♣", "★", "◆", "♠", "♥", "♦", "♣", "★", "◆"];
+        for (let index = cards.length - 1; index > 0; index -= 1) {
+          const target = randomInt(index + 1);
+          [cards[index], cards[target]] = [cards[target], cards[index]];
+        }
+        const state: MemoryState = { roundId, wager, cards, matched: [], first: null, moves: 0, moveLimit: memoryMoveLimit(config) };
+        await saveActive(admin, data.user.id, game, roundId, state);
+        return NextResponse.json({ active: true, finished: false, memory: publicMemory(state), balance: await walletBalance(admin, data.user.id) });
+      }
+      const state = await getActive<MemoryState>(admin, data.user.id, game);
+      if (!state) return NextResponse.json({ error: "Aucune partie Memory active." }, { status: 409 });
+      if (action !== "flip") return NextResponse.json({ error: "Carte Memory invalide." }, { status: 400 });
+      const card = Math.trunc(Number(body.card));
+      if (!Number.isInteger(card) || card < 0 || card >= state.cards.length || state.matched.includes(card) || state.first === card) {
+        return NextResponse.json({ error: "Cette carte ne peut pas être retournée." }, { status: 400 });
+      }
+      if (state.first === null) {
+        state.first = card;
+        await saveActive(admin, data.user.id, game, state.roundId, state);
+        return NextResponse.json({ active: true, finished: false, memory: publicMemory(state), reveal: [{ index: card, symbol: state.cards[card] }], balance: await walletBalance(admin, data.user.id) });
+      }
+      const first = state.first;
+      const matched = state.cards[first] === state.cards[card];
+      state.moves += 1;
+      state.first = null;
+      if (matched) state.matched.push(first, card);
+      const reveal = [{ index: first, symbol: state.cards[first] }, { index: card, symbol: state.cards[card] }];
+      if (state.matched.length === state.cards.length) {
+        const perfectMoves = state.cards.length / 2;
+        const remainingRatio = Math.max(0, (state.moveLimit - state.moves) / Math.max(1, state.moveLimit - perfectMoves));
+        const multiplier = state.moves === perfectMoves ? config.jackpotMultiplier : Math.min(config.jackpotMultiplier, Math.round((config.baseMultiplier + remainingRatio * Math.max(0, config.jackpotMultiplier - config.baseMultiplier)) * 100) / 100);
+        const payout = progressivePayout(state.wager, multiplier, config);
+        await settle(admin, data.user.id, state.roundId, payout, { result: "Memory terminé", moves: state.moves, multiplier });
+        await clearActive(admin, data.user.id, game);
+        return NextResponse.json({ finished: true, result: `Toutes les paires trouvées en ${state.moves} coups`, payout, wager: state.wager, multiplier, reveal, memory: publicMemory(state, false, [], true), balance: await walletBalance(admin, data.user.id) });
+      }
+      if (state.moves >= state.moveLimit) {
+        await settle(admin, data.user.id, state.roundId, 0, { result: "Tentatives Memory épuisées", moves: state.moves, pairs: state.matched.length / 2 });
+        await clearActive(admin, data.user.id, game);
+        return NextResponse.json({ finished: true, result: "Tentatives épuisées · mise perdue", payout: 0, wager: state.wager, reveal, memory: publicMemory(state, false, [], true), balance: await walletBalance(admin, data.user.id) });
+      }
+      await saveActive(admin, data.user.id, game, state.roundId, state);
+      return NextResponse.json({ active: true, finished: false, result: matched ? "Paire trouvée" : "Pas de paire", matched, reveal, memory: publicMemory(state), balance: await walletBalance(admin, data.user.id) });
     }
 
     if (!["blackjack", "poker"].includes(game)) {

@@ -13,6 +13,9 @@ export const CASINO_GAMES = [
   "horse_racing",
   "slots_tournament",
   "card_battle",
+  "hi_lo",
+  "skyscraper",
+  "memory",
 ] as const;
 
 export type CasinoGameKey = (typeof CASINO_GAMES)[number];
