@@ -19,6 +19,7 @@ type PokerView = {
   toCall: number;
   minRaise: number;
   available: number;
+  allInAmount: number;
   maxTotalBet: number;
   player: Card[];
   board: Card[];
@@ -72,6 +73,8 @@ const CHOICES: Partial<Record<CasinoGameKey, Array<{ value: string; label: strin
 };
 
 const RED_NUMBERS = new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
+const EUROPEAN_WHEEL = [0,32,15,19,4,21,2,25,17,34,6,27,13,36,11,30,8,23,10,5,24,16,33,1,20,14,31,9,22,18,29,7,28,12,35,3,26] as const;
+const ROULETTE_STEP = 360 / EUROPEAN_WHEEL.length;
 const ROULETTE_ROWS = [
   [3,6,9,12,15,18,21,24,27,30,33,36],
   [2,5,8,11,14,17,20,23,26,29,32,35],
@@ -88,6 +91,14 @@ const DIFFICULTY_LABEL = { balanced: "Table équilibrée", hard: "Table difficil
 const PLINKO_ROWS = 6;
 const PLINKO_STEP = 45 / 7;
 
+type PlinkoPath = {
+  impacts: number[];
+  rebounds: number[];
+  rotations: number[];
+  releaseX: number;
+  durationMs: number;
+};
+
 const SLOT_MACHINES = [
   { key: "imperiale", name: "L’Impériale", kicker: "GRAND CLASSIQUE", symbol: "♛", palette: "gold", symbols: ["◆", "♠", "✦", "7", "♛", "●"], text: "Boiseries, laiton et jackpots du Cercle." },
   { key: "neon", name: "Neon 777", kicker: "NUIT ÉLECTRIQUE", symbol: "7", palette: "neon", symbols: ["⚡", "7", "★", "◆", "●", "♣"], text: "Une machine lumineuse inspirée des casinos nocturnes." },
@@ -99,6 +110,12 @@ const SLOT_MACHINES = [
 
 function cardLabel(rank: number): string { return rank === 14 ? "A" : rank === 13 ? "K" : rank === 12 ? "Q" : rank === 11 ? "J" : String(rank); }
 function chips(value: number): string { return Math.trunc(value).toLocaleString("fr-FR"); }
+function wait(milliseconds: number): Promise<void> { return new Promise((resolve) => window.setTimeout(resolve, Math.max(0, milliseconds))); }
+
+function diceDigitsForNumber(number: number): [number, number] {
+  const safeNumber = Math.max(0, Math.min(99, Math.trunc(number)));
+  return [Math.floor(safeNumber / 10), safeNumber % 10];
+}
 
 function plinkoSlotForResult(payload: GameResponse, settings: CasinoGameSettings): number {
   if (Number.isInteger(payload.slot) && Number(payload.slot) >= 0 && Number(payload.slot) <= PLINKO_ROWS) return Number(payload.slot);
@@ -108,18 +125,38 @@ function plinkoSlotForResult(payload: GameResponse, settings: CasinoGameSettings
   return matchingSlots[Math.floor(Math.random() * matchingSlots.length)] ?? 3;
 }
 
-function createPlinkoPath(slot: number): number[] {
+function createPlinkoPath(slot: number): PlinkoPath {
   const directions = Array.from({ length: PLINKO_ROWS }, (_, index) => index < slot);
   for (let index = directions.length - 1; index > 0; index -= 1) {
     const swapWith = Math.floor(Math.random() * (index + 1));
     [directions[index], directions[swapWith]] = [directions[swapWith], directions[index]];
   }
   let rightBounces = 0;
-  return directions.map((goesRight, index) => {
+  let rotation = 0;
+  const impacts = directions.map((goesRight, index) => {
     if (goesRight) rightBounces += 1;
     const completedBounces = index + 1;
     return 50 + (2 * rightBounces - completedBounces) * PLINKO_STEP;
   });
+  const rebounds = directions.map((goesRight, index) => {
+    const impactX = index === 0 ? 50 : impacts[index - 1];
+    const direction = goesRight ? 1 : -1;
+    const impulse = PLINKO_STEP * (0.2 + Math.random() * 0.18);
+    const surfaceNoise = (Math.random() - 0.5) * 0.3;
+    return impactX + direction * impulse + surfaceNoise;
+  });
+  const rotations = directions.map((goesRight) => {
+    rotation += (goesRight ? 1 : -1) * (42 + Math.random() * 58);
+    return rotation;
+  });
+
+  return {
+    impacts,
+    rebounds,
+    rotations,
+    releaseX: 50 + (Math.random() - 0.5) * 0.9,
+    durationMs: Math.round(3_050 + Math.random() * 420),
+  };
 }
 
 function PlayingCard({ card, hidden = false }: { card?: Card; hidden?: boolean }) {
@@ -143,8 +180,12 @@ export function CasinoGame({ game, initialBalance, settings }: { game: CasinoGam
   const [raiseAmount, setRaiseAmount] = useState(settings.minBet);
   const [rouletteChip, setRouletteChip] = useState(settings.minBet);
   const [rouletteBets, setRouletteBets] = useState<Record<string, number>>({});
+  const [rouletteRotation, setRouletteRotation] = useState(0);
   const [slotMachine, setSlotMachine] = useState<string | null>(null);
-  const [plinkoDrop, setPlinkoDrop] = useState<{ key: number; slot: number; path: number[] } | null>(null);
+  const [slotStoppedReels, setSlotStoppedReels] = useState(3);
+  const [slotLandingSymbols, setSlotLandingSymbols] = useState<string[] | null>(null);
+  const [diceFaces, setDiceFaces] = useState<[number, number]>([1, 1]);
+  const [plinkoDrop, setPlinkoDrop] = useState<({ key: number; slot: number } & PlinkoPath) | null>(null);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
   const selectedSlot = SLOT_MACHINES.find((machine) => machine.key === slotMachine) ?? null;
@@ -188,22 +229,74 @@ export function CasinoGame({ game, initialBalance, settings }: { game: CasinoGam
     setResult((previous) => action === "start" || action === "play" ? null : previous);
     if (game === "plinko" && action === "play") setPlinkoDrop(null);
     startTransition(async () => {
-      const response = await fetch("/api/casino/play", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          game, action, wager: game === "roulette" ? rouletteTotal : wager,
-          choice: game === "slots" ? selectedSlot?.key ?? "imperiale" : choice,
-          doubles: Number(result?.doubles ?? 0), raiseAmount: amount,
-          bets: game === "roulette" ? Object.entries(rouletteBets).map(([betChoice, betAmount]) => ({ choice: betChoice, amount: betAmount })) : undefined,
-        }),
-      });
-      const payload = await response.json().catch(() => ({ error: "Réponse de table invalide." })) as GameResponse;
+      const animationStartedAt = Date.now();
+      const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      let diceTimer: number | undefined;
+
+      if (game === "dice" && action === "play") {
+        setDiceFaces([Math.floor(Math.random() * 10), Math.floor(Math.random() * 10)]);
+        diceTimer = window.setInterval(() => setDiceFaces([Math.floor(Math.random() * 10), Math.floor(Math.random() * 10)]), 85);
+      }
+      if (game === "roulette" && action === "play") setRouletteRotation((current) => current + 720);
+      if (game === "slots" && action === "play") {
+        setSlotLandingSymbols(null);
+        setSlotStoppedReels(0);
+      }
+
+      let response: Response;
+      let payload: GameResponse;
+      try {
+        response = await fetch("/api/casino/play", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            game, action, wager: game === "roulette" ? rouletteTotal : wager,
+            choice: game === "slots" ? selectedSlot?.key ?? "imperiale" : choice,
+            doubles: Number(result?.doubles ?? 0), raiseAmount: amount,
+            bets: game === "roulette" ? Object.entries(rouletteBets).map(([betChoice, betAmount]) => ({ choice: betChoice, amount: betAmount })) : undefined,
+          }),
+        });
+        payload = await response.json().catch(() => ({ error: "Réponse de table invalide." })) as GameResponse;
+      } catch {
+        response = new Response(null, { status: 503 });
+        payload = { error: "La table ne répond pas. Aucun résultat n’a été affiché." };
+      }
+
+      if (response.ok && !payload.error && action === "play" && game === "dice" && typeof payload.number === "number") {
+        await wait((reducedMotion ? 650 : 2_350) - (Date.now() - animationStartedAt));
+        if (diceTimer !== undefined) window.clearInterval(diceTimer);
+        diceTimer = undefined;
+        setDiceFaces(diceDigitsForNumber(payload.number));
+        await wait(reducedMotion ? 80 : 220);
+      }
+      if (response.ok && !payload.error && action === "play" && game === "roulette" && typeof payload.number === "number") {
+        const wheelIndex = EUROPEAN_WHEEL.indexOf(payload.number as typeof EUROPEAN_WHEEL[number]);
+        setRouletteRotation((current) => {
+          const currentAngle = ((current % 360) + 360) % 360;
+          const targetAngle = ((-(Math.max(0, wheelIndex) * ROULETTE_STEP) % 360) + 360) % 360;
+          const alignment = (targetAngle - currentAngle + 360) % 360;
+          return current + 1_440 + alignment;
+        });
+        await wait(reducedMotion ? 800 : 4_650);
+      }
+      if (response.ok && !payload.error && action === "play" && game === "slots" && payload.symbols?.length) {
+        setSlotLandingSymbols(payload.symbols);
+        await wait((reducedMotion ? 450 : 1_450) - (Date.now() - animationStartedAt));
+        setSlotStoppedReels(1);
+        await wait(reducedMotion ? 120 : 430);
+        setSlotStoppedReels(2);
+        await wait(reducedMotion ? 120 : 470);
+        setSlotStoppedReels(3);
+        await wait(reducedMotion ? 80 : 180);
+      }
       if (response.ok && game === "plinko" && action === "play" && !payload.error) {
         const slot = plinkoSlotForResult(payload, settings);
-        setPlinkoDrop({ key: Date.now(), slot, path: createPlinkoPath(slot) });
-        await new Promise((resolve) => window.setTimeout(resolve, 2750));
+        const path = createPlinkoPath(slot);
+        const durationMs = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 550 : path.durationMs;
+        setPlinkoDrop({ key: Date.now(), slot, ...path, durationMs });
+        await new Promise((resolve) => window.setTimeout(resolve, durationMs + 120));
       }
+      if (diceTimer !== undefined) window.clearInterval(diceTimer);
       setResult(payload);
       if (typeof payload.balance === "number") setBalance(payload.balance);
       if (response.ok && game === "roulette") setRouletteBets({});
@@ -215,13 +308,28 @@ export function CasinoGame({ game, initialBalance, settings }: { game: CasinoGam
   const simplePlay = () => request("play");
   const resultWager = Number(result?.wager ?? wager);
   const net = Number(result?.payout ?? 0) - resultWager;
-  const plinkoBallStyle = plinkoDrop ? {
-    "--plinko-x1": `${plinkoDrop.path[0]}%`,
-    "--plinko-x2": `${plinkoDrop.path[1]}%`,
-    "--plinko-x3": `${plinkoDrop.path[2]}%`,
-    "--plinko-x4": `${plinkoDrop.path[3]}%`,
-    "--plinko-x5": `${plinkoDrop.path[4]}%`,
-    "--plinko-x6": `${plinkoDrop.path[5]}%`,
+  const finalDiceFaces = diceFaces;
+  const plinkoBoardStyle = plinkoDrop ? {
+    "--plinko-release-x": `${plinkoDrop.releaseX}%`,
+    "--plinko-duration": `${plinkoDrop.durationMs}ms`,
+    "--plinko-x1": `${plinkoDrop.impacts[0]}%`,
+    "--plinko-x2": `${plinkoDrop.impacts[1]}%`,
+    "--plinko-x3": `${plinkoDrop.impacts[2]}%`,
+    "--plinko-x4": `${plinkoDrop.impacts[3]}%`,
+    "--plinko-x5": `${plinkoDrop.impacts[4]}%`,
+    "--plinko-x6": `${plinkoDrop.impacts[5]}%`,
+    "--plinko-rx1": `${plinkoDrop.rebounds[0]}%`,
+    "--plinko-rx2": `${plinkoDrop.rebounds[1]}%`,
+    "--plinko-rx3": `${plinkoDrop.rebounds[2]}%`,
+    "--plinko-rx4": `${plinkoDrop.rebounds[3]}%`,
+    "--plinko-rx5": `${plinkoDrop.rebounds[4]}%`,
+    "--plinko-rx6": `${plinkoDrop.rebounds[5]}%`,
+    "--plinko-a1": `${plinkoDrop.rotations[0]}deg`,
+    "--plinko-a2": `${plinkoDrop.rotations[1]}deg`,
+    "--plinko-a3": `${plinkoDrop.rotations[2]}deg`,
+    "--plinko-a4": `${plinkoDrop.rotations[3]}deg`,
+    "--plinko-a5": `${plinkoDrop.rotations[4]}deg`,
+    "--plinko-a6": `${plinkoDrop.rotations[5]}deg`,
   } as CSSProperties : undefined;
 
   return (
@@ -240,8 +348,11 @@ export function CasinoGame({ game, initialBalance, settings }: { game: CasinoGam
             <div className={styles.rouletteRoom}>
               <div className={styles.rouletteStage}>
                 <span className={styles.roulettePointer} />
-                {typeof result?.number === "number" && <span className={styles.rouletteResult}>{result.number}</span>}
-                <div className={`${styles.rouletteWheel} ${pending ? styles.wheelSpinning : ""}`} style={{ transform: result ? `rotate(${720 + (result.number ?? 0) * 9.7}deg)` : undefined }}><span className={styles.rouletteBall} /></div>
+                {typeof result?.number === "number" && !pending && <span className={styles.rouletteResult}>{result.number}</span>}
+                <div className={`${styles.rouletteWheel} ${pending ? styles.wheelSpinning : ""}`} style={{ "--roulette-rotation": `${rouletteRotation}deg` } as CSSProperties}>
+                  <span className={styles.rouletteNumberRing} aria-hidden="true">{EUROPEAN_WHEEL.map((number, index) => <i className={number === 0 ? styles.rouletteWheelGreen : RED_NUMBERS.has(number) ? styles.rouletteWheelRed : styles.rouletteWheelBlack} style={{ "--roulette-angle": `${index * ROULETTE_STEP}deg` } as CSSProperties} key={number}>{number}</i>)}</span>
+                  <span className={styles.rouletteBall} />
+                </div>
               </div>
               <div className={styles.rouletteBettingTable}>
                 <div className={styles.rouletteChipRack}>
@@ -265,7 +376,7 @@ export function CasinoGame({ game, initialBalance, settings }: { game: CasinoGam
               <div className={styles.slotHallHeading}><span>GALERIE DES JACKPOTS</span><h2>Choisis ta machine</h2><p>Six univers différents, un seul portefeuille de jetons et des résultats sécurisés côté serveur.</p></div>
               <div className={styles.slotCabinetGrid}>
                 {SLOT_MACHINES.map((machine) => (
-                  <button className={`${styles.slotCabinet} ${styles[`slotTheme_${machine.palette}`]}`} key={machine.key} type="button" onClick={() => { setSlotMachine(machine.key); setResult(null); }}>
+                  <button className={`${styles.slotCabinet} ${styles[`slotTheme_${machine.palette}`]}`} key={machine.key} type="button" onClick={() => { setSlotMachine(machine.key); setSlotLandingSymbols(null); setSlotStoppedReels(3); setResult(null); }}>
                     <small>{machine.kicker}</small><strong>{machine.name}</strong><span>{machine.symbol}</span><p>{machine.text}</p><em>JOUER À CETTE MACHINE</em>
                   </button>
                 ))}
@@ -275,19 +386,20 @@ export function CasinoGame({ game, initialBalance, settings }: { game: CasinoGam
 
           {settings.enabled && game === "slots" && selectedSlot && (
             <div className={styles.slotRoom}>
-              <button className={styles.slotBackButton} type="button" onClick={() => { setSlotMachine(null); setResult(null); }}>← Revenir aux 6 machines</button>
+              <button className={styles.slotBackButton} type="button" onClick={() => { setSlotMachine(null); setSlotLandingSymbols(null); setSlotStoppedReels(3); setResult(null); }}>← Revenir aux 6 machines</button>
               <div className={`${styles.slotMachine} ${styles[`slotTheme_${selectedSlot.palette}`]}`}>
                 <div className={styles.slotMarquee}><small>{selectedSlot.kicker}</small><strong>{selectedSlot.name}</strong><span>JACKPOT ×{settings.jackpotMultiplier}</span></div>
                 <div className={styles.slotBulbs} aria-hidden="true">{Array.from({ length: 16 }, (_, index) => <i key={index} />)}</div>
                 <div className={styles.slotWindow}><div className={styles.slotPayline} />
-                  <div className={styles.slotReels}>{(result?.symbols ?? ["◆", "♠", "✦"]).map((symbol, index) => {
+                  <div className={styles.slotReels}>{(slotLandingSymbols ?? result?.symbols ?? ["◆", "♠", "✦"]).map((symbol, index) => {
                     const sourceIndex = ["◆", "♠", "✦", "7", "♛", "●"].indexOf(symbol);
                     const themedSymbol = selectedSlot.symbols[sourceIndex >= 0 ? sourceIndex : index % selectedSlot.symbols.length];
-                    return <div className={`${styles.slotReel} ${pending ? styles.reelSpinning : ""}`} key={`${symbol}-${index}`}>{themedSymbol}</div>;
+                    const spinning = pending && index >= slotStoppedReels;
+                    return <div className={`${styles.slotReel} ${spinning ? styles.reelSpinning : styles.reelStopped}`} key={`${symbol}-${index}`}><div className={styles.slotReelTrack}>{spinning ? [...selectedSlot.symbols, ...selectedSlot.symbols].map((item, symbolIndex) => <span key={`${item}-${symbolIndex}`}>{item}</span>) : <span>{themedSymbol}</span>}</div></div>;
                   })}</div>
                 </div>
                 <div className={styles.slotConsole}><span>MISE <b>{chips(wager)}</b></span><button className={styles.slotSpin} disabled={pending || !canPlay} onClick={simplePlay} type="button">{pending ? "EN COURS" : "JOUER"}</button><span>MAX <b>{chips(settings.maxPayout)}</b></span></div>
-                <span className={styles.slotLever} aria-hidden="true"><i /></span>
+                <span className={`${styles.slotLever} ${pending ? styles.slotLeverPulled : ""}`} aria-hidden="true"><i /></span>
               </div>
             </div>
           )}
@@ -319,14 +431,14 @@ export function CasinoGame({ game, initialBalance, settings }: { game: CasinoGam
               {!active ? <div className={styles.gameActions}><button className={styles.goldButton} disabled={pending || !canPlay} onClick={() => request("start")} type="button">Prendre place · {chips(wager)} jetons</button></div> : <div className={styles.pokerBettingConsole}>
                 <div className={styles.pokerBetStatus}><span>Déjà engagé <b>{chips(result?.poker?.committed ?? wager)}</b></span><span>À suivre <b>{chips(result?.poker?.toCall ?? 0)}</b></span><span>Disponible <b>{chips(result?.poker?.available ?? balance)}</b></span></div>
                 <div className={styles.pokerRaiseControl}><label htmlFor="poker-raise">Montant de la relance</label><input id="poker-raise" type="number" min={result?.poker?.minRaise ?? 1} max={Math.max(result?.poker?.minRaise ?? 1, Math.min(result?.poker?.available ?? balance, (result?.poker?.maxTotalBet ?? settings.maxBet) - (result?.poker?.committed ?? wager)))} value={raiseAmount} onChange={(event) => setRaiseAmount(Math.max(0,Math.trunc(Number(event.target.value))))} /><small>Minimum {chips(result?.poker?.minRaise ?? 1)}</small></div>
-                <div className={styles.gameActions}><button className={styles.dangerButton} disabled={pending} onClick={() => request("fold")} type="button">Se coucher</button><button className={styles.secondaryButton} disabled={pending || Number(result?.poker?.toCall ?? 0) > 0} onClick={() => request("check")} type="button">Parole</button><button className={styles.secondaryButton} disabled={pending || Number(result?.poker?.toCall ?? 0) === 0} onClick={() => request("call")} type="button">Suivre {chips(result?.poker?.toCall ?? 0)}</button><button className={styles.goldButton} disabled={pending || raiseAmount < Number(result?.poker?.minRaise ?? 1)} onClick={() => request("raise",raiseAmount)} type="button">Relancer de {chips(raiseAmount)}</button><button className={styles.allInButton} disabled={pending || Number(result?.poker?.available ?? 0) < 1} onClick={() => request("allin")} type="button">Tapis</button></div>
+                <div className={styles.gameActions}><button className={styles.dangerButton} disabled={pending} onClick={() => request("fold")} type="button">Se coucher</button><button className={styles.secondaryButton} disabled={pending || Number(result?.poker?.toCall ?? 0) > 0} onClick={() => request("check")} type="button">Parole</button><button className={styles.secondaryButton} disabled={pending || Number(result?.poker?.toCall ?? 0) === 0} onClick={() => request("call")} type="button">Suivre {chips(result?.poker?.toCall ?? 0)}</button><button className={styles.goldButton} disabled={pending || raiseAmount < Number(result?.poker?.minRaise ?? 1)} onClick={() => request("raise",raiseAmount)} type="button">Relancer de {chips(raiseAmount)}</button><button className={styles.allInButton} disabled={pending || Number(result?.poker?.available ?? 0) < 1} onClick={() => request("allin")} type="button">Tapis · {chips(result?.poker?.allInAmount ?? result?.poker?.available ?? 0)}</button></div>
               </div>}
             </div>
           )}
 
           {settings.enabled && game === "dice" && (
             <div className={styles.diceRoom}>
-              <div className={styles.diceTable}><span className={styles.diceCup} /><div className={`${styles.die} ${pending ? styles.dieRolling : ""}`}>{typeof result?.number === "number" ? Math.floor(result.number / 10) : "•"}</div><div className={`${styles.die} ${pending ? styles.dieRolling : ""}`}>{typeof result?.number === "number" ? result.number % 10 : "•"}</div><span className={styles.diceTotal}>TOTAL <b>{result?.number ?? "—"}</b></span></div>
+              <div className={styles.diceTable}><span className={`${styles.diceCup} ${pending ? styles.diceCupShaking : ""}`} /><div className={styles.diceTumbleArea}><div className={`${styles.die} ${styles.dieOne} ${pending ? styles.dieRolling : ""}`}>{pending || result ? finalDiceFaces[0] : "•"}</div><div className={`${styles.die} ${styles.dieTwo} ${pending ? styles.dieRolling : ""}`}>{pending || result ? finalDiceFaces[1] : "•"}</div></div><span className={styles.diceTotal}>TOTAL <b>{pending ? "…" : result?.number ?? "—"}</b></span></div>
               <ChoiceButtons choices={choices} choice={choice} setChoice={setChoice} />
               <button className={styles.goldButton} disabled={pending || !canPlay} onClick={simplePlay} type="button">{pending ? "Les dés roulent…" : `Lancer · ${chips(wager)} jetons`}</button>
             </div>
@@ -334,9 +446,9 @@ export function CasinoGame({ game, initialBalance, settings }: { game: CasinoGam
 
           {settings.enabled && game === "plinko" && (
             <div className={styles.plinkoRoom}>
-              <div className={styles.plinkoBoard}>
+              <div className={styles.plinkoBoard} style={plinkoBoardStyle}>
                 <div className={styles.plinkoLauncher}><i /><span>LÂCHER</span></div>
-                <span key={plinkoDrop?.key ?? 0} className={`${styles.plinkoBall} ${plinkoDrop ? styles.plinkoBallDropping : ""}`} style={plinkoBallStyle} />
+                <span key={plinkoDrop?.key ?? 0} className={`${styles.plinkoBall} ${plinkoDrop ? styles.plinkoBallDropping : ""}`} />
                 <div className={styles.plinkoPegs}>{Array.from({ length: PLINKO_ROWS }, (_, row) => <div className={styles.plinkoPegRow} key={row}>{Array.from({ length: row + 1 }, (_, index) => <i key={index} />)}</div>)}</div>
                 <div className={styles.plinkoSlots}>{[settings.jackpotMultiplier, .5, settings.baseMultiplier, 0, settings.baseMultiplier, .5, settings.jackpotMultiplier].map((multiplier, index) => <span className={index === plinkoDrop?.slot ? styles.plinkoSlotTarget : ""} key={index}>×{multiplier}</span>)}</div>
               </div>

@@ -198,6 +198,7 @@ function publicPoker(state: PokerState, available: number, config: CasinoGameSet
     toCall: Math.max(0, state.currentBet - state.playerStreetBet),
     minRaise: state.minRaise,
     available,
+    allInAmount: available,
     maxTotalBet: config.maxBet,
     player: state.player,
     board: visibleBoard,
@@ -367,7 +368,12 @@ export async function POST(request: Request) {
     normalizePokerState(state);
     const availableBefore = await walletBalance(admin, data.user.id);
     if (action === "fold") {
-      const { error } = await (supabase as any).rpc("casino_poker_lock_action_v117", { p_round_id: state.roundId, p_expected_version: state.actionVersion, p_amount: 0 });
+      const { error } = await (supabase as any).rpc("casino_poker_lock_action_v130", {
+        p_round_id: state.roundId,
+        p_expected_version: state.actionVersion,
+        p_amount: 0,
+        p_all_in: false,
+      });
       if (error) throw new Error(String(error.message));
       await settle(admin, data.user.id, state.roundId, 0, { result: "fold" });
       await clearActive(admin, data.user.id, game);
@@ -381,16 +387,19 @@ export async function POST(request: Request) {
     else if (action === "raise") {
       if (raiseAmount < state.minRaise) return NextResponse.json({ error: `La relance minimum est de ${state.minRaise.toLocaleString("fr-FR")} jetons.` }, { status: 400 });
       additional = toCall + raiseAmount;
-    } else if (action === "allin") additional = Math.min(availableBefore, Math.max(0, config.maxBet - state.committed));
+    } else if (action === "allin") additional = availableBefore;
     else return NextResponse.json({ error: "Action de poker inconnue." }, { status: 400 });
-    if (additional > availableBefore || state.committed + additional > config.maxBet) return NextResponse.json({ error: "Cette enchère dépasse ton solde ou la limite de la table." }, { status: 400 });
+    if (action !== "allin" && (additional > availableBefore || state.committed + additional > config.maxBet)) return NextResponse.json({ error: "Cette enchère dépasse ton solde ou la limite de la table." }, { status: 400 });
 
-    const { data: balanceAfterAction, error: lockError } = await (supabase as any).rpc("casino_poker_lock_action_v117", {
+    const { data: lockedAction, error: lockError } = await (supabase as any).rpc("casino_poker_lock_action_v130", {
       p_round_id: state.roundId,
       p_expected_version: state.actionVersion,
-      p_amount: additional,
+      p_amount: action === "allin" ? 0 : additional,
+      p_all_in: action === "allin",
     });
     if (lockError) throw new Error(String(lockError.message));
+    additional = Math.max(0, Math.trunc(Number(lockedAction?.amount ?? additional)));
+    const balanceAfterAction = Math.max(0, Math.trunc(Number(lockedAction?.balance ?? availableBefore - additional)));
     state.actionVersion += 1;
     state.committed += additional;
     state.playerStreetBet += additional;
@@ -412,7 +421,7 @@ export async function POST(request: Request) {
       const label = "Tous les adversaires se couchent";
       await settle(admin, data.user.id, state.roundId, payout, { result: label, pot: state.pot });
       await clearActive(admin, data.user.id, game);
-      return NextResponse.json({ finished: true, result: label, payout, poker: publicPoker(state, Number(balanceAfterAction), config), balance: await walletBalance(admin, data.user.id) });
+      return NextResponse.json({ finished: true, result: label, payout, poker: publicPoker(state, balanceAfterAction, config), balance: await walletBalance(admin, data.user.id) });
     }
 
     state.phase += 1;
@@ -420,9 +429,9 @@ export async function POST(request: Request) {
       state.playerStreetBet = 0;
       state.currentBet = 0;
       state.bots.forEach((bot) => { bot.streetBet = 0; });
-      prepareBotBet(state, Number(balanceAfterAction), config);
+      prepareBotBet(state, balanceAfterAction, config);
       await saveActive(admin, data.user.id, game, state.roundId, state);
-      return NextResponse.json({ finished: false, poker: publicPoker(state, Number(balanceAfterAction), config), balance: Number(balanceAfterAction) });
+      return NextResponse.json({ finished: false, poker: publicPoker(state, balanceAfterAction, config), balance: balanceAfterAction });
     }
 
     const playerScore = bestScore([...state.player, ...state.board]);
@@ -439,7 +448,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ finished: true, result, payout, poker: publicPoker(state, Number(balanceAfterAction), config, true), balance: await walletBalance(admin, data.user.id) });
   } catch (error) {
     const message = String(error instanceof Error ? error.message : error).toLowerCase();
-    const friendly = message.includes("insufficient_balance") ? "Solde de jetons insuffisant." : message.includes("active_game_exists") ? "Termine d’abord ta partie active." : message.includes("stale_poker_action") ? "Cette action de poker a déjà été traitée. La table va se resynchroniser." : message.includes("function") || message.includes("schema cache") ? "Exécute le SQL Casino V118 dans Supabase avant de jouer." : message.includes("invalid_bets") ? "Un ou plusieurs jetons du tapis sont invalides. Retire les jetons puis replace-les." : message.includes("stale_double_action") ? "Cette action a déjà été traitée. Actualise la page pour resynchroniser le montant." : message.includes("no_active_double_game") ? "Cette partie est déjà terminée." : message.includes("game_closed") ? "Cette table est momentanément fermée." : message.includes("wager_out_of_bounds") ? "Le total posé sur le tapis dépasse les limites fixées par la Direction." : "La table n’a pas pu traiter l’action. Réessaie.";
+    const friendly = message.includes("insufficient_balance") ? "Solde de jetons insuffisant." : message.includes("active_game_exists") ? "Termine d’abord ta partie active." : message.includes("stale_poker_action") ? "Cette action de poker a déjà été traitée. La table va se resynchroniser." : message.includes("casino_poker_lock_action_v130") ? "Exécute le SQL Casino V130 dans Supabase avant d’utiliser Tapis." : message.includes("function") || message.includes("schema cache") ? "Une fonction du Casino manque dans Supabase." : message.includes("invalid_bets") ? "Un ou plusieurs jetons du tapis sont invalides. Retire les jetons puis replace-les." : message.includes("stale_double_action") ? "Cette action a déjà été traitée. Actualise la page pour resynchroniser le montant." : message.includes("no_active_double_game") ? "Cette partie est déjà terminée." : message.includes("game_closed") ? "Cette table est momentanément fermée." : message.includes("wager_out_of_bounds") ? "Le total posé sur le tapis dépasse les limites fixées par la Direction." : "La table n’a pas pu traiter l’action. Réessaie.";
     return NextResponse.json({ error: friendly }, { status: 400 });
   }
 }

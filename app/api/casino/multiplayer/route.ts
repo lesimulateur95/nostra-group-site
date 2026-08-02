@@ -38,7 +38,8 @@ function friendlyError(error: unknown): string {
   if (message.includes("poker_not_playing")) return "Cette main de poker est déjà terminée.";
   if (message.includes("wager_out_of_bounds")) return "La mise ne respecte pas les limites réglées dans le Dashboard.";
   if (message.includes("game_closed")) return "Ce jeu est fermé par la Direction.";
-  if (message.includes("function") || message.includes("schema cache")) return "Exécute le SQL Casino V117 dans Supabase avant d’ouvrir le multijoueur.";
+  if (message.includes("casino_pvp_poker_action_v130")) return "Exécute le SQL Casino V130 dans Supabase avant d’utiliser Tapis.";
+  if (message.includes("function") || message.includes("schema cache")) return "Une fonction du Casino manque dans Supabase.";
   return "Le salon n’a pas pu traiter cette action. Réessaie.";
 }
 
@@ -86,7 +87,7 @@ export async function POST(request: Request) {
       const roomId = String(body.roomId ?? "");
       const pokerAction = String(body.pokerAction ?? "");
       const amount = Math.max(0, Math.trunc(Number(body.amount ?? 0)));
-      const { data, error } = await (current.supabase as any).rpc("casino_pvp_poker_action_v117", { p_room_id: roomId, p_action: pokerAction, p_amount: amount });
+      const { data, error } = await (current.supabase as any).rpc("casino_pvp_poker_action_v130", { p_room_id: roomId, p_action: pokerAction, p_amount: amount });
       if (error) throw new Error(String(error.message));
       actionResult = data;
     } else if (action === "show_cards") {
