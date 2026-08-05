@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { hasDashboardAccess } from "@/lib/auth/access";
+import { getUserRoleKeys } from "@/lib/auth/access";
 import { createClient } from "@/lib/supabase/server";
 
 export type SpinWheelResponse = {
@@ -43,6 +43,16 @@ function isWheelDisabledError(error: { code?: string | null; message?: string | 
 function isSetupError(error: { code?: string | null; message?: string | null; details?: string | null; hint?: string | null } | null | undefined): boolean {
   const value = errorText(error);
   return value.includes("pgrst202") || value.includes("pgrst205") || value.includes("42p01") || value.includes("spin_nostra_wheel") || value.includes("save_nostra_wheel_configuration") || value.includes("game_wheel_spins") || value.includes("game_wheel_settings") || value.includes("game_wheel_segments");
+}
+
+function wheelConfigurationError(error: { code?: string | null; message?: string | null; details?: string | null; hint?: string | null } | null | undefined): string {
+  const value = errorText(error);
+  if (value.includes("manager_access_required") || value.includes("42501")) return "authorization";
+  if (value.includes("invalid_disabled_message")) return "message";
+  if (value.includes("wheel_segment_count_must_be_between_2_and_40")) return "count";
+  if (value.includes("invalid_wheel_segment")) return "segment";
+  if (isSetupError(error)) return "setup";
+  return "database";
 }
 
 export async function spinWheel(): Promise<SpinWheelResponse> {
@@ -141,7 +151,7 @@ export async function saveWheelConfiguration(formData: FormData) {
     p_disabled_message: disabledMessage,
     p_segments: payload,
   });
-  if (error) redirect(`/dashboard/jeux/roue?error=${isSetupError(error) ? "setup" : "configuration"}`);
+  if (error) redirect(`/dashboard/jeux/roue?error=${wheelConfigurationError(error)}`);
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/jeux/roue");
@@ -153,7 +163,8 @@ async function requireManager() {
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
   if (!data.user) redirect("/");
-  if (!(await hasDashboardAccess(data.user))) redirect("/accueil");
+  const roles = await getUserRoleKeys(data.user);
+  if (!roles.includes("manager")) redirect("/accueil");
   return { supabase, user: data.user };
 }
 

@@ -9,6 +9,16 @@ export const revalidate = 0;
 
 const statusLabels: Record<string, string> = { unused: "Pas encore utilisé", used: "Utilisé", lost: "Perdu" };
 
+const configurationErrors: Record<string, string> = {
+  authorization: "Ton compte est bien Gérant sur le site, mais Supabase n’a pas encore appliqué le correctif de droits V136.3.",
+  message: "Le message de fermeture doit contenir entre 1 et 500 caractères.",
+  count: "La roue doit contenir entre 2 et 40 cases.",
+  segment: "Une case est incomplète. Vérifie son gain, son texte court, son résultat et ses couleurs.",
+  setup: "La configuration SQL de la roue est incomplète. Exécute le correctif V136.3.",
+  database: "Supabase a refusé l’enregistrement. Exécute le correctif V136.3 puis reconnecte-toi au site.",
+  configuration: "Une case est incomplète. Vérifie chaque champ avant d’enregistrer.",
+};
+
 export default async function WheelDashboardPage({ searchParams }: { searchParams: Promise<{ saved?: string; deleted?: string; configuration_saved?: string; error?: string }> }) {
   const params = await searchParams;
   const configuration = await getWheelConfiguration();
@@ -21,11 +31,11 @@ export default async function WheelDashboardPage({ searchParams }: { searchParam
   return (
     <DashboardShell allowedRoles={["manager"]}>
       <DashboardHeader eyebrow="JEUX NOSTRA GROUP" title="Roue de la chance" description="Modifie les cases, ouvre ou ferme la roue et consulte tous les tirages." />
-      {!configured && <section className="dashboard-setup"><span className="module-status">Mise à jour nécessaire</span><h2>Installer la configuration personnalisable</h2><p>Exécute le fichier SQL V136 fourni avec le correctif pour pouvoir modifier les cases et l’ouverture de la roue.</p></section>}
+      {!configured && <section className="dashboard-setup"><span className="module-status">Mise à jour nécessaire</span><h2>Installer la configuration personnalisable</h2><p>Exécute le fichier SQL V136.3 fourni avec le correctif pour pouvoir modifier les cases et l’ouverture de la roue.</p></section>}
       {params.saved && <div className="dashboard-feedback dashboard-feedback-success">Le statut du gain a été mis à jour.</div>}
       {params.deleted && <div className="dashboard-feedback dashboard-feedback-success">Le gain a été retiré de l’historique et du profil du citoyen. Son tirage quotidien reste consommé.</div>}
       {params.configuration_saved && <div className="dashboard-feedback dashboard-feedback-success">La roue, ses cases et son état d’ouverture ont été enregistrés.</div>}
-      {params.error && <div className="dashboard-feedback dashboard-feedback-error">L’opération n’a pas pu être enregistrée. Vérifie que le SQL V136 est installé et que chaque case est complète.</div>}
+      {params.error && <div className="dashboard-feedback dashboard-feedback-error">{configurationErrors[params.error] ?? "L’opération n’a pas pu être enregistrée."}</div>}
 
       {configured && <>
         <WheelSettingsEditor enabled={configuration.enabled} disabledMessage={configuration.disabledMessage} initialSegments={configuration.segments} />
