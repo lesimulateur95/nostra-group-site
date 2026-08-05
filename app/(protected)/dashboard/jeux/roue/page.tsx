@@ -10,12 +10,13 @@ export const revalidate = 0;
 const statusLabels: Record<string, string> = { unused: "Pas encore utilisé", used: "Utilisé", lost: "Perdu" };
 
 const configurationErrors: Record<string, string> = {
-  authorization: "Ton compte est bien Gérant sur le site, mais Supabase n’a pas encore appliqué le correctif de droits V136.3.",
   message: "Le message de fermeture doit contenir entre 1 et 500 caractères.",
   count: "La roue doit contenir entre 2 et 40 cases.",
   segment: "Une case est incomplète. Vérifie son gain, son texte court, son résultat et ses couleurs.",
-  setup: "La configuration SQL de la roue est incomplète. Exécute le correctif V136.3.",
-  database: "Supabase a refusé l’enregistrement. Exécute le correctif V136.3 puis reconnecte-toi au site.",
+  setup: "Les tables de la roue sont introuvables ou incomplètes.",
+  "server-configuration": "La clé serveur sécurisée utilisée par le site n’est pas configurée sur Vercel.",
+  "segments-save": "Les cases n’ont pas pu être enregistrées. La cause exacte est maintenant inscrite dans le journal Vercel.",
+  "settings-save": "L’ouverture et le message de la roue n’ont pas pu être enregistrés. La cause exacte est maintenant inscrite dans le journal Vercel.",
   configuration: "Une case est incomplète. Vérifie chaque champ avant d’enregistrer.",
 };
 

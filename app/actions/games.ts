@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getUserRoleKeys } from "@/lib/auth/access";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 export type SpinWheelResponse = {
@@ -43,16 +44,6 @@ function isWheelDisabledError(error: { code?: string | null; message?: string | 
 function isSetupError(error: { code?: string | null; message?: string | null; details?: string | null; hint?: string | null } | null | undefined): boolean {
   const value = errorText(error);
   return value.includes("pgrst202") || value.includes("pgrst205") || value.includes("42p01") || value.includes("spin_nostra_wheel") || value.includes("save_nostra_wheel_configuration") || value.includes("game_wheel_spins") || value.includes("game_wheel_settings") || value.includes("game_wheel_segments");
-}
-
-function wheelConfigurationError(error: { code?: string | null; message?: string | null; details?: string | null; hint?: string | null } | null | undefined): string {
-  const value = errorText(error);
-  if (value.includes("manager_access_required") || value.includes("42501")) return "authorization";
-  if (value.includes("invalid_disabled_message")) return "message";
-  if (value.includes("wheel_segment_count_must_be_between_2_and_40")) return "count";
-  if (value.includes("invalid_wheel_segment")) return "segment";
-  if (isSetupError(error)) return "setup";
-  return "database";
 }
 
 export async function spinWheel(): Promise<SpinWheelResponse> {
@@ -135,7 +126,7 @@ export async function saveWheelConfiguration(formData: FormData) {
   const segments = parseWheelSegments(formData.get("segments"));
   if (!disabledMessage || !segments) redirect("/dashboard/jeux/roue?error=configuration");
 
-  const { supabase } = await requireManager();
+  const { user } = await requireManager();
   const payload = segments.map((segment, index) => ({
     slot_index: index,
     prize_key: segment.type === "loss" ? `loss_${index}` : `custom_${index}`,
@@ -144,14 +135,49 @@ export async function saveWheelConfiguration(formData: FormData) {
     prize_type: segment.type,
     color: segment.color,
     text_color: segment.textColor,
+    updated_at: new Date().toISOString(),
   }));
 
-  const { error } = await supabase.rpc("save_nostra_wheel_configuration", {
-    p_enabled: enabled,
-    p_disabled_message: disabledMessage,
-    p_segments: payload,
-  });
-  if (error) redirect(`/dashboard/jeux/roue?error=${wheelConfigurationError(error)}`);
+  // Le rôle a déjà été contrôlé par requireManager(). L'écriture passe par le
+  // client serveur de l'application afin de ne pas refaire une seconde
+  // vérification de rôle contradictoire dans une RPC PostgreSQL.
+  let admin: ReturnType<typeof createAdminClient>;
+  try {
+    admin = createAdminClient();
+  } catch {
+    redirect("/dashboard/jeux/roue?error=server-configuration");
+  }
+
+  const { error: segmentsError } = await admin
+    .from("game_wheel_segments")
+    .upsert(payload, { onConflict: "slot_index" });
+  if (segmentsError) {
+    console.error("Sauvegarde des cases de la roue refusée :", segmentsError);
+    redirect(`/dashboard/jeux/roue?error=${isSetupError(segmentsError) ? "setup" : "segments-save"}`);
+  }
+
+  const { error: staleSegmentsError } = await admin
+    .from("game_wheel_segments")
+    .delete()
+    .gte("slot_index", payload.length);
+  if (staleSegmentsError) {
+    console.error("Suppression des anciennes cases de la roue refusée :", staleSegmentsError);
+    redirect("/dashboard/jeux/roue?error=segments-save");
+  }
+
+  const { error: settingsError } = await admin
+    .from("game_wheel_settings")
+    .upsert({
+      id: 1,
+      enabled,
+      disabled_message: disabledMessage,
+      updated_by: user.id,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "id" });
+  if (settingsError) {
+    console.error("Sauvegarde de l'état de la roue refusée :", settingsError);
+    redirect(`/dashboard/jeux/roue?error=${isSetupError(settingsError) ? "setup" : "settings-save"}`);
+  }
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/jeux/roue");
