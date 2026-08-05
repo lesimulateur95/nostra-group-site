@@ -160,6 +160,34 @@ export async function reviewVehicleFinancingApplication(formData: FormData) {
   );
 }
 
+export async function deleteVehicleFinancingApplication(formData: FormData) {
+  const applicationId = integer(formData.get("application_id"));
+  if (applicationId <= 0) {
+    redirect("/dashboard/financements-vehicules?error=delete-invalid");
+  }
+
+  const { supabase } = await requireManager();
+  const { error } = await (supabase as any).rpc(
+    "delete_vehicle_financing_application_v135",
+    { p_application_id: applicationId },
+  );
+
+  if (error) {
+    const details = `${error.code ?? ""} ${error.message ?? ""}`.toLowerCase();
+    const code =
+      details.includes("pgrst202") ||
+      details.includes("delete_vehicle_financing_application_v135")
+        ? "delete-setup"
+        : details.includes("financing_not_found")
+          ? "delete-missing"
+          : "delete";
+    redirect(`/dashboard/financements-vehicules?error=${code}`);
+  }
+
+  revalidateFinancing();
+  redirect("/dashboard/financements-vehicules?deleted=1");
+}
+
 export async function checkoutVehicleFinancingPayment(formData: FormData) {
   const applicationId = integer(formData.get("application_id"));
   if (applicationId <= 0) redirect("/profil/financements?error=invalid");

@@ -56,5 +56,7 @@
 .reviewForm button { flex: 1; padding: 12px; border: 0; border-radius: 999px; font-weight: 900; cursor: pointer; }
 .approve { background: #54cc89; color: #062314; }
 .reject { background: #e45d5d; color: #270707; }
+.cardFooter { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,.1); }
+.cardFooter > span { color: #7f8995; font-size: .78rem; }
 @media (max-width: 900px) { .hero { flex-direction: column; } .settingsForm, .moneyGrid, .bankAmounts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 620px) { .heroStats, .reviewForm > div { flex-direction: column; } .heroStats span { width: 100%; } .fixedRules, .settingsForm, .moneyGrid, .bankAmounts { grid-template-columns: 1fr; } .schedule div { grid-template-columns: 1fr auto; } .schedule em { grid-column: 1 / -1; } }
+@media (max-width: 620px) { .heroStats, .reviewForm > div, .cardFooter { flex-direction: column; align-items: stretch; } .heroStats span { width: 100%; } .fixedRules, .settingsForm, .moneyGrid, .bankAmounts { grid-template-columns: 1fr; } .schedule div { grid-template-columns: 1fr auto; } .schedule em { grid-column: 1 / -1; } }

@@ -5,6 +5,7 @@ import {
   updateVehicleFinancingSettings,
 } from "@/app/actions/vehicle-financing";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
+import { DeleteFinancingApplicationButton } from "@/components/motors/delete-financing-application-button";
 import { getUserRoleKeys } from "@/lib/auth/access";
 import {
   getCitizenBankInformation,
@@ -111,7 +112,8 @@ export default async function VehicleFinancingDashboardPage({
         {params.saved && <div className={styles.success}>Les réglages du financement ont été enregistrés.</div>}
         {params.approved && <div className={styles.success}>Le dossier a été accepté. L’apport obligatoire est maintenant disponible dans le panier du citoyen.</div>}
         {params.rejected && <div className={styles.success}>Le dossier a été refusé et le citoyen verra le motif.</div>}
-        {params.error && <div className={styles.error}>{params.error === "settings" ? "Vérifie les taux et le délai entre les échéances." : params.error === "invalid" ? "Un motif est obligatoire pour refuser le dossier." : params.error === "stock" ? "Le véhicule n’est plus disponible en stock." : params.error === "setup" ? "Exécute d’abord le SQL V125 du financement." : "Le dossier n’a pas pu être traité."}</div>}
+        {params.deleted && <div className={styles.success}>Le dossier de financement a été supprimé définitivement.</div>}
+        {params.error && <div className={styles.error}>{params.error === "settings" ? "Vérifie les taux et le délai entre les échéances." : params.error === "invalid" ? "Un motif est obligatoire pour refuser le dossier." : params.error === "stock" ? "Le véhicule n’est plus disponible en stock." : params.error === "setup" ? "Exécute d’abord le SQL V125 du financement." : params.error === "delete-setup" ? "Exécute le SQL V135 pour activer la suppression des dossiers." : params.error === "delete-missing" ? "Ce dossier a déjà été supprimé ou n’existe plus." : params.error === "delete-invalid" ? "Le dossier sélectionné est invalide." : params.error === "delete" ? "Le dossier n’a pas pu être supprimé." : "Le dossier n’a pas pu être traité."}</div>}
 
         {!settings.configured ? (
           <section className={styles.empty}>
@@ -272,6 +274,15 @@ function FinancingCard({
           </div>
         </form>
       )}
+
+      <footer className={styles.cardFooter}>
+        <span>Créé le {date(application.created_at)}</span>
+        <DeleteFinancingApplicationButton
+          applicationId={application.id}
+          applicationNumber={application.application_number}
+          isInProgress={["deposit_due", "active"].includes(application.status)}
+        />
+      </footer>
     </article>
   );
 }

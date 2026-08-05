@@ -1,0 +1,75 @@
+.open {
+  padding: 10px 16px;
+  border: 1px solid rgba(238, 83, 83, .45);
+  border-radius: 999px;
+  background: rgba(139, 32, 32, .16);
+  color: #ffaaaa;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.open:hover {
+  border-color: rgba(255, 112, 112, .78);
+  background: rgba(174, 42, 42, .25);
+}
+
+.confirmation {
+  display: grid;
+  gap: 13px;
+  padding: 15px;
+  border: 1px solid rgba(238, 83, 83, .42);
+  border-radius: 15px;
+  background: rgba(112, 25, 25, .16);
+}
+
+.confirmation strong {
+  color: #fff;
+}
+
+.confirmation p {
+  margin: 5px 0 0;
+  color: #d8b3b3;
+  font-size: .84rem;
+  line-height: 1.5;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.actions button {
+  padding: 10px 15px;
+  border-radius: 999px;
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.cancel {
+  border: 1px solid rgba(255, 255, 255, .14);
+  background: #11161c;
+  color: #c8d0da;
+}
+
+.confirm {
+  border: 0;
+  background: #e45d5d;
+  color: #270707;
+}
+
+.confirm:disabled {
+  cursor: wait;
+  opacity: .65;
+}
+
+@media (max-width: 620px) {
+  .open {
+    width: 100%;
+  }
+
+  .actions {
+    flex-direction: column;
+  }
+}
