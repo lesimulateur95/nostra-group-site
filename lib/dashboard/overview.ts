@@ -217,6 +217,14 @@ export async function getDashboardOverview({
           .is("deleted_at", null)
       : Promise.resolve({ count: 0, error: null });
 
+    const wheelSettingsPromise = managerAccess
+      ? client
+          .from("game_wheel_settings")
+          .select("enabled")
+          .eq("id", 1)
+          .maybeSingle()
+      : Promise.resolve({ data: null, error: null });
+
     const tombolaRoundPromise = managerAccess
       ? client
           .from("tombola_rounds")
@@ -254,6 +262,7 @@ export async function getDashboardOverview({
       reservations,
       teamRegistrations,
       wheel,
+      wheelSettings,
       tombolaRound,
       bingoRound,
       deal,
@@ -272,6 +281,7 @@ export async function getDashboardOverview({
       reservationsPromise,
       teamRegistrationsPromise,
       wheelPromise,
+      wheelSettingsPromise,
       tombolaRoundPromise,
       bingoRoundPromise,
       dealPromise,
@@ -339,7 +349,7 @@ export async function getDashboardOverview({
       configured,
       ordersConfigured: ordersAccess && !ordersPending.error,
       teamRegistrationsConfigured: managerAccess && !teamRegistrations.error,
-      wheelConfigured: managerAccess && !wheel.error,
+      wheelConfigured: managerAccess && !wheel.error && !wheelSettings.error && Boolean(wheelSettings.data),
       tombolaConfigured: managerAccess && !tombolaRound.error,
       bingoConfigured: managerAccess && !bingoRound.error,
       dealConfigured: managerAccess && !deal.error,

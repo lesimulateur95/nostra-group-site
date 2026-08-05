@@ -1,4 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
+import {
+  DEFAULT_WHEEL_DISABLED_MESSAGE,
+  DEFAULT_WHEEL_SEGMENTS,
+  type WheelSegment,
+} from "@/lib/games/wheel-config";
 
 export type ActivitySetting = {
   id: number;
@@ -601,10 +606,59 @@ export type WheelSpin = {
   deleted_at?: string | null;
 };
 
-export async function getWheelModuleConfigured(): Promise<boolean> {
+export type WheelConfiguration = {
+  configured: boolean;
+  enabled: boolean;
+  disabledMessage: string;
+  segments: WheelSegment[];
+  updatedAt: string | null;
+};
+
+export async function getWheelConfiguration(): Promise<WheelConfiguration> {
   const supabase = await createClient();
-  const { error } = await supabase.from("game_wheel_spins").select("id").limit(1);
-  return !error;
+  const [{ data: settings, error: settingsError }, { data: segmentRows, error: segmentsError }] = await Promise.all([
+    supabase
+      .from("game_wheel_settings")
+      .select("enabled,disabled_message,updated_at")
+      .eq("id", 1)
+      .maybeSingle(),
+    supabase
+      .from("game_wheel_segments")
+      .select("slot_index,prize_key,label,short_label,prize_type,color,text_color")
+      .order("slot_index", { ascending: true }),
+  ]);
+
+  if (settingsError || segmentsError || !settings || !segmentRows || segmentRows.length < 2) {
+    return {
+      configured: false,
+      enabled: false,
+      disabledMessage: DEFAULT_WHEEL_DISABLED_MESSAGE,
+      segments: DEFAULT_WHEEL_SEGMENTS,
+      updatedAt: null,
+    };
+  }
+
+  const segments: WheelSegment[] = segmentRows.map((row, index) => ({
+    index,
+    prizeKey: String(row.prize_key),
+    label: String(row.label),
+    shortLabel: String(row.short_label),
+    type: row.prize_type === "loss" ? "loss" : "bonus",
+    color: String(row.color),
+    textColor: String(row.text_color),
+  }));
+
+  return {
+    configured: true,
+    enabled: settings.enabled === true,
+    disabledMessage: String(settings.disabled_message || DEFAULT_WHEEL_DISABLED_MESSAGE),
+    segments,
+    updatedAt: settings.updated_at ? String(settings.updated_at) : null,
+  };
+}
+
+export async function getWheelModuleConfigured(): Promise<boolean> {
+  return (await getWheelConfiguration()).configured;
 }
 
 export async function getWheelSpins(): Promise<WheelSpin[]> {

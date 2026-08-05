@@ -2,8 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { WheelGame } from "@/components/games/wheel-game";
 import { EditablePage } from "@/components/site/editable-page";
-import { getOwnWheelSpins, getWheelModuleConfigured } from "@/lib/backoffice/data";
-import { WHEEL_PRIZE_SUMMARY } from "@/lib/games/wheel-config";
+import { getOwnWheelSpins, getWheelConfiguration } from "@/lib/backoffice/data";
+import { summarizeWheelPrizes } from "@/lib/games/wheel-config";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -29,7 +29,8 @@ export default async function WheelPage() {
   const { data } = await supabase.auth.getUser();
   if (!data.user) redirect("/");
 
-  const configured = await getWheelModuleConfigured();
+  const configuration = await getWheelConfiguration();
+  const configured = configuration.configured;
   const allOwnSpins = configured ? await getOwnWheelSpins(data.user.id) : [];
   const recent = allOwnSpins.slice(0, 5);
   const todayInFrance = parisDayKey(new Date());
@@ -40,7 +41,7 @@ export default async function WheelPage() {
       <header className="document-hero">
         <p className="eyebrow">JEUX NOSTRA GROUP</p>
         <h1 className="page-title">Roue de la chance</h1>
-        <p className="lead">Lance un tirage parmi 23 cases. Le résultat est enregistré automatiquement dans ton espace Jeux.</p>
+        <p className="lead">Lance un tirage parmi {configuration.segments.length} cases. Le résultat est enregistré automatiquement dans ton espace Jeux.</p>
       </header>
     </article>
   );
@@ -48,13 +49,19 @@ export default async function WheelPage() {
   return (
     <>
       <EditablePage slug="evenements-roue" eyebrow="Événements & Jeux" defaultTitle="Roue de la chance">{intro}</EditablePage>
-      <WheelGame configured={configured} alreadySpunToday={alreadySpunToday} />
+      <WheelGame
+        configured={configured}
+        enabled={configuration.enabled}
+        disabledMessage={configuration.disabledMessage}
+        segments={configuration.segments}
+        alreadySpunToday={alreadySpunToday}
+      />
 
       <section className="wheel-information-grid">
         <article className="backoffice-panel wheel-prize-panel">
-          <div className="panel-heading"><span className="panel-icon">◆</span><div><h2>Répartition des 23 cases</h2><p>Tous les gains et cases Perdu présents sur la roue.</p></div></div>
+          <div className="panel-heading"><span className="panel-icon">◆</span><div><h2>Répartition des {configuration.segments.length} cases</h2><p>Tous les gains et cases Perdu présents sur la roue.</p></div></div>
           <div className="wheel-prize-list">
-            {WHEEL_PRIZE_SUMMARY.map((prize) => <div key={prize.label}><span>{prize.label}</span><strong>{prize.count} case{prize.count > 1 ? "s" : ""}</strong></div>)}
+            {summarizeWheelPrizes(configuration.segments).map((prize) => <div key={prize.label}><span>{prize.label}</span><strong>{prize.count} case{prize.count > 1 ? "s" : ""}</strong></div>)}
           </div>
         </article>
 

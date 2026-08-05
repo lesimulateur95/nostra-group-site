@@ -1,14 +1,4 @@
-export type WheelPrizeKey =
-  | "lost"
-  | "paint"
-  | "silver_card"
-  | "discount_5"
-  | "coffee"
-  | "circuit_lap"
-  | "circuit_10_laps"
-  | "circuit_5_laps"
-  | "vehicle_test"
-  | "discount_10k";
+export type WheelPrizeKey = string;
 
 export type WheelPrizeType = "bonus" | "loss";
 
@@ -48,22 +38,18 @@ const rawSegments: Omit<WheelSegment, "index">[] = [
   { prizeKey: "discount_10k", label: "-10 000 € sur la prochaine commande", shortLabel: "-10K", type: "bonus", color: "#a36d20", textColor: "#ffffff" },
 ];
 
-export const WHEEL_SEGMENTS: WheelSegment[] = rawSegments.map((segment, index) => ({
+export const DEFAULT_WHEEL_SEGMENTS: WheelSegment[] = rawSegments.map((segment, index) => ({
   ...segment,
   index,
 }));
 
-export const WHEEL_SEGMENT_COUNT = WHEEL_SEGMENTS.length;
+export const DEFAULT_WHEEL_DISABLED_MESSAGE =
+  "La roue de la chance est temporairement indisponible. Reviens prochainement pour tenter ta chance.";
 
-export const WHEEL_PRIZE_SUMMARY = [
-  { label: "Perdu", count: 6 },
-  { label: "Peinture offerte", count: 3 },
-  { label: "Carte fidélité Silver", count: 1 },
-  { label: "-5 % sur la prochaine commande", count: 3 },
-  { label: "1 café offert", count: 2 },
-  { label: "1 tour de circuit offert", count: 2 },
-  { label: "10 tours de circuit offerts", count: 1 },
-  { label: "5 tours de circuit offerts", count: 2 },
-  { label: "Essai d’un véhicule de la concession", count: 1 },
-  { label: "-10 000 € sur la prochaine commande", count: 2 },
-] as const;
+export function summarizeWheelPrizes(segments: WheelSegment[]) {
+  const counts = new Map<string, number>();
+  for (const segment of segments) {
+    counts.set(segment.label, (counts.get(segment.label) ?? 0) + 1);
+  }
+  return Array.from(counts, ([label, count]) => ({ label, count }));
+}

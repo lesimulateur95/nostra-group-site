@@ -1,17 +1,18 @@
 import { deleteWheelGain, updateWheelGainStatus } from "@/app/actions/games";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
-import { getWheelModuleConfigured, getWheelSpins } from "@/lib/backoffice/data";
-import { GAMES_SETUP_SQL } from "@/lib/backoffice/games-setup-sql";
+import { WheelSettingsEditor } from "@/components/games/wheel-settings-editor";
+import { getWheelConfiguration, getWheelSpins } from "@/lib/backoffice/data";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 const statusLabels: Record<string, string> = { unused: "Pas encore utilisé", used: "Utilisé", lost: "Perdu" };
 
-export default async function WheelDashboardPage({ searchParams }: { searchParams: Promise<{ saved?: string; deleted?: string; error?: string }> }) {
+export default async function WheelDashboardPage({ searchParams }: { searchParams: Promise<{ saved?: string; deleted?: string; configuration_saved?: string; error?: string }> }) {
   const params = await searchParams;
-  const configured = await getWheelModuleConfigured();
+  const configuration = await getWheelConfiguration();
+  const configured = configuration.configured;
   const spins = configured ? await getWheelSpins() : [];
   const unused = spins.filter((spin) => spin.redemption_status === "unused").length;
   const used = spins.filter((spin) => spin.redemption_status === "used").length;
@@ -19,14 +20,17 @@ export default async function WheelDashboardPage({ searchParams }: { searchParam
 
   return (
     <DashboardShell allowedRoles={["manager"]}>
-      <DashboardHeader eyebrow="JEUX NOSTRA GROUP" title="Roue de la chance" description="Consulte les tirages, modifie leur statut ou retire un gain du profil du citoyen." />
-      {!configured && <section className="dashboard-setup"><span className="module-status">Activation nécessaire</span><h2>Activer la roue et l’historique</h2><details><summary>Afficher le code SQL</summary><pre>{GAMES_SETUP_SQL}</pre></details></section>}
+      <DashboardHeader eyebrow="JEUX NOSTRA GROUP" title="Roue de la chance" description="Modifie les cases, ouvre ou ferme la roue et consulte tous les tirages." />
+      {!configured && <section className="dashboard-setup"><span className="module-status">Mise à jour nécessaire</span><h2>Installer la configuration personnalisable</h2><p>Exécute le fichier SQL V136 fourni avec le correctif pour pouvoir modifier les cases et l’ouverture de la roue.</p></section>}
       {params.saved && <div className="dashboard-feedback dashboard-feedback-success">Le statut du gain a été mis à jour.</div>}
       {params.deleted && <div className="dashboard-feedback dashboard-feedback-success">Le gain a été retiré de l’historique et du profil du citoyen. Son tirage quotidien reste consommé.</div>}
-      {params.error && <div className="dashboard-feedback dashboard-feedback-error">L’opération n’a pas pu être enregistrée. Vérifie que le SQL V30 est activé.</div>}
+      {params.configuration_saved && <div className="dashboard-feedback dashboard-feedback-success">La roue, ses cases et son état d’ouverture ont été enregistrés.</div>}
+      {params.error && <div className="dashboard-feedback dashboard-feedback-error">L’opération n’a pas pu être enregistrée. Vérifie que le SQL V136 est installé et que chaque case est complète.</div>}
 
       {configured && <>
+        <WheelSettingsEditor enabled={configuration.enabled} disabledMessage={configuration.disabledMessage} initialSegments={configuration.segments} />
         <section className="dashboard-kpi-grid wheel-dashboard-kpis">
+          <article><span>État citoyen</span><strong>{configuration.enabled ? "Activée" : "Désactivée"}</strong></article>
           <article><span>Tirages visibles</span><strong>{spins.length}</strong></article>
           <article><span>Gains à utiliser</span><strong>{unused}</strong></article>
           <article><span>Gains utilisés</span><strong>{used}</strong></article>

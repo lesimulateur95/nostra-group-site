@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export type SpinWheelResponse = {
   ok: boolean;
-  error?: "setup" | "save" | "auth" | "daily_limit";
+  error?: "setup" | "save" | "auth" | "daily_limit" | "disabled";
   spin?: {
     id: number;
     slot_index: number;
@@ -36,9 +36,13 @@ function isDailyLimitError(error: { code?: string | null; message?: string | nul
   return value.includes("daily_spin_limit") || value.includes("game_wheel_spins_one_per_day_idx");
 }
 
+function isWheelDisabledError(error: { code?: string | null; message?: string | null; details?: string | null; hint?: string | null } | null | undefined): boolean {
+  return errorText(error).includes("wheel_disabled");
+}
+
 function isSetupError(error: { code?: string | null; message?: string | null; details?: string | null; hint?: string | null } | null | undefined): boolean {
   const value = errorText(error);
-  return value.includes("pgrst202") || value.includes("pgrst205") || value.includes("42p01") || value.includes("spin_nostra_wheel") || value.includes("game_wheel_spins");
+  return value.includes("pgrst202") || value.includes("pgrst205") || value.includes("42p01") || value.includes("spin_nostra_wheel") || value.includes("save_nostra_wheel_configuration") || value.includes("game_wheel_spins") || value.includes("game_wheel_settings") || value.includes("game_wheel_segments");
 }
 
 export async function spinWheel(): Promise<SpinWheelResponse> {
@@ -49,6 +53,7 @@ export async function spinWheel(): Promise<SpinWheelResponse> {
   const { data: result, error } = await supabase.rpc("spin_nostra_wheel");
   if (error) {
     if (isDailyLimitError(error)) return { ok: false, error: "daily_limit" };
+    if (isWheelDisabledError(error)) return { ok: false, error: "disabled" };
     return { ok: false, error: isSetupError(error) ? "setup" : "save" };
   }
   if (!result || typeof result !== "object") return { ok: false, error: "save" };
@@ -58,7 +63,7 @@ export async function spinWheel(): Promise<SpinWheelResponse> {
   const id = Number(candidate.id);
   const prizeType = candidate.prize_type === "loss" ? "loss" : "bonus";
   const redemptionStatus = candidate.redemption_status === "used" ? "used" : candidate.redemption_status === "lost" ? "lost" : "unused";
-  if (!Number.isInteger(slotIndex) || slotIndex < 0 || slotIndex > 22 || !Number.isFinite(id)) {
+  if (!Number.isInteger(slotIndex) || slotIndex < 0 || slotIndex > 39 || !Number.isFinite(id)) {
     return { ok: false, error: "save" };
   }
 
@@ -79,6 +84,69 @@ export async function spinWheel(): Promise<SpinWheelResponse> {
       redemption_status: redemptionStatus,
     },
   };
+}
+
+type WheelSegmentInput = {
+  label: string;
+  shortLabel: string;
+  type: "bonus" | "loss";
+  color: string;
+  textColor: string;
+};
+
+function parseWheelSegments(value: FormDataEntryValue | null): WheelSegmentInput[] | null {
+  if (typeof value !== "string") return null;
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    if (!Array.isArray(parsed) || parsed.length < 2 || parsed.length > 40) return null;
+
+    const colorPattern = /^#[0-9a-f]{6}$/i;
+    const segments = parsed.map((entry) => {
+      if (!entry || typeof entry !== "object") throw new Error("invalid_segment");
+      const source = entry as Record<string, unknown>;
+      const label = typeof source.label === "string" ? source.label.trim().slice(0, 100) : "";
+      const shortLabel = typeof source.shortLabel === "string" ? source.shortLabel.trim().slice(0, 18) : "";
+      const type = source.type === "loss" ? "loss" : source.type === "bonus" ? "bonus" : null;
+      const color = typeof source.color === "string" && colorPattern.test(source.color) ? source.color : "";
+      const textColor = typeof source.textColor === "string" && colorPattern.test(source.textColor) ? source.textColor : "";
+      if (!label || !shortLabel || !type || !color || !textColor) throw new Error("invalid_segment");
+      return { label, shortLabel, type, color, textColor } as WheelSegmentInput;
+    });
+
+    return segments;
+  } catch {
+    return null;
+  }
+}
+
+export async function saveWheelConfiguration(formData: FormData) {
+  const enabled = formData.get("enabled") === "on";
+  const disabledMessage = text(formData.get("disabled_message"), 500);
+  const segments = parseWheelSegments(formData.get("segments"));
+  if (!disabledMessage || !segments) redirect("/dashboard/jeux/roue?error=configuration");
+
+  const { supabase } = await requireManager();
+  const payload = segments.map((segment, index) => ({
+    slot_index: index,
+    prize_key: segment.type === "loss" ? `loss_${index}` : `custom_${index}`,
+    label: segment.label,
+    short_label: segment.shortLabel,
+    prize_type: segment.type,
+    color: segment.color,
+    text_color: segment.textColor,
+  }));
+
+  const { error } = await supabase.rpc("save_nostra_wheel_configuration", {
+    p_enabled: enabled,
+    p_disabled_message: disabledMessage,
+    p_segments: payload,
+  });
+  if (error) redirect(`/dashboard/jeux/roue?error=${isSetupError(error) ? "setup" : "configuration"}`);
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/jeux/roue");
+  revalidatePath("/evenements/roue-de-la-chance");
+  redirect("/dashboard/jeux/roue?configuration_saved=1");
 }
 
 async function requireManager() {
