@@ -43,8 +43,9 @@ export default async function CommercialPerformancePage({ searchParams }: { sear
   const monthCommissions = performance.commissions.filter((item) => item.saleDate.startsWith(month));
   const sales = monthCommissions.filter((item) => item.status !== "cancelled");
   const revenue = sales.reduce((sum, item) => sum + item.saleAmount, 0);
-  const pending = sales.filter((item) => item.status !== "paid").reduce((sum, item) => sum + item.commissionAmount, 0);
   const paid = sales.filter((item) => item.status === "paid").reduce((sum, item) => sum + item.commissionAmount, 0);
+  const nostraNet = sales.reduce((sum, item) => sum + Math.max(0, item.saleAmount - item.commissionAmount), 0);
+  const accountBalance = performance.accounts.reduce((sum, account) => sum + account.balance, 0);
 
   const summaries = [...new Set([
     ...performance.objectives.filter((item) => item.month === monthStart).map((item) => item.commercialUserId),
@@ -54,15 +55,16 @@ export default async function CommercialPerformancePage({ searchParams }: { sear
     const objective = performance.objectives.find((item) => item.commercialUserId === userId && item.month === monthStart);
     const name = objective?.commercialName || commissions[0]?.commercialName || "Commercial";
     const totalRevenue = commissions.reduce((sum, item) => sum + item.saleAmount, 0);
-    const commissionDue = commissions.filter((item) => item.status !== "paid").reduce((sum, item) => sum + item.commissionAmount, 0);
+    const commissionPaid = commissions.filter((item) => item.status === "paid").reduce((sum, item) => sum + item.commissionAmount, 0);
     const reached = Boolean(objective && commissions.length >= objective.salesTarget && totalRevenue >= objective.revenueTarget);
     const monthPaid = performance.payments.some((item) => item.commercialUserId === userId && item.month === monthStart);
-    return { userId, name, commissions, objective, totalRevenue, commissionDue, reached, monthPaid };
+    const account = performance.accounts.find((item) => item.commercialUserId === userId);
+    return { userId, name, commissions, objective, totalRevenue, commissionPaid, reached, monthPaid, account };
   });
 
   return (
     <DashboardShell allowedRoles={["manager", "commercial"]}>
-      <DashboardHeader title="Commissions et objectifs commerciaux" description="Attribue les ventes, suis les objectifs mensuels et verse les commissions en comptabilité." />
+      <DashboardHeader title="Commissions et objectifs commerciaux" description="Chaque paiement crédite automatiquement le compte du commercial et déduit sa commission du compte Nostra." />
 
       {!performance.configured ? (
         <section className="dashboard-setup">
@@ -74,20 +76,21 @@ export default async function CommercialPerformancePage({ searchParams }: { sear
         <>
           {params.settings && <div className="dashboard-feedback dashboard-feedback-success">Paramètres de commission enregistrés.</div>}
           {params.objective && <div className="dashboard-feedback dashboard-feedback-success">Objectif mensuel enregistré.</div>}
-          {params.payment && <div className="dashboard-feedback dashboard-feedback-success">Paiement validé et dépense ajoutée en comptabilité.</div>}
+          {params.payment && <div className="dashboard-feedback dashboard-feedback-success">Prime d’objectif versée et ajoutée en comptabilité.</div>}
           {params.error && <div className="dashboard-feedback dashboard-feedback-error">{params.error === "paid" ? "Ce mois a déjà été payé." : params.error === "empty" ? "Aucune commission ni prime à payer pour ce mois." : "Impossible d’enregistrer cette action."}</div>}
 
           <section className={styles.kpis}>
             <article className={styles.kpi}><span>Ventes du mois</span><strong>{sales.length}</strong></article>
             <article className={styles.kpi}><span>Chiffre d’affaires</span><strong>{money(revenue)}</strong></article>
-            <article className={styles.kpi}><span>Commissions à payer</span><strong>{money(pending)}</strong></article>
-            <article className={styles.kpi}><span>Déjà payées</span><strong>{money(paid)}</strong></article>
+            <article className={styles.kpi}><span>Net conservé par Nostra</span><strong>{money(nostraNet)}</strong></article>
+            <article className={styles.kpi}><span>Commissions créditées</span><strong>{money(paid)}</strong></article>
+            <article className={styles.kpi}><span>Solde des comptes commerciaux</span><strong>{money(accountBalance)}</strong></article>
           </section>
 
           {manager && (
             <section className={styles.serviceLayout}>
               <article className={styles.panel}>
-                <div className={styles.panelHeader}><div><h2>Règle de commission</h2><p>Cette règle est mémorisée sur chaque commande au moment où elle est terminée.</p></div></div>
+                <div className={styles.panelHeader}><div><h2>Règle de commission</h2><p>Cette règle est appliquée dès que le paiement est enregistré et qu’un commercial est attribué.</p></div></div>
                 <form action={saveCommissionSettingsV137} className={styles.form}>
                   <label>État<select name="enabled" defaultValue={performance.settings.enabled ? "true" : "false"}><option value="true">Commissions activées</option><option value="false">Commissions désactivées</option></select></label>
                   <label>Calcul<select name="commission_mode" defaultValue={performance.settings.mode}><option value="percent">Pourcentage de la vente</option><option value="fixed">Prime fixe par vente</option></select></label>
@@ -118,24 +121,25 @@ export default async function CommercialPerformancePage({ searchParams }: { sear
               {summaries.length === 0 && <article className={styles.panel}><p className={styles.empty}>Aucune vente attribuée pour ce mois.</p></article>}
               {summaries.map((summary) => (
                 <article className={styles.panel} key={summary.userId}>
-                  <div className={styles.caseHead}><div><span className={styles.badge}>{summary.reached ? "Objectif atteint" : "En progression"}</span><h2>{summary.name}</h2><p>{summary.objective ? `Objectif : ${summary.objective.salesTarget} vente(s) et ${money(summary.objective.revenueTarget)}` : "Aucun objectif défini pour ce mois"}</p></div><strong>{money(summary.commissionDue)}</strong></div>
-                  <div className={styles.moneyGrid}><div><span>Ventes</span><strong>{summary.commissions.length}{summary.objective ? ` / ${summary.objective.salesTarget}` : ""}</strong></div><div><span>Chiffre d’affaires</span><strong>{money(summary.totalRevenue)}</strong></div><div><span>Prime d’objectif</span><strong>{summary.reached ? money(summary.objective?.targetBonus ?? 0) : "Non acquise"}</strong></div></div>
-                  {manager && !summary.monthPaid && summary.commissionDue + (summary.reached ? summary.objective?.targetBonus ?? 0 : 0) > 0 && (
+                  <div className={styles.caseHead}><div><span className={styles.badge}>{summary.reached ? "Objectif atteint" : "En progression"}</span><h2>{summary.name}</h2><p>{summary.objective ? `Objectif : ${summary.objective.salesTarget} vente(s) et ${money(summary.objective.revenueTarget)}` : "Aucun objectif défini pour ce mois"}</p></div><strong>{money(summary.account?.balance ?? 0)}</strong></div>
+                  <div className={styles.moneyGrid}><div><span>Ventes</span><strong>{summary.commissions.length}{summary.objective ? ` / ${summary.objective.salesTarget}` : ""}</strong></div><div><span>Chiffre d’affaires</span><strong>{money(summary.totalRevenue)}</strong></div><div><span>Commissions reçues</span><strong>{money(summary.commissionPaid)}</strong></div><div><span>Prime d’objectif</span><strong>{summary.reached ? money(summary.objective?.targetBonus ?? 0) : "Non acquise"}</strong></div></div>
+                  <p className={styles.notice}>Compte commercial crédité automatiquement : <strong>{money(summary.account?.totalCredited ?? 0)}</strong> au total.</p>
+                  {manager && !summary.monthPaid && (summary.reached ? summary.objective?.targetBonus ?? 0 : 0) > 0 && (
                     <form action={payCommercialMonthV137} className={styles.actions}>
                       <input type="hidden" name="commercial_user_id" value={summary.userId} />
                       <input type="hidden" name="payment_month" value={monthStart} />
-                      <button className={styles.primary}>Valider le paiement du mois</button>
+                      <button className={styles.primary}>Verser la prime d’objectif</button>
                     </form>
                   )}
-                  {summary.monthPaid && <p className={styles.notice}>Commissions et prime de ce mois déjà payées.</p>}
+                  {summary.monthPaid && <p className={styles.notice}>Prime d’objectif de ce mois déjà versée.</p>}
                 </article>
               ))}
             </div>
           </section>
 
           <section className={`${styles.panel} ${styles.section}`}>
-            <div className={styles.panelHeader}><div><h2>Détail des commissions</h2><p>Chaque ligne provient d’une commande terminée et attribuée à un commercial.</p></div></div>
-            <div className={styles.tableWrap}><table className={styles.table}><thead><tr><th>Date</th><th>Commande</th><th>Commercial</th><th>Vente</th><th>Commission</th><th>État</th></tr></thead><tbody>{performance.commissions.map((item) => <tr key={item.id}><td>{new Date(item.saleDate).toLocaleDateString("fr-FR")}</td><td>{item.orderNumber}</td><td>{item.commercialName}</td><td>{money(item.saleAmount)}</td><td>{money(item.commissionAmount)}</td><td>{statusLabels[item.status] ?? item.status}</td></tr>)}{performance.commissions.length === 0 && <tr><td colSpan={6}>Aucune commission enregistrée.</td></tr>}</tbody></table></div>
+            <div className={styles.panelHeader}><div><h2>Détail du compte commercial</h2><p>Prix payé, commission retirée automatiquement et montant net conservé par Nostra pour chaque vente.</p></div></div>
+            <div className={styles.tableWrap}><table className={styles.table}><thead><tr><th>Date</th><th>Commande</th><th>Commercial</th><th>Prix de vente</th><th>Commission créditée</th><th>Net Nostra</th><th>État</th></tr></thead><tbody>{performance.commissions.map((item) => <tr key={item.id}><td>{new Date(item.saleDate).toLocaleDateString("fr-FR")}</td><td>{item.orderNumber}</td><td>{item.commercialName}</td><td>{money(item.saleAmount)}</td><td>{money(item.commissionAmount)}</td><td>{money(Math.max(0, item.saleAmount - item.commissionAmount))}</td><td>{item.status === "paid" ? "Créditée automatiquement" : statusLabels[item.status] ?? item.status}</td></tr>)}{performance.commissions.length === 0 && <tr><td colSpan={7}>Aucune commission enregistrée.</td></tr>}</tbody></table></div>
           </section>
         </>
       )}

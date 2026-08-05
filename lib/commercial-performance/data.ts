@@ -35,6 +35,14 @@ export type CommercialCommissionV137 = {
   paidAt: string | null;
 };
 
+export type CommercialAccountV137 = {
+  commercialUserId: string;
+  commercialName: string;
+  balance: number;
+  totalCredited: number;
+  updatedAt: string;
+};
+
 export type CommercialPaymentV137 = {
   id: number;
   commercialUserId: string;
@@ -75,7 +83,7 @@ export async function getCommercialOptionsV137(): Promise<CommercialOptionV137[]
 
 export async function getCommercialPerformanceV137() {
   const supabase = await createClient();
-  const [settingsResult, objectivesResult, commissionsResult, paymentsResult] =
+  const [settingsResult, objectivesResult, commissionsResult, paymentsResult, accountsResult] =
     await Promise.all([
       supabase
         .from("commercial_commission_settings_v137")
@@ -96,6 +104,10 @@ export async function getCommercialPerformanceV137() {
         .select("id,commercial_user_id,commercial_name,payment_month,commission_total,objective_bonus,total_paid,paid_at")
         .order("payment_month", { ascending: false })
         .limit(100),
+      supabase
+        .from("commercial_accounts_v137")
+        .select("commercial_user_id,commercial_name,balance,total_credited,updated_at")
+        .order("commercial_name"),
     ]);
 
   const configured = !settingsResult.error;
@@ -141,6 +153,13 @@ export async function getCommercialPerformanceV137() {
       totalPaid: Number(row.total_paid),
       paidAt: String(row.paid_at),
     })) as CommercialPaymentV137[],
+    accounts: (accountsResult.data ?? []).map((row) => ({
+      commercialUserId: String(row.commercial_user_id),
+      commercialName: String(row.commercial_name),
+      balance: Number(row.balance),
+      totalCredited: Number(row.total_credited),
+      updatedAt: String(row.updated_at),
+    })) as CommercialAccountV137[],
   };
 }
 
