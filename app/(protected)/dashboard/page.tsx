@@ -318,6 +318,41 @@ export default async function DashboardPage() {
                 }
               />
             </DashboardModuleSubgroup>
+
+            <DashboardModuleSubgroup
+              eyebrow="SERVICES COMMERCIAUX"
+              title="Mandats et dépôts-vente"
+              description="Traiter les recherches de véhicules et les véhicules confiés à la vente par les citoyens."
+            >
+              <DashboardCard
+                href="/dashboard/occasion/mandats-recherche"
+                icon="🔎"
+                title="Mandats de recherche"
+                description="Consulter les demandes des citoyens, rechercher un véhicule et envoyer plusieurs propositions."
+                badge={
+                  !searchMandateOverview.configured
+                    ? "À activer"
+                    : searchMandateOverview.pending
+                      ? `${searchMandateOverview.pending} à traiter`
+                      : undefined
+                }
+              />
+              <DashboardCard
+                href="/dashboard/occasion/depots-vente"
+                icon="🤝"
+                title="Dossiers de dépôt-vente"
+                description="Étudier les véhicules confiés à Nostra, fixer la commission et suivre leur vente."
+                badge={
+                  !consignmentOverview.configured
+                    ? "À activer"
+                    : consignmentOverview.pending
+                      ? `${consignmentOverview.pending} à traiter`
+                      : consignmentOverview.published
+                        ? `${consignmentOverview.published} en vente`
+                        : undefined
+                }
+              />
+            </DashboardModuleSubgroup>
           </div>
         </DashboardModuleGroup>
 
@@ -373,34 +408,6 @@ export default async function DashboardPage() {
                     : tradeInOverview.pending
                       ? `${tradeInOverview.pending} à traiter`
                       : undefined
-                }
-              />
-              <DashboardCard
-                href="/dashboard/occasion/mandats-recherche"
-                icon="🔎"
-                title="Mandats de recherche"
-                description="Rechercher des véhicules selon le budget des citoyens et leur envoyer plusieurs propositions."
-                badge={
-                  !searchMandateOverview.configured
-                    ? "À activer"
-                    : searchMandateOverview.pending
-                      ? `${searchMandateOverview.pending} à traiter`
-                      : undefined
-                }
-              />
-              <DashboardCard
-                href="/dashboard/occasion/depots-vente"
-                icon="🤝"
-                title="Dépôts-vente"
-                description="Vendre les véhicules des citoyens sans les racheter et suivre la commission Nostra."
-                badge={
-                  !consignmentOverview.configured
-                    ? "À activer"
-                    : consignmentOverview.pending
-                      ? `${consignmentOverview.pending} à traiter`
-                      : consignmentOverview.published
-                        ? `${consignmentOverview.published} en vente`
-                        : undefined
                 }
               />
             </DashboardModuleSubgroup>
