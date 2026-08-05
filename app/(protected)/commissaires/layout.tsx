@@ -29,6 +29,11 @@ const commissionerNavigation = [
     label: "Rapports d’incident",
     prefetch: false,
   },
+  {
+    href: "/dashboard/racing-academy",
+    label: "Nostra Racing Academy",
+    prefetch: false,
+  },
 ];
 
 const disciplineNavigationItem = {

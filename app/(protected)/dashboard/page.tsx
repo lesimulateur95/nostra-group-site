@@ -17,6 +17,8 @@ import { getVehicleTradeInSummary } from "@/lib/vehicle-trade-ins/data";
 import { getVehicleFinancingSummary } from "@/lib/vehicle-financing/data";
 import { getSearchMandateSummaryV134 } from "@/lib/vehicle-search-mandates/data";
 import { getVehicleConsignmentSummaryV134 } from "@/lib/vehicle-consignments/data";
+import { getCommercialPendingCountV137 } from "@/lib/commercial-performance/data";
+import { getAcademyPendingCountV137 } from "@/lib/racing-academy/data";
 
 type DashboardModuleSubgroupProps = {
   eyebrow: string;
@@ -80,6 +82,8 @@ export default async function DashboardPage() {
     financingOverview,
     searchMandateOverview,
     consignmentOverview,
+    commercialPending,
+    academyPending,
   ] = await Promise.all([
     getDashboardOverview({
       managerAccess,
@@ -92,6 +96,8 @@ export default async function DashboardPage() {
     getVehicleFinancingSummary(),
     getSearchMandateSummaryV134(),
     getVehicleConsignmentSummaryV134(),
+    getCommercialPendingCountV137(),
+    getAcademyPendingCountV137(),
   ]);
 
   const accessLabel = managerAccess
@@ -110,7 +116,9 @@ export default async function DashboardPage() {
     tradeInOverview.pending +
     financingOverview.pending +
     searchMandateOverview.pending +
-    consignmentOverview.pending;
+    consignmentOverview.pending +
+    commercialPending +
+    academyPending;
 
   return (
     <DashboardShell allowedRoles={["manager", "employee", "commercial"]}>
@@ -265,6 +273,15 @@ export default async function DashboardPage() {
                         : undefined
                 }
               />
+              {(managerAccess || roles.includes("commercial")) && (
+                <DashboardCard
+                  href="/dashboard/commerciaux"
+                  icon="📈"
+                  title="Commissions et objectifs"
+                  description="Suivre les ventes attribuées, les objectifs mensuels, les primes et les commissions commerciales."
+                  badge={commercialPending ? `${commercialPending} à payer` : undefined}
+                />
+              )}
               {managerAccess && (
                 <DashboardCard
                   href="/dashboard/financements-vehicules"
@@ -528,6 +545,20 @@ export default async function DashboardPage() {
                 icon="🏆"
                 title="Calendriers F1 & GT3 RS"
                 description="Programmer les manches et événements dans le calendrier de chaque championnat."
+              />
+            </DashboardModuleSubgroup>
+
+            <DashboardModuleSubgroup
+              eyebrow="FORMATION"
+              title="Nostra Racing Academy"
+              description="Former les pilotes, organiser les examens et délivrer les qualifications du circuit."
+            >
+              <DashboardCard
+                href="/dashboard/racing-academy"
+                icon="🎓"
+                title="Gestion de la Racing Academy"
+                description="Créer les formations, traiter les inscriptions et noter les épreuves théoriques et pratiques."
+                badge={academyPending ? `${academyPending} demande(s)` : undefined}
               />
             </DashboardModuleSubgroup>
           </div>

@@ -67,7 +67,7 @@ async function requireMotorsStaff() {
     ["manager", "employee", "commercial"].includes(role),
   );
   if (!allowed) redirect("/accueil");
-  return { supabase, user: data.user };
+  return { supabase, user: data.user, roles };
 }
 
 function createOrderNumber(): string {
@@ -256,7 +256,7 @@ export async function updateOrder(formData: FormData) {
     redirect("/dashboard/commandes?error=invalid");
   }
 
-  const { supabase } = await requireMotorsStaff();
+  const { supabase, roles } = await requireMotorsStaff();
   const { error } = await supabase.rpc("update_nostra_order", {
     p_order_id: id,
     p_status: status,
@@ -271,7 +271,19 @@ export async function updateOrder(formData: FormData) {
       }`,
     );
   }
+
+  if (roles.includes("manager")) {
+    const commercialUserId = text(formData.get("commercial_user_id"), 80) || null;
+    const assignment = await supabase.rpc("assign_order_commercial_v137", {
+      p_order_id: id,
+      p_commercial_user_id: commercialUserId,
+    });
+    if (assignment.error) {
+      redirect("/dashboard/commandes?error=assignment");
+    }
+  }
   revalidateCommerce();
+  revalidatePath("/dashboard/commerciaux");
   redirect("/dashboard/commandes?saved=1");
 }
 

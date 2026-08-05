@@ -5,6 +5,7 @@ import { getOrderModuleConfigured, getOrders } from "@/lib/backoffice/data";
 import { ORDERS_SETUP_SQL } from "@/lib/backoffice/orders-setup-sql";
 import { getUserRoleKeys } from "@/lib/auth/access";
 import { createClient } from "@/lib/supabase/server";
+import { getCommercialOptionsV137 } from "@/lib/commercial-performance/data";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -28,6 +29,7 @@ export default async function OrdersDashboardPage({ searchParams }: { searchPara
   const { data: authData } = await supabase.auth.getUser();
   const roles = await getUserRoleKeys(authData.user);
   const canDeleteOrders = roles.includes("manager");
+  const commercials = canDeleteOrders ? await getCommercialOptionsV137() : [];
   const configured = await getOrderModuleConfigured();
   const orders = configured ? await getOrders() : [];
   const activeOrders = orders.filter((order) => !["completed", "cancelled"].includes(order.status));
@@ -64,13 +66,13 @@ export default async function OrdersDashboardPage({ searchParams }: { searchPara
 
           <section className="orders-admin-list">
             {activeOrders.length === 0 && <div className="backoffice-panel empty-state">Aucune commande active.</div>}
-            {activeOrders.map((order) => <OrderCard key={order.id} order={order} canDelete={canDeleteOrders} />)}
+            {activeOrders.map((order) => <OrderCard key={order.id} order={order} canDelete={canDeleteOrders} commercials={commercials} />)}
           </section>
 
           {archivedOrders.length > 0 && (
             <section className="processed-reservations">
               <div className="dashboard-section-heading dashboard-section-heading-tight"><p className="eyebrow">HISTORIQUE</p><h2>Commandes terminées ou annulées</h2></div>
-              <div className="orders-admin-list">{archivedOrders.map((order) => <OrderCard key={order.id} order={order} canDelete={canDeleteOrders} />)}</div>
+              <div className="orders-admin-list">{archivedOrders.map((order) => <OrderCard key={order.id} order={order} canDelete={canDeleteOrders} commercials={commercials} />)}</div>
             </section>
           )}
         </>
@@ -82,9 +84,11 @@ export default async function OrdersDashboardPage({ searchParams }: { searchPara
 function OrderCard({
   order,
   canDelete,
+  commercials,
 }: {
   order: Awaited<ReturnType<typeof getOrders>>[number];
   canDelete: boolean;
+  commercials: Awaited<ReturnType<typeof getCommercialOptionsV137>>;
 }) {
   return (
     <article className="backoffice-panel order-admin-card">
@@ -131,6 +135,14 @@ function OrderCard({
           <option value="completed">Livrée</option>
           <option value="cancelled">Annulée</option>
         </select></label>
+        {canDelete ? (
+          <label>Commercial attribué<select name="commercial_user_id" defaultValue={order.commercial_user_id ?? ""}>
+            <option value="">Non attribuée</option>
+            {commercials.map((commercial) => <option key={commercial.userId} value={commercial.userId}>{commercial.name}</option>)}
+          </select></label>
+        ) : (
+          <div className="reservation-reason"><span>Commercial attribué</span><p>{order.commercial_name || "Non attribuée"}</p></div>
+        )}
         <label className="form-span-2">Message visible par le client<textarea name="admin_note" rows={3} defaultValue={order.admin_note ?? ""} placeholder="Exemple : Votre véhicule est en cours de préparation." /></label>
         <button className="btn" type="submit">Enregistrer le suivi</button>
       </form>

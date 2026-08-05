@@ -99,6 +99,8 @@ export type CustomerOrder = {
   items: OrderItemSnapshot[];
   customer_note: string | null;
   admin_note: string | null;
+  commercial_user_id: string | null;
+  commercial_name: string | null;
   stock_deducted: boolean;
   created_at: string;
   updated_at: string;
@@ -319,7 +321,7 @@ export async function getOrders(): Promise<CustomerOrder[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("orders")
-    .select("id,user_id,order_number,customer_name,status,total,items,customer_note,admin_note,stock_deducted,created_at,updated_at")
+    .select("id,user_id,order_number,customer_name,status,total,items,customer_note,admin_note,commercial_user_id,commercial_name,stock_deducted,created_at,updated_at")
     .order("created_at", { ascending: false });
   if (error) return [];
   return (data ?? []).map((order) => ({

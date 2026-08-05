@@ -11,7 +11,7 @@ const managementTools = [
       "Renseigner l’ouverture des stands, les qualifications, le départ, la météo et les annonces visibles par les citoyens.",
   },
   {
-    href: "/commissaires/chronometrage",
+    href: "/dashboard/commissaires/chronometrage",
     icon: "⏱️",
     title: "Chronométrage et tours",
     description:
@@ -23,6 +23,13 @@ const managementTools = [
     title: "Classements spéciaux",
     description:
       "Gérer les classements événements, les contre-la-montre et les records officiels du Nostra Circuit.",
+  },
+  {
+    href: "/dashboard/racing-academy",
+    icon: "🎓",
+    title: "Nostra Racing Academy",
+    description:
+      "Gérer les formations, accepter les candidats, noter les examens et délivrer les qualifications.",
   },
   {
     href: "/commissaires/incidents-circuit",

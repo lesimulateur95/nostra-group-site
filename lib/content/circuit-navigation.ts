@@ -52,6 +52,14 @@ export const BUILT_IN_CIRCUIT_CATEGORIES: CircuitNavCategory[] = [
     ],
   },
   {
+    key: "racing-academy",
+    label: "Racing Academy",
+    href: "/circuit/racing-academy",
+    children: [
+      { key: "racing-academy", href: "/circuit/racing-academy", label: "Formations et inscriptions" },
+    ],
+  },
+  {
     key: "journal-officiel",
     label: "Journal officiel",
     href: "/circuit/journal-officiel",
