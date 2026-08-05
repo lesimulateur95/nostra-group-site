@@ -58,6 +58,8 @@ export type AccountingEntry = {
   label: string;
   amount: number;
   notes: string | null;
+  nostra_source_type?: string | null;
+  nostra_source_id?: string | null;
   created_at?: string | null;
 };
 
@@ -233,13 +235,22 @@ export async function getCatalogVehicles(includeUnpublished = false): Promise<Ca
 
 export async function getAccountingEntries(): Promise<AccountingEntry[]> {
   const supabase = await createClient();
-  const { data } = await supabase
+  const detailed = await supabase
+    .from("accounting_entries")
+    .select("id,entry_date,entry_type,category,label,amount,notes,nostra_source_type,nostra_source_id,created_at")
+    .order("entry_date", { ascending: false })
+    .order("id", { ascending: false })
+    .limit(100);
+  if (!detailed.error) return (detailed.data ?? []) as AccountingEntry[];
+
+  // Compatibilité avant l'installation de la V137.1.
+  const legacy = await supabase
     .from("accounting_entries")
     .select("id,entry_date,entry_type,category,label,amount,notes,created_at")
     .order("entry_date", { ascending: false })
     .order("id", { ascending: false })
     .limit(100);
-  return (data ?? []) as AccountingEntry[];
+  return (legacy.data ?? []) as AccountingEntry[];
 }
 
 export async function getEvents(includeDrafts = false): Promise<SiteEvent[]> {

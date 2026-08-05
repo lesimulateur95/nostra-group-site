@@ -455,6 +455,85 @@
 .performanceList dt { color: #828282; font-size: 0.71rem; }
 .performanceList dd { margin: 0; color: #e3e3e3; font-size: 0.76rem; font-weight: 900; text-align: right; }
 
+.salesTracePanel {
+  margin-top: 14px;
+}
+
+.traceSummary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 17px;
+}
+
+.traceSummary > div {
+  min-width: 0;
+  padding: 13px;
+  display: grid;
+  gap: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.065);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.traceSummary span {
+  color: #7e7e7e;
+  font-size: 0.64rem;
+  font-weight: 850;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.traceSummary strong {
+  color: #ededed;
+  font-size: 1.05rem;
+  overflow-wrap: anywhere;
+}
+
+.salesTraceTable {
+  min-width: 1120px;
+}
+
+.commissionCell {
+  min-width: 150px;
+}
+
+.destinationCell {
+  min-width: 180px;
+  display: grid;
+  gap: 3px;
+}
+
+.destinationCell strong {
+  color: #ebd267;
+  font-size: 0.76rem;
+}
+
+.destinationCell span {
+  color: #777;
+  font-size: 0.64rem;
+}
+
+.automaticRow {
+  background: rgba(212, 175, 55, 0.012);
+}
+
+.lockedEntry {
+  min-width: 38px;
+  min-height: 25px;
+  padding: 0 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(212, 175, 55, 0.15);
+  border-radius: 7px;
+  color: #ae9b4d;
+  background: rgba(212, 175, 55, 0.035);
+  font-size: 0.59rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
 .ledgerPanel {
   overflow: hidden;
 }
@@ -836,6 +915,10 @@
 
   .filterSummary {
     text-align: left;
+  }
+
+  .traceSummary {
+    grid-template-columns: 1fr;
   }
 
   .chart {

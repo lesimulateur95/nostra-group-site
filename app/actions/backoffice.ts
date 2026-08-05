@@ -188,7 +188,17 @@ export async function createAccountingEntry(formData: FormData) {
 export async function deleteAccountingEntry(formData: FormData) {
   const id = integer(formData.get("id"), 0);
   const { supabase } = await requireManager();
-  if (id > 0) await supabase.from("accounting_entries").delete().eq("id", id);
+  if (id > 0) {
+    const source = await supabase
+      .from("accounting_entries")
+      .select("nostra_source_type")
+      .eq("id", id)
+      .maybeSingle();
+    if (!source.error && source.data?.nostra_source_type) {
+      redirect("/dashboard/comptabilite?error=protected");
+    }
+    await supabase.from("accounting_entries").delete().eq("id", id);
+  }
   revalidatePath("/dashboard/comptabilite");
   redirect("/dashboard/comptabilite?deleted=1");
 }

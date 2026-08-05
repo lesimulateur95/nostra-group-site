@@ -3,6 +3,7 @@ import { createAccountingEntry, deleteAccountingEntry } from "@/app/actions/back
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { getAccountingEntries, type AccountingEntry } from "@/lib/backoffice/data";
+import { getCommercialPerformanceV137 } from "@/lib/commercial-performance/data";
 import styles from "./comptabilite.module.css";
 
 type SearchParams = Record<string, string | string[] | undefined>;
@@ -78,13 +79,20 @@ function trendLabel(value: number) {
   return value > 0 ? "En hausse" : "En baisse";
 }
 
+function commissionRule(mode: "percent" | "fixed", value: number) {
+  return mode === "fixed" ? `${currency(value)} fixe` : percent(value);
+}
+
 export default async function AccountingPage({
   searchParams,
 }: {
   searchParams: Promise<SearchParams>;
 }) {
   const params = await searchParams;
-  const entries = await getAccountingEntries();
+  const [entries, commercialPerformance] = await Promise.all([
+    getAccountingEntries(),
+    getCommercialPerformanceV137(),
+  ]);
   const now = new Date();
   const today = now.toISOString().slice(0, 10);
 
@@ -177,6 +185,17 @@ export default async function AccountingPage({
     Boolean(search),
   ].filter(Boolean).length;
 
+  const tracedSales = commercialPerformance.commissions
+    .filter((sale) => sale.status === "paid")
+    .filter((sale) => {
+      const saleDate = new Date(`${sale.saleDate}T12:00:00`);
+      const haystack = `${sale.orderNumber} ${sale.orderId} ${sale.commercialName}`.toLocaleLowerCase("fr-FR");
+      return (!start || saleDate >= start) && (!search || haystack.includes(search));
+    });
+  const tracedGross = tracedSales.reduce((sum, sale) => sum + sale.saleAmount, 0);
+  const tracedCommissions = tracedSales.reduce((sum, sale) => sum + sale.commissionAmount, 0);
+  const tracedNet = tracedGross - tracedCommissions;
+
   return (
     <DashboardShell>
       <main className={styles.page}>
@@ -203,7 +222,9 @@ export default async function AccountingPage({
         )}
         {params.error && (
           <div className="dashboard-feedback dashboard-feedback-error">
-            Vérifie la date, le type, le libellé et le montant saisi.
+            {scalar(params.error) === "protected"
+              ? "Cette écriture automatique est liée à une vente et ne peut pas être supprimée manuellement."
+              : "Vérifie la date, le type, le libellé et le montant saisi."}
           </div>
         )}
 
@@ -301,6 +322,74 @@ export default async function AccountingPage({
               <b>{filteredEntries.length}</b>
             </div>
           </article>
+        </section>
+
+        <section className={`${styles.panel} ${styles.salesTracePanel}`}>
+          <div className={styles.panelHeader}>
+            <div>
+              <span className={styles.eyebrow}>VENTES & COMMISSIONS</span>
+              <h2>Traçabilité complète des paiements</h2>
+              <p>Chaque paiement crée une recette brute Nostra et une dépense de commission versée au compte du commercial indiqué.</p>
+            </div>
+            <span className={styles.countBadge}>{tracedSales.length} vente(s)</span>
+          </div>
+
+          <div className={styles.traceSummary}>
+            <div><span>Ventes encaissées</span><strong className={styles.positive}>+{currency(tracedGross)}</strong></div>
+            <div><span>Commissions retirées</span><strong className={styles.negative}>−{currency(tracedCommissions)}</strong></div>
+            <div><span>Net conservé par Nostra</span><strong>{currency(tracedNet)}</strong></div>
+          </div>
+
+          {tracedSales.length === 0 ? (
+            <div className={styles.emptyState}>
+              <strong>Aucune vente avec commission sur cette période</strong>
+              <p>Les prochaines ventes payées et attribuées à un commercial apparaîtront ici automatiquement.</p>
+            </div>
+          ) : (
+            <div className={styles.tableWrap}>
+              <table className={`${styles.ledgerTable} ${styles.salesTraceTable}`}>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Commande</th>
+                    <th>Vente encaissée</th>
+                    <th>Commission retirée</th>
+                    <th>Destination</th>
+                    <th>Net Nostra</th>
+                    <th>Traçabilité</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {tracedSales.map((sale) => (
+                    <tr key={sale.id}>
+                      <td className={styles.dateCell}>{dateLabel(sale.saleDate)}</td>
+                      <td>
+                        <div className={styles.entryTitle}>
+                          <strong>{sale.orderNumber}</strong>
+                          <span>Dossier interne #{sale.orderId}</span>
+                        </div>
+                      </td>
+                      <td className={`${styles.amountColumn} ${styles.positive}`}>+{currency(sale.saleAmount)}</td>
+                      <td>
+                        <div className={`${styles.entryTitle} ${styles.commissionCell}`}>
+                          <strong className={styles.negative}>−{currency(sale.commissionAmount)}</strong>
+                          <span>Règle appliquée : {commissionRule(sale.commissionMode, sale.commissionValue)}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <div className={styles.destinationCell}>
+                          <strong>{sale.commercialName}</strong>
+                          <span>Créditée sur son compte commercial</span>
+                        </div>
+                      </td>
+                      <td className={styles.amountColumn}>{currency(Math.max(0, sale.saleAmount - sale.commissionAmount))}</td>
+                      <td><span className={`${styles.typePill} ${styles.incomePill}`}>Versée automatiquement</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </section>
 
         <section className={styles.insightGrid}>
@@ -412,7 +501,7 @@ export default async function AccountingPage({
                   </thead>
                   <tbody>
                     {filteredEntries.map((entry) => (
-                      <tr key={entry.id}>
+                      <tr key={entry.id} className={entry.nostra_source_type ? styles.automaticRow : undefined}>
                         <td className={styles.dateCell}>{dateLabel(entry.entry_date)}</td>
                         <td>
                           <div className={styles.entryTitle}>
@@ -430,10 +519,14 @@ export default async function AccountingPage({
                           {entry.entry_type === "income" ? "+" : "−"}{currency(Number(entry.amount))}
                         </td>
                         <td>
-                          <form action={deleteAccountingEntry}>
-                            <input type="hidden" name="id" value={entry.id} />
-                            <button className={styles.deleteButton} type="submit" aria-label={`Supprimer ${entry.label}`} title="Supprimer l’écriture">×</button>
-                          </form>
+                          {entry.nostra_source_type ? (
+                            <span className={styles.lockedEntry} title="Écriture automatique protégée">Auto</span>
+                          ) : (
+                            <form action={deleteAccountingEntry}>
+                              <input type="hidden" name="id" value={entry.id} />
+                              <button className={styles.deleteButton} type="submit" aria-label={`Supprimer ${entry.label}`} title="Supprimer l’écriture">×</button>
+                            </form>
+                          )}
                         </td>
                       </tr>
                     ))}

@@ -29,10 +29,13 @@ export type CommercialCommissionV137 = {
   commercialUserId: string;
   commercialName: string;
   saleAmount: number;
+  commissionMode: "percent" | "fixed";
+  commissionValue: number;
   commissionAmount: number;
   status: string;
   saleDate: string;
   paidAt: string | null;
+  creditedAt: string | null;
 };
 
 export type CommercialAccountV137 = {
@@ -96,7 +99,7 @@ export async function getCommercialPerformanceV137() {
         .order("objective_month", { ascending: false }),
       supabase
         .from("commercial_commissions_v137")
-        .select("id,order_id,order_number,commercial_user_id,commercial_name,sale_amount,commission_amount,status,sale_date,paid_at")
+        .select("id,order_id,order_number,commercial_user_id,commercial_name,sale_amount,commission_mode,commission_value,commission_amount,status,sale_date,paid_at,credited_at")
         .order("sale_date", { ascending: false })
         .limit(300),
       supabase
@@ -138,10 +141,13 @@ export async function getCommercialPerformanceV137() {
       commercialUserId: String(row.commercial_user_id),
       commercialName: String(row.commercial_name),
       saleAmount: Number(row.sale_amount),
+      commissionMode: row.commission_mode === "fixed" ? "fixed" : "percent",
+      commissionValue: Number(row.commission_value),
       commissionAmount: Number(row.commission_amount),
       status: String(row.status),
       saleDate: String(row.sale_date),
       paidAt: row.paid_at ? String(row.paid_at) : null,
+      creditedAt: row.credited_at ? String(row.credited_at) : null,
     })) as CommercialCommissionV137[],
     payments: (paymentsResult.data ?? []).map((row) => ({
       id: Number(row.id),
