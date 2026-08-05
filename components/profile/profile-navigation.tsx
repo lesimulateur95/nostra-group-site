@@ -5,6 +5,8 @@ type ProfileNavigationProps = {
   reservations: number;
   financing: number;
   tradeIns: number;
+  searchMandates: number;
+  consignments: number;
   homologations: number;
   teams: number;
   documents: number;
@@ -53,6 +55,20 @@ const cards: NavigationCard[] = [
     description:
       "Envoyer une demande d’estimation et suivre l’offre de Nostra Motors.",
     countKey: "tradeIns",
+  },
+  {
+    href: "/motors/mandat-recherche",
+    icon: "🔎",
+    label: "Mes mandats de recherche",
+    description: "Demander un véhicule précis et comparer les propositions du commercial.",
+    countKey: "searchMandates",
+  },
+  {
+    href: "/motors/depot-vente",
+    icon: "🤝",
+    label: "Mes dépôts-vente",
+    description: "Confier un véhicule à la vente et suivre la commission et le règlement.",
+    countKey: "consignments",
   },
   {
     href: "/profil/homologations",
@@ -140,6 +156,8 @@ export function ProfileNavigation({
   reservations,
   financing,
   tradeIns,
+  searchMandates,
+  consignments,
   homologations,
   teams,
   documents,
@@ -150,6 +168,8 @@ export function ProfileNavigation({
     reservations,
     financing,
     tradeIns,
+    searchMandates,
+    consignments,
     homologations,
     teams,
     documents,

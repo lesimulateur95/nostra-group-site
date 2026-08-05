@@ -6,6 +6,8 @@ const ITEMS = [
   ["Catalogue", "/dashboard/occasion/catalogue"],
   ["Stock", "/dashboard/occasion/stocks"],
   ["Rachats", "/dashboard/occasion/rachats"],
+  ["Mandats de recherche", "/dashboard/occasion/mandats-recherche"],
+  ["Dépôts-vente", "/dashboard/occasion/depots-vente"],
   ["Commandes", "/dashboard/occasion/commandes"],
   ["Ventes", "/dashboard/occasion/ventes"],
   ["Clients", "/dashboard/occasion/clients"],

@@ -47,6 +47,8 @@ import { getUserRoleLabel } from "@/lib/auth/access";
 import { createClient } from "@/lib/supabase/server";
 import { getOwnVehicleReservations } from "@/lib/vehicle-reservations/data";
 import { getOwnVehicleTradeInRequests } from "@/lib/vehicle-trade-ins/data";
+import { getOwnSearchMandatesV134 } from "@/lib/vehicle-search-mandates/data";
+import { getOwnVehicleConsignmentsV134 } from "@/lib/vehicle-consignments/data";
 import { getActiveLoyaltyCard, getLoyaltyDiscountPercent } from "@/lib/loyalty-cards/data";
 import { getOwnMemberRoles, MEMBER_ROLE_LABELS, type MemberRoleKey } from "@/lib/member-roles/data";
 import { getOwnContractCart } from "@/lib/contracts/data";
@@ -94,7 +96,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
  const rpName = getRpName(data.user);
 
  const complete = hasRpProfile(data.user);
- const [role, commerce, homologations, teamRegistrations, wheelSpins, tombolaCart, tombolaTickets, bingoCart, bingoCards, licenseCart, unreadNotifications, mailboxOverview, vehicleReservations, vehicleTradeIns, activeLoyaltyCard, memberRoles, contractCart, vehicleFinancing] = await Promise.all([
+ const [role, commerce, homologations, teamRegistrations, wheelSpins, tombolaCart, tombolaTickets, bingoCart, bingoCards, licenseCart, unreadNotifications, mailboxOverview, vehicleReservations, vehicleTradeIns, activeLoyaltyCard, memberRoles, contractCart, vehicleFinancing, searchMandates, vehicleConsignments] = await Promise.all([
 
  getUserRoleLabel(data.user),
 
@@ -130,6 +132,10 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
  getOwnContractCart(data.user.id),
 
  getOwnVehicleFinancingApplications(data.user.id),
+
+ getOwnSearchMandatesV134(data.user.id),
+
+ getOwnVehicleConsignmentsV134(data.user.id),
 
  ]);
 
@@ -245,7 +251,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
 
  </div>
 
- <ProfileNavigation orders={commerce.orders.length} reservations={vehicleReservations.length} financing={vehicleFinancing.length} tradeIns={vehicleTradeIns.length} homologations={homologations.length} teams={teamRegistrations.length} documents={commerce.invoices.length} games={wheelSpins.length + tombolaTickets.length + bingoCards.length} />
+ <ProfileNavigation orders={commerce.orders.length} reservations={vehicleReservations.length} financing={vehicleFinancing.length} tradeIns={vehicleTradeIns.length} searchMandates={searchMandates.length} consignments={vehicleConsignments.length} homologations={homologations.length} teams={teamRegistrations.length} documents={commerce.invoices.length} games={wheelSpins.length + tombolaTickets.length + bingoCards.length} />
  {!commerce.configured && <div className="dashboard-feedback">Les rubriques commerciales seront disponibles dès que le script SQL du Dashboard aura été exécuté.</div>}
 
  {params.vehicle_added && <div className="dashboard-feedback dashboard-feedback-success">Le véhicule et son mode de livraison ont été ajoutés à ton panier au prix total.</div>}

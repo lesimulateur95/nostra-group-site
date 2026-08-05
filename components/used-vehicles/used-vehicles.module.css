@@ -341,11 +341,84 @@
   margin-top: 22px;
 }
 
+.serviceLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.stack {
+  display: grid;
+  gap: 16px;
+}
+
+.caseCard,
+.proposal {
+  padding: 17px;
+  border: 1px solid rgba(214, 170, 35, 0.18);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.caseHead {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+
+.caseHead h2,
+.caseHead h3,
+.proposal h3,
+.proposal h4 { margin: 7px 0; }
+
+.caseHead p,
+.proposal p { margin: 5px 0; color: #a9adb6; }
+
+.proposalGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 14px 0;
+}
+
+.proposal a { color: #f1d469; }
+.proposal form { margin-top: 12px; }
+
+.notice {
+  margin: 14px 0;
+  padding: 12px 14px;
+  border-left: 3px solid #d6aa23;
+  border-radius: 8px;
+  color: #d9dbe0;
+  background: rgba(214, 170, 35, 0.07);
+}
+
+.detailsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 14px 0;
+}
+
+.detailsGrid div {
+  padding: 11px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.detailsGrid span { display: block; color: #90949f; font-size: .72rem; text-transform: uppercase; }
+.detailsGrid strong { display: block; margin-top: 4px; }
+
 @media (max-width: 1050px) {
   .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .span3, .span4 { grid-column: 1 / -1; }
   .grid { grid-template-columns: 1fr; }
+  .serviceLayout { grid-template-columns: 1fr; }
+  .detailsGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 700px) {
@@ -354,4 +427,6 @@
   .vehicleTop { grid-template-columns: 1fr; }
   .moneyGrid { grid-template-columns: 1fr; }
   .imageStrip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .proposalGrid, .detailsGrid { grid-template-columns: 1fr; }
+  .caseHead { flex-direction: column; }
 }

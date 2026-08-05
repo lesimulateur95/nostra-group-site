@@ -61,6 +61,19 @@ function addCatalogChildren(
   });
 }
 
+function addV134Services(items: SidebarNavItem[]): SidebarNavItem[] {
+  const keys = new Set(items.map((item) => item.key));
+  return [
+    ...items,
+    ...(!keys.has("mandat-recherche")
+      ? [{ key: "mandat-recherche", href: "/motors/mandat-recherche", label: "Mandat de recherche" }]
+      : []),
+    ...(!keys.has("depot-vente")
+      ? [{ key: "depot-vente", href: "/motors/depot-vente", label: "Dépôt-vente" }]
+      : []),
+  ];
+}
+
 export default async function MotorsLayout({
   children,
 }: {
@@ -72,7 +85,7 @@ export default async function MotorsLayout({
   return (
     <SectionLayout
       title="NOSTRA MOTORS"
-      items={addCatalogChildren(navigation)}
+      items={addV134Services(addCatalogChildren(navigation))}
     >
       <MotorsStatusBanner />
       {children}

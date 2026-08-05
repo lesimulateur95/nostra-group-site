@@ -15,6 +15,8 @@ import { getUsedVehicleDashboardSummary } from "@/lib/used-vehicles/data";
 import { getVehicleReservationSummary } from "@/lib/vehicle-reservations/data";
 import { getVehicleTradeInSummary } from "@/lib/vehicle-trade-ins/data";
 import { getVehicleFinancingSummary } from "@/lib/vehicle-financing/data";
+import { getSearchMandateSummaryV134 } from "@/lib/vehicle-search-mandates/data";
+import { getVehicleConsignmentSummaryV134 } from "@/lib/vehicle-consignments/data";
 
 type DashboardModuleSubgroupProps = {
   eyebrow: string;
@@ -76,6 +78,8 @@ export default async function DashboardPage() {
     recruitmentOverview,
     tradeInOverview,
     financingOverview,
+    searchMandateOverview,
+    consignmentOverview,
   ] = await Promise.all([
     getDashboardOverview({
       managerAccess,
@@ -86,6 +90,8 @@ export default async function DashboardPage() {
     getRecruitmentSummary(),
     getVehicleTradeInSummary(),
     getVehicleFinancingSummary(),
+    getSearchMandateSummaryV134(),
+    getVehicleConsignmentSummaryV134(),
   ]);
 
   const accessLabel = managerAccess
@@ -102,7 +108,9 @@ export default async function DashboardPage() {
     vehicleReservationOverview.pending +
     recruitmentOverview.pending +
     tradeInOverview.pending +
-    financingOverview.pending;
+    financingOverview.pending +
+    searchMandateOverview.pending +
+    consignmentOverview.pending;
 
   return (
     <DashboardShell allowedRoles={["manager", "employee", "commercial"]}>
@@ -365,6 +373,34 @@ export default async function DashboardPage() {
                     : tradeInOverview.pending
                       ? `${tradeInOverview.pending} à traiter`
                       : undefined
+                }
+              />
+              <DashboardCard
+                href="/dashboard/occasion/mandats-recherche"
+                icon="🔎"
+                title="Mandats de recherche"
+                description="Rechercher des véhicules selon le budget des citoyens et leur envoyer plusieurs propositions."
+                badge={
+                  !searchMandateOverview.configured
+                    ? "À activer"
+                    : searchMandateOverview.pending
+                      ? `${searchMandateOverview.pending} à traiter`
+                      : undefined
+                }
+              />
+              <DashboardCard
+                href="/dashboard/occasion/depots-vente"
+                icon="🤝"
+                title="Dépôts-vente"
+                description="Vendre les véhicules des citoyens sans les racheter et suivre la commission Nostra."
+                badge={
+                  !consignmentOverview.configured
+                    ? "À activer"
+                    : consignmentOverview.pending
+                      ? `${consignmentOverview.pending} à traiter`
+                      : consignmentOverview.published
+                        ? `${consignmentOverview.published} en vente`
+                        : undefined
                 }
               />
             </DashboardModuleSubgroup>
