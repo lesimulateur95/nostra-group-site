@@ -87,13 +87,10 @@ export function MoneyDropExperience({
   );
   const amountToPlace = game?.current_amount ?? 0;
   const remainingToPlace = amountToPlace - totalAllocated;
-  const availableKeys = question?.options.map((option) => option.key) ?? [];
-  const hasEmptyDoor = availableKeys.some((key) => allocations[key] === 0);
   const canSubmit =
     game?.status === "question_open" &&
     state.current_user_is_player &&
-    remainingToPlace === 0 &&
-    hasEmptyDoor;
+    remainingToPlace === 0;
 
   function updateAllocation(key: MoneyDropOptionKey, value: string) {
     const parsed = Number(value);
@@ -111,7 +108,7 @@ export function MoneyDropExperience({
           <h1>Money Drop</h1>
           <p>
             La régie prépare la prochaine équipe. Toute la cagnotte devra être
-            répartie sur les trappes, avec au moins une réponse laissée vide.
+            répartie librement sur une ou plusieurs trappes.
           </p>
         </section>
         <section className={styles.waiting}>
@@ -249,7 +246,7 @@ export function MoneyDropExperience({
                     Reste à placer : <strong>{money(remainingToPlace)}</strong>
                   </span>
                   <span>
-                    Une trappe doit rester vide : <strong>{hasEmptyDoor ? "Oui" : "Non"}</strong>
+                    Répartition libre : <strong>toutes les trappes peuvent recevoir une mise</strong>
                   </span>
                   <button className={styles.primaryButton} type="submit" disabled={!canSubmit}>
                     Valider la répartition
