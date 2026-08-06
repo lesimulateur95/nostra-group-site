@@ -285,8 +285,9 @@ export async function getMoneyDropQuestions(): Promise<MoneyDropQuestion[]> {
         "id,category,question,option_a,option_b,option_c,option_d,correct_option,active,created_at",
       )
       .order("active", { ascending: false })
-      .order("created_at", { ascending: false })
-      .limit(300);
+      .order("category", { ascending: true })
+      .order("question", { ascending: true })
+      .limit(1000);
 
     if (error || !Array.isArray(data)) return [];
 

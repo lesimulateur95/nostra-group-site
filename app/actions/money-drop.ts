@@ -164,9 +164,13 @@ export async function selectMoneyDropQuestion(formData: FormData) {
 }
 
 export async function selectRandomMoneyDropQuestion(formData: FormData) {
+  const category = text(formData, "category", 100);
   await managerRpc(
     "money_drop_select_random_question",
-    { p_game_id: text(formData, "game_id", 80) },
+    {
+      p_game_id: text(formData, "game_id", 80),
+      p_category: category || null,
+    },
     "question-selected",
   );
 }

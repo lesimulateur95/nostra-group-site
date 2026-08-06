@@ -43,11 +43,11 @@ function errorLabel(value: string | undefined) {
 
   if (decoded.includes("settings")) return "Vérifie la cagnotte, le nombre de manches et le chronomètre.";
   if (decoded.includes("question_in_use")) return "Cette question est déjà utilisée par la partie en cours.";
+  if (decoded.includes("no_question_available")) return "Aucune question active et encore inutilisée n’est disponible dans ce thème.";
   if (decoded.includes("question")) return "La question doit contenir entre deux et quatre réponses valides.";
   if (decoded.includes("players")) return "Sélectionne entre un et quatre citoyens différents.";
   if (decoded.includes("allocations_missing")) return "Les joueurs doivent d’abord placer toute la cagnotte.";
   if (decoded.includes("active_game_exists")) return "Une partie est déjà active. Ferme-la avant d’en créer une nouvelle.";
-  if (decoded.includes("no_question_available")) return "Aucune question active et encore inutilisée n’est disponible.";
   return "L’action n’a pas pu être enregistrée. Vérifie l’état de la partie.";
 }
 

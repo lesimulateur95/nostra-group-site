@@ -42,6 +42,31 @@ function statusLabel(status: string | undefined) {
   return "Aucune partie";
 }
 
+const ALL_THEMES = "Tous les thèmes";
+
+const MONEY_DROP_THEMES = [
+  "Automobile",
+  "Culture générale",
+  "Géographie",
+  "Histoire",
+  "Sciences",
+  "Espace",
+  "Technologie",
+  "Sport",
+  "Football",
+  "Cinéma & séries",
+  "Musique",
+  "Cuisine",
+  "Nature",
+  "Animaux",
+  "Logique & maths",
+  "Jeux de société",
+  "Jeux vidéo",
+  "Littérature & français",
+  "Mythologie",
+  "France & patrimoine",
+] as const;
+
 export function MoneyDropManager({
   state,
   citizens,
@@ -52,6 +77,7 @@ export function MoneyDropManager({
   questions: MoneyDropQuestion[];
 }) {
   const [playerCount, setPlayerCount] = useState(2);
+  const [questionTheme, setQuestionTheme] = useState(ALL_THEMES);
   const router = useRouter();
   const game = state.game;
 
@@ -74,7 +100,22 @@ export function MoneyDropManager({
 
     return () => window.clearInterval(interval);
   }, [game?.status, router]);
-  const activeQuestions = questions.filter((question) => question.active !== false);
+  const defaultThemes = new Set<string>(MONEY_DROP_THEMES);
+  const extraThemes = questions
+    .map((question) => question.category)
+    .filter((category) => !defaultThemes.has(category));
+  const themes = [...MONEY_DROP_THEMES, ...Array.from(new Set(extraThemes)).sort()];
+  const sortedQuestions = [...questions].sort((a, b) =>
+    a.category.localeCompare(b.category, "fr") ||
+    a.question.localeCompare(b.question, "fr"),
+  );
+  const activeQuestions = sortedQuestions.filter(
+    (question) => question.active !== false,
+  );
+  const visibleQuestions =
+    questionTheme === ALL_THEMES
+      ? sortedQuestions
+      : sortedQuestions.filter((question) => question.category === questionTheme);
   const allocated = Object.values(state.allocations).reduce(
     (total, value) => total + value,
     0,
@@ -260,20 +301,45 @@ export function MoneyDropManager({
                         <option value="" disabled>
                           Choisir une question active
                         </option>
-                        {activeQuestions.map((question) => (
-                          <option key={question.id} value={question.id}>
-                            [{question.category}] {question.question}
-                          </option>
-                        ))}
+                        {themes.map((theme) => {
+                          const themeQuestions = activeQuestions.filter(
+                            (question) => question.category === theme,
+                          );
+                          if (themeQuestions.length === 0) return null;
+
+                          return (
+                            <optgroup
+                              key={theme}
+                              label={`${theme} — ${themeQuestions.length} question${themeQuestions.length > 1 ? "s" : ""}`}
+                            >
+                              {themeQuestions.map((question) => (
+                                <option key={question.id} value={question.id}>
+                                  {question.question}
+                                </option>
+                              ))}
+                            </optgroup>
+                          );
+                        })}
                       </select>
                     </label>
                     <button type="submit">Charger cette question</button>
                   </form>
 
                   <div className={styles.actionRow}>
-                    <form action={selectRandomMoneyDropQuestion}>
+                    <form
+                      action={selectRandomMoneyDropQuestion}
+                      className={styles.randomThemeForm}
+                    >
                       <input type="hidden" name="game_id" value={game.id} />
-                      <button type="submit">Tirer une question au hasard</button>
+                      <select name="category" defaultValue="">
+                        <option value="">Tous les thèmes</option>
+                        {themes.map((theme) => (
+                          <option key={theme} value={theme}>
+                            {theme}
+                          </option>
+                        ))}
+                      </select>
+                      <button type="submit">Tirer au hasard dans ce thème</button>
                     </form>
                     <form action={openMoneyDropQuestion}>
                       <input type="hidden" name="game_id" value={game.id} />
@@ -348,16 +414,81 @@ export function MoneyDropManager({
 
           <section className={styles.managerSection}>
             <span className={styles.eyebrow}>BANQUE DE QUESTIONS</span>
-            <h2>Créer une nouvelle question</h2>
+            <h2>200 questions classées par thèmes</h2>
             <p>
-              Deux réponses minimum, quatre maximum. La réponse correcte ne sera
-              jamais envoyée aux citoyens avant la révélation.
+              Chaque thème contient sa propre série de questions. Deux réponses
+              minimum, quatre maximum. La bonne réponse reste cachée aux citoyens
+              jusqu’à la révélation.
             </p>
+
+            <div className={styles.bankStats}>
+              <div>
+                <span>Total</span>
+                <strong>{questions.length}</strong>
+              </div>
+              <div>
+                <span>Actives</span>
+                <strong>{activeQuestions.length}</strong>
+              </div>
+              <div>
+                <span>Thèmes</span>
+                <strong>{themes.length}</strong>
+              </div>
+            </div>
+
+            <div className={styles.themeGrid}>
+              <button
+                className={
+                  questionTheme === ALL_THEMES
+                    ? styles.themeButtonActive
+                    : styles.themeButton
+                }
+                type="button"
+                onClick={() => setQuestionTheme(ALL_THEMES)}
+              >
+                <span>{ALL_THEMES}</span>
+                <strong>{questions.length}</strong>
+              </button>
+              {themes.map((theme) => {
+                const total = questions.filter(
+                  (question) => question.category === theme,
+                ).length;
+                const active = activeQuestions.filter(
+                  (question) => question.category === theme,
+                ).length;
+
+                return (
+                  <button
+                    className={
+                      questionTheme === theme
+                        ? styles.themeButtonActive
+                        : styles.themeButton
+                    }
+                    key={theme}
+                    type="button"
+                    onClick={() => setQuestionTheme(theme)}
+                  >
+                    <span>{theme}</span>
+                    <strong>
+                      {active}/{total}
+                    </strong>
+                  </button>
+                );
+              })}
+            </div>
+
+            <h3>Créer une nouvelle question</h3>
 
             <form action={addMoneyDropQuestion} className={styles.questionForm}>
               <label>
-                <span>Catégorie</span>
-                <input name="category" type="text" maxLength={100} required />
+                <span>Thème</span>
+                <select name="category" defaultValue="Culture générale" required>
+                  {themes.map((theme) => (
+                    <option key={theme} value={theme}>
+                      {theme}
+                    </option>
+                  ))}
+                </select>
               </label>
               <label>
                 <span>Question</span>
@@ -393,14 +524,24 @@ export function MoneyDropManager({
               </button>
             </form>
 
+            <div className={styles.questionListHeader}>
+              <div>
+                <span className={styles.eyebrow}>THÈME AFFICHÉ</span>
+                <h3>{questionTheme}</h3>
+              </div>
+              <strong>
+                {visibleQuestions.length} question
+                {visibleQuestions.length > 1 ? "s" : ""}
+              </strong>
+            </div>
+
             <div className={styles.questionList}>
-              {questions.map((question) => (
+              {visibleQuestions.map((question) => (
                 <article className={styles.questionItem} key={question.id}>
                   <span>#{question.id}</span>
                   <div>
-                    <strong>
-                      [{question.category}] {question.question}
-                    </strong>
+                    <span className={styles.themeBadge}>{question.category}</span>
+                    <strong>{question.question}</strong>
                     <br />
                     <small>
                       Bonne réponse : {question.correct_option} · {question.options.length} trappes
