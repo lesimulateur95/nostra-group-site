@@ -5,6 +5,7 @@ import type {
   SidebarNavItem,
 } from "@/components/site/sidebar-nav";
 import { MotorsStatusBanner } from "@/components/site/motors-status-banner";
+import { MoneyDropPortalCard } from "@/components/money-drop/money-drop-portal-card";
 import { SectionLayout } from "@/components/site/section-layout";
 import {
   getSectionNavigation,
@@ -88,6 +89,7 @@ export default async function MotorsLayout({
       items={addV134Services(addCatalogChildren(navigation))}
     >
       <MotorsStatusBanner />
+      <MoneyDropPortalCard />
       {children}
     </SectionLayout>
   );
