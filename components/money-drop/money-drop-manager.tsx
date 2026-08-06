@@ -78,6 +78,7 @@ export function MoneyDropManager({
 }) {
   const [playerCount, setPlayerCount] = useState(2);
   const [questionTheme, setQuestionTheme] = useState(ALL_THEMES);
+  const [questionBankType, setQuestionBankType] = useState<"standard" | "final">("standard");
   const router = useRouter();
   const game = state.game;
 
@@ -106,16 +107,31 @@ export function MoneyDropManager({
     .filter((category) => !defaultThemes.has(category));
   const themes = [...MONEY_DROP_THEMES, ...Array.from(new Set(extraThemes)).sort()];
   const sortedQuestions = [...questions].sort((a, b) =>
+    Number(a.is_final === true) - Number(b.is_final === true) ||
     a.category.localeCompare(b.category, "fr") ||
     a.question.localeCompare(b.question, "fr"),
   );
   const activeQuestions = sortedQuestions.filter(
     (question) => question.active !== false,
   );
+  const standardQuestions = sortedQuestions.filter((question) => question.is_final !== true);
+  const finalQuestions = sortedQuestions.filter((question) => question.is_final === true);
+  const bankQuestions = questionBankType === "final" ? finalQuestions : standardQuestions;
+  const activeBankQuestions = bankQuestions.filter((question) => question.active !== false);
+  const bankThemes = themes.filter((theme) =>
+    bankQuestions.some((question) => question.category === theme),
+  );
   const visibleQuestions =
     questionTheme === ALL_THEMES
-      ? sortedQuestions
-      : sortedQuestions.filter((question) => question.category === questionTheme);
+      ? bankQuestions
+      : bankQuestions.filter((question) => question.category === questionTheme);
+  const isFinalRound = Boolean(game && game.current_round >= game.total_rounds);
+  const roundQuestions = activeQuestions.filter(
+    (question) => (question.is_final === true) === isFinalRound,
+  );
+  const roundThemes = themes.filter((theme) =>
+    roundQuestions.some((question) => question.category === theme),
+  );
   const allocated = Object.values(state.allocations).reduce(
     (total, value) => total + value,
     0,
@@ -292,7 +308,11 @@ export function MoneyDropManager({
                   <form action={selectMoneyDropQuestion} className={styles.formGrid}>
                     <input type="hidden" name="game_id" value={game.id} />
                     <label className={styles.fullWidth}>
-                      <span>Question de la manche {game.current_round}</span>
+                      <span>
+                        {isFinalRound
+                          ? `Question finale — manche ${game.current_round}`
+                          : `Question de la manche ${game.current_round}`}
+                      </span>
                       <select
                         name="question_id"
                         defaultValue={state.question?.id ? String(state.question.id) : ""}
@@ -301,8 +321,8 @@ export function MoneyDropManager({
                         <option value="" disabled>
                           Choisir une question active
                         </option>
-                        {themes.map((theme) => {
-                          const themeQuestions = activeQuestions.filter(
+                        {roundThemes.map((theme) => {
+                          const themeQuestions = roundQuestions.filter(
                             (question) => question.category === theme,
                           );
                           if (themeQuestions.length === 0) return null;
@@ -333,13 +353,13 @@ export function MoneyDropManager({
                       <input type="hidden" name="game_id" value={game.id} />
                       <select name="category" defaultValue="">
                         <option value="">Tous les thèmes</option>
-                        {themes.map((theme) => (
+                        {roundThemes.map((theme) => (
                           <option key={theme} value={theme}>
                             {theme}
                           </option>
                         ))}
                       </select>
-                      <button type="submit">Tirer au hasard dans ce thème</button>
+                      <button type="submit">{isFinalRound ? "Tirer une finale au hasard" : "Tirer au hasard dans ce thème"}</button>
                     </form>
                     <form action={openMoneyDropQuestion}>
                       <input type="hidden" name="game_id" value={game.id} />
@@ -414,11 +434,11 @@ export function MoneyDropManager({
 
           <section className={styles.managerSection}>
             <span className={styles.eyebrow}>BANQUE DE QUESTIONS</span>
-            <h2>200 questions classées par thèmes</h2>
+            <h2>250 questions classées par thèmes</h2>
             <p>
-              Chaque thème contient sa propre série de questions. Deux réponses
-              minimum, quatre maximum. La bonne réponse reste cachée aux citoyens
-              jusqu’à la révélation.
+              La banque contient 200 questions classiques et 50 questions finales
+              plus difficiles. Les finales utilisent deux trappes et sont proposées
+              uniquement pendant la dernière manche.
             </p>
 
             <div className={styles.bankStats}>
@@ -427,13 +447,40 @@ export function MoneyDropManager({
                 <strong>{questions.length}</strong>
               </div>
               <div>
+                <span>Classiques</span>
+                <strong>{standardQuestions.length}</strong>
+              </div>
+              <div>
+                <span>Finales</span>
+                <strong>{finalQuestions.length}</strong>
+              </div>
+              <div>
                 <span>Actives</span>
                 <strong>{activeQuestions.length}</strong>
               </div>
-              <div>
-                <span>Thèmes</span>
-                <strong>{themes.length}</strong>
-              </div>
+            </div>
+
+            <div className={styles.actionRow}>
+              <button
+                className={questionBankType === "standard" ? styles.primaryButton : styles.secondaryButton}
+                type="button"
+                onClick={() => {
+                  setQuestionBankType("standard");
+                  setQuestionTheme(ALL_THEMES);
+                }}
+              >
+                Questions classiques ({standardQuestions.length})
+              </button>
+              <button
+                className={questionBankType === "final" ? styles.primaryButton : styles.secondaryButton}
+                type="button"
+                onClick={() => {
+                  setQuestionBankType("final");
+                  setQuestionTheme(ALL_THEMES);
+                }}
+              >
+                Questions finales ({finalQuestions.length})
+              </button>
             </div>
 
             <div className={styles.themeGrid}>
@@ -447,13 +494,13 @@ export function MoneyDropManager({
                 onClick={() => setQuestionTheme(ALL_THEMES)}
               >
                 <span>{ALL_THEMES}</span>
-                <strong>{questions.length}</strong>
+                <strong>{bankQuestions.length}</strong>
               </button>
-              {themes.map((theme) => {
-                const total = questions.filter(
+              {bankThemes.map((theme) => {
+                const total = bankQuestions.filter(
                   (question) => question.category === theme,
                 ).length;
-                const active = activeQuestions.filter(
+                const active = activeBankQuestions.filter(
                   (question) => question.category === theme,
                 ).length;
 
@@ -480,6 +527,13 @@ export function MoneyDropManager({
             <h3>Créer une nouvelle question</h3>
 
             <form action={addMoneyDropQuestion} className={styles.questionForm}>
+              <label>
+                <span>Type de question</span>
+                <select name="is_final" defaultValue="false" required>
+                  <option value="false">Question classique</option>
+                  <option value="true">Question finale</option>
+                </select>
+              </label>
               <label>
                 <span>Thème</span>
                 <select name="category" defaultValue="Culture générale" required>
@@ -527,7 +581,9 @@ export function MoneyDropManager({
             <div className={styles.questionListHeader}>
               <div>
                 <span className={styles.eyebrow}>THÈME AFFICHÉ</span>
-                <h3>{questionTheme}</h3>
+                <h3>
+                  {questionBankType === "final" ? "Finales" : "Classiques"} — {questionTheme}
+                </h3>
               </div>
               <strong>
                 {visibleQuestions.length} question
@@ -540,7 +596,9 @@ export function MoneyDropManager({
                 <article className={styles.questionItem} key={question.id}>
                   <span>#{question.id}</span>
                   <div>
-                    <span className={styles.themeBadge}>{question.category}</span>
+                    <span className={styles.themeBadge}>
+                      {question.is_final ? "Finale · " : ""}{question.category}
+                    </span>
                     <strong>{question.question}</strong>
                     <br />
                     <small>

@@ -113,6 +113,7 @@ export async function addMoneyDropQuestion(formData: FormData) {
       p_option_c: optionC || null,
       p_option_d: optionD || null,
       p_correct_option: correct,
+      p_is_final: text(formData, "is_final", 10) === "true",
     },
     "question-added",
   );

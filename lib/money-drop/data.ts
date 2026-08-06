@@ -29,6 +29,7 @@ export type MoneyDropQuestion = {
   options: MoneyDropOption[];
   correct_option: MoneyDropOptionKey | null;
   active?: boolean;
+  is_final?: boolean;
   created_at?: string;
 };
 
@@ -144,6 +145,7 @@ function parseQuestion(value: unknown): MoneyDropQuestion | null {
     options: parseOptions(row.options),
     correct_option: optionKey(row.correct_option),
     active: row.active !== false,
+    is_final: row.is_final === true,
     created_at:
       typeof row.created_at === "string" ? row.created_at : undefined,
   };
@@ -282,7 +284,7 @@ export async function getMoneyDropQuestions(): Promise<MoneyDropQuestion[]> {
     const { data, error } = await (supabase as any)
       .from("money_drop_questions")
       .select(
-        "id,category,question,option_a,option_b,option_c,option_d,correct_option,active,created_at",
+        "id,category,question,option_a,option_b,option_c,option_d,correct_option,active,is_final,created_at",
       )
       .order("active", { ascending: false })
       .order("category", { ascending: true })
@@ -311,6 +313,7 @@ export async function getMoneyDropQuestions(): Promise<MoneyDropQuestion[]> {
           options,
           correct_option: correct,
           active: entry.active !== false,
+          is_final: entry.is_final === true,
           created_at: String(entry.created_at ?? ""),
         },
       ];
