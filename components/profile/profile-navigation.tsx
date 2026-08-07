@@ -149,6 +149,13 @@ const cards: NavigationCard[] = [
     label: "Mes badges",
     description: "Voir les succès et récompenses obtenus sur Nostra Group.",
   },
+  {
+    href: "/profil/compte",
+    icon: "⚙️",
+    label: "Paramètres du compte",
+    description:
+      "Gérer les actions sensibles du compte, notamment sa suppression définitive.",
+  },
 ];
 
 export function ProfileNavigation({

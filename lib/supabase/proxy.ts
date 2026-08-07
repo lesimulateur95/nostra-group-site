@@ -141,7 +141,8 @@ export async function updateSession(request: NextRequest) {
     path === "/verification" ||
     path.startsWith("/verification/") ||
     path === "/maintenance" ||
-    path === "/compte-bloque";
+    path === "/compte-bloque" ||
+    path === "/compte-supprime";
   const isProfilePage = path === "/profil" || path.startsWith("/profil/");
   const isDashboardPage = path === "/dashboard" || path.startsWith("/dashboard/");
   const isCommissionerPage =
