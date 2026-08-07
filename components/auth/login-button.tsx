@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 import styles from "./login-button.module.css";
 
 const errorMessages: Record<string, string> = {
@@ -13,11 +12,10 @@ const errorMessages: Record<string, string> = {
     "La liaison Steam a expiré. Recommence depuis la page de connexion.",
   creation: "Le compte Nostra Group n’a pas pu être créé avec Steam.",
   "already-linked": "Ce compte Steam est déjà relié à un autre citoyen.",
-  discord: "La connexion Discord n’a pas pu être validée.",
 };
 
 export function LoginButton() {
-  const [loading, setLoading] = useState<"steam" | "discord" | null>(null);
+  const [loading, setLoading] = useState<"steam" | null>(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -33,25 +31,6 @@ export function LoginButton() {
     window.location.assign("/auth/steam");
   }
 
-  async function loginWithDiscord() {
-    setLoading("discord");
-    setError("");
-
-    const supabase = createClient();
-    const { error: oauthError } = await supabase.auth.signInWithOAuth({
-      provider: "discord",
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
-
-    if (oauthError) {
-      setError(
-        "La connexion Discord n’a pas pu démarrer. Vérifie la configuration Supabase.",
-      );
-      setLoading(null);
-    }
-  }
 
   return (
     <div className={styles.wrapper}>
@@ -76,25 +55,7 @@ export function LoginButton() {
         </span>
       </button>
 
-      <div className={styles.separator}>
-        <span>ou</span>
-      </div>
-
-      <button
-        className={styles.discordButton}
-        disabled={loading !== null}
-        onClick={loginWithDiscord}
-        type="button"
-      >
-        {loading === "discord"
-          ? "Connexion Discord…"
-          : "Continuer avec Discord"}
-      </button>
-
-      <p className={styles.help}>
-        Steam devient la méthode principale. Discord reste disponible pour
-        relier un compte existant ou comme connexion de secours.
-      </p>
+      <p className={styles.help}>Connexion sécurisée via Steam.</p>
 
       {error ? <p className={styles.error}>{error}</p> : null}
     </div>
