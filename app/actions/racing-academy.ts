@@ -33,6 +33,8 @@ function refresh() {
   revalidatePath(STAFF_PATH);
   revalidatePath("/dashboard");
   revalidatePath("/commissaires");
+  revalidatePath("/profil/licences");
+  revalidatePath("/dashboard/citoyens");
 }
 
 export async function saveAcademyCourseV137(formData: FormData) {
@@ -45,7 +47,11 @@ export async function saveAcademyCourseV137(formData: FormData) {
   const theory = numberValue(formData.get("theory_pass_score"));
   const practical = numberValue(formData.get("practical_pass_score"));
   const sortOrder = Math.floor(numberValue(formData.get("sort_order")));
-  if (!title || description.length < 10 || !duration || !qualification || maxParticipants < 1 || theory < 0 || theory > 100 || practical < 0 || practical > 100) {
+  const qualificationValidDaysRaw = text(formData.get("qualification_valid_days"), 20);
+  const qualificationValidDays = qualificationValidDaysRaw
+    ? Math.floor(numberValue(formData.get("qualification_valid_days")))
+    : 0;
+  if (!title || description.length < 10 || !duration || !qualification || maxParticipants < 1 || theory < 0 || theory > 100 || practical < 0 || practical > 100 || qualificationValidDays < 0 || qualificationValidDays > 3650) {
     redirect(`${STAFF_PATH}?error=invalid`);
   }
 
@@ -58,6 +64,7 @@ export async function saveAcademyCourseV137(formData: FormData) {
     max_participants: maxParticipants,
     theory_pass_score: theory,
     practical_pass_score: practical,
+    qualification_valid_days: qualificationValidDays > 0 ? qualificationValidDays : null,
     active: formData.get("active") === "true",
     sort_order: sortOrder,
     updated_at: new Date().toISOString(),
@@ -144,4 +151,57 @@ export async function reviewAcademyEnrollmentV137(formData: FormData) {
   }
   refresh();
   redirect(`${STAFF_PATH}?enrollment=1`);
+}
+
+
+export async function saveAcademyLicenseRequirementV140(formData: FormData) {
+  const licenseCode = text(formData.get("license_code"), 60);
+  const licenseLabel = text(formData.get("license_label"), 180) || licenseCode;
+  const requiredCourseRaw = text(formData.get("required_course_id"), 30);
+  const requiredCourseId = requiredCourseRaw
+    ? Math.floor(numberValue(formData.get("required_course_id")))
+    : null;
+  const prerequisiteLicenseCode = text(formData.get("prerequisite_license_code"), 60) || null;
+  const minTheoryScore = numberValue(formData.get("min_theory_score"));
+  const minPracticalScore = numberValue(formData.get("min_practical_score"));
+  const licenseValidityMonths = Math.floor(numberValue(formData.get("license_validity_months")));
+  const active = formData.get("active") !== "false";
+
+  if (
+    !licenseCode ||
+    (requiredCourseId !== null && requiredCourseId <= 0) ||
+    prerequisiteLicenseCode === licenseCode ||
+    minTheoryScore < 0 ||
+    minTheoryScore > 100 ||
+    minPracticalScore < 0 ||
+    minPracticalScore > 100 ||
+    licenseValidityMonths < 1 ||
+    licenseValidityMonths > 60
+  ) {
+    redirect(`${STAFF_PATH}?error=requirement-invalid`);
+  }
+
+  const { supabase, user } = await requireAcademyStaff();
+  const { error } = await (supabase as any)
+    .from("academy_license_requirements_v140")
+    .upsert(
+      {
+        license_code: licenseCode,
+        license_label: licenseLabel,
+        required_course_id: requiredCourseId,
+        prerequisite_license_code: prerequisiteLicenseCode,
+        min_theory_score: minTheoryScore,
+        min_practical_score: minPracticalScore,
+        license_validity_months: licenseValidityMonths,
+        active,
+        updated_by: user.id,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "license_code" },
+    );
+
+  if (error) redirect(`${STAFF_PATH}?error=requirement-save`);
+  refresh();
+  revalidatePath("/circuit/administration-sportive/payer-ma-licence");
+  redirect(`${STAFF_PATH}?requirement=1`);
 }

@@ -88,9 +88,9 @@ const cards: NavigationCard[] = [
   {
     href: "/profil/licences",
     icon: "🏁",
-    label: "Mes licences",
+    label: "Licences & formations",
     description:
-      "Consulter leur validité, leur expiration et lancer un renouvellement.",
+      "Suivre mon parcours Academy, mes prérequis, mes qualifications et mes licences.",
   },
   {
     href: "/profil/discipline",

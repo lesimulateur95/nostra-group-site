@@ -33,12 +33,22 @@ type License = {
   created_at: string;
 };
 
+type LicenceControl = {
+  licence_id: string;
+  control_state: "active" | "suspended" | "revoked";
+  reason: string | null;
+  suspended_until: string | null;
+  updated_by_name: string | null;
+  updated_at: string;
+};
+
 type SearchParams = Promise<{
   success?: string;
   error?: string;
   licence?: string;
   sent?: string;
   deleted?: string;
+  controlled?: string;
 }>;
 
 function stringValue(value: FormDataEntryValue | null): string {
@@ -95,6 +105,46 @@ async function deleteLicence(formData: FormData) {
   revalidatePath("/dashboard/administration/licences");
   revalidatePath("/profil/documents");
   redirect("/dashboard/administration/licences?deleted=1");
+}
+
+async function controlLicence(formData: FormData) {
+  "use server";
+
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getUser();
+  if (!data.user) redirect("/");
+
+  const roles = await getUserRoleKeys(data.user);
+  if (!roles.includes("manager")) redirect("/accueil");
+
+  const licenceId = stringValue(formData.get("licence_id"));
+  const action = stringValue(formData.get("control_action"));
+  const reason = stringValue(formData.get("control_reason"));
+  const suspendedUntil = stringValue(formData.get("suspended_until"));
+
+  if (!licenceId || !["activate", "suspend", "revoke"].includes(action)) {
+    redirect("/dashboard/administration/licences?error=" + encodeURIComponent("Action de licence invalide."));
+  }
+
+  if (["suspend", "revoke"].includes(action) && reason.length < 3) {
+    redirect("/dashboard/administration/licences?error=" + encodeURIComponent("Un motif est obligatoire pour suspendre ou retirer une licence."));
+  }
+
+  const { error } = await (supabase as any).rpc("nostra_v140_set_licence_control", {
+    p_licence_id: licenceId,
+    p_action: action,
+    p_reason: reason || null,
+    p_suspended_until: action === "suspend" && suspendedUntil ? suspendedUntil : null,
+  });
+
+  if (error) {
+    redirect("/dashboard/administration/licences?error=" + encodeURIComponent(error.message));
+  }
+
+  revalidatePath("/dashboard/administration/licences");
+  revalidatePath("/profil/licences");
+  revalidatePath("/circuit/administration-sportive/payer-ma-licence");
+  redirect("/dashboard/administration/licences?controlled=1");
 }
 
 async function issueLicence(formData: FormData) {
@@ -189,7 +239,7 @@ export default async function LicenceAdministrationPage({
   const params = await searchParams;
   const today = new Date().toISOString().slice(0, 10);
 
-  const [citizensResult, licencesResult] = await Promise.all([
+  const [citizensResult, licencesResult, controlsResult] = await Promise.all([
     supabase.rpc("list_nostra_licence_citizens"),
     supabase
       .from("nostra_licences")
@@ -198,11 +248,18 @@ export default async function LicenceAdministrationPage({
       )
       .order("created_at", { ascending: false })
       .limit(100),
+    (supabase as any)
+      .from("academy_licence_controls_v140")
+      .select("licence_id,control_state,reason,suspended_until,updated_by_name,updated_at"),
   ]);
 
   const configured = !citizensResult.error && !licencesResult.error;
   const citizens = (citizensResult.data ?? []) as Citizen[];
   const licences = (licencesResult.data ?? []) as License[];
+  const controls = !controlsResult.error && Array.isArray(controlsResult.data)
+    ? (controlsResult.data as LicenceControl[])
+    : [];
+  const controlByLicence = new Map(controls.map((control) => [control.licence_id, control]));
 
   return (
     <DashboardShell>
@@ -250,6 +307,12 @@ export default async function LicenceAdministrationPage({
           <div className={styles.success}>
             Licence supprimée du registre. Sa copie éventuelle a aussi été
             retirée des Documents & factures du citoyen.
+          </div>
+        )}
+
+        {params.controlled && (
+          <div className={styles.success}>
+            Statut administratif de la licence mis à jour. Le changement est immédiatement pris en compte dans le profil et dans les prérequis Academy.
           </div>
         )}
 
@@ -462,7 +525,17 @@ export default async function LicenceAdministrationPage({
                       </tr>
                     </thead>
                     <tbody>
-                      {licences.map((licence) => (
+                      {licences.map((licence) => {
+                        const control = controlByLicence.get(licence.id);
+                        const today = new Date().toISOString().slice(0, 10);
+                        const suspended = control?.control_state === "suspended" && (!control.suspended_until || control.suspended_until >= today);
+                        const displayStatus = control?.control_state === "revoked"
+                          ? "Retirée"
+                          : suspended
+                            ? "Suspendue"
+                            : licence.status;
+
+                        return (
                         <tr key={licence.id}>
                           <td className={styles.number}>
                             {licence.licence_number}
@@ -486,7 +559,7 @@ export default async function LicenceAdministrationPage({
                           </td>
                           <td>
                             <span className={styles.status}>
-                              {licence.status}
+                              {displayStatus}
                             </span>
                           </td>
                           <td>
@@ -497,6 +570,21 @@ export default async function LicenceAdministrationPage({
                               >
                                 Ouvrir
                               </Link>
+                              <details className={styles.controlDetails}>
+                                <summary>Gérer</summary>
+                                <form action={controlLicence} className={styles.controlForm}>
+                                  <input type="hidden" name="licence_id" value={licence.id} />
+                                  <select name="control_action" defaultValue="suspend">
+                                    <option value="suspend">Suspendre</option>
+                                    <option value="revoke">Retirer définitivement</option>
+                                    <option value="activate">Réactiver</option>
+                                  </select>
+                                  <input name="suspended_until" type="date" aria-label="Fin de suspension" />
+                                  <input name="control_reason" placeholder="Motif de la décision" />
+                                  {control?.reason ? <small>Actuel : {control.reason}</small> : null}
+                                  <button type="submit">Appliquer</button>
+                                </form>
+                              </details>
                               <form
                                 className={styles.deleteForm}
                                 action={deleteLicence}
@@ -517,7 +605,8 @@ export default async function LicenceAdministrationPage({
                             </div>
                           </td>
                         </tr>
-                      ))}
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>

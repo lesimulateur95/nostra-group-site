@@ -9,6 +9,7 @@ export type AcademyCourseV137 = {
   theoryPassScore: number;
   practicalPassScore: number;
   qualificationLabel: string;
+  qualificationValidDays: number | null;
   active: boolean;
   sortOrder: number;
 };
@@ -37,10 +38,11 @@ export type AcademyQualificationV137 = {
   theoryScore: number;
   practicalScore: number;
   issuedAt: string;
+  validUntil: string | null;
   active: boolean;
 };
 
-const courseColumns = "id,title,description,duration_label,max_participants,theory_pass_score,practical_pass_score,qualification_label,active,sort_order";
+const courseColumns = "id,title,description,duration_label,max_participants,theory_pass_score,practical_pass_score,qualification_label,qualification_valid_days,active,sort_order";
 const enrollmentColumns = "id,course_id,user_id,applicant_name,motivation,status,theory_score,practical_score,instructor_name,staff_note,applied_at,completed_at";
 
 function mapCourse(row: Record<string, unknown>): AcademyCourseV137 {
@@ -53,6 +55,7 @@ function mapCourse(row: Record<string, unknown>): AcademyCourseV137 {
     theoryPassScore: Number(row.theory_pass_score),
     practicalPassScore: Number(row.practical_pass_score),
     qualificationLabel: String(row.qualification_label),
+    qualificationValidDays: row.qualification_valid_days == null ? null : Number(row.qualification_valid_days),
     active: Boolean(row.active),
     sortOrder: Number(row.sort_order),
   };
@@ -103,7 +106,7 @@ export async function getAcademyEnrollmentsV137(userId?: string): Promise<Academ
 
 export async function getAcademyQualificationsV137(userId?: string): Promise<AcademyQualificationV137[]> {
   const supabase = await createClient();
-  let query = supabase.from("academy_qualifications_v137").select("id,qualification_number,user_id,holder_name,qualification_label,theory_score,practical_score,issued_at,active").order("issued_at", { ascending: false });
+  let query = supabase.from("academy_qualifications_v137").select("id,qualification_number,user_id,holder_name,qualification_label,theory_score,practical_score,issued_at,valid_until,active").order("issued_at", { ascending: false });
   if (userId) query = query.eq("user_id", userId);
   const { data, error } = await query;
   return error ? [] : (data ?? []).map((row) => ({
@@ -115,6 +118,7 @@ export async function getAcademyQualificationsV137(userId?: string): Promise<Aca
     theoryScore: Number(row.theory_score),
     practicalScore: Number(row.practical_score),
     issuedAt: String(row.issued_at),
+    validUntil: row.valid_until ? String(row.valid_until) : null,
     active: Boolean(row.active),
   }));
 }

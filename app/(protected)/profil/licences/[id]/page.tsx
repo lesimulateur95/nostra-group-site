@@ -57,7 +57,7 @@ export default async function CitizenLicencePage({
     (supabase as any).rpc("nostra_refresh_expired_disciplinary_suspensions"),
   ]);
 
-  const [licenceResult, disciplineResult] = await Promise.all([
+  const [licenceResult, disciplineResult, controlResult] = await Promise.all([
     (supabase as any)
       .from("nostra_licences")
       .select(
@@ -72,6 +72,11 @@ export default async function CitizenLicencePage({
         "action_type,points_removed,suspension_starts_on,suspension_ends_on,reason,status",
       )
       .eq("licence_id", id),
+    (supabase as any)
+      .from("academy_licence_controls_v140")
+      .select("control_state,reason,suspended_until,updated_by_name")
+      .eq("licence_id", id)
+      .maybeSingle(),
   ]);
 
   // La licence officielle est la source de vérité. Une ancienne facture ou un
@@ -103,11 +108,21 @@ export default async function CitizenLicencePage({
       today <= String(action.suspension_ends_on),
   );
 
+  const administrative = controlResult.error ? null : controlResult.data;
+  const adminSuspended =
+    administrative?.control_state === "suspended" &&
+    (!administrative.suspended_until || String(administrative.suspended_until) >= today);
+  const revoked = administrative?.control_state === "revoked";
+
   const baseLifecycle = getLicenceLifecycle(
     licence.valid_from,
     licence.valid_until,
   );
-  const displayedStatus = suspension ? "Suspendue" : baseLifecycle.label;
+  const displayedStatus = revoked
+    ? "Retirée"
+    : adminSuspended || suspension
+      ? "Suspendue"
+      : baseLifecycle.label;
 
   return (
     <main className={styles.page}>
@@ -164,6 +179,18 @@ export default async function CitizenLicencePage({
           </div>
         </section>
 
+        {revoked || adminSuspended ? (
+          <section className={styles.alert}>
+            <strong>{revoked ? "Licence retirée" : "Suspension administrative"}</strong>
+            <p>
+              {revoked
+                ? "Cette licence a été retirée par la Direction et ne donne plus aucun droit ni prérequis de progression."
+                : `Droits suspendus${administrative?.suspended_until ? ` jusqu’au ${formatDate(String(administrative.suspended_until))}` : " jusqu’à nouvelle décision"}.`}
+              {administrative?.reason ? ` Motif : ${administrative.reason}` : ""}
+            </p>
+          </section>
+        ) : null}
+
         {suspension ? (
           <section className={styles.alert}>
             <strong>Suspension temporaire</strong>
@@ -177,10 +204,12 @@ export default async function CitizenLicencePage({
         <section className={styles.permissions}>
           <span>Droits et autorisations</span>
           <p>
-            {suspension
-              ? "Les droits liés à cette licence sont temporairement suspendus par décision de la Direction du Nostra Circuit."
-              : licence.permissions ||
-                "Les droits liés à cette licence sont accordés conformément aux règlements Nostra Group en vigueur."}
+            {revoked
+              ? "Cette licence est retirée : aucun droit associé n’est actuellement valable."
+              : adminSuspended || suspension
+                ? "Les droits liés à cette licence sont temporairement suspendus par décision de la Direction du Nostra Circuit."
+                : licence.permissions ||
+                  "Les droits liés à cette licence sont accordés conformément aux règlements Nostra Group en vigueur."}
           </p>
         </section>
 

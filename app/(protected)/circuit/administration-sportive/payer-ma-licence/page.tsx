@@ -8,7 +8,10 @@ import {
   getPilotLicenseTypes,
 } from "@/lib/licenses/data";
 import { getMyMailboxOverview } from "@/lib/mail/data";
-import { getAcademyLicenseEligibilityV139 } from "@/lib/racing-academy/license-eligibility";
+import {
+  getAcademyLicenseEligibilitiesV140,
+  type AcademyLicenseEligibilityV140,
+} from "@/lib/racing-academy/license-requirements";
 import {
   getPilotLicenseServiceKey,
   getServiceAvailabilities,
@@ -34,6 +37,35 @@ function money(value: number): string {
   });
 }
 
+function eligibilityMessage(eligibility: AcademyLicenseEligibilityV140): string {
+  if (eligibility.reason === "academy_specific_training_required") {
+    return eligibility.requiredCourseTitle
+      ? `Formation obligatoire : ${eligibility.requiredCourseTitle}`
+      : "La formation Academy dédiée à cette licence doit être validée.";
+  }
+  if (eligibility.reason === "academy_training_expired") {
+    return "Ta qualification Academy nécessaire a expiré. Une nouvelle validation est obligatoire.";
+  }
+  if (eligibility.reason === "license_revoked") {
+    return "Cette licence a été retirée par la Direction. Sa réactivation administrative est obligatoire avant tout nouvel achat.";
+  }
+  if (eligibility.reason === "license_suspended") {
+    return "Cette licence est actuellement suspendue. Aucun rachat ni renouvellement n’est possible pendant la suspension.";
+  }
+  if (eligibility.reason === "prerequisite_license_required") {
+    return eligibility.prerequisiteLicenseLabel
+      ? `Licence préalable obligatoire : ${eligibility.prerequisiteLicenseLabel}`
+      : "Une licence de niveau inférieur valide est obligatoire.";
+  }
+  if (eligibility.reason === "academy_requirement_disabled") {
+    return "Cette progression est temporairement désactivée par la Direction.";
+  }
+  if (eligibility.reason === "setup") {
+    return "Le contrôle Academy V140 doit être activé par la Direction.";
+  }
+  return "Une qualification Nostra Racing Academy valide est obligatoire.";
+}
+
 export default async function PayPilotLicensePage({
   searchParams,
 }: PageProps) {
@@ -41,16 +73,16 @@ export default async function PayPilotLicensePage({
   const { data: authData } = await supabase.auth.getUser();
   if (!authData.user) redirect("/");
 
+  const licenseTypes = await getPilotLicenseTypes();
+
   const [
-    licenseTypes,
     licenseServices,
     currentCart,
     profileResult,
     mailboxOverview,
-    academyEligibility,
+    academyEligibilityByCode,
     params,
   ] = await Promise.all([
-    getPilotLicenseTypes(),
     getServiceAvailabilities([
       "circuit_license_pilot",
       "circuit_license_gt3rs",
@@ -63,7 +95,10 @@ export default async function PayPilotLicensePage({
       .eq("user_id", authData.user.id)
       .maybeSingle(),
     getMyMailboxOverview(),
-    getAcademyLicenseEligibilityV139(authData.user.id),
+    getAcademyLicenseEligibilitiesV140(
+      authData.user.id,
+      licenseTypes.map((license) => license.code),
+    ),
     searchParams,
   ]);
 
@@ -72,16 +107,13 @@ export default async function PayPilotLicensePage({
   );
 
   const availableLicenseTypes = licenseTypes.filter((license) => {
-    const service = serviceByKey.get(
-      getPilotLicenseServiceKey(license.code),
-    );
-    return service?.isOpen !== false && academyEligibility.eligible;
+    const service = serviceByKey.get(getPilotLicenseServiceKey(license.code));
+    const academy = academyEligibilityByCode.get(license.code);
+    return service?.isOpen !== false && academy?.eligible === true;
   });
 
   const closedLicenseServices = licenseTypes.flatMap((license) => {
-    const service = serviceByKey.get(
-      getPilotLicenseServiceKey(license.code),
-    );
+    const service = serviceByKey.get(getPilotLicenseServiceKey(license.code));
     return service && !service.isOpen ? [{ license, service }] : [];
   });
 
@@ -89,12 +121,8 @@ export default async function PayPilotLicensePage({
   const profile = profileResult.data ?? {};
   const profileName =
     [
-      typeof profile.rp_first_name === "string"
-        ? profile.rp_first_name
-        : "",
-      typeof profile.rp_last_name === "string"
-        ? profile.rp_last_name
-        : "",
+      typeof profile.rp_first_name === "string" ? profile.rp_first_name : "",
+      typeof profile.rp_last_name === "string" ? profile.rp_last_name : "",
     ]
       .filter(Boolean)
       .join(" ")
@@ -123,35 +151,42 @@ export default async function PayPilotLicensePage({
             : params.error === "upload"
               ? "Le certificat médical n’a pas pu être envoyé."
               : params.error === "academy"
-                ? "Une formation Nostra Racing Academy validée est obligatoire avant tout achat de licence."
-                : params.error === "closed"
-                  ? "Cette licence est actuellement clôturée par la Direction."
-                  : params.error === "setup"
-                ? "Le module des licences pilotes doit d’abord être activé avec le SQL V44."
-                : params.error === "mailbox"
-                  ? "La messagerie interne doit être activée avant de déposer une demande."
-                  : params.error
-                    ? "La demande n’a pas pu être ajoutée au panier."
-                    : null;
+                ? "Une qualification Nostra Racing Academy valide est obligatoire avant cet achat."
+                : params.error === "academy-specific"
+                  ? "Tu dois d’abord réussir la formation Academy prévue pour cette licence."
+                  : params.error === "academy-expired"
+                    ? "Ta qualification Academy nécessaire a expiré et doit être renouvelée."
+                    : params.error === "license-revoked"
+                      ? "Achat bloqué : cette licence a été retirée par la Direction."
+                      : params.error === "license-suspended"
+                        ? "Achat bloqué : cette licence est actuellement suspendue."
+                        : params.error === "prerequisite"
+                      ? "Tu dois d’abord posséder la licence de niveau inférieur demandée."
+                      : params.error === "closed"
+                        ? "Cette licence est actuellement clôturée par la Direction."
+                        : params.error === "setup"
+                          ? "Le module des licences ou le contrôle Academy V140 doit d’abord être activé."
+                          : params.error === "mailbox"
+                            ? "La messagerie interne doit être activée avant de déposer une demande."
+                            : params.error
+                              ? "La demande n’a pas pu être ajoutée au panier."
+                              : null;
 
   return (
     <main className={styles.page}>
       <section className={styles.hero}>
-        <span className={styles.eyebrow}>NOSTRA CIRCUIT</span>
+        <span className={styles.eyebrow}>NOSTRA CIRCUIT · RACING ACADEMY</span>
         <h1>Payer ma licence</h1>
         <p>
-          Complète ton dossier, joins ton certificat médical puis ajoute la
-          licence à ton panier. Le paiement s’effectue ensuite depuis ton
-          profil.
+          Chaque licence possède désormais son propre parcours Academy. La formation requise, les notes, la licence préalable et l’ouverture des achats sont contrôlées automatiquement.
         </p>
       </section>
 
       <section className={styles.prices}>
         {licenseTypes.map((license) => {
-          const service = serviceByKey.get(
-            getPilotLicenseServiceKey(license.code),
-          );
+          const service = serviceByKey.get(getPilotLicenseServiceKey(license.code));
           const isOpen = service?.isOpen !== false;
+          const academy = academyEligibilityByCode.get(license.code);
 
           return (
             <article key={license.code}>
@@ -160,9 +195,11 @@ export default async function PayPilotLicensePage({
               <b>
                 {!isOpen
                   ? "Achat clôturé"
-                  : !academyEligibility.eligible
-                    ? "Formation requise"
-                    : money(license.price)}
+                  : academy?.eligible
+                    ? money(license.price)
+                    : academy
+                      ? eligibilityMessage(academy)
+                      : "Contrôle Academy indisponible"}
               </b>
             </article>
           );
@@ -171,50 +208,29 @@ export default async function PayPilotLicensePage({
 
       {licenseTypes.length === 0 && (
         <div className={styles.error}>
-          Le module n’est pas encore configuré. Exécute le SQL V44 avant
-          d’utiliser cette page.
+          Le module des licences pilotes n’est pas encore configuré.
         </div>
       )}
 
-      {!academyEligibility.configured && (
-        <div className={styles.error}>
-          <strong>Contrôle Academy indisponible</strong>
-          <p>
-            Le module Nostra Racing Academy doit être installé avant de pouvoir
-            acheter une licence.
-          </p>
-        </div>
-      )}
-
-      {academyEligibility.configured && !academyEligibility.eligible && (
-        <div className={styles.error}>
-          <strong>Formation Nostra Racing Academy obligatoire</strong>
-          <p>
-            Tu ne peux pas acheter de licence tant qu’une formation Academy
-            n’a pas été terminée et validée par la Direction. Dès qu’une
-            qualification active apparaît dans ta fiche citoyen, l’achat sera
-            automatiquement débloqué si la licence est ouverte.
-          </p>
-          <Link className="btn btn-secondary" href="/circuit/racing-academy">
-            Voir les formations Academy
-          </Link>
-        </div>
-      )}
-
-      {academyEligibility.eligible && (
-        <div className={styles.academyOk}>
-          <div>
-            <strong>Formation Academy validée</strong>
-            <p>
-              {academyEligibility.qualifications[0]?.label ?? "Qualification active"}
-              {academyEligibility.qualificationCount > 1
-                ? ` · ${academyEligibility.qualificationCount} qualifications actives`
-                : ""}
-            </p>
+      {licenseTypes.map((license) => {
+        const academy = academyEligibilityByCode.get(license.code);
+        if (!academy || academy.eligible) return null;
+        return (
+          <div className={styles.error} key={`academy-${license.code}`}>
+            <strong>{license.label} — prérequis non remplis</strong>
+            <p>{eligibilityMessage(academy)}</p>
+            {academy.requiredCourseTitle ? (
+              <p>Formation attendue : <strong>{academy.requiredCourseTitle}</strong>.</p>
+            ) : null}
+            {academy.prerequisiteLicenseLabel ? (
+              <p>Licence préalable : <strong>{academy.prerequisiteLicenseLabel}</strong>.</p>
+            ) : null}
+            <Link className="btn btn-secondary" href="/circuit/racing-academy">
+              Voir les formations Academy
+            </Link>
           </div>
-          <span>✓ AUTORISÉ</span>
-        </div>
-      )}
+        );
+      })}
 
       {closedLicenseServices.length > 0 && (
         <div className={styles.error}>
@@ -236,8 +252,7 @@ export default async function PayPilotLicensePage({
           <div>
             <strong>Une demande est déjà dans ton panier</strong>
             <p>
-              {currentCart.license_label} — {money(currentCart.unit_price)}. Un
-              nouveau formulaire remplacera cette demande.
+              {currentCart.license_label} — {money(currentCart.unit_price)}. Un nouveau formulaire remplacera cette demande.
             </p>
           </div>
           <Link className="btn btn-secondary" href="/profil">
@@ -255,45 +270,33 @@ export default async function PayPilotLicensePage({
         />
       )}
 
-      {academyEligibility.eligible && availableLicenseTypes.length === 0 && licenseTypes.length > 0 && (
+      {availableLicenseTypes.length === 0 && licenseTypes.length > 0 && (
         <div className={styles.error}>
-          Ta formation Academy est bien validée, mais aucun achat de licence
-          n’est ouvert actuellement. La page sera automatiquement réactivée dès
-          qu’une licence sera rouverte par la Direction.
+          Aucune licence n’est achetable actuellement pour ton profil. Vérifie ton parcours Academy et l’ouverture des achats ci-dessus.
         </div>
       )}
 
       {availableLicenseTypes.length > 0 && !internalEmail && (
         <div className={styles.error}>
-          La boîte de messagerie interne du citoyen n’a pas pu être récupérée.
-          Ouvre une première fois Profil → Messagerie, puis recharge cette
-          page.
+          La boîte de messagerie interne du citoyen n’a pas pu être récupérée. Ouvre une première fois Profil → Messagerie, puis recharge cette page.
         </div>
       )}
 
       <section className={styles.steps}>
         <div>
           <span>1</span>
-          <strong>Remplir le dossier</strong>
-          <p>
-            Le bouton de préremplissage récupère les informations disponibles
-            dans ton profil.
-          </p>
+          <strong>Valider la bonne formation</strong>
+          <p>La Racing Academy délivre automatiquement la qualification nécessaire après réussite.</p>
         </div>
         <div>
           <span>2</span>
-          <strong>Joindre le certificat</strong>
-          <p>
-            Le certificat médical est obligatoire avant l’ajout au panier.
-          </p>
+          <strong>Respecter la progression</strong>
+          <p>Une licence supérieure peut exiger une licence inférieure encore valide et non suspendue.</p>
         </div>
         <div>
           <span>3</span>
           <strong>Payer depuis le profil</strong>
-          <p>
-            Après paiement, la demande apparaît dans Documents &amp; factures
-            et la transaction est enregistrée en comptabilité.
-          </p>
+          <p>Le contrôle est refait au paiement pour empêcher tout contournement avec un ancien panier.</p>
         </div>
       </section>
     </main>

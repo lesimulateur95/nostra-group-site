@@ -2,7 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
+import { getPilotLicenseTypes } from "@/lib/licenses/data";
 import { getAcademyCoursesV137, getAcademyEnrollmentsV137, getAcademyQualificationsV137 } from "@/lib/racing-academy/data";
+import { getAcademyLicenseEligibilitiesV140 } from "@/lib/racing-academy/license-requirements";
 import {
   citizenDetail,
   type JsonRow,
@@ -108,12 +110,18 @@ export default async function CitizenDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [detail, academyCourses, academyEnrollments, academyQualifications] = await Promise.all([
+  const [detail, academyCourses, academyEnrollments, academyQualifications, licenseTypes] = await Promise.all([
     citizenDetail(id),
     getAcademyCoursesV137(true),
     getAcademyEnrollmentsV137(id),
     getAcademyQualificationsV137(id),
+    getPilotLicenseTypes(),
   ]);
+
+  const academyEligibilityByCode = await getAcademyLicenseEligibilitiesV140(
+    id,
+    licenseTypes.map((license) => license.code),
+  );
 
   if (!detail) {
     notFound();
@@ -125,7 +133,10 @@ export default async function CitizenDetailPage({
       ? (detail.loyalty as JsonRow)
       : null;
 
-  const activeAcademyQualifications = academyQualifications.filter((row) => row.active);
+  const today = new Date().toISOString().slice(0, 10);
+  const activeAcademyQualifications = academyQualifications.filter(
+    (row) => row.active && (!row.validUntil || row.validUntil.slice(0, 10) >= today),
+  );
   const academyCourseById = new Map(academyCourses.map((course) => [course.id, course]));
   const academyStatusLabels: Record<string, string> = {
     pending: "Demande en attente",
@@ -188,21 +199,34 @@ export default async function CitizenDetailPage({
 
         <section className={styles.section}>
           <header>
-            <span>NOSTRA RACING ACADEMY</span>
+            <span>NOSTRA RACING ACADEMY · V140</span>
             <h2>Formations &amp; accès aux licences</h2>
           </header>
 
-          <div className={activeAcademyQualifications.length > 0 ? styles.success : styles.warning}>
-            <strong>
-              {activeAcademyQualifications.length > 0
-                ? "✓ Achat de licences autorisé côté formation"
-                : "🔒 Achat de licences bloqué côté formation"}
-            </strong>
-            <p>
-              {activeAcademyQualifications.length > 0
-                ? "Au moins une formation Academy est validée. Le citoyen pourra acheter une licence uniquement si la Direction a également ouvert l’achat de cette licence."
-                : "Aucune qualification Academy active. Le citoyen ne peut acheter aucune licence tant qu’une formation n’est pas terminée et validée."}
-            </p>
+          <div className={styles.recordGrid}>
+            {licenseTypes.map((license) => {
+              const eligibility = academyEligibilityByCode.get(license.code);
+              return (
+                <article className={styles.record} key={`eligibility-${license.code}`}>
+                  <strong>{license.label}</strong>
+                  <small>
+                    {eligibility?.eligible
+                      ? "✓ ACHAT AUTORISÉ CÔTÉ ACADEMY"
+                      : eligibility?.reason === "license_revoked"
+                        ? "⛔ LICENCE RETIRÉE"
+                        : eligibility?.reason === "license_suspended"
+                          ? "⏸ LICENCE SUSPENDUE"
+                          : eligibility?.reason === "academy_training_expired"
+                            ? "🔒 QUALIFICATION EXPIRÉE"
+                        : eligibility?.reason === "prerequisite_license_required"
+                          ? `🔒 PRÉREQUIS : ${eligibility.prerequisiteLicenseLabel ?? "licence inférieure"}`
+                          : eligibility?.reason === "academy_specific_training_required"
+                            ? `🔒 FORMATION : ${eligibility.requiredCourseTitle ?? "formation dédiée"}`
+                            : "🔒 FORMATION ACADEMY REQUISE"}
+                  </small>
+                </article>
+              );
+            })}
           </div>
 
           {activeAcademyQualifications.length > 0 && (
@@ -212,9 +236,17 @@ export default async function CitizenDetailPage({
                   <strong>{qualification.label}</strong>
                   <small>
                     VALIDÉE · {qualification.number} · {new Date(qualification.issuedAt).toLocaleDateString("fr-FR")}
+                    {qualification.validUntil ? ` · expire le ${new Date(`${qualification.validUntil.slice(0, 10)}T12:00:00`).toLocaleDateString("fr-FR")}` : " · permanente"}
                   </small>
                 </article>
               ))}
+            </div>
+          )}
+
+          {academyQualifications.some((row) => row.validUntil && row.validUntil.slice(0, 10) < today) && (
+            <div className={styles.warning}>
+              <strong>Qualification(s) expirée(s)</strong>
+              <p>Une formation expirée ne débloque plus l’achat des licences qui en dépendent.</p>
             </div>
           )}
 
@@ -229,7 +261,7 @@ export default async function CitizenDetailPage({
             </div>
           )}
 
-          {academyEnrollments.length === 0 && activeAcademyQualifications.length === 0 && (
+          {academyEnrollments.length === 0 && academyQualifications.length === 0 && (
             <div className={styles.empty}>Aucune formation Academy enregistrée pour ce citoyen.</div>
           )}
         </section>

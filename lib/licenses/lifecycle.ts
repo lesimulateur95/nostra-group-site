@@ -12,7 +12,8 @@ export type LicenceLifecycleStatus =
   | "active"
   | "expiring_soon"
   | "expired"
-  | "suspended";
+  | "suspended"
+  | "revoked";
 
 export type LicenceLifecycle = {
   status: LicenceLifecycleStatus;
@@ -29,6 +30,13 @@ export type LicenceDisciplineState = {
   suspensionReason: string | null;
 };
 
+export type LicenceAdministrativeControlV140 = {
+  state: "active" | "suspended" | "revoked";
+  reason: string | null;
+  suspendedUntil: string | null;
+  updatedByName: string | null;
+};
+
 export type OfficialPilotLicence = {
   id: string;
   holder_name: string;
@@ -43,6 +51,7 @@ export type OfficialPilotLicence = {
   renewalLicenseCode: string | null;
   lifecycle: LicenceLifecycle;
   discipline: LicenceDisciplineState;
+  administrative: LicenceAdministrativeControlV140;
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -233,7 +242,7 @@ export async function getOwnOfficialPilotLicences(
       ),
     ]);
 
-    const [licencesResult, typesResult, disciplineResult] = await Promise.all([
+    const [licencesResult, typesResult, disciplineResult, controlsResult] = await Promise.all([
       (supabase as any)
         .from("nostra_licences")
         .select(
@@ -250,6 +259,10 @@ export async function getOwnOfficialPilotLicences(
         .select(
           "licence_id,action_type,points_removed,suspension_starts_on,suspension_ends_on,reason,status",
         )
+        .eq("holder_user_id", userId),
+      (supabase as any)
+        .from("academy_licence_controls_v140")
+        .select("licence_id,control_state,reason,suspended_until,updated_by_name")
         .eq("holder_user_id", userId),
     ]);
 
@@ -268,6 +281,26 @@ export async function getOwnOfficialPilotLicences(
       ? (disciplineResult.data as DisciplineRow[])
       : [];
 
+    const controls = new Map<string, LicenceAdministrativeControlV140>();
+    if (!controlsResult.error && Array.isArray(controlsResult.data)) {
+      for (const row of controlsResult.data as Array<Record<string, unknown>>) {
+        const state =
+          row.control_state === "revoked"
+            ? "revoked"
+            : row.control_state === "suspended"
+              ? "suspended"
+              : "active";
+        controls.set(String(row.licence_id ?? ""), {
+          state,
+          reason: typeof row.reason === "string" ? row.reason : null,
+          suspendedUntil:
+            typeof row.suspended_until === "string" ? row.suspended_until : null,
+          updatedByName:
+            typeof row.updated_by_name === "string" ? row.updated_by_name : null,
+        });
+      }
+    }
+
     return licencesResult.data.map((row: Record<string, unknown>) => {
       const id = String(row.id ?? "");
       const validFrom = String(row.valid_from ?? "");
@@ -277,15 +310,33 @@ export async function getOwnOfficialPilotLicences(
         String(row.licence_name ?? "Licence Circuit"),
       );
       const discipline = disciplineForLicence(id, disciplineRows);
+      const administrative = controls.get(id) ?? {
+        state: "active" as const,
+        reason: null,
+        suspendedUntil: null,
+        updatedByName: null,
+      };
+      const today = new Date().toISOString().slice(0, 10);
+      const adminSuspended =
+        administrative.state === "suspended" &&
+        (!administrative.suspendedUntil || administrative.suspendedUntil >= today);
       const baseLifecycle = getLicenceLifecycle(validFrom, validUntil);
-      const lifecycle: LicenceLifecycle = discipline.isSuspended
-        ? {
-            ...baseLifecycle,
-            status: "suspended",
-            label: "Suspendue",
-            canRenew: false,
-          }
-        : baseLifecycle;
+      const lifecycle: LicenceLifecycle =
+        administrative.state === "revoked"
+          ? {
+              ...baseLifecycle,
+              status: "revoked",
+              label: "Retirée",
+              canRenew: false,
+            }
+          : adminSuspended || discipline.isSuspended
+            ? {
+                ...baseLifecycle,
+                status: "suspended",
+                label: "Suspendue",
+                canRenew: false,
+              }
+            : baseLifecycle;
 
       return {
         id,
@@ -304,6 +355,7 @@ export async function getOwnOfficialPilotLicences(
         renewalLicenseCode: matchLicenceCode(licenceName, types),
         lifecycle,
         discipline,
+        administrative,
       } satisfies OfficialPilotLicence;
     });
   } catch {

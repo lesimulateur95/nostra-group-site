@@ -49,10 +49,41 @@ function firstRpcRow(value: unknown): Record<string, unknown> | null {
     : null;
 }
 
+
+function academyQueryCode(reason: string): string {
+  if (reason.includes("academy_specific_training_required")) return "academy-specific";
+  if (reason.includes("academy_training_expired")) return "academy-expired";
+  if (reason.includes("prerequisite_license_required")) return "prerequisite";
+  if (reason.includes("license_suspended")) return "license-suspended";
+  if (reason.includes("license_revoked")) return "license-revoked";
+  if (reason.includes("academy_requirement_disabled")) return "setup";
+  return "academy";
+}
+
+async function requireAcademyEligibilityV140(
+  supabase: any,
+  userId: string,
+  licenseCode: string,
+  targetPath: string,
+) {
+  const { data, error } = await supabase.rpc("nostra_v140_license_eligibility", {
+    p_user: userId,
+    p_license_code: licenseCode,
+  });
+
+  if (error) redirect(`${targetPath}${targetPath.includes("?") ? "&" : "?"}error=setup`);
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row || row.eligible !== true) {
+    const reason = String(row?.reason ?? "academy_training_required");
+    redirect(`${targetPath}${targetPath.includes("?") ? "&" : "?"}error=${academyQueryCode(reason)}`);
+  }
+}
+
 function revalidateLicensePages() {
   revalidatePath(FORM_PATH);
   revalidatePath("/profil");
   revalidatePath("/profil/documents");
+  revalidatePath("/profil/licences");
   revalidatePath("/dashboard");
   revalidatePath(DIRECTION_PATH);
   revalidatePath("/dashboard/comptabilite");
@@ -117,17 +148,6 @@ export async function addPilotLicenseToCart(
 
   if (!authData.user) redirect("/");
 
-  const qualificationResult = await (supabase as any)
-    .from("academy_qualifications_v137")
-    .select("id")
-    .eq("user_id", authData.user.id)
-    .eq("active", true)
-    .limit(1);
-
-  if (qualificationResult.error || !(qualificationResult.data ?? []).length) {
-    redirect(`${FORM_PATH}?error=academy`);
-  }
-
   const [mailboxResult, licenseResult, existingResult] =
     await Promise.all([
       supabase.rpc("nostra_get_or_create_my_mailbox"),
@@ -162,6 +182,13 @@ export async function addPilotLicenseToCart(
   if (licenseResult.error || !licenseType) {
     redirect(`${FORM_PATH}?error=setup`);
   }
+
+  await requireAcademyEligibilityV140(
+    supabase,
+    authData.user.id,
+    String(licenseType.code),
+    FORM_PATH,
+  );
 
   const licenseService = await getServiceAvailability(
     getPilotLicenseServiceKey(String(licenseType.code)),
@@ -214,7 +241,18 @@ export async function addPilotLicenseToCart(
       .remove([certificatePath]);
 
     const saveMessage = `${saveError.code ?? ""} ${saveError.message ?? ""}`.toLowerCase();
-    redirect(`${FORM_PATH}?error=${saveMessage.includes("academy_training_required") ? "academy" : "save"}`);
+    const code =
+      saveMessage.includes("academy_specific_training_required") ||
+      saveMessage.includes("academy_training_expired") ||
+      saveMessage.includes("prerequisite_license_required") ||
+      saveMessage.includes("license_suspended") ||
+      saveMessage.includes("license_revoked") ||
+      saveMessage.includes("academy_training_required")
+        ? academyQueryCode(saveMessage)
+        : saveMessage.includes("license_purchase_closed")
+          ? "closed"
+          : "save";
+    redirect(`${FORM_PATH}?error=${code}`);
   }
 
   const oldPath =
@@ -268,26 +306,35 @@ export async function checkoutPilotLicenseCart() {
 
   if (!authData.user) redirect("/");
 
-  const [cartResult, qualificationResult] = await Promise.all([
-    (supabase as any)
-      .from("pilot_license_cart_items")
-      .select("license_code")
-      .eq("user_id", authData.user.id)
-      .maybeSingle(),
-    (supabase as any)
-      .from("academy_qualifications_v137")
-      .select("id")
-      .eq("user_id", authData.user.id)
-      .eq("active", true)
-      .limit(1),
-  ]);
-
-  if (qualificationResult.error || !(qualificationResult.data ?? []).length) {
-    redirect("/profil?license_order_error=academy");
-  }
+  const cartResult = await (supabase as any)
+    .from("pilot_license_cart_items")
+    .select("license_code")
+    .eq("user_id", authData.user.id)
+    .maybeSingle();
 
   if (cartResult.error || !cartResult.data?.license_code) {
     redirect("/profil?license_order_error=empty");
+  }
+
+  const eligibilityResult = await (supabase as any).rpc(
+    "nostra_v140_license_eligibility",
+    {
+      p_user: authData.user.id,
+      p_license_code: String(cartResult.data.license_code),
+    },
+  );
+
+  if (eligibilityResult.error) {
+    redirect("/profil?license_order_error=setup");
+  }
+
+  const eligibilityRow = Array.isArray(eligibilityResult.data)
+    ? eligibilityResult.data[0]
+    : eligibilityResult.data;
+
+  if (!eligibilityRow || eligibilityRow.eligible !== true) {
+    const reason = String(eligibilityRow?.reason ?? "academy_training_required");
+    redirect(`/profil?license_order_error=${academyQueryCode(reason)}`);
   }
 
   const licenseService = await getServiceAvailability(
@@ -306,8 +353,13 @@ export async function checkoutPilotLicenseCart() {
     const message = `${error.code ?? ""} ${error.message ?? ""}`.toLowerCase();
 
     const code =
+      message.includes("academy_specific_training_required") ||
+      message.includes("academy_training_expired") ||
+      message.includes("prerequisite_license_required") ||
+      message.includes("license_suspended") ||
+      message.includes("license_revoked") ||
       message.includes("academy_training_required")
-        ? "academy"
+        ? academyQueryCode(message)
         : message.includes("license_purchase_closed")
           ? "closed"
           : message.includes("empty_license_cart")

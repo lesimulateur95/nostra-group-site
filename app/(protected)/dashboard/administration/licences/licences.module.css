@@ -385,3 +385,66 @@
   background: rgba(255, 92, 92, 0.16);
   border-color: rgba(255, 116, 116, 0.78);
 }
+
+.controlDetails {
+  position: relative;
+}
+
+.controlDetails > summary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 14px;
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  border-radius: 12px;
+  color: #f6d96a;
+  cursor: pointer;
+  font-weight: 750;
+  list-style: none;
+}
+
+.controlDetails > summary::-webkit-details-marker {
+  display: none;
+}
+
+.controlForm {
+  position: absolute;
+  z-index: 20;
+  right: 0;
+  top: calc(100% + 8px);
+  display: grid;
+  gap: 8px;
+  width: min(330px, 80vw);
+  padding: 14px;
+  border: 1px solid rgba(212, 175, 55, 0.36);
+  border-radius: 14px;
+  background: rgba(8, 8, 8, 0.99);
+  box-shadow: 0 18px 50px rgba(0,0,0,.45);
+}
+
+.controlForm input,
+.controlForm select {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  border-radius: 10px;
+  background: rgba(255,255,255,.04);
+  color: #fff;
+}
+
+.controlForm small {
+  color: rgba(255,255,255,.55);
+  line-height: 1.4;
+}
+
+.controlForm button {
+  min-height: 40px;
+  border: 0;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #f6d96a, #b8901d);
+  color: #090806;
+  font-weight: 900;
+  cursor: pointer;
+}
