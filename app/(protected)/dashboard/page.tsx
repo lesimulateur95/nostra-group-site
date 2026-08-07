@@ -499,6 +499,12 @@ export default async function DashboardPage() {
               description="Traiter l’accès au circuit et contrôler la conformité des véhicules et écuries."
             >
               <DashboardCard
+                href="/dashboard/circuit"
+                icon="🟢"
+                title="État des activités"
+                description="Ouvrir ou clôturer les services du Nostra Circuit : licences pilote, GT3 RS, F1, homologations et création d’écurie."
+              />
+              <DashboardCard
                 href="/dashboard/reservations"
                 icon="📅"
                 title="Demandes de réservation"
