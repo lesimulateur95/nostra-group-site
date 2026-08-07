@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 
 const PUBLIC_PATH = "/circuit/racing-academy";
 const STAFF_PATH = "/dashboard/racing-academy";
+const QUIZ_STAFF_PATH = "/dashboard/racing-academy/questionnaires";
 
 function text(value: FormDataEntryValue | null, max = 2000): string {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
@@ -35,6 +36,7 @@ function refresh() {
   revalidatePath("/commissaires");
   revalidatePath("/profil/licences");
   revalidatePath("/dashboard/citoyens");
+  revalidatePath(QUIZ_STAFF_PATH);
 }
 
 export async function saveAcademyCourseV137(formData: FormData) {
@@ -146,7 +148,12 @@ export async function reviewAcademyEnrollmentV137(formData: FormData) {
     updated_at: new Date().toISOString(),
   }).eq("id", id);
   if (error) {
-    const code = `${error.message}`.includes("passing_scores_required") ? "scores" : "save";
+    const message = `${error.message}`;
+    const code = message.includes("passing_scores_required")
+      ? "scores"
+      : message.includes("academy_quiz_required")
+        ? "quiz-required"
+        : "save";
     redirect(`${STAFF_PATH}?error=${code}`);
   }
   refresh();
@@ -204,4 +211,177 @@ export async function saveAcademyLicenseRequirementV140(formData: FormData) {
   refresh();
   revalidatePath("/circuit/administration-sportive/payer-ma-licence");
   redirect(`${STAFF_PATH}?requirement=1`);
+}
+
+
+export async function saveAcademyQuizSettingsV143(formData: FormData) {
+  const quizId = Math.floor(numberValue(formData.get("quiz_id")));
+  const courseId = Math.floor(numberValue(formData.get("course_id")));
+  const title = text(formData.get("title"), 180);
+  const instructions = text(formData.get("instructions"), 3000) || null;
+  const passScore = numberValue(formData.get("pass_score"));
+  const maxAttempts = Math.floor(numberValue(formData.get("max_attempts")));
+  const timeLimitMinutes = Math.floor(numberValue(formData.get("time_limit_minutes")));
+  const questionCount = Math.floor(numberValue(formData.get("question_count")));
+  const randomizeQuestions = formData.get("randomize_questions") === "true";
+  const showCorrection = formData.get("show_correction") === "true";
+  const active = formData.get("active") === "true";
+
+  if (!courseId || !title || passScore < 0 || passScore > 100 || maxAttempts < 1 || maxAttempts > 20 || timeLimitMinutes < 0 || timeLimitMinutes > 180 || questionCount < 0 || questionCount > 200) {
+    redirect(`${QUIZ_STAFF_PATH}?error=quiz-invalid`);
+  }
+
+  const { supabase, user } = await requireAcademyStaff();
+  const payload = {
+    course_id: courseId,
+    title,
+    instructions,
+    pass_score: passScore,
+    max_attempts: maxAttempts,
+    time_limit_minutes: timeLimitMinutes,
+    question_count: questionCount,
+    randomize_questions: randomizeQuestions,
+    show_correction: showCorrection,
+    active,
+    updated_at: new Date().toISOString(),
+  };
+
+  const result = quizId > 0
+    ? await (supabase as any).from("academy_quizzes_v143").update(payload).eq("id", quizId)
+    : await (supabase as any).from("academy_quizzes_v143").insert({ ...payload, created_by: user.id });
+
+  if (result.error) redirect(`${QUIZ_STAFF_PATH}?error=quiz-save`);
+  refresh();
+  redirect(`${QUIZ_STAFF_PATH}?quiz=1&course=${courseId}`);
+}
+
+export async function saveAcademyQuizQuestionV143(formData: FormData) {
+  const questionId = Math.floor(numberValue(formData.get("question_id")));
+  const quizId = Math.floor(numberValue(formData.get("quiz_id")));
+  const prompt = text(formData.get("prompt"), 1200);
+  const optionA = text(formData.get("option_a"), 500);
+  const optionB = text(formData.get("option_b"), 500);
+  const optionC = text(formData.get("option_c"), 500) || null;
+  const optionD = text(formData.get("option_d"), 500) || null;
+  const correctOption = text(formData.get("correct_option"), 1).toUpperCase();
+  const explanation = text(formData.get("explanation"), 1800) || null;
+  const points = Math.floor(numberValue(formData.get("points"))) || 1;
+  const sortOrder = Math.floor(numberValue(formData.get("sort_order")));
+  const active = formData.get("active") !== "false";
+
+  const answerExists = correctOption === "A" ? optionA : correctOption === "B" ? optionB : correctOption === "C" ? optionC : correctOption === "D" ? optionD : null;
+  if (!quizId || prompt.length < 3 || !optionA || !optionB || !["A", "B", "C", "D"].includes(correctOption) || !answerExists || points < 1 || points > 100) {
+    redirect(`${QUIZ_STAFF_PATH}?error=question-invalid&quiz=${quizId}`);
+  }
+
+  const { supabase } = await requireAcademyStaff();
+  const payload = {
+    quiz_id: quizId,
+    prompt,
+    option_a: optionA,
+    option_b: optionB,
+    option_c: optionC,
+    option_d: optionD,
+    correct_option: correctOption,
+    explanation,
+    points,
+    sort_order: sortOrder,
+    active,
+    updated_at: new Date().toISOString(),
+  };
+
+  const result = questionId > 0
+    ? await (supabase as any).from("academy_quiz_questions_v143").update(payload).eq("id", questionId)
+    : await (supabase as any).from("academy_quiz_questions_v143").insert(payload);
+
+  if (result.error) redirect(`${QUIZ_STAFF_PATH}?error=question-save&quiz=${quizId}`);
+  refresh();
+  redirect(`${QUIZ_STAFF_PATH}?question=1&quiz=${quizId}`);
+}
+
+export async function toggleAcademyQuizQuestionV143(formData: FormData) {
+  const questionId = Math.floor(numberValue(formData.get("question_id")));
+  const quizId = Math.floor(numberValue(formData.get("quiz_id")));
+  const active = formData.get("active") === "true";
+  if (!questionId || !quizId) redirect(`${QUIZ_STAFF_PATH}?error=question-invalid`);
+  const { supabase } = await requireAcademyStaff();
+  const { error } = await (supabase as any).from("academy_quiz_questions_v143").update({ active, updated_at: new Date().toISOString() }).eq("id", questionId);
+  if (error) redirect(`${QUIZ_STAFF_PATH}?error=question-save&quiz=${quizId}`);
+  refresh();
+  redirect(`${QUIZ_STAFF_PATH}?question=1&quiz=${quizId}`);
+}
+
+export async function resetAcademyQuizAttemptsV143(formData: FormData) {
+  const enrollmentId = Math.floor(numberValue(formData.get("enrollment_id")));
+  const quizId = Math.floor(numberValue(formData.get("quiz_id")));
+  if (!enrollmentId || !quizId) redirect(`${QUIZ_STAFF_PATH}?error=reset-invalid`);
+  const { supabase } = await requireAcademyStaff();
+
+  const { error } = await (supabase as any)
+    .from("academy_quiz_attempts_v143")
+    .delete()
+    .eq("enrollment_id", enrollmentId)
+    .eq("quiz_id", quizId);
+  if (error) redirect(`${QUIZ_STAFF_PATH}?error=reset-save`);
+
+  await supabase.from("academy_enrollments_v137").update({
+    theory_quiz_passed_at: null,
+    theory_quiz_attempt_id: null,
+    theory_score: null,
+    updated_at: new Date().toISOString(),
+  } as any).eq("id", enrollmentId);
+
+  refresh();
+  redirect(`${QUIZ_STAFF_PATH}?reset=1&quiz=${quizId}`);
+}
+
+export async function startAcademyQuizV143(formData: FormData) {
+  const quizId = Math.floor(numberValue(formData.get("quiz_id")));
+  if (!quizId) redirect(`${PUBLIC_PATH}?error=quiz-invalid`);
+
+  const supabase = await createClient();
+  const { data: authData } = await supabase.auth.getUser();
+  if (!authData.user) redirect("/");
+
+  const { data, error } = await (supabase as any).rpc("academy_start_quiz_v143", { p_quiz_id: quizId });
+  if (error || !data) {
+    const message = `${error?.message ?? ""}`;
+    const code = message.includes("max_attempts_reached")
+      ? "quiz-max"
+      : message.includes("quiz_already_passed")
+        ? "quiz-passed"
+        : message.includes("training_not_open")
+          ? "quiz-not-open"
+          : message.includes("quiz_has_no_questions")
+            ? "quiz-empty"
+            : "quiz-start";
+    redirect(`${PUBLIC_PATH}?error=${code}`);
+  }
+  redirect(`${PUBLIC_PATH}/questionnaire/${Number(data)}`);
+}
+
+export async function submitAcademyQuizV143(formData: FormData) {
+  const attemptId = Math.floor(numberValue(formData.get("attempt_id")));
+  if (!attemptId) redirect(`${PUBLIC_PATH}?error=quiz-submit`);
+
+  const answers: Record<string, string> = {};
+  for (const [key, value] of formData.entries()) {
+    if (!key.startsWith("answer_")) continue;
+    const questionId = key.slice("answer_".length);
+    const answer = typeof value === "string" ? value.toUpperCase() : "";
+    if (/^\d+$/.test(questionId) && ["A", "B", "C", "D"].includes(answer)) answers[questionId] = answer;
+  }
+
+  const supabase = await createClient();
+  const { data: authData } = await supabase.auth.getUser();
+  if (!authData.user) redirect("/");
+  const { error } = await (supabase as any).rpc("academy_submit_quiz_v143", {
+    p_attempt_id: attemptId,
+    p_answers: answers,
+  });
+  if (error) redirect(`${PUBLIC_PATH}/questionnaire/${attemptId}?error=submit`);
+
+  refresh();
+  revalidatePath(`${PUBLIC_PATH}/questionnaire/${attemptId}`);
+  redirect(`${PUBLIC_PATH}/questionnaire/${attemptId}?result=1`);
 }

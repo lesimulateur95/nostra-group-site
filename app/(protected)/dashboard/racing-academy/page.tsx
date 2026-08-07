@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   reviewAcademyEnrollmentV137,
   saveAcademyCourseV137,
@@ -105,6 +106,8 @@ export default async function AcademyDashboardPage({
             <div className="dashboard-feedback dashboard-feedback-error">
               {params.error === "scores"
                 ? "Les notes minimales sont nécessaires pour valider la réussite."
+                : params.error === "quiz-required"
+                  ? "Impossible de valider cette formation : le questionnaire théorique actif n’a pas encore été réussi."
                 : params.error === "full"
                   ? "Cette formation a atteint sa capacité maximale."
                   : params.error?.startsWith("requirement")
@@ -130,6 +133,17 @@ export default async function AcademyDashboardPage({
               <span>Qualifications valides</span>
               <strong>{usableQualifications.length}</strong>
             </article>
+          </section>
+
+          <section className={styles.panel}>
+            <div className={styles.panelHeader}>
+              <div>
+                <span className={styles.badge}>NOUVEAU · V143</span>
+                <h2>Questionnaires théoriques Academy</h2>
+                <p>Crée un QCM différent pour chaque formation, règle le chrono, le nombre de tentatives, le seuil de réussite et les corrections.</p>
+              </div>
+              <Link href="/dashboard/racing-academy/questionnaires" className={styles.primary}>Gérer les questionnaires</Link>
+            </div>
           </section>
 
           <section className={styles.panel}>
@@ -240,7 +254,7 @@ export default async function AcademyDashboardPage({
                         </select>
                       </label>
                       <label>
-                        Note théorie /100
+                        Note théorie /100 (remplie automatiquement par le QCM si actif)
                         <input name="theory_score" type="number" min="0" max="100" step="0.01" defaultValue={row.theoryScore ?? ""} />
                       </label>
                       <label>
