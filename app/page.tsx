@@ -11,7 +11,7 @@ export default async function LoginPage() {
 
   return (
     <main className="auth-shell">
-      <section className="auth-card" aria-label="Connexion Nostra Group">
+      <section className="auth-card" aria-label="Connexion Nostra Group avec Steam">
         <div className="auth-logos">
           <Image className="auth-logo" src="/universe-life.svg" alt="Universe Life" width={420} height={130} priority />
           <Image className="auth-logo" src="/nostra-group.svg" alt="Nostra Group" width={420} height={130} priority />

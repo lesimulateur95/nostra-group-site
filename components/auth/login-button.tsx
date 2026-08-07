@@ -15,28 +15,25 @@ const errorMessages: Record<string, string> = {
 };
 
 export function LoginButton() {
-  const [loading, setLoading] = useState<"steam" | null>(null);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const code = new URLSearchParams(window.location.search).get(
-      "steam_error",
-    );
+    const code = new URLSearchParams(window.location.search).get("steam_error");
     if (code) setError(errorMessages[code] ?? "La connexion a échoué.");
   }, []);
 
   function loginWithSteam() {
-    setLoading("steam");
+    setLoading(true);
     setError("");
     window.location.assign("/auth/steam");
   }
-
 
   return (
     <div className={styles.wrapper}>
       <button
         className={styles.steamButton}
-        disabled={loading !== null}
+        disabled={loading}
         onClick={loginWithSteam}
         type="button"
       >
@@ -46,16 +43,10 @@ export function LoginButton() {
           </svg>
         </span>
         <span>
-          <small>CONNEXION PRIORITAIRE</small>
-          <strong>
-            {loading === "steam"
-              ? "Redirection vers Steam…"
-              : "Se connecter avec Steam"}
-          </strong>
+          <small>CONNEXION STEAM</small>
+          <strong>{loading ? "Redirection vers Steam…" : "Se connecter avec Steam"}</strong>
         </span>
       </button>
-
-      <p className={styles.help}>Connexion sécurisée via Steam.</p>
 
       {error ? <p className={styles.error}>{error}</p> : null}
     </div>
