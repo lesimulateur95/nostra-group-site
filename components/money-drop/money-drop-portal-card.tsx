@@ -11,6 +11,7 @@ export async function MoneyDropPortalCard() {
       status={state.game?.status ?? null}
       round={state.game?.current_round ?? null}
       totalRounds={state.game?.total_rounds ?? state.settings.total_rounds}
+      registrationsOpen={state.settings.public_registration_enabled}
     />
   );
 }

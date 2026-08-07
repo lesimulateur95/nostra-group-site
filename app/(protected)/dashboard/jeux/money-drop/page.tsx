@@ -25,6 +25,8 @@ function successLabel(value: string | undefined) {
   if (value === "enabled") return "Money Drop est maintenant visible côté citoyens.";
   if (value === "disabled") return "Money Drop est désactivé et totalement masqué côté citoyens.";
   if (value === "settings-saved") return "Les paramètres de l’émission sont enregistrés.";
+  if (value === "registrations-open") return "Les inscriptions publiques Money Drop sont ouvertes.";
+  if (value === "registrations-closed") return "Les inscriptions publiques Money Drop sont fermées.";
   if (value === "question-added") return "La question a été ajoutée à la banque.";
   if (value === "question-updated") return "La disponibilité de la question a été modifiée.";
   if (value === "game-created") return "La nouvelle équipe Money Drop a été créée.";
@@ -48,6 +50,8 @@ function errorLabel(value: string | undefined) {
   if (decoded.includes("players")) return "Sélectionne entre un et quatre citoyens différents.";
   if (decoded.includes("allocations_missing")) return "Les joueurs doivent d’abord placer toute la cagnotte.";
   if (decoded.includes("active_game_exists")) return "Une partie est déjà active. Ferme-la avant d’en créer une nouvelle.";
+  if (decoded.includes("invalid_game_mode")) return "Le mode de jeu sélectionné est invalide.";
+  if (decoded.includes("invalid_difficulty")) return "La difficulté sélectionnée est invalide.";
   return "L’action n’a pas pu être enregistrée. Vérifie l’état de la partie.";
 }
 

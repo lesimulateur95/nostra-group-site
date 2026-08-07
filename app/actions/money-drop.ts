@@ -18,71 +18,87 @@ function integer(formData: FormData, name: string): number {
   return Number.isFinite(value) ? Math.round(value) : 0;
 }
 
+function bool(formData: FormData, name: string): boolean {
+  return formData.get(name) === "on" || text(formData, name, 10) === "true";
+}
+
 function refresh() {
   revalidatePath("/motors");
   revalidatePath(PUBLIC_PATH);
+  revalidatePath(`${PUBLIC_PATH}/spectateur`);
   revalidatePath("/dashboard");
   revalidatePath(DASHBOARD_PATH);
 }
 
-async function managerRpc(
-  name: string,
-  params: Record<string, unknown>,
-  success: string,
-): Promise<void> {
+async function managerRpc(name: string, params: Record<string, unknown>, success: string): Promise<void> {
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
   if (!data.user) redirect("/");
-
   const roles = await getUserRoleKeys(data.user);
   if (!roles.includes("manager")) redirect("/accueil");
 
   const { error } = await (supabase as any).rpc(name, params);
-  if (error) {
-    redirect(
-      `${DASHBOARD_PATH}?money_drop_error=${encodeURIComponent(
-        error.message || "database",
-      )}`,
-    );
-  }
-
+  if (error) redirect(`${DASHBOARD_PATH}?money_drop_error=${encodeURIComponent(error.message || "database")}`);
   refresh();
   redirect(`${DASHBOARD_PATH}?money_drop_success=${success}`);
 }
 
+async function publicRpc(name: string, params: Record<string, unknown>, success: string): Promise<void> {
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getUser();
+  if (!data.user) redirect("/");
+  const { error } = await (supabase as any).rpc(name, params);
+  if (error) redirect(`${PUBLIC_PATH}?money_drop_error=${encodeURIComponent(error.message || "database")}`);
+  refresh();
+  redirect(`${PUBLIC_PATH}?money_drop_success=${success}`);
+}
+
 export async function toggleMoneyDrop(formData: FormData) {
-  await managerRpc(
-    "money_drop_set_enabled",
-    { p_enabled: text(formData, "enabled", 10) === "true" },
-    text(formData, "enabled", 10) === "true" ? "enabled" : "disabled",
-  );
+  const enabled = text(formData, "enabled", 10) === "true";
+  await managerRpc("money_drop_set_enabled", { p_enabled: enabled }, enabled ? "enabled" : "disabled");
 }
 
 export async function updateMoneyDropSettings(formData: FormData) {
   const startingAmount = integer(formData, "starting_amount");
   const totalRounds = integer(formData, "total_rounds");
   const answerSeconds = integer(formData, "answer_seconds");
-
-  if (
-    startingAmount < 1_000 ||
-    startingAmount > 1_000_000_000 ||
-    totalRounds < 1 ||
-    totalRounds > 12 ||
-    answerSeconds < 10 ||
-    answerSeconds > 600
-  ) {
+  if (startingAmount < 1_000 || startingAmount > 1_000_000_000 || totalRounds < 1 || totalRounds > 12 || answerSeconds < 10 || answerSeconds > 600) {
     redirect(`${DASHBOARD_PATH}?money_drop_error=settings`);
   }
 
-  await managerRpc(
-    "money_drop_update_settings",
-    {
-      p_starting_amount: startingAmount,
-      p_total_rounds: totalRounds,
-      p_answer_seconds: answerSeconds,
-    },
-    "settings-saved",
-  );
+  await managerRpc("money_drop_update_show_settings", {
+    p_starting_amount: startingAmount,
+    p_total_rounds: totalRounds,
+    p_answer_seconds: answerSeconds,
+    p_public_registration_enabled: bool(formData, "public_registration_enabled"),
+    p_spectator_enabled: bool(formData, "spectator_enabled"),
+    p_sounds_enabled: bool(formData, "sounds_enabled"),
+    p_jokers_enabled: bool(formData, "jokers_enabled"),
+  }, "settings-saved");
+}
+
+export async function toggleMoneyDropRegistrations(formData: FormData) {
+  const enabled = text(formData, "enabled", 10) === "true";
+  await managerRpc("money_drop_set_registration_open", { p_enabled: enabled }, enabled ? "registrations-open" : "registrations-closed");
+}
+
+export async function registerMoneyDrop() {
+  await publicRpc("money_drop_register", {}, "registered");
+}
+
+export async function withdrawMoneyDropRegistration() {
+  await publicRpc("money_drop_withdraw_registration", {}, "registration-withdrawn");
+}
+
+export async function joinMoneyDropGame(formData: FormData) {
+  await publicRpc("money_drop_join_game", { p_code: text(formData, "join_code", 12) }, "joined");
+}
+
+export async function useMoneyDropJoker(formData: FormData) {
+  await publicRpc("money_drop_use_joker", {
+    p_game_id: text(formData, "game_id", 80),
+    p_joker: text(formData, "joker", 20),
+  }, "joker-used");
 }
 
 export async function addMoneyDropQuestion(formData: FormData) {
@@ -92,128 +108,80 @@ export async function addMoneyDropQuestion(formData: FormData) {
   const optionD = text(formData, "option_d", 180);
   const correct = text(formData, "correct_option", 1).toUpperCase();
   const available = [optionA, optionB, optionC, optionD].filter(Boolean).length;
-
-  if (
-    text(formData, "category", 100).length < 2 ||
-    text(formData, "question", 500).length < 5 ||
-    available < 2 ||
-    !["A", "B", "C", "D"].includes(correct) ||
-    ![optionA, optionB, optionC, optionD][correct.charCodeAt(0) - 65]
-  ) {
+  if (text(formData, "category", 100).length < 2 || text(formData, "question", 500).length < 5 || available < 2 || !["A", "B", "C", "D"].includes(correct) || ![optionA, optionB, optionC, optionD][correct.charCodeAt(0) - 65]) {
     redirect(`${DASHBOARD_PATH}?money_drop_error=question`);
   }
 
-  await managerRpc(
-    "money_drop_add_question",
-    {
-      p_category: text(formData, "category", 100),
-      p_question: text(formData, "question", 500),
-      p_option_a: optionA,
-      p_option_b: optionB,
-      p_option_c: optionC || null,
-      p_option_d: optionD || null,
-      p_correct_option: correct,
-      p_is_final: text(formData, "is_final", 10) === "true",
-    },
-    "question-added",
-  );
+  await managerRpc("money_drop_add_question", {
+    p_category: text(formData, "category", 100),
+    p_question: text(formData, "question", 500),
+    p_option_a: optionA,
+    p_option_b: optionB,
+    p_option_c: optionC || null,
+    p_option_d: optionD || null,
+    p_correct_option: correct,
+    p_is_final: text(formData, "is_final", 10) === "true",
+    p_difficulty: text(formData, "difficulty", 20) || "Moyenne",
+  }, "question-added");
 }
 
 export async function toggleMoneyDropQuestion(formData: FormData) {
-  await managerRpc(
-    "money_drop_toggle_question",
-    {
-      p_question_id: integer(formData, "question_id"),
-      p_active: text(formData, "active", 10) === "true",
-    },
-    "question-updated",
-  );
+  await managerRpc("money_drop_toggle_question", {
+    p_question_id: integer(formData, "question_id"),
+    p_active: text(formData, "active", 10) === "true",
+  }, "question-updated");
 }
 
 export async function createMoneyDropGame(formData: FormData) {
   const playerCount = integer(formData, "player_count");
-  if (playerCount < 1 || playerCount > 4) {
-    redirect(`${DASHBOARD_PATH}?money_drop_error=players`);
-  }
+  if (playerCount < 1 || playerCount > 4) redirect(`${DASHBOARD_PATH}?money_drop_error=players`);
+  const players = Array.from({ length: playerCount }, (_, index) => text(formData, `player_${index + 1}`, 80));
+  if (players.some((value) => !value) || new Set(players).size !== players.length) redirect(`${DASHBOARD_PATH}?money_drop_error=players`);
 
-  const players = Array.from({ length: playerCount }, (_, index) =>
-    text(formData, `player_${index + 1}`, 80),
-  );
-  if (players.some((value) => !value) || new Set(players).size !== players.length) {
-    redirect(`${DASHBOARD_PATH}?money_drop_error=players`);
-  }
+  await managerRpc("money_drop_create_game", {
+    p_team_name: text(formData, "team_name", 100) || "Équipe Nostra",
+    p_players: players,
+    p_game_mode: text(formData, "game_mode", 20) || "classic",
+  }, "game-created");
+}
 
-  await managerRpc(
-    "money_drop_create_game",
-    {
-      p_team_name: text(formData, "team_name", 100) || "Équipe Nostra",
-      p_players: players,
-    },
-    "game-created",
-  );
+export async function createMoneyDropGameFromRegistrations(formData: FormData) {
+  const players = formData.getAll("registered_player").map((value) => String(value)).filter(Boolean).slice(0, 4);
+  if (players.length < 1 || new Set(players).size !== players.length) redirect(`${DASHBOARD_PATH}?money_drop_error=players`);
+  await managerRpc("money_drop_create_game", {
+    p_team_name: text(formData, "team_name", 100) || "Équipe Événement",
+    p_players: players,
+    p_game_mode: text(formData, "game_mode", 20) || "event",
+  }, "game-created");
 }
 
 export async function selectMoneyDropQuestion(formData: FormData) {
-  await managerRpc(
-    "money_drop_select_question",
-    {
-      p_game_id: text(formData, "game_id", 80),
-      p_question_id: integer(formData, "question_id"),
-    },
-    "question-selected",
-  );
+  await managerRpc("money_drop_select_question", { p_game_id: text(formData, "game_id", 80), p_question_id: integer(formData, "question_id") }, "question-selected");
 }
 
 export async function selectRandomMoneyDropQuestion(formData: FormData) {
   const category = text(formData, "category", 100);
-  await managerRpc(
-    "money_drop_select_random_question",
-    {
-      p_game_id: text(formData, "game_id", 80),
-      p_category: category || null,
-    },
-    "question-selected",
-  );
+  await managerRpc("money_drop_select_random_question", { p_game_id: text(formData, "game_id", 80), p_category: category || null }, "question-selected");
 }
 
 export async function openMoneyDropQuestion(formData: FormData) {
-  await managerRpc(
-    "money_drop_open_question",
-    { p_game_id: text(formData, "game_id", 80) },
-    "question-opened",
-  );
+  await managerRpc("money_drop_open_question", { p_game_id: text(formData, "game_id", 80) }, "question-opened");
 }
 
 export async function lockMoneyDropAllocations(formData: FormData) {
-  await managerRpc(
-    "money_drop_lock_allocations",
-    { p_game_id: text(formData, "game_id", 80) },
-    "allocations-locked",
-  );
+  await managerRpc("money_drop_lock_allocations", { p_game_id: text(formData, "game_id", 80) }, "allocations-locked");
 }
 
 export async function revealMoneyDropAnswer(formData: FormData) {
-  await managerRpc(
-    "money_drop_reveal_answer",
-    { p_game_id: text(formData, "game_id", 80) },
-    "answer-revealed",
-  );
+  await managerRpc("money_drop_reveal_answer", { p_game_id: text(formData, "game_id", 80) }, "answer-revealed");
 }
 
 export async function advanceMoneyDropRound(formData: FormData) {
-  await managerRpc(
-    "money_drop_advance_round",
-    { p_game_id: text(formData, "game_id", 80) },
-    "round-advanced",
-  );
+  await managerRpc("money_drop_advance_round", { p_game_id: text(formData, "game_id", 80) }, "round-advanced");
 }
 
 export async function cancelMoneyDropGame(formData: FormData) {
-  await managerRpc(
-    "money_drop_cancel_game",
-    { p_game_id: text(formData, "game_id", 80) },
-    "game-cancelled",
-  );
+  await managerRpc("money_drop_cancel_game", { p_game_id: text(formData, "game_id", 80) }, "game-cancelled");
 }
 
 export async function saveMoneyDropAllocations(formData: FormData) {
@@ -224,27 +192,5 @@ export async function saveMoneyDropAllocations(formData: FormData) {
     C: Math.max(0, integer(formData, "allocation_c")),
     D: Math.max(0, integer(formData, "allocation_d")),
   };
-
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getUser();
-  if (!data.user) redirect("/");
-
-  const { error } = await (supabase as any).rpc(
-    "money_drop_save_allocations",
-    {
-      p_game_id: gameId,
-      p_allocations: allocations,
-    },
-  );
-
-  if (error) {
-    redirect(
-      `${PUBLIC_PATH}?money_drop_error=${encodeURIComponent(
-        error.message || "allocations",
-      )}`,
-    );
-  }
-
-  refresh();
-  redirect(`${PUBLIC_PATH}?money_drop_success=allocations-saved`);
+  await publicRpc("money_drop_save_allocations", { p_game_id: gameId, p_allocations: allocations }, "allocations-saved");
 }

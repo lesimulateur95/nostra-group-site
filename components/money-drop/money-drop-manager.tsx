@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 
 import {
   addMoneyDropQuestion,
+  createMoneyDropGameFromRegistrations,
   advanceMoneyDropRound,
   cancelMoneyDropGame,
   createMoneyDropGame,
@@ -15,6 +16,7 @@ import {
   selectMoneyDropQuestion,
   selectRandomMoneyDropQuestion,
   toggleMoneyDrop,
+  toggleMoneyDropRegistrations,
   toggleMoneyDropQuestion,
   updateMoneyDropSettings,
 } from "@/app/actions/money-drop";
@@ -216,8 +218,63 @@ export function MoneyDropManager({
                   required
                 />
               </label>
+              <label className={styles.toggleLabel}>
+                <input name="public_registration_enabled" type="checkbox" defaultChecked={state.settings.public_registration_enabled} />
+                <span>Inscriptions publiques</span>
+              </label>
+              <label className={styles.toggleLabel}>
+                <input name="spectator_enabled" type="checkbox" defaultChecked={state.settings.spectator_enabled} />
+                <span>Écran spectateur</span>
+              </label>
+              <label className={styles.toggleLabel}>
+                <input name="sounds_enabled" type="checkbox" defaultChecked={state.settings.sounds_enabled} />
+                <span>Sons et tension</span>
+              </label>
+              <label className={styles.toggleLabel}>
+                <input name="jokers_enabled" type="checkbox" defaultChecked={state.settings.jokers_enabled} />
+                <span>Jokers</span>
+              </label>
               <button type="submit">Enregistrer les paramètres</button>
             </form>
+          </section>
+
+          <section className={styles.managerSection}>
+            <div className={styles.managerHeader}>
+              <div>
+                <span className={styles.eyebrow}>INSCRIPTIONS PUBLIQUES</span>
+                <h2>File d’attente Money Drop</h2>
+                <p>Quand elle est ouverte, les citoyens peuvent s’inscrire directement depuis Nostra Motors.</p>
+              </div>
+              <form action={toggleMoneyDropRegistrations}>
+                <input type="hidden" name="enabled" value={state.settings.public_registration_enabled ? "false" : "true"} />
+                <button className={state.settings.public_registration_enabled ? styles.dangerButton : styles.primaryButton} type="submit">
+                  {state.settings.public_registration_enabled ? "Fermer les inscriptions" : "Ouvrir les inscriptions"}
+                </button>
+              </form>
+            </div>
+
+            <div className={styles.bankStats}>
+              <div><span>Inscrits</span><strong>{state.registrations.length}</strong></div>
+              <div><span>État</span><strong>{state.settings.public_registration_enabled ? "OUVERT" : "FERMÉ"}</strong></div>
+            </div>
+
+            {!game && state.registrations.length > 0 && (
+              <form action={createMoneyDropGameFromRegistrations} className={styles.registrationManager}>
+                <div className={styles.formGrid}>
+                  <label><span>Nom de l’équipe</span><input name="team_name" defaultValue="Équipe Événement" required /></label>
+                  <label><span>Mode</span><select name="game_mode" defaultValue="event"><option value="event">Événement</option><option value="classic">Classique</option><option value="express">Express</option></select></label>
+                </div>
+                <div className={styles.registrationList}>
+                  {state.registrations.map((registration) => (
+                    <label key={registration.user_id} className={styles.registrationChoice}>
+                      <input type="checkbox" name="registered_player" value={registration.user_id} />
+                      <span><strong>{registration.player_name}</strong><small>Inscrit à la file d’attente</small></span>
+                    </label>
+                  ))}
+                </div>
+                <button className={styles.primaryButton} type="submit">Créer une équipe avec les citoyens cochés</button>
+              </form>
+            )}
           </section>
 
           {!game ? (
@@ -241,6 +298,14 @@ export function MoneyDropManager({
 
               <form action={createMoneyDropGame} className={styles.formGrid}>
                 <input type="hidden" name="player_count" value={playerCount} />
+                <label>
+                  <span>Mode de jeu</span>
+                  <select name="game_mode" defaultValue="classic">
+                    <option value="classic">Classique</option>
+                    <option value="express">Express — 5 manches / 30 s max</option>
+                    <option value="event">Événement — classement public</option>
+                  </select>
+                </label>
                 <label className={styles.fullWidth}>
                   <span>Nom de l’équipe</span>
                   <input name="team_name" type="text" maxLength={100} defaultValue="Équipe Nostra" required />
@@ -292,6 +357,14 @@ export function MoneyDropManager({
                   <span>Argent placé</span>
                   <strong>{money(allocated)}</strong>
                 </div>
+                <div className={styles.summaryCard}>
+                  <span>Mode</span>
+                  <strong>{game.game_mode === "express" ? "Express" : game.game_mode === "event" ? "Événement" : "Classique"}</strong>
+                </div>
+                <div className={styles.summaryCard}>
+                  <span>Code équipe</span>
+                  <strong>{game.join_code ?? "—"}</strong>
+                </div>
               </div>
 
               <div className={styles.teamList}>
@@ -334,7 +407,7 @@ export function MoneyDropManager({
                             >
                               {themeQuestions.map((question) => (
                                 <option key={question.id} value={question.id}>
-                                  {question.question}
+                                  [{question.difficulty}] {question.question}
                                 </option>
                               ))}
                             </optgroup>
@@ -392,8 +465,13 @@ export function MoneyDropManager({
                     </button>
                   </form>
                   <Link className={styles.secondaryButton} href="/motors/money-drop" target="_blank">
-                    Ouvrir l’écran civil
+                    Ouvrir l’écran joueur
                   </Link>
+                  {state.settings.spectator_enabled && (
+                    <Link className={styles.secondaryButton} href="/motors/money-drop/spectateur" target="_blank">
+                      Ouvrir l’écran spectateur
+                    </Link>
+                  )}
                 </div>
               )}
 
@@ -425,7 +503,7 @@ export function MoneyDropManager({
                 <form action={cancelMoneyDropGame}>
                   <input type="hidden" name="game_id" value={game.id} />
                   <button className={styles.dangerButton} type="submit">
-                    Annuler et fermer la partie
+                    {game.status === "finished" ? "Archiver la partie" : "Annuler et fermer la partie"}
                   </button>
                 </form>
               </div>
@@ -535,6 +613,16 @@ export function MoneyDropManager({
                 </select>
               </label>
               <label>
+                <span>Difficulté</span>
+                <select name="difficulty" defaultValue="Moyenne" required>
+                  <option value="Facile">Facile</option>
+                  <option value="Moyenne">Moyenne</option>
+                  <option value="Difficile">Difficile</option>
+                  <option value="Expert">Expert</option>
+                  <option value="Finale">Finale</option>
+                </select>
+              </label>
+              <label>
                 <span>Thème</span>
                 <select name="category" defaultValue="Culture générale" required>
                   {themes.map((theme) => (
@@ -597,7 +685,7 @@ export function MoneyDropManager({
                   <span>#{question.id}</span>
                   <div>
                     <span className={styles.themeBadge}>
-                      {question.is_final ? "Finale · " : ""}{question.category}
+                      {question.is_final ? "Finale · " : ""}{question.category} · {question.difficulty}
                     </span>
                     <strong>{question.question}</strong>
                     <br />

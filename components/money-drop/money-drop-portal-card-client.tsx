@@ -18,11 +18,13 @@ export function MoneyDropPortalCardClient({
   status,
   round,
   totalRounds,
+  registrationsOpen,
 }: {
   amount: number;
   status: string | null;
   round: number | null;
   totalRounds: number;
+  registrationsOpen: boolean;
 }) {
   const pathname = usePathname();
   if (pathname.includes("/motors/money-drop")) return null;
@@ -36,7 +38,9 @@ export function MoneyDropPortalCardClient({
           ? "Résultat révélé"
           : status === "finished"
             ? "Partie terminée"
-            : "Ouvrir le jeu";
+            : registrationsOpen
+              ? "Inscriptions ouvertes"
+              : "Ouvrir le jeu";
 
   return (
     <section className={styles.portalSection}>
