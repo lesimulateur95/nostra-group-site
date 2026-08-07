@@ -1,31 +1,38 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 
 import {
   joinMoneyDropGame,
-  registerMoneyDrop,
   saveMoneyDropAllocations,
   useMoneyDropJoker,
-  withdrawMoneyDropRegistration,
 } from "@/app/actions/money-drop";
-import type { MoneyDropOptionKey, MoneyDropState } from "@/lib/money-drop/data";
+import type { MoneyDropOption, MoneyDropOptionKey, MoneyDropState } from "@/lib/money-drop/data";
 import styles from "./money-drop.module.css";
 
 const keys: MoneyDropOptionKey[] = ["A", "B", "C", "D"];
+const stages = ["PRÉPARATION", "PLACEMENT", "VERROUILLAGE", "RÉVÉLATION"];
 
 function money(value: number) {
   return value.toLocaleString("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
 }
 
 function statusLabel(status: string | undefined) {
-  if (status === "setup") return "Salle d’attente";
-  if (status === "question_open") return "Répartition ouverte";
+  if (status === "setup") return "Préparation";
+  if (status === "question_open") return "Placement des liasses";
   if (status === "allocations_locked") return "Mises verrouillées";
-  if (status === "revealed") return "Réponse révélée";
+  if (status === "revealed") return "Révélation";
   if (status === "finished") return "Partie terminée";
-  return "En attente de la régie";
+  return "En attente";
+}
+
+function stageIndex(status: string | undefined) {
+  if (status === "question_open") return 1;
+  if (status === "allocations_locked") return 2;
+  if (status === "revealed" || status === "finished") return 3;
+  return 0;
 }
 
 function modeLabel(mode: string | undefined) {
@@ -40,12 +47,14 @@ function userIsEditing() {
 }
 
 function BillStack({ amount, max }: { amount: number; max: number }) {
-  if (amount <= 0) return <div className={styles.emptyStack}>Aucune liasse</div>;
-  const count = Math.max(1, Math.min(8, Math.ceil((amount / Math.max(1, max)) * 8)));
+  if (amount <= 0) return <div className={styles.emptyStack}>0 LIASSE</div>;
+  const count = Math.max(1, Math.min(10, Math.ceil((amount / Math.max(1, max)) * 10)));
   return (
     <div className={styles.billStack} aria-label={`${count} liasses virtuelles`}>
       {Array.from({ length: count }).map((_, index) => (
-        <span key={index} style={{ "--bill-index": index } as React.CSSProperties}>€</span>
+        <span key={index} style={{ "--bill-index": index } as CSSProperties}>
+          <b>€</b><i>NOSTRA</i>
+        </span>
       ))}
     </div>
   );
@@ -58,16 +67,121 @@ function playTone(kind: "tick" | "lock" | "reveal" | "win") {
     const ctx = new AudioContextClass();
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
-    const frequencies = { tick: 520, lock: 220, reveal: 150, win: 760 };
+    const frequencies = { tick: 560, lock: 210, reveal: 135, win: 820 };
     osc.frequency.value = frequencies[kind];
     osc.type = kind === "win" ? "sine" : "square";
     gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.08, ctx.currentTime + 0.01);
-    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + (kind === "win" ? 0.55 : 0.18));
-    osc.connect(gain); gain.connect(ctx.destination); osc.start();
-    osc.stop(ctx.currentTime + (kind === "win" ? 0.6 : 0.2));
-    window.setTimeout(() => void ctx.close(), 800);
-  } catch { /* son facultatif */ }
+    gain.gain.exponentialRampToValueAtTime(0.07, ctx.currentTime + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + (kind === "win" ? 0.6 : 0.2));
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + (kind === "win" ? 0.65 : 0.22));
+    window.setTimeout(() => void ctx.close(), 850);
+  } catch {
+    // Le son reste facultatif et ne doit jamais bloquer le jeu.
+  }
+}
+
+function Door({
+  option,
+  allocation,
+  max,
+  revealed,
+  correctOption,
+  removedByHint,
+  editable,
+  onChange,
+}: {
+  option: MoneyDropOption;
+  allocation: number;
+  max: number;
+  revealed: boolean;
+  correctOption: MoneyDropOptionKey | null;
+  removedByHint: boolean;
+  editable: boolean;
+  onChange: (key: MoneyDropOptionKey, value: string) => void;
+}) {
+  const isCorrect = revealed && correctOption === option.key;
+  const isWrong = revealed && correctOption !== option.key;
+  const className = [
+    styles.tvDoor,
+    isCorrect ? styles.tvDoorCorrect : "",
+    isWrong ? styles.tvDoorWrong : "",
+    removedByHint ? styles.tvDoorHint : "",
+  ].filter(Boolean).join(" ");
+
+  return (
+    <article className={className}>
+      <div className={styles.answerScreen}>
+        <span className={styles.answerLetter}>{option.key}</span>
+        <strong>{removedByHint ? "TRAPPE ÉLIMINÉE" : option.label}</strong>
+      </div>
+
+      <div className={styles.cashPlatform}>
+        <BillStack amount={allocation} max={max} />
+        <div className={styles.cashAmount}>{money(allocation)}</div>
+      </div>
+
+      <div className={styles.trapDoorPanel}>
+        <span>TRAPPE {option.key}</span>
+        <i />
+      </div>
+
+      {editable && (
+        <label className={styles.doorInput}>
+          <span>Montant à poser</span>
+          <input
+            name={`allocation_${option.key.toLowerCase()}`}
+            type="number"
+            min={0}
+            max={max}
+            step={1000}
+            value={removedByHint ? 0 : allocation}
+            disabled={removedByHint}
+            onChange={(event) => onChange(option.key, event.target.value)}
+          />
+        </label>
+      )}
+
+      {isCorrect && <div className={styles.resultRibbon}>✓ ARGENT SAUVÉ</div>}
+      {isWrong && <div className={styles.resultRibbon}>TRAPPE OUVERTE</div>}
+      {isWrong && allocation > 0 && (
+        <div className={styles.fallingMoney}>
+          {Array.from({ length: 10 }).map((_, index) => <span key={index}>€</span>)}
+        </div>
+      )}
+    </article>
+  );
+}
+
+function JokerDock({ state }: { state: MoneyDropState }) {
+  const game = state.game;
+  if (!game || !state.settings.jokers_enabled) return null;
+  const live = game.status === "question_open";
+  const isPlayer = state.current_user_is_player;
+  const finalRound = game.current_round >= game.total_rounds;
+
+  const Joker = ({ type, icon, title, used, unavailable = false }: { type: string; icon: string; title: string; used: boolean; unavailable?: boolean }) => (
+    <form action={useMoneyDropJoker} className={styles.jokerCard}>
+      <input type="hidden" name="game_id" value={game.id} />
+      <input type="hidden" name="joker" value={type} />
+      <span>{icon}</span>
+      <div><strong>{title}</strong><small>{used ? "UTILISÉ" : !isPlayer ? "RÉSERVÉ À L’ÉQUIPE" : !live ? "DISPONIBLE AU LANCEMENT" : unavailable ? "INDISPONIBLE" : "DISPONIBLE"}</small></div>
+      <button type="submit" disabled={!isPlayer || !live || used || unavailable}>{used ? "Utilisé" : "Activer"}</button>
+    </form>
+  );
+
+  return (
+    <section className={styles.jokerDock}>
+      <div className={styles.jokerDockTitle}><span>JOKERS</span><small>1 utilisation de chaque joker par partie</small></div>
+      <div className={styles.jokerGrid}>
+        <Joker type="time" icon="+30" title="Temps supplémentaire" used={game.joker_time_used} />
+        <Joker type="hint" icon="?" title="Éliminer une mauvaise trappe" used={game.joker_hint_used} unavailable={finalRound} />
+        <Joker type="change" icon="↻" title="Changer de question" used={game.joker_change_used} />
+      </div>
+    </section>
+  );
 }
 
 export function MoneyDropExperience({
@@ -87,6 +201,7 @@ export function MoneyDropExperience({
   const [now, setNow] = useState(0);
   const [allocations, setAllocations] = useState(state.allocations);
   const [soundsOn, setSoundsOn] = useState(state.settings.sounds_enabled);
+  const pageRef = useRef<HTMLElement | null>(null);
   const previousStatus = useRef(game?.status);
   const lastTickSecond = useRef<number | null>(null);
 
@@ -100,11 +215,14 @@ export function MoneyDropExperience({
   }, [game?.hint_removed_option]);
 
   useEffect(() => {
-    const clock = window.setInterval(() => setNow(Date.now()), 1000);
+    const clock = window.setInterval(() => setNow(Date.now()), 500);
     const refresh = window.setInterval(() => {
       if (document.visibilityState === "visible" && !userIsEditing()) router.refresh();
-    }, 4000);
-    return () => { window.clearInterval(clock); window.clearInterval(refresh); };
+    }, 2500);
+    return () => {
+      window.clearInterval(clock);
+      window.clearInterval(refresh);
+    };
   }, [router]);
 
   useEffect(() => {
@@ -128,6 +246,8 @@ export function MoneyDropExperience({
   const amountToPlace = game?.current_amount ?? 0;
   const remainingToPlace = amountToPlace - totalAllocated;
   const canSubmit = game?.status === "question_open" && state.current_user_is_player && remainingToPlace === 0;
+  const revealed = game?.status === "revealed" || game?.status === "finished";
+  const activeStage = stageIndex(game?.status);
 
   function updateAllocation(key: MoneyDropOptionKey, value: string) {
     const parsed = Number(value);
@@ -136,159 +256,166 @@ export function MoneyDropExperience({
 
   async function toggleFullscreen() {
     try {
-      if (!document.fullscreenElement) await document.documentElement.requestFullscreen();
+      if (!document.fullscreenElement && pageRef.current) await pageRef.current.requestFullscreen();
       else await document.exitFullscreen();
-    } catch { /* plein écran non disponible */ }
+    } catch {
+      // Le plein écran est une amélioration facultative.
+    }
   }
 
-  const revealed = game?.status === "revealed" || game?.status === "finished";
+  function renderDoors(editable: boolean): ReactNode {
+    if (!question) return null;
+    return (
+      <div className={`${styles.tvDoors} ${question.options.length === 2 ? styles.tvDoorsFinal : ""}`}>
+        {question.options.map((option) => (
+          <Door
+            key={option.key}
+            option={option}
+            allocation={allocations[option.key]}
+            max={amountToPlace}
+            revealed={revealed}
+            correctOption={question.correct_option}
+            removedByHint={!revealed && game?.hint_removed_option === option.key}
+            editable={editable}
+            onChange={updateAllocation}
+          />
+        ))}
+      </div>
+    );
+  }
 
   return (
-    <main className={`${styles.page} ${spectator ? styles.spectatorPage : ""}`}>
-      <section className={styles.hero}>
-        <div className={styles.showToolbar}>
-          <span className={styles.eyebrow}>NOSTRA MOTORS PRÉSENTE</span>
-          <div className={styles.toolbarButtons}>
-            {state.settings.sounds_enabled && (
-              <button className={styles.iconButton} type="button" onClick={() => setSoundsOn((value) => !value)}>
-                {soundsOn ? "🔊 Sons" : "🔇 Sons"}
-              </button>
-            )}
-            <button className={styles.iconButton} type="button" onClick={toggleFullscreen}>⛶ Plein écran</button>
-          </div>
-        </div>
-        <h1>Money Drop</h1>
-        <p>Une cagnotte, des trappes, une seule bonne réponse. Tout ce qui tombe est définitivement perdu.</p>
+    <main ref={pageRef} className={`${styles.tvPage} ${spectator ? styles.spectatorPage : ""}`}>
+      <div className={styles.stageGlow} aria-hidden="true"><i /><i /><i /><i /><i /></div>
 
-        <div className={styles.heroStats}>
-          <div><span>Cagnotte</span><strong>{money(game?.current_amount ?? state.settings.starting_amount)}</strong></div>
-          <div><span>Mode</span><strong>{modeLabel(game?.game_mode)}</strong></div>
-          <div><span>État</span><strong>{statusLabel(game?.status)}</strong></div>
+      <header className={styles.tvHeader}>
+        <div className={styles.liveIdentity}>
+          <span className={styles.broadcastBadge}>{spectator ? "ÉCRAN SPECTATEUR" : "JEUX & ÉVÉNEMENTS"}</span>
+          <div className={styles.wordmark}><span>MONEY</span><strong>DROP</strong></div>
+          <p>Place toute la cagnotte. Une seule trappe peut tout sauver.</p>
         </div>
-      </section>
+        <div className={styles.tvTools}>
+          {game && <span className={styles.livePill}><i /> {game.status === "finished" ? "TERMINÉ" : "EN DIRECT"}</span>}
+          {state.settings.sounds_enabled && <button type="button" onClick={() => setSoundsOn((value) => !value)}>{soundsOn ? "🔊 SON" : "🔇 SON"}</button>}
+          <button type="button" onClick={toggleFullscreen}>⛶ PLEIN ÉCRAN</button>
+        </div>
+      </header>
 
       {successMessage && <div className={styles.success}>{successMessage}</div>}
       {errorMessage && <div className={styles.error}>{errorMessage}</div>}
 
-      {!game && state.settings.public_registration_enabled && !spectator && (
-        <section className={styles.registrationBanner}>
-          <div>
-            <span className={styles.eyebrow}>PARTIE PUBLIQUE</span>
-            <h2>Les inscriptions Money Drop sont ouvertes</h2>
-            <p>Inscris-toi à la file d’attente. La régie choisira ensuite les participants.</p>
-          </div>
-          {state.current_user_is_registered ? (
-            <form action={withdrawMoneyDropRegistration}><button className={styles.secondaryButton}>Se désinscrire</button></form>
-          ) : (
-            <form action={registerMoneyDrop}><button className={styles.primaryButton}>S’inscrire</button></form>
-          )}
-        </section>
-      )}
-
       {!game ? (
-        <section className={styles.waiting}>
-          <h2>Aucune partie en cours</h2>
-          <p>La prochaine émission apparaîtra ici dès sa création.</p>
+        <section className={styles.tvLobby}>
+          <div className={styles.lobbyLogo}>€</div>
+          <span className={styles.eyebrow}>PROCHAINE ÉMISSION</span>
+          <h1>Le plateau est prêt.</h1>
+          <p>La partie apparaîtra ici dès que la régie aura sélectionné une équipe.</p>
+          {!spectator && (
+            <div className={styles.lobbyActions}>
+              {state.settings.public_registration_enabled && <Link className={styles.primaryButton} href="/evenements/jeux/money-drop/inscription">S’inscrire à la prochaine partie</Link>}
+              <Link className={styles.secondaryButton} href="/evenements/jeux">Retour aux Jeux & événements</Link>
+            </div>
+          )}
         </section>
       ) : (
         <>
-          <section className={styles.teamPanel}>
-            <div className={styles.panelTopline}>
-              <div><span className={styles.eyebrow}>ÉQUIPE EN JEU</span><h2>{game.team_name}</h2></div>
-              <div className={styles.roundPill}>Manche {game.current_round}/{game.total_rounds}</div>
+          <section className={styles.scoreTower}>
+            <div className={styles.jackpotBlock}>
+              <span>CAGNOTTE EN JEU</span>
+              <strong>{money(game.current_amount)}</strong>
+              <small>Départ : {money(game.starting_amount)}</small>
             </div>
-            <div className={styles.teamList}>
-              {state.players.map((player) => (
-                <div className={styles.playerCard} key={player.user_id}>
-                  <strong>{player.player_name}</strong>
-                  <span>{player.is_captain ? "Capitaine" : `Joueur ${player.position}`}</span>
-                </div>
-              ))}
+            <div className={styles.roundBlock}>
+              <span>MANCHE</span>
+              <strong>{game.current_round}<i>/</i>{game.total_rounds}</strong>
+              <small>{modeLabel(game.game_mode)}</small>
             </div>
-
-            {!spectator && !state.current_user_is_player && game.status === "setup" && state.players.length < 4 && (
-              <form action={joinMoneyDropGame} className={styles.joinForm}>
-                <label><span>Code de partie</span><input name="join_code" type="text" maxLength={8} placeholder="ABC123" required /></label>
-                <button className={styles.secondaryButton} type="submit">Rejoindre l’équipe</button>
-              </form>
-            )}
-            {!spectator && state.current_user_is_player && game.join_code && (
-              <div className={styles.joinCode}>Code équipe : <strong>{game.join_code}</strong></div>
-            )}
+            <div className={styles.statusBlock}>
+              <span>PHASE</span>
+              <strong>{statusLabel(game.status)}</strong>
+              <small>{question ? `${question.category} · ${question.difficulty}` : "La régie prépare la question"}</small>
+            </div>
+            <div className={`${styles.clockBlock} ${game.status === "question_open" && remainingSeconds !== null && remainingSeconds <= 10 ? styles.clockDanger : ""}`}>
+              <span>CHRONO</span>
+              <strong>{game.status === "question_open" && remainingSeconds !== null ? String(remainingSeconds).padStart(2, "0") : game.status === "allocations_locked" ? "LOCK" : game.status === "revealed" ? "OK" : game.status === "finished" ? "FIN" : "--"}</strong>
+              <small>{game.status === "question_open" ? "secondes" : statusLabel(game.status)}</small>
+            </div>
           </section>
 
-          <section className={styles.board}>
+          <section className={styles.stageProgress}>
+            {stages.map((stage, index) => (
+              <div key={stage} className={index <= activeStage ? styles.stageStepActive : styles.stageStep}>
+                <span>{index + 1}</span><strong>{stage}</strong>
+              </div>
+            ))}
+          </section>
+
+          <section className={styles.teamStrip}>
+            <div className={styles.teamName}><span>ÉQUIPE</span><strong>{game.team_name}</strong></div>
+            <div className={styles.playerChips}>
+              {state.players.map((player) => <span key={player.user_id}><b>{player.player_name}</b><small>{player.is_captain ? "CAPITAINE" : `JOUEUR ${player.position}`}</small></span>)}
+            </div>
+            {!spectator && state.current_user_is_player && game.join_code && game.status === "setup" && <div className={styles.teamCode}>CODE <strong>{game.join_code}</strong></div>}
+          </section>
+
+          {!spectator && !state.current_user_is_player && game.status === "setup" && state.players.length < 4 && (
+            <section className={styles.joinPanel}>
+              <div><span className={styles.eyebrow}>REJOINDRE L’ÉQUIPE</span><p>Entre le code communiqué par le capitaine ou la régie.</p></div>
+              <form action={joinMoneyDropGame}>
+                <input name="join_code" type="text" maxLength={8} placeholder="ABC123" required />
+                <button className={styles.primaryButton} type="submit">Rejoindre</button>
+              </form>
+            </section>
+          )}
+
+          <section className={styles.tvBoard}>
             {!question ? (
-              <div className={styles.waiting}><h2>Salle d’attente</h2><p>La régie prépare la prochaine question.</p></div>
+              <div className={styles.preShowScreen}>
+                <div className={styles.preShowPulse}>€</div>
+                <span className={styles.eyebrow}>PRÉPARATION DE LA MANCHE {game.current_round}</span>
+                <h2>La régie prépare la prochaine question.</h2>
+                <p>La partie démarrera automatiquement sur cet écran dès que la régie appuiera sur « Lancer la manche ».</p>
+              </div>
             ) : (
               <>
-                <header className={styles.questionHeader}>
-                  <div>
-                    <span className={styles.eyebrow}>MANCHE {game.current_round} · {question.category} · {question.difficulty}</span>
-                    <h2>{question.question}</h2>
-                  </div>
-                  {remainingSeconds !== null && game.status === "question_open" && (
-                    <div className={`${styles.timer} ${remainingSeconds <= 10 ? styles.timerDanger : ""}`}>{remainingSeconds}s</div>
-                  )}
+                <header className={styles.tvQuestion}>
+                  <div className={styles.questionMeta}><span>MANCHE {game.current_round}</span><span>{question.category}</span><span>{question.difficulty}</span></div>
+                  <h1>{question.question}</h1>
+                  {game.status === "setup" && <div className={styles.readyBanner}>QUESTION CHARGÉE · EN ATTENTE DU LANCEMENT RÉGIE</div>}
                 </header>
 
-                <div className={`${styles.doors} ${question.options.length === 2 ? styles.twoDoors : ""}`}>
-                  {question.options.map((option) => {
-                    const isCorrect = Boolean(revealed && question.correct_option === option.key);
-                    const isWrong = Boolean(revealed && question.correct_option !== option.key);
-                    const removedByHint = !revealed && game.hint_removed_option === option.key;
-                    const className = [styles.door, isCorrect ? styles.doorCorrect : "", isWrong ? styles.doorWrong : "", removedByHint ? styles.doorHintRemoved : ""].filter(Boolean).join(" ");
-                    return (
-                      <article className={className} key={option.key}>
-                        <div className={styles.trapSurface}>
-                          <span className={styles.optionKey}>{option.key}</span>
-                          <strong className={styles.optionLabel}>{removedByHint ? "ÉLIMINÉE PAR L’INDICE" : option.label}</strong>
-                          <BillStack amount={allocations[option.key]} max={amountToPlace} />
-                          <div className={styles.moneyStack}><strong>{money(allocations[option.key])}</strong><span>{isCorrect ? "Argent conservé" : isWrong ? "Trappe ouverte" : "Montant posé"}</span></div>
-                        </div>
-                        {isWrong && allocations[option.key] > 0 && <div className={styles.fallingMoney}>{Array.from({ length: 7 }).map((_, i) => <span key={i}>€</span>)}</div>}
-                      </article>
-                    );
-                  })}
-                </div>
-
-                {state.settings.jokers_enabled && game.status === "question_open" && state.current_user_is_player && !spectator && (
-                  <div className={styles.jokerBar}>
-                    <span className={styles.eyebrow}>JOKERS — UNE UTILISATION PAR PARTIE</span>
-                    <div className={styles.actionRow}>
-                      <form action={useMoneyDropJoker}><input type="hidden" name="game_id" value={game.id}/><input type="hidden" name="joker" value="time"/><button disabled={game.joker_time_used}>⏱ +30 secondes</button></form>
-                      <form action={useMoneyDropJoker}><input type="hidden" name="game_id" value={game.id}/><input type="hidden" name="joker" value="hint"/><button disabled={game.joker_hint_used || game.current_round >= game.total_rounds}>💡 Éliminer une mauvaise trappe</button></form>
-                      <form action={useMoneyDropJoker}><input type="hidden" name="game_id" value={game.id}/><input type="hidden" name="joker" value="change"/><button disabled={game.joker_change_used}>🔄 Changer de question</button></form>
-                    </div>
-                  </div>
-                )}
-
-                {game.status === "question_open" && state.current_user_is_player && !spectator && (
-                  <form action={saveMoneyDropAllocations} className={styles.allocationForm}>
+                {game.status === "question_open" && state.current_user_is_player && !spectator ? (
+                  <form action={saveMoneyDropAllocations} className={styles.playForm}>
                     <input type="hidden" name="game_id" value={game.id} />
-                    <div className={styles.allocationGrid}>
-                      {keys.map((key) => {
-                        const option = question.options.find((item) => item.key === key);
-                        const disabled = !option || game.hint_removed_option === key;
-                        return (
-                          <label key={key}><span>Trappe {key}</span><input name={`allocation_${key.toLowerCase()}`} type="number" min={0} max={amountToPlace} step={1000} value={disabled ? 0 : allocations[key]} disabled={disabled} onChange={(event) => updateAllocation(key, event.target.value)} /></label>
-                        );
-                      })}
-                    </div>
-                    <div className={styles.allocationSummary}>
-                      <span>Reste à placer : <strong>{money(remainingToPlace)}</strong></span>
-                      <span>Tu peux miser sur <strong>toutes les trappes</strong>.</span>
-                      <button className={styles.primaryButton} type="submit" disabled={!canSubmit}>Valider la répartition</button>
+                    {renderDoors(true)}
+                    {keys.filter((key) => !question.options.some((option) => option.key === key)).map((key) => <input key={key} type="hidden" name={`allocation_${key.toLowerCase()}`} value="0" />)}
+                    <div className={styles.cashControl}>
+                      <div><span>PLACÉ</span><strong>{money(totalAllocated)}</strong></div>
+                      <div className={remainingToPlace === 0 ? styles.cashReady : styles.cashRemaining}><span>RESTE À PLACER</span><strong>{money(remainingToPlace)}</strong></div>
+                      <p>Tu peux répartir l’argent sur une, plusieurs ou toutes les trappes.</p>
+                      <button className={styles.lockBetButton} type="submit" disabled={!canSubmit}>🔒 VERROUILLER MA RÉPARTITION</button>
                     </div>
                   </form>
+                ) : (
+                  renderDoors(false)
                 )}
 
-                {game.status === "question_open" && (!state.current_user_is_player || spectator) && <div className={styles.waiting}>L’équipe répartit actuellement sa cagnotte sur les trappes.</div>}
-                {game.status === "allocations_locked" && <div className={styles.lockedBanner}>🔒 MISES VERROUILLÉES — révélation imminente</div>}
-                {revealed && question.correct_option && <div className={styles.success}>Bonne réponse : trappe {question.correct_option}. Cagnotte restante : <strong>{money(game.current_amount)}</strong>.</div>}
+                {game.status === "question_open" && (!state.current_user_is_player || spectator) && <div className={styles.broadcastMessage}>L’ÉQUIPE PLACE ACTUELLEMENT SES LIASSES…</div>}
+                {game.status === "allocations_locked" && <div className={styles.revealMessage}>🔒 MISES VERROUILLÉES <strong>LA RÉVÉLATION ARRIVE…</strong></div>}
+                {revealed && question.correct_option && <div className={styles.winMessage}>TRAPPE {question.correct_option} · CAGNOTTE RESTANTE <strong>{money(game.current_amount)}</strong></div>}
               </>
             )}
           </section>
+
+          {!spectator && <JokerDock state={state} />}
+
+          {!spectator && (
+            <section className={styles.publicNav}>
+              <Link href="/evenements/jeux/money-drop/inscription">Inscriptions</Link>
+              {state.settings.spectator_enabled && <Link href="/evenements/jeux/money-drop/spectateur">Écran spectateur</Link>}
+              <Link href="/evenements/jeux">Jeux & événements</Link>
+            </section>
+          )}
         </>
       )}
 
@@ -304,29 +431,13 @@ export function MoneyDropExperience({
         </section>
       )}
 
-      {state.recent_games.length > 0 && (
-        <section className={styles.historyPanel}>
-          <span className={styles.eyebrow}>ARCHIVES MONEY DROP</span>
-          <h2>Dernières parties</h2>
-          <div className={styles.historyList}>
-            {state.recent_games.map((entry) => (
-              <article className={styles.historyItem} key={entry.id}>
-                <span>🎬</span>
-                <div><strong>{entry.team_name}</strong><br/><small>{entry.players || "Équipe Nostra"} · {modeLabel(entry.game_mode)}</small></div>
-                <span className={styles.historyAmount}>{money(entry.final_amount)}</span>
-              </article>
-            ))}
-          </div>
-        </section>
-      )}
-
       {game && state.history.length > 0 && (
         <section className={styles.historyPanel}>
           <span className={styles.eyebrow}>HISTORIQUE DE LA PARTIE</span>
-          <h2>Les trappes déjà ouvertes</h2>
+          <h2>Les manches déjà jouées</h2>
           <div className={styles.historyList}>
             {state.history.map((round) => (
-              <article className={styles.historyItem} key={round.round_number}><span>#{round.round_number}</span><div><strong>{round.question}</strong><br/><small>Bonne réponse : {round.correct_option} · Perte : {money(round.lost_amount)}</small></div><span className={styles.historyAmount}>{money(round.remaining_amount)}</span></article>
+              <article className={styles.historyItem} key={round.round_number}><span>#{round.round_number}</span><div><strong>{round.question}</strong><br /><small>Bonne réponse : {round.correct_option} · Perte : {money(round.lost_amount)}</small></div><span className={styles.historyAmount}>{money(round.remaining_amount)}</span></article>
             ))}
           </div>
         </section>

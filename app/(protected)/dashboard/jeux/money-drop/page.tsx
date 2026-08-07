@@ -32,6 +32,7 @@ function successLabel(value: string | undefined) {
   if (value === "game-created") return "La nouvelle équipe Money Drop a été créée.";
   if (value === "question-selected") return "La question est chargée pour la manche actuelle.";
   if (value === "question-opened") return "La répartition est ouverte aux joueurs.";
+  if (value === "game-started") return "La manche est lancée : le chrono et la répartition sont ouverts côté joueurs.";
   if (value === "allocations-locked") return "Les mises sont verrouillées.";
   if (value === "answer-revealed") return "Les mauvaises trappes ont été ouvertes.";
   if (value === "round-advanced") return "La manche suivante est prête.";
@@ -73,9 +74,9 @@ export default async function MoneyDropDashboardPage({ searchParams }: PageProps
   return (
     <DashboardShell>
       <DashboardHeader
-        eyebrow="NOSTRA MOTORS — JEU UNIQUE"
+        eyebrow="JEUX & ÉVÉNEMENTS — RÉGIE"
         title="Money Drop"
-        description="Pilote l’émission, prépare les questions, synchronise les trappes et contrôle la visibilité civile depuis un seul écran."
+        description="Pilote l’émission, les inscriptions, les questions, les jokers et les trappes en direct depuis la régie Money Drop."
       />
 
       {successLabel(params.money_drop_success) && (

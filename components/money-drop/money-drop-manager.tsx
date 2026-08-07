@@ -11,10 +11,10 @@ import {
   cancelMoneyDropGame,
   createMoneyDropGame,
   lockMoneyDropAllocations,
-  openMoneyDropQuestion,
   revealMoneyDropAnswer,
   selectMoneyDropQuestion,
   selectRandomMoneyDropQuestion,
+  startMoneyDropRound,
   toggleMoneyDrop,
   toggleMoneyDropRegistrations,
   toggleMoneyDropQuestion,
@@ -36,7 +36,7 @@ function money(value: number) {
 }
 
 function statusLabel(status: string | undefined) {
-  if (status === "setup") return "Question à préparer";
+  if (status === "setup") return "Prête à lancer";
   if (status === "question_open") return "Répartition ouverte";
   if (status === "allocations_locked") return "Mises verrouillées";
   if (status === "revealed") return "Résultat révélé";
@@ -243,14 +243,17 @@ export function MoneyDropManager({
               <div>
                 <span className={styles.eyebrow}>INSCRIPTIONS PUBLIQUES</span>
                 <h2>File d’attente Money Drop</h2>
-                <p>Quand elle est ouverte, les citoyens peuvent s’inscrire directement depuis Nostra Motors.</p>
+                <p>Quand elle est ouverte, les citoyens s’inscrivent depuis Jeux & événements → Money Drop.</p>
               </div>
-              <form action={toggleMoneyDropRegistrations}>
-                <input type="hidden" name="enabled" value={state.settings.public_registration_enabled ? "false" : "true"} />
-                <button className={state.settings.public_registration_enabled ? styles.dangerButton : styles.primaryButton} type="submit">
-                  {state.settings.public_registration_enabled ? "Fermer les inscriptions" : "Ouvrir les inscriptions"}
-                </button>
-              </form>
+              <div className={styles.actionRow}>
+                <Link className={styles.secondaryButton} href="/evenements/jeux/money-drop/inscription" target="_blank">Voir la page d’inscription</Link>
+                <form action={toggleMoneyDropRegistrations}>
+                  <input type="hidden" name="enabled" value={state.settings.public_registration_enabled ? "false" : "true"} />
+                  <button className={state.settings.public_registration_enabled ? styles.dangerButton : styles.primaryButton} type="submit">
+                    {state.settings.public_registration_enabled ? "Fermer les inscriptions" : "Ouvrir les inscriptions"}
+                  </button>
+                </form>
+              </div>
             </div>
 
             <div className={styles.bankStats}>
@@ -376,8 +379,24 @@ export function MoneyDropManager({
                 ))}
               </div>
 
+              <div className={styles.managerLaunchStrip}>
+                <div>
+                  <span className={styles.eyebrow}>ÉCRANS PUBLICS</span>
+                  <p>Le jeu et les inscriptions sont uniquement dans Jeux & événements.</p>
+                </div>
+                <div className={styles.actionRow}>
+                  <Link className={styles.secondaryButton} href="/evenements/jeux/money-drop" target="_blank">Écran joueur</Link>
+                  <Link className={styles.secondaryButton} href="/evenements/jeux/money-drop/inscription" target="_blank">Inscriptions</Link>
+                  {state.settings.spectator_enabled && <Link className={styles.secondaryButton} href="/evenements/jeux/money-drop/spectateur" target="_blank">Spectateur</Link>}
+                </div>
+              </div>
+
               {game.status === "setup" && (
                 <>
+                  <div className={styles.launchGuide}>
+                    <strong>Prêt à démarrer</strong>
+                    <span>Tu peux choisir une question ci-dessous, ou cliquer directement sur « Lancer la partie » : le site tirera automatiquement une question adaptée et démarrera le chrono.</span>
+                  </div>
                   <form action={selectMoneyDropQuestion} className={styles.formGrid}>
                     <input type="hidden" name="game_id" value={game.id} />
                     <label className={styles.fullWidth}>
@@ -434,10 +453,10 @@ export function MoneyDropManager({
                       </select>
                       <button type="submit">{isFinalRound ? "Tirer une finale au hasard" : "Tirer au hasard dans ce thème"}</button>
                     </form>
-                    <form action={openMoneyDropQuestion}>
+                    <form action={startMoneyDropRound}>
                       <input type="hidden" name="game_id" value={game.id} />
-                      <button className={styles.primaryButton} type="submit" disabled={!state.question}>
-                        Ouvrir la répartition aux joueurs
+                      <button className={styles.launchButton} type="submit">
+                        ▶ {game.current_round === 1 ? "LANCER LA PARTIE" : `LANCER LA MANCHE ${game.current_round}`}
                       </button>
                     </form>
                   </div>
@@ -464,14 +483,7 @@ export function MoneyDropManager({
                       Verrouiller les mises
                     </button>
                   </form>
-                  <Link className={styles.secondaryButton} href="/motors/money-drop" target="_blank">
-                    Ouvrir l’écran joueur
-                  </Link>
-                  {state.settings.spectator_enabled && (
-                    <Link className={styles.secondaryButton} href="/motors/money-drop/spectateur" target="_blank">
-                      Ouvrir l’écran spectateur
-                    </Link>
-                  )}
+
                 </div>
               )}
 

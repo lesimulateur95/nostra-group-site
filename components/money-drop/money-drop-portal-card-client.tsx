@@ -27,40 +27,41 @@ export function MoneyDropPortalCardClient({
   registrationsOpen: boolean;
 }) {
   const pathname = usePathname();
-  if (pathname.includes("/motors/money-drop")) return null;
+  if (pathname.includes("/evenements/jeux/money-drop")) return null;
 
   const statusLabel =
-    status === "question_open"
-      ? "Répartition en cours"
+    status === "setup"
+      ? "ÉQUIPE EN PRÉPARATION"
+      : status === "question_open"
+      ? "PARTIE EN DIRECT"
       : status === "allocations_locked"
-        ? "Mises verrouillées"
+        ? "RÉVÉLATION EN COURS"
         : status === "revealed"
-          ? "Résultat révélé"
+          ? "RÉSULTAT DE MANCHE"
           : status === "finished"
-            ? "Partie terminée"
+            ? "PARTIE TERMINÉE"
             : registrationsOpen
-              ? "Inscriptions ouvertes"
-              : "Ouvrir le jeu";
+              ? "INSCRIPTIONS OUVERTES"
+              : "PROCHAINE ÉMISSION";
 
   return (
     <section className={styles.portalSection}>
-      <Link className={styles.portalCard} href="/motors/money-drop">
-        <span className={styles.portalIcon}>💸</span>
-        <span className={styles.portalCopy}>
-          <span className={styles.eyebrow}>NOSTRA MOTORS — JEU EN DIRECT</span>
+      <article className={styles.portalCard}>
+        <div className={styles.portalIcon}>€</div>
+        <div className={styles.portalCopy}>
+          <span className={styles.eyebrow}>JEUX & ÉVÉNEMENTS · MONEY DROP</span>
           <strong>Money Drop</strong>
-          <span>
-            Répartissez la cagnotte sur les trappes et gardez l’argent posé sur la bonne réponse.
-          </span>
-        </span>
-        <span className={styles.portalStatus}>
+          <span>Une cagnotte, quatre trappes et une seule bonne réponse. Sauve le maximum avant la finale.</span>
+        </div>
+        <div className={styles.portalStatus}>
           <strong>{statusLabel}</strong>
-          <small>
-            {money(amount)}
-            {round ? ` · Manche ${round}/${totalRounds}` : ""}
-          </small>
-        </span>
-      </Link>
+          <small>{money(amount)}{round ? ` · Manche ${round}/${totalRounds}` : ""}</small>
+          <div className={styles.portalActions}>
+            <Link className={styles.primaryButton} href="/evenements/jeux/money-drop">Ouvrir le jeu</Link>
+            {registrationsOpen && <Link className={styles.secondaryButton} href="/evenements/jeux/money-drop/inscription">S’inscrire</Link>}
+          </div>
+        </div>
+      </article>
     </section>
   );
 }

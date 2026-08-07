@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { getUserRoleKeys } from "@/lib/auth/access";
 import { createClient } from "@/lib/supabase/server";
 
-const PUBLIC_PATH = "/motors/money-drop";
+const PUBLIC_PATH = "/evenements/jeux/money-drop";
 const DASHBOARD_PATH = "/dashboard/jeux/money-drop";
 
 function text(formData: FormData, name: string, max = 1000): string {
@@ -23,8 +23,9 @@ function bool(formData: FormData, name: string): boolean {
 }
 
 function refresh() {
-  revalidatePath("/motors");
+  revalidatePath("/evenements/jeux");
   revalidatePath(PUBLIC_PATH);
+  revalidatePath(`${PUBLIC_PATH}/inscription`);
   revalidatePath(`${PUBLIC_PATH}/spectateur`);
   revalidatePath("/dashboard");
   revalidatePath(DASHBOARD_PATH);
@@ -43,14 +44,14 @@ async function managerRpc(name: string, params: Record<string, unknown>, success
   redirect(`${DASHBOARD_PATH}?money_drop_success=${success}`);
 }
 
-async function publicRpc(name: string, params: Record<string, unknown>, success: string): Promise<void> {
+async function publicRpc(name: string, params: Record<string, unknown>, success: string, redirectPath = PUBLIC_PATH): Promise<void> {
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
   if (!data.user) redirect("/");
   const { error } = await (supabase as any).rpc(name, params);
-  if (error) redirect(`${PUBLIC_PATH}?money_drop_error=${encodeURIComponent(error.message || "database")}`);
+  if (error) redirect(`${redirectPath}?money_drop_error=${encodeURIComponent(error.message || "database")}`);
   refresh();
-  redirect(`${PUBLIC_PATH}?money_drop_success=${success}`);
+  redirect(`${redirectPath}?money_drop_success=${success}`);
 }
 
 export async function toggleMoneyDrop(formData: FormData) {
@@ -83,11 +84,11 @@ export async function toggleMoneyDropRegistrations(formData: FormData) {
 }
 
 export async function registerMoneyDrop() {
-  await publicRpc("money_drop_register", {}, "registered");
+  await publicRpc("money_drop_register", {}, "registered", `${PUBLIC_PATH}/inscription`);
 }
 
 export async function withdrawMoneyDropRegistration() {
-  await publicRpc("money_drop_withdraw_registration", {}, "registration-withdrawn");
+  await publicRpc("money_drop_withdraw_registration", {}, "registration-withdrawn", `${PUBLIC_PATH}/inscription`);
 }
 
 export async function joinMoneyDropGame(formData: FormData) {
@@ -162,6 +163,14 @@ export async function selectMoneyDropQuestion(formData: FormData) {
 export async function selectRandomMoneyDropQuestion(formData: FormData) {
   const category = text(formData, "category", 100);
   await managerRpc("money_drop_select_random_question", { p_game_id: text(formData, "game_id", 80), p_category: category || null }, "question-selected");
+}
+
+export async function startMoneyDropRound(formData: FormData) {
+  const category = text(formData, "category", 100);
+  await managerRpc("money_drop_start_round", {
+    p_game_id: text(formData, "game_id", 80),
+    p_category: category || null,
+  }, "game-started");
 }
 
 export async function openMoneyDropQuestion(formData: FormData) {

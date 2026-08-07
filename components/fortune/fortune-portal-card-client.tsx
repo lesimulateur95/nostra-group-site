@@ -21,7 +21,7 @@ export function FortunePortalCardClient({
   status: string | null;
 }) {
   const pathname = usePathname();
-  if (pathname.includes("/evenements/roue-de-la-fortune")) return null;
+  if (pathname.includes("/evenements/roue-de-la-fortune") || pathname.includes("/evenements/jeux/money-drop")) return null;
 
   const label =
     status === "active"

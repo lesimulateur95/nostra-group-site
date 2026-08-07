@@ -1,4 +1,4 @@
-import { FortunePortalCard } from "@/components/fortune/fortune-portal-card";
+import { MoneyDropPortalCard } from "@/components/money-drop/money-drop-portal-card";
 import { EditablePage } from "@/components/site/editable-page";
 
 export default function JeuxPage() {
@@ -33,7 +33,7 @@ export default function JeuxPage() {
 
   return (
     <>
-      <FortunePortalCard />
+      <MoneyDropPortalCard />
 
       <EditablePage
         slug="evenements-jeux"

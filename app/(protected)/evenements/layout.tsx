@@ -1,13 +1,18 @@
 import { SectionLayout } from "@/components/site/section-layout";
 import type { SidebarNavItem } from "@/components/site/sidebar-nav";
 import { getSectionNavigation } from "@/lib/content/section-navigation";
+import { getMoneyDropPublicState } from "@/lib/money-drop/data";
 
 export default async function EventsLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const baseItems = await getSectionNavigation("evenements");
+  const [baseItems, moneyDropState] = await Promise.all([
+    getSectionNavigation("evenements"),
+    getMoneyDropPublicState(),
+  ]);
+  const moneyDropVisible = moneyDropState.configured && moneyDropState.settings.enabled;
   const items: SidebarNavItem[] = [];
 
   for (const item of baseItems) {
@@ -30,6 +35,20 @@ export default async function EventsLayout({
           { key: "tombola-registration", href: "/evenements/tombola/inscription", label: "Inscription" },
         ],
       });
+      if (moneyDropVisible) {
+        items.push({
+          key: "money-drop",
+          href: "/evenements/jeux/money-drop",
+          label: "Money Drop",
+          children: [
+            { key: "money-drop-live", href: "/evenements/jeux/money-drop", label: "Plateau de jeu" },
+            { key: "money-drop-registration", href: "/evenements/jeux/money-drop/inscription", label: "Inscription" },
+            ...(moneyDropState.settings.spectator_enabled
+              ? [{ key: "money-drop-spectator", href: "/evenements/jeux/money-drop/spectateur", label: "Écran spectateur" }]
+              : []),
+          ],
+        });
+      }
       items.push({
         key: "deal-or-no-deal",
         href: "/evenements/a-prendre-ou-a-laisser",
