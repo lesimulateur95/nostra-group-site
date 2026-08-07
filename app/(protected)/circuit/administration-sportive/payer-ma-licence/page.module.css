@@ -297,3 +297,33 @@
     font-size: 5rem;
   }
 }
+
+.academyOk {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: center;
+  padding: 18px 20px;
+  border: 1px solid rgba(67, 210, 126, 0.42);
+  border-radius: 17px;
+  background:
+    linear-gradient(110deg, rgba(30, 133, 75, 0.18), transparent 72%),
+    #08110c;
+}
+
+.academyOk strong { color: #aaf1c5; }
+.academyOk p { margin: 5px 0 0; color: #c4d4ca; }
+.academyOk > span {
+  min-width: max-content;
+  padding: 8px 11px;
+  border: 1px solid rgba(67, 210, 126, 0.38);
+  border-radius: 999px;
+  color: #aaf1c5;
+  font-size: .76rem;
+  font-weight: 950;
+  letter-spacing: .08em;
+}
+
+@media (max-width: 700px) {
+  .academyOk { align-items: flex-start; flex-direction: column; }
+}

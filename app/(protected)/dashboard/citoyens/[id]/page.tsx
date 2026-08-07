@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
+import { getAcademyCoursesV137, getAcademyEnrollmentsV137, getAcademyQualificationsV137 } from "@/lib/racing-academy/data";
 import {
   citizenDetail,
   type JsonRow,
@@ -107,7 +108,12 @@ export default async function CitizenDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const detail = await citizenDetail(id);
+  const [detail, academyCourses, academyEnrollments, academyQualifications] = await Promise.all([
+    citizenDetail(id),
+    getAcademyCoursesV137(true),
+    getAcademyEnrollmentsV137(id),
+    getAcademyQualificationsV137(id),
+  ]);
 
   if (!detail) {
     notFound();
@@ -118,6 +124,17 @@ export default async function CitizenDetailPage({
     detail.loyalty && typeof detail.loyalty === "object"
       ? (detail.loyalty as JsonRow)
       : null;
+
+  const activeAcademyQualifications = academyQualifications.filter((row) => row.active);
+  const academyCourseById = new Map(academyCourses.map((course) => [course.id, course]));
+  const academyStatusLabels: Record<string, string> = {
+    pending: "Demande en attente",
+    accepted: "Inscription acceptée",
+    training: "En formation",
+    passed: "Formation validée",
+    failed: "Formation échouée",
+    cancelled: "Formation annulée",
+  };
 
   const identityRows: Array<[string, unknown]> = [
     ["Nom", profile.name],
@@ -167,6 +184,54 @@ export default async function CitizenDetailPage({
               </div>
             ))}
           </dl>
+        </section>
+
+        <section className={styles.section}>
+          <header>
+            <span>NOSTRA RACING ACADEMY</span>
+            <h2>Formations &amp; accès aux licences</h2>
+          </header>
+
+          <div className={activeAcademyQualifications.length > 0 ? styles.success : styles.warning}>
+            <strong>
+              {activeAcademyQualifications.length > 0
+                ? "✓ Achat de licences autorisé côté formation"
+                : "🔒 Achat de licences bloqué côté formation"}
+            </strong>
+            <p>
+              {activeAcademyQualifications.length > 0
+                ? "Au moins une formation Academy est validée. Le citoyen pourra acheter une licence uniquement si la Direction a également ouvert l’achat de cette licence."
+                : "Aucune qualification Academy active. Le citoyen ne peut acheter aucune licence tant qu’une formation n’est pas terminée et validée."}
+            </p>
+          </div>
+
+          {activeAcademyQualifications.length > 0 && (
+            <div className={styles.recordGrid}>
+              {activeAcademyQualifications.map((qualification) => (
+                <article className={styles.record} key={qualification.id}>
+                  <strong>{qualification.label}</strong>
+                  <small>
+                    VALIDÉE · {qualification.number} · {new Date(qualification.issuedAt).toLocaleDateString("fr-FR")}
+                  </small>
+                </article>
+              ))}
+            </div>
+          )}
+
+          {academyEnrollments.length > 0 && (
+            <div className={styles.recordGrid}>
+              {academyEnrollments.map((enrollment) => (
+                <article className={styles.record} key={`academy-${enrollment.id}`}>
+                  <strong>{academyCourseById.get(enrollment.courseId)?.title ?? `Formation #${enrollment.courseId}`}</strong>
+                  <small>{academyStatusLabels[enrollment.status] ?? enrollment.status}</small>
+                </article>
+              ))}
+            </div>
+          )}
+
+          {academyEnrollments.length === 0 && activeAcademyQualifications.length === 0 && (
+            <div className={styles.empty}>Aucune formation Academy enregistrée pour ce citoyen.</div>
+          )}
         </section>
 
         <Records name="Commandes" value={detail.orders} />

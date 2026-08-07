@@ -37,6 +37,8 @@ import {
 } from "@/lib/auth/user-profile";
 import { getOwnBingoCards, getOwnBingoCart, getOwnHomologationRequests, getOwnTeamRegistrationRequests, getOwnTombolaCart, getOwnTombolaTickets, getOwnWheelSpins, getProfileCommerceData } from "@/lib/backoffice/data";
 import { getOwnPilotLicenseCart } from "@/lib/licenses/data";
+import { getAcademyLicenseEligibilityV139 } from "@/lib/racing-academy/license-eligibility";
+import { getPilotLicenseServiceKey, getServiceAvailability } from "@/lib/system/service-availability";
 
 import { getUnreadNotificationCount } from "@/lib/notifications/data";
 
@@ -96,7 +98,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
  const rpName = getRpName(data.user);
 
  const complete = hasRpProfile(data.user);
- const [role, commerce, homologations, teamRegistrations, wheelSpins, tombolaCart, tombolaTickets, bingoCart, bingoCards, licenseCart, unreadNotifications, mailboxOverview, vehicleReservations, vehicleTradeIns, activeLoyaltyCard, memberRoles, contractCart, vehicleFinancing, searchMandates, vehicleConsignments] = await Promise.all([
+ const [role, commerce, homologations, teamRegistrations, wheelSpins, tombolaCart, tombolaTickets, bingoCart, bingoCards, licenseCart, academyEligibility, unreadNotifications, mailboxOverview, vehicleReservations, vehicleTradeIns, activeLoyaltyCard, memberRoles, contractCart, vehicleFinancing, searchMandates, vehicleConsignments] = await Promise.all([
 
  getUserRoleLabel(data.user),
 
@@ -116,6 +118,8 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
  getOwnBingoCards(data.user.id),
 
  getOwnPilotLicenseCart(data.user.id),
+
+ getAcademyLicenseEligibilityV139(data.user.id),
 
  getUnreadNotificationCount(data.user.id),
 
@@ -153,6 +157,12 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
  const bingoCartTotal = bingoCart ? Number(bingoCart.unit_price) * Number(bingoCart.quantity) : 0;
 
  const licenseCartTotal = licenseCart ? Number(licenseCart.unit_price) : 0;
+ const licensePurchaseService = licenseCart
+  ? await getServiceAvailability(getPilotLicenseServiceKey(licenseCart.license_code))
+  : null;
+ const canCheckoutPilotLicense = Boolean(
+  licenseCart && academyEligibility.eligible && licensePurchaseService?.isOpen !== false,
+ );
 
  const contractCartTotal = contractCart.items.reduce((sum, item) => sum + Number(item.amount), 0);
 
@@ -290,7 +300,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
 
  {params.license_paid && <div className="dashboard-feedback dashboard-feedback-success">Paiement enregistré. La demande <strong>{params.license_paid}</strong> est disponible dans Profil → Documents & factures.</div>}
 
- {params.license_order_error && <div className="dashboard-feedback dashboard-feedback-error">La demande de licence n’a pas pu être payée. Vérifie que le dossier est toujours présent dans ton panier.</div>}
+ {params.license_order_error && <div className="dashboard-feedback dashboard-feedback-error">{params.license_order_error === "academy" ? "Paiement bloqué : tu dois d’abord terminer et faire valider une formation Nostra Racing Academy." : params.license_order_error === "closed" ? "Paiement bloqué : l’achat de cette licence est actuellement clôturé par la Direction." : "La demande de licence n’a pas pu être payée. Vérifie que le dossier est toujours présent dans ton panier."}</div>}
 
  {params.contract_paid && <div className="dashboard-feedback dashboard-feedback-success">Paiement enregistré pour {params.contract_paid} reconduction(s) de contrat.</div>}
  {params.contract_error && <div className="dashboard-feedback dashboard-feedback-error">{params.contract_error === "empty" ? "Aucune reconduction de contrat n’est actuellement à payer." : params.contract_error === "setup" ? "Le module Contrats doit être activé avec le SQL V114." : "Le paiement du contrat n’a pas pu être enregistré."}</div>}
@@ -438,16 +448,27 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
  </form>
 
  )}
- {licenseCart && (
+ {licenseCart && canCheckoutPilotLicense && (
 
  <form action={checkoutPilotLicenseCart} className="profile-order-form profile-license-checkout">
 
- <p className="commerce-hint">Le paiement enregistre immédiatement ta demande de {licenseCart.license_label}. Le dossier sera ajouté à Profil → Documents & factures et la transaction apparaîtra dans la comptabilité.</p>
+ <p className="commerce-hint">Formation Academy validée ✓ · Le paiement enregistre immédiatement ta demande de {licenseCart.license_label}. Le dossier sera ajouté à Profil → Documents & factures et la transaction apparaîtra dans la comptabilité.</p>
 
  <button className="btn" type="submit">Payer ma licence pilote</button>
 
  </form>
 
+ )}
+
+ {licenseCart && !canCheckoutPilotLicense && (
+ <div className="profile-order-form profile-license-checkout">
+  <p className="commerce-hint">
+   {!academyEligibility.eligible
+    ? "🔒 Achat bloqué : aucune formation Nostra Racing Academy validée n’est enregistrée dans tes informations citoyen."
+    : "🔒 Achat bloqué : la Direction a clôturé l’achat de cette licence."}
+  </p>
+  {!academyEligibility.eligible && <Link className="btn btn-secondary" href="/circuit/racing-academy">Voir les formations Academy</Link>}
+ </div>
  )}
 
  {contractCart.items.length > 0 && (

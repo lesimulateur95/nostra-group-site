@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { getUserRoleKeys } from "@/lib/auth/access";
 import { createClient } from "@/lib/supabase/server";
+import { getPilotLicenseServiceKey, getServiceAvailability } from "@/lib/system/service-availability";
 
 const FORM_PATH =
   "/circuit/administration-sportive/payer-ma-licence";
@@ -116,6 +117,17 @@ export async function addPilotLicenseToCart(
 
   if (!authData.user) redirect("/");
 
+  const qualificationResult = await (supabase as any)
+    .from("academy_qualifications_v137")
+    .select("id")
+    .eq("user_id", authData.user.id)
+    .eq("active", true)
+    .limit(1);
+
+  if (qualificationResult.error || !(qualificationResult.data ?? []).length) {
+    redirect(`${FORM_PATH}?error=academy`);
+  }
+
   const [mailboxResult, licenseResult, existingResult] =
     await Promise.all([
       supabase.rpc("nostra_get_or_create_my_mailbox"),
@@ -149,6 +161,14 @@ export async function addPilotLicenseToCart(
 
   if (licenseResult.error || !licenseType) {
     redirect(`${FORM_PATH}?error=setup`);
+  }
+
+  const licenseService = await getServiceAvailability(
+    getPilotLicenseServiceKey(String(licenseType.code)),
+  );
+
+  if (!licenseService.isOpen) {
+    redirect(`${FORM_PATH}?error=closed`);
   }
 
   const existing = existingResult.data;
@@ -193,7 +213,8 @@ export async function addPilotLicenseToCart(
       .from("license-medical-certificates")
       .remove([certificatePath]);
 
-    redirect(`${FORM_PATH}?error=save`);
+    const saveMessage = `${saveError.code ?? ""} ${saveError.message ?? ""}`.toLowerCase();
+    redirect(`${FORM_PATH}?error=${saveMessage.includes("academy_training_required") ? "academy" : "save"}`);
   }
 
   const oldPath =
@@ -247,6 +268,36 @@ export async function checkoutPilotLicenseCart() {
 
   if (!authData.user) redirect("/");
 
+  const [cartResult, qualificationResult] = await Promise.all([
+    (supabase as any)
+      .from("pilot_license_cart_items")
+      .select("license_code")
+      .eq("user_id", authData.user.id)
+      .maybeSingle(),
+    (supabase as any)
+      .from("academy_qualifications_v137")
+      .select("id")
+      .eq("user_id", authData.user.id)
+      .eq("active", true)
+      .limit(1),
+  ]);
+
+  if (qualificationResult.error || !(qualificationResult.data ?? []).length) {
+    redirect("/profil?license_order_error=academy");
+  }
+
+  if (cartResult.error || !cartResult.data?.license_code) {
+    redirect("/profil?license_order_error=empty");
+  }
+
+  const licenseService = await getServiceAvailability(
+    getPilotLicenseServiceKey(String(cartResult.data.license_code)),
+  );
+
+  if (!licenseService.isOpen) {
+    redirect("/profil?license_order_error=closed");
+  }
+
   const { data: result, error } = await (supabase as any).rpc(
     "checkout_pilot_license_cart",
   );
@@ -255,12 +306,16 @@ export async function checkoutPilotLicenseCart() {
     const message = `${error.code ?? ""} ${error.message ?? ""}`.toLowerCase();
 
     const code =
-      message.includes("empty_license_cart")
-        ? "empty"
-        : message.includes("license_setup_missing") ||
-            message.includes("pgrst202")
-          ? "setup"
-          : "save";
+      message.includes("academy_training_required")
+        ? "academy"
+        : message.includes("license_purchase_closed")
+          ? "closed"
+          : message.includes("empty_license_cart")
+            ? "empty"
+            : message.includes("license_setup_missing") ||
+                message.includes("pgrst202")
+              ? "setup"
+              : "save";
 
     redirect(`/profil?license_order_error=${code}`);
   }
