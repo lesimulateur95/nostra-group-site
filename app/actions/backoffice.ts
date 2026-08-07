@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getRpName } from "@/lib/auth/user-profile";
 import { hasDashboardAccess } from "@/lib/auth/access";
+import { getOwnOfficialPilotLicences } from "@/lib/licenses/lifecycle";
+import { getTeamChampionshipLicenceAccess } from "@/lib/licenses/team-registration";
 import { createClient } from "@/lib/supabase/server";
 
 function text(value: FormDataEntryValue | null, max = 5000): string {
@@ -473,13 +475,6 @@ function isMissingTeamRegistrationObject(error: { code?: string | null; message?
   return error.code === "PGRST205" || error.code === "42P01" || message.includes("team_registration_requests") || message.includes("schema cache");
 }
 
-function yesNoChoice(value: FormDataEntryValue | null): boolean | null {
-  const choice = text(value, 10).toLowerCase();
-  if (choice === "yes") return true;
-  if (choice === "no") return false;
-  return null;
-}
-
 export async function submitTeamRegistration(formData: FormData) {
   const registrationType = text(formData.get("registration_type"), 20);
   const allowedTypes = new Set(["f1", "gt3rs", "both"]);
@@ -488,24 +483,36 @@ export async function submitTeamRegistration(formData: FormData) {
   const teamDirector = text(formData.get("team_director"), 120);
   const requestedNumberF1 = text(formData.get("requested_number_f1"), 30) || null;
   const requestedNumberGt3rs = text(formData.get("requested_number_gt3rs"), 30) || null;
-  const hasF1License = yesNoChoice(formData.get("has_f1_license"));
-  const hasGt3rsLicense = yesNoChoice(formData.get("has_gt3rs_license"));
   const notes = text(formData.get("notes"), 2500) || null;
   const returnPath = "/circuit/administration-sportive/creation-ecurie";
 
   if (!allowedTypes.has(registrationType) || applicantName.length < 2 || teamName.length < 2 || teamDirector.length < 2) {
     redirect(`${returnPath}?error=invalid`);
   }
-  if ((registrationType === "f1" || registrationType === "both") && (!requestedNumberF1 || hasF1License === null)) {
+  if ((registrationType === "f1" || registrationType === "both") && !requestedNumberF1) {
     redirect(`${returnPath}?error=invalid`);
   }
-  if ((registrationType === "gt3rs" || registrationType === "both") && (!requestedNumberGt3rs || hasGt3rsLicense === null)) {
+  if ((registrationType === "gt3rs" || registrationType === "both") && !requestedNumberGt3rs) {
     redirect(`${returnPath}?error=invalid`);
   }
 
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
   if (!data.user) redirect("/");
+
+  // V146 : la création d'écurie n'utilise plus une déclaration Oui/Non du
+  // citoyen. On vérifie directement ses licences officielles, y compris les
+  // licences générées par la Direction et liées à la Racing Academy V142.
+  const licences = await getOwnOfficialPilotLicences(data.user.id);
+  const f1Access = getTeamChampionshipLicenceAccess(licences, "f1");
+  const gt3rsAccess = getTeamChampionshipLicenceAccess(licences, "gt3rs");
+
+  if ((registrationType === "f1" || registrationType === "both") && !f1Access.valid) {
+    redirect(`${returnPath}?error=license-f1`);
+  }
+  if ((registrationType === "gt3rs" || registrationType === "both") && !gt3rsAccess.valid) {
+    redirect(`${returnPath}?error=license-gt3rs`);
+  }
 
   const { error } = await supabase.from("team_registration_requests").insert({
     user_id: data.user.id,
@@ -515,12 +522,14 @@ export async function submitTeamRegistration(formData: FormData) {
     team_director: teamDirector,
     requested_number_f1: registrationType === "gt3rs" ? null : requestedNumberF1,
     requested_number_gt3rs: registrationType === "f1" ? null : requestedNumberGt3rs,
-    has_f1_license: registrationType === "gt3rs" ? false : Boolean(hasF1License),
-    has_gt3rs_license: registrationType === "f1" ? false : Boolean(hasGt3rsLicense),
+    has_f1_license: registrationType !== "gt3rs" && f1Access.valid,
+    has_gt3rs_license: registrationType !== "f1" && gt3rsAccess.valid,
     notes,
   });
 
   if (isMissingTeamRegistrationObject(error)) redirect(`${returnPath}?error=setup`);
+  if (error?.message?.includes("team_license_f1_required")) redirect(`${returnPath}?error=license-f1`);
+  if (error?.message?.includes("team_license_gt3rs_required")) redirect(`${returnPath}?error=license-gt3rs`);
   if (error) redirect(`${returnPath}?error=save`);
 
   revalidatePath(returnPath);

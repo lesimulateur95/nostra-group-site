@@ -2,6 +2,11 @@ import { redirect } from "next/navigation";
 import { submitTeamRegistration } from "@/app/actions/backoffice";
 import { EditablePage } from "@/components/site/editable-page";
 import { getRpName } from "@/lib/auth/user-profile";
+import { getOwnOfficialPilotLicences } from "@/lib/licenses/lifecycle";
+import {
+  getTeamChampionshipLicenceAccess,
+  type TeamChampionshipLicenceAccess,
+} from "@/lib/licenses/team-registration";
 import { getTeamRegistrationModuleConfigured } from "@/lib/backoffice/data";
 import { createClient } from "@/lib/supabase/server";
 
@@ -11,6 +16,8 @@ type RegistrationFormProps = {
   type: RegistrationType;
   applicantName: string;
   configured: boolean;
+  f1Access: TeamChampionshipLicenceAccess;
+  gt3rsAccess: TeamChampionshipLicenceAccess;
 };
 
 const FORM_COPY: Record<RegistrationType, {
@@ -39,20 +46,45 @@ const FORM_COPY: Record<RegistrationType, {
   },
 };
 
-function LicenseChoice({ name, label, disabled }: { name: string; label: string; disabled: boolean }) {
+function formatLicenceDate(value: string | null): string | null {
+  if (!value) return null;
+  const date = new Date(`${value.slice(0, 10)}T12:00:00`);
+  return Number.isNaN(date.getTime()) ? null : date.toLocaleDateString("fr-FR");
+}
+
+function LicenceGate({
+  label,
+  access,
+}: {
+  label: string;
+  access: TeamChampionshipLicenceAccess;
+}) {
   return (
-    <fieldset className="team-license-choice" disabled={disabled}>
-      <legend>{label}</legend>
-      <label><input type="radio" name={name} value="yes" required /> Oui</label>
-      <label><input type="radio" name={name} value="no" required /> Non</label>
-    </fieldset>
+    <div className={`team-license-gate ${access.valid ? "team-license-gate-valid" : "team-license-gate-blocked"}`}>
+      <span>{access.valid ? "✓" : "🔒"}</span>
+      <div>
+        <strong>{label}</strong>
+        {access.valid ? (
+          <p>
+            Licence officielle détectée : <b>{access.licenceNumber ?? access.licenceName ?? label}</b>
+            {formatLicenceDate(access.validUntil) ? ` · valide jusqu’au ${formatLicenceDate(access.validUntil)}` : ""}.
+          </p>
+        ) : (
+          <p>
+            Création d’écurie bloquée : une {label} officielle, valide et non suspendue est obligatoire.
+          </p>
+        )}
+      </div>
+    </div>
   );
 }
 
-function RegistrationForm({ type, applicantName, configured }: RegistrationFormProps) {
+function RegistrationForm({ type, applicantName, configured, f1Access, gt3rsAccess }: RegistrationFormProps) {
   const copy = FORM_COPY[type];
   const includesF1 = type === "f1" || type === "both";
   const includesGt3rs = type === "gt3rs" || type === "both";
+  const hasRequiredLicences = (!includesF1 || f1Access.valid) && (!includesGt3rs || gt3rsAccess.valid);
+  const canSubmit = configured && hasRequiredLicences;
 
   return (
     <article className="team-registration-card">
@@ -65,31 +97,31 @@ function RegistrationForm({ type, applicantName, configured }: RegistrationFormP
       <form action={submitTeamRegistration} className="public-request-form team-registration-form">
         <input type="hidden" name="registration_type" value={type} />
         <label>Nom Prénom
-          <input name="applicant_name" defaultValue={applicantName} required minLength={2} maxLength={120} disabled={!configured} />
+          <input name="applicant_name" defaultValue={applicantName} required minLength={2} maxLength={120} disabled={!canSubmit} />
         </label>
         <label>Nom de l’écurie
-          <input name="team_name" required minLength={2} maxLength={120} placeholder="Nom officiel de l’écurie" disabled={!configured} />
+          <input name="team_name" required minLength={2} maxLength={120} placeholder="Nom officiel de l’écurie" disabled={!canSubmit} />
         </label>
         <label>Directeur d’écurie
-          <input name="team_director" required minLength={2} maxLength={120} defaultValue={applicantName} disabled={!configured} />
+          <input name="team_director" required minLength={2} maxLength={120} defaultValue={applicantName} disabled={!canSubmit} />
         </label>
 
         {includesF1 && (
           <label>Numéro F1 souhaité
-            <input name="requested_number_f1" required maxLength={30} placeholder="Exemple : 95" disabled={!configured} />
+            <input name="requested_number_f1" required maxLength={30} placeholder="Exemple : 95" disabled={!canSubmit} />
           </label>
         )}
         {includesGt3rs && (
           <label>Numéro GT3 RS souhaité
-            <input name="requested_number_gt3rs" required maxLength={30} placeholder="Exemple : 27" disabled={!configured} />
+            <input name="requested_number_gt3rs" required maxLength={30} placeholder="Exemple : 27" disabled={!canSubmit} />
           </label>
         )}
 
-        {includesF1 && <LicenseChoice name="has_f1_license" label="Licence F1" disabled={!configured} />}
-        {includesGt3rs && <LicenseChoice name="has_gt3rs_license" label="Licence GT3 RS" disabled={!configured} />}
+        {includesF1 && <LicenceGate label="Licence F1" access={f1Access} />}
+        {includesGt3rs && <LicenceGate label="Licence GT3 RS" access={gt3rsAccess} />}
 
         <label className="form-span-2">Informations complémentaires <small>(facultatif)</small>
-          <textarea name="notes" rows={5} maxLength={2500} disabled={!configured} />
+          <textarea name="notes" rows={5} maxLength={2500} disabled={!canSubmit} />
         </label>
 
         <div className="team-registration-notice form-span-2">
@@ -97,7 +129,7 @@ function RegistrationForm({ type, applicantName, configured }: RegistrationFormP
           <p>Toute inscription sera étudiée par l’organisation avant validation.</p>
         </div>
 
-        <button className="btn" type="submit" disabled={!configured}>{copy.button}</button>
+        <button className="btn" type="submit" disabled={!canSubmit}>{copy.button}</button>
       </form>
     </article>
   );
@@ -112,11 +144,14 @@ export default async function TeamCreationPage({
   const { data } = await supabase.auth.getUser();
   if (!data.user) redirect("/");
 
-  const [params, configured] = await Promise.all([
+  const [params, configured, licences] = await Promise.all([
     searchParams,
     getTeamRegistrationModuleConfigured(),
+    getOwnOfficialPilotLicences(data.user.id),
   ]);
   const applicantName = getRpName(data.user);
+  const f1Access = getTeamChampionshipLicenceAccess(licences, "f1");
+  const gt3rsAccess = getTeamChampionshipLicenceAccess(licences, "gt3rs");
 
   const defaultContent = (
     <article className="circuit-document">
@@ -146,9 +181,13 @@ export default async function TeamCreationPage({
           <div className="dashboard-feedback dashboard-feedback-error">
             {params.error === "setup"
               ? "Le module d’inscription doit encore être activé par la direction depuis le Dashboard."
-              : params.error === "invalid"
-                ? "Vérifie tous les champs obligatoires, les numéros souhaités et les licences."
-                : "La demande n’a pas pu être enregistrée. Réessaie dans un instant."}
+              : params.error === "license-f1"
+                ? "Création d’écurie F1 refusée : une Licence F1 officielle, valide et non suspendue est obligatoire."
+                : params.error === "license-gt3rs"
+                  ? "Création d’écurie GT3 RS refusée : une Licence GT3 RS officielle, valide et non suspendue est obligatoire."
+                  : params.error === "invalid"
+                    ? "Vérifie tous les champs obligatoires et les numéros souhaités."
+                    : "La demande n’a pas pu être enregistrée. Réessaie dans un instant."}
           </div>
         )}
         {!configured && (
@@ -158,9 +197,9 @@ export default async function TeamCreationPage({
         )}
 
         <div className="team-registration-grid">
-          <RegistrationForm type="f1" applicantName={applicantName} configured={configured} />
-          <RegistrationForm type="gt3rs" applicantName={applicantName} configured={configured} />
-          <RegistrationForm type="both" applicantName={applicantName} configured={configured} />
+          <RegistrationForm type="f1" applicantName={applicantName} configured={configured} f1Access={f1Access} gt3rsAccess={gt3rsAccess} />
+          <RegistrationForm type="gt3rs" applicantName={applicantName} configured={configured} f1Access={f1Access} gt3rsAccess={gt3rsAccess} />
+          <RegistrationForm type="both" applicantName={applicantName} configured={configured} f1Access={f1Access} gt3rsAccess={gt3rsAccess} />
         </div>
       </section>
     </>

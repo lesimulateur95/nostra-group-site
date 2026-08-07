@@ -118,10 +118,10 @@ function TeamRegistrationCard({ request }: { request: TeamRegistrationRequest })
           <div><dt>Numéro GT3 RS souhaité</dt><dd>{request.requested_number_gt3rs || "Non renseigné"}</dd></div>
         )}
         {(request.registration_type === "f1" || request.registration_type === "both") && (
-          <div><dt>Licence F1</dt><dd>{request.has_f1_license ? "Oui" : "Non"}</dd></div>
+          <div><dt>Licence F1 vérifiée</dt><dd>{request.has_f1_license ? "Oui" : "Non"}</dd></div>
         )}
         {(request.registration_type === "gt3rs" || request.registration_type === "both") && (
-          <div><dt>Licence GT3 RS</dt><dd>{request.has_gt3rs_license ? "Oui" : "Non"}</dd></div>
+          <div><dt>Licence GT3 RS vérifiée</dt><dd>{request.has_gt3rs_license ? "Oui" : "Non"}</dd></div>
         )}
       </dl>
 
