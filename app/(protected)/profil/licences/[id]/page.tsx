@@ -52,8 +52,9 @@ export default async function CitizenLicencePage({
   const { data } = await supabase.auth.getUser();
   if (!data.user) redirect("/");
 
+  // V142 : ouvrir le détail d'une licence ne doit jamais déclencher une
+  // resynchronisation capable de recréer une licence supprimée.
   await Promise.allSettled([
-    (supabase as any).rpc("nostra_sync_my_signed_pilot_licences_v75"),
     (supabase as any).rpc("nostra_refresh_expired_disciplinary_suspensions"),
   ]);
 

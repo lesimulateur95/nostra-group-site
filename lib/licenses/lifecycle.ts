@@ -232,17 +232,23 @@ export async function getOwnOfficialPilotLicences(
   try {
     const supabase = await createClient();
 
-    // Ces opérations sont indépendantes. Les lancer ensemble évite trois
-    // allers-retours Supabase successifs avant même de charger la page.
+    // IMPORTANT V142 : la consultation d'un profil ne recrée plus jamais une
+    // licence supprimée. La création d'une licence se fait uniquement lors
+    // d'une vraie délivrance (signature ou générateur Direction).
     await Promise.allSettled([
-      (supabase as any).rpc("nostra_sync_my_signed_pilot_licences_v75"),
       (supabase as any).rpc("refresh_my_license_expiry_notifications"),
       (supabase as any).rpc(
         "nostra_refresh_expired_disciplinary_suspensions",
       ),
     ]);
 
-    const [licencesResult, typesResult, disciplineResult, controlsResult] = await Promise.all([
+    const [
+      licencesResult,
+      typesResult,
+      disciplineResult,
+      controlsResult,
+      academyLinksResult,
+    ] = await Promise.all([
       (supabase as any)
         .from("nostra_licences")
         .select(
@@ -264,6 +270,10 @@ export async function getOwnOfficialPilotLicences(
         .from("academy_licence_controls_v140")
         .select("licence_id,control_state,reason,suspended_until,updated_by_name")
         .eq("holder_user_id", userId),
+      (supabase as any)
+        .from("academy_generated_licence_links_v142")
+        .select("licence_id,license_code")
+        .eq("holder_user_id", userId),
     ]);
 
     if (licencesResult.error || !Array.isArray(licencesResult.data)) {
@@ -280,6 +290,16 @@ export async function getOwnOfficialPilotLicences(
     const disciplineRows = Array.isArray(disciplineResult.data)
       ? (disciplineResult.data as DisciplineRow[])
       : [];
+
+    const academyCodeByLicenceId = new Map<string, string>();
+    if (!academyLinksResult.error && Array.isArray(academyLinksResult.data)) {
+      for (const row of academyLinksResult.data as Array<Record<string, unknown>>) {
+        academyCodeByLicenceId.set(
+          String(row.licence_id ?? ""),
+          String(row.license_code ?? ""),
+        );
+      }
+    }
 
     const controls = new Map<string, LicenceAdministrativeControlV140>();
     if (!controlsResult.error && Array.isArray(controlsResult.data)) {
@@ -352,7 +372,8 @@ export async function getOwnOfficialPilotLicences(
         valid_until: validUntil,
         stored_status: String(row.status ?? "Valide"),
         created_at: String(row.created_at ?? ""),
-        renewalLicenseCode: matchLicenceCode(licenceName, types),
+        renewalLicenseCode:
+          academyCodeByLicenceId.get(id) || matchLicenceCode(licenceName, types),
         lifecycle,
         discipline,
         administrative,

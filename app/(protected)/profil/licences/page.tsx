@@ -85,6 +85,14 @@ export default async function MyLicencesPage() {
   );
   const courseById = new Map(courses.map((course) => [course.id, course]));
   const today = new Date().toISOString().slice(0, 10);
+  const ownedLicenseCodes = new Set(
+    licences
+      .filter((licence) =>
+        ["active", "expiring_soon", "upcoming"].includes(licence.lifecycle.status),
+      )
+      .map((licence) => licence.renewalLicenseCode)
+      .filter((code): code is string => Boolean(code)),
+  );
 
   return (
     <main className={styles.page}>
@@ -123,21 +131,26 @@ export default async function MyLicencesPage() {
           {licenseTypes.map((license, index) => {
             const eligibility = eligibilityByCode.get(license.code);
             const eligible = eligibility?.eligible === true;
+            const owned = ownedLicenseCodes.has(license.code);
             return (
-              <article className={`${styles.progressCard} ${eligible ? styles.progressOk : styles.progressLocked}`} key={license.code}>
+              <article className={`${styles.progressCard} ${owned || eligible ? styles.progressOk : styles.progressLocked}`} key={license.code}>
                 <div className={styles.progressTop}>
                   <span className={styles.stepNumber}>{index + 1}</span>
-                  <span className={styles.progressBadge}>{eligible ? "DÉBLOQUÉ" : "VERROUILLÉ"}</span>
+                  <span className={styles.progressBadge}>
+                    {owned ? "LICENCE OBTENUE" : eligible ? "DÉBLOQUÉ" : "VERROUILLÉ"}
+                  </span>
                 </div>
                 <h3>{license.label}</h3>
                 <p>
-                  {eligibility
-                    ? eligibilityText(
-                        eligibility.reason,
-                        eligibility.requiredCourseTitle,
-                        eligibility.prerequisiteLicenseLabel,
-                      )
-                    : "Contrôle Academy indisponible."}
+                  {owned
+                    ? "Cette licence officielle est bien reconnue par la Racing Academy et compte pour les prérequis du niveau suivant."
+                    : eligibility
+                      ? eligibilityText(
+                          eligibility.reason,
+                          eligibility.requiredCourseTitle,
+                          eligibility.prerequisiteLicenseLabel,
+                        )
+                      : "Contrôle Academy indisponible."}
                 </p>
                 {eligibility?.requiredCourseTitle ? (
                   <small>Formation : {eligibility.requiredCourseTitle}</small>

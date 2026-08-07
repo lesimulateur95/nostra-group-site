@@ -189,14 +189,13 @@ function buildLicences(
   });
 }
 
-function scheduleMaintenance(supabase: any, syncAll: boolean): void {
+function scheduleMaintenance(supabase: any): void {
   after(async () => {
     try {
+      // V142 : aucune réparation automatique des licences depuis un écran de
+      // consultation. Cela empêchait auparavant une suppression définitive.
       await Promise.allSettled([
         supabase.rpc("nostra_refresh_expired_disciplinary_suspensions"),
-        syncAll
-          ? supabase.rpc("nostra_sync_all_signed_pilot_licences_v81")
-          : Promise.resolve(),
       ]);
     } catch {
       // Une maintenance ne doit jamais bloquer l'affichage de la page.
@@ -210,10 +209,9 @@ async function fetchDisciplineData(
   try {
     const supabase = await createClient();
 
-    // Le Dashboard Direction répare les anciennes licences acceptées en tâche
-    // de fond. Elles deviennent ensuite immédiatement disponibles dans le
-    // sélecteur disciplinaire, sans supprimer ni modifier les sanctions.
-    scheduleMaintenance(supabase, !userId);
+    // Maintenance disciplinaire uniquement. Les licences ne sont plus
+    // régénérées automatiquement depuis une page de lecture.
+    scheduleMaintenance(supabase);
 
     let actionsQuery = (supabase as any)
       .from("nostra_circuit_disciplinary_actions")

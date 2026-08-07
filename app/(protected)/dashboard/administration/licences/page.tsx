@@ -42,6 +42,16 @@ type LicenceControl = {
   updated_at: string;
 };
 
+type AcademyLicenseType = {
+  code: string;
+  label: string;
+};
+
+type AcademyLicenceLink = {
+  licence_id: string;
+  license_code: string;
+};
+
 type SearchParams = Promise<{
   success?: string;
   error?: string;
@@ -91,9 +101,10 @@ async function deleteLicence(formData: FormData) {
     );
   }
 
-  const { error } = await supabase.rpc("delete_nostra_licence", {
-    p_licence_id: licenceId,
-  });
+  const { error } = await (supabase as any).rpc(
+    "nostra_v142_delete_licence_permanently",
+    { p_licence_id: licenceId },
+  );
 
   if (error) {
     redirect(
@@ -172,6 +183,7 @@ async function issueLicence(formData: FormData) {
   const validUntil = stringValue(formData.get("valid_until"));
   const permissions = stringValue(formData.get("permissions"));
   const notes = stringValue(formData.get("notes"));
+  const academyLicenseCode = stringValue(formData.get("academy_license_code"));
   const sendToCitizen = formData.get("send_to_citizen") === "on";
 
   if (!holderUserId || !licenceName || !validFrom) {
@@ -183,8 +195,8 @@ async function issueLicence(formData: FormData) {
     );
   }
 
-  const { data: licenceId, error } = await supabase.rpc(
-    "issue_nostra_licence_safe_v74",
+  const { data: licenceId, error } = await (supabase as any).rpc(
+    "issue_nostra_licence_academy_v142",
     {
       p_holder_user_id: holderUserId,
       p_licence_name: licenceName,
@@ -195,6 +207,7 @@ async function issueLicence(formData: FormData) {
       p_permissions: permissions || null,
       p_notes: notes || null,
       p_send_to_citizen: sendToCitizen,
+      p_academy_license_code: academyLicenseCode || null,
     },
   );
 
@@ -239,7 +252,13 @@ export default async function LicenceAdministrationPage({
   const params = await searchParams;
   const today = new Date().toISOString().slice(0, 10);
 
-  const [citizensResult, licencesResult, controlsResult] = await Promise.all([
+  const [
+    citizensResult,
+    licencesResult,
+    controlsResult,
+    academyTypesResult,
+    academyLinksResult,
+  ] = await Promise.all([
     supabase.rpc("list_nostra_licence_citizens"),
     supabase
       .from("nostra_licences")
@@ -251,6 +270,14 @@ export default async function LicenceAdministrationPage({
     (supabase as any)
       .from("academy_licence_controls_v140")
       .select("licence_id,control_state,reason,suspended_until,updated_by_name,updated_at"),
+    (supabase as any)
+      .from("pilot_license_types")
+      .select("code,label")
+      .eq("active", true)
+      .order("sort_order", { ascending: true }),
+    (supabase as any)
+      .from("academy_generated_licence_links_v142")
+      .select("licence_id,license_code"),
   ]);
 
   const configured = !citizensResult.error && !licencesResult.error;
@@ -260,6 +287,14 @@ export default async function LicenceAdministrationPage({
     ? (controlsResult.data as LicenceControl[])
     : [];
   const controlByLicence = new Map(controls.map((control) => [control.licence_id, control]));
+  const academyTypes = !academyTypesResult.error && Array.isArray(academyTypesResult.data)
+    ? (academyTypesResult.data as AcademyLicenseType[])
+    : [];
+  const academyLabelByCode = new Map(academyTypes.map((type) => [type.code, type.label]));
+  const academyLinks = !academyLinksResult.error && Array.isArray(academyLinksResult.data)
+    ? (academyLinksResult.data as AcademyLicenceLink[])
+    : [];
+  const academyCodeByLicence = new Map(academyLinks.map((link) => [link.licence_id, link.license_code]));
 
   return (
     <DashboardShell>
@@ -397,6 +432,26 @@ export default async function LicenceAdministrationPage({
                   </div>
 
                   <div className={styles.field}>
+                    <label htmlFor="academy_license_code">Correspondance Nostra Racing Academy</label>
+                    <select
+                      id="academy_license_code"
+                      name="academy_license_code"
+                      defaultValue=""
+                    >
+                      <option value="">Détection automatique selon le nom de la licence</option>
+                      {academyTypes.map((type) => (
+                        <option key={type.code} value={type.code}>
+                          {type.label}
+                        </option>
+                      ))}
+                    </select>
+                    <small>
+                      Ce niveau sera utilisé par l’Academy pour les prérequis GT3/F1.
+                      Choisis-le manuellement si le nom de la licence est personnalisé.
+                    </small>
+                  </div>
+
+                  <div className={styles.field}>
                     <label htmlFor="authority">Autorité émettrice</label>
                     <input
                       id="authority"
@@ -488,7 +543,7 @@ export default async function LicenceAdministrationPage({
                   <li>
                     <span>4</span>
                     <div>
-                      Enregistrement dans le registre sécurisé de la Direction.
+                      Enregistrement dans le registre sécurisé et liaison automatique avec la Racing Academy.
                     </div>
                   </li>
                   <li>
@@ -519,6 +574,7 @@ export default async function LicenceAdministrationPage({
                         <th>Numéro</th>
                         <th>Citoyen</th>
                         <th>Licence</th>
+                        <th>Academy</th>
                         <th>Validité</th>
                         <th>Statut</th>
                         <th>Actions</th>
@@ -551,6 +607,15 @@ export default async function LicenceAdministrationPage({
                                 Catégorie {licence.category}
                               </>
                             ) : null}
+                          </td>
+                          <td>
+                            {academyCodeByLicence.get(licence.id) ? (
+                              <span className={styles.status}>
+                                {academyLabelByCode.get(academyCodeByLicence.get(licence.id) ?? "") ?? academyCodeByLicence.get(licence.id)}
+                              </span>
+                            ) : (
+                              <small>Non liée</small>
+                            )}
                           </td>
                           <td>
                             {formatDate(licence.valid_from)}

@@ -47,13 +47,14 @@ export async function signNostraDocument(formData: FormData) {
   // Dès que ce document est signé, on crée/synchronise aussi sa ligne dans
   // nostra_licences afin qu’elle apparaisse dans Profil > Mes licences.
   const { error: licenceSyncError } = await (supabase as any).rpc(
-    "nostra_sync_signed_pilot_licence_v75",
+    "nostra_v142_sync_signed_pilot_licence",
     { p_document_id: documentId },
   );
 
   if (licenceSyncError) {
-    // La signature reste valide. La page Mes licences retentera également la
-    // synchronisation automatiquement, ce qui évite de bloquer le citoyen.
+    // La signature reste valide, mais aucune page de consultation ne tentera
+    // de recréer la licence en arrière-plan. Il faut corriger la délivrance
+    // plutôt que de réintroduire une licence supprimée.
     console.error(
       "Synchronisation de la licence signée impossible :",
       licenceSyncError,

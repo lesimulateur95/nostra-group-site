@@ -5,6 +5,7 @@ import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { getPilotLicenseTypes } from "@/lib/licenses/data";
 import { getAcademyCoursesV137, getAcademyEnrollmentsV137, getAcademyQualificationsV137 } from "@/lib/racing-academy/data";
 import { getAcademyLicenseEligibilitiesV140 } from "@/lib/racing-academy/license-requirements";
+import { createClient } from "@/lib/supabase/server";
 import {
   citizenDetail,
   type JsonRow,
@@ -110,12 +111,29 @@ export default async function CitizenDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [detail, academyCourses, academyEnrollments, academyQualifications, licenseTypes] = await Promise.all([
+  const supabase = await createClient();
+  const [
+    detail,
+    academyCourses,
+    academyEnrollments,
+    academyQualifications,
+    licenseTypes,
+    officialLicencesResult,
+    academyLinksResult,
+  ] = await Promise.all([
     citizenDetail(id),
     getAcademyCoursesV137(true),
     getAcademyEnrollmentsV137(id),
     getAcademyQualificationsV137(id),
     getPilotLicenseTypes(),
+    (supabase as any)
+      .from("nostra_licences")
+      .select("id,licence_number,licence_name,status,valid_from,valid_until")
+      .eq("holder_user_id", id),
+    (supabase as any)
+      .from("academy_generated_licence_links_v142")
+      .select("licence_id,license_code")
+      .eq("holder_user_id", id),
   ]);
 
   const academyEligibilityByCode = await getAcademyLicenseEligibilitiesV140(
@@ -146,6 +164,28 @@ export default async function CitizenDetailPage({
     failed: "Formation échouée",
     cancelled: "Formation annulée",
   };
+
+  const officialLicences = !officialLicencesResult.error && Array.isArray(officialLicencesResult.data)
+    ? (officialLicencesResult.data as Array<{
+        id: string;
+        licence_number: string;
+        licence_name: string;
+        status: string;
+        valid_from: string;
+        valid_until: string | null;
+      }>)
+    : [];
+  const academyLinks = !academyLinksResult.error && Array.isArray(academyLinksResult.data)
+    ? (academyLinksResult.data as Array<{ licence_id: string; license_code: string }>)
+    : [];
+  const academyCodeByLicenceId = new Map(academyLinks.map((link) => [String(link.licence_id), String(link.license_code)]));
+  const officialLicenceByAcademyCode = new Map<string, (typeof officialLicences)[number]>();
+  for (const licence of officialLicences) {
+    const code = academyCodeByLicenceId.get(String(licence.id));
+    if (code && !officialLicenceByAcademyCode.has(code)) {
+      officialLicenceByAcademyCode.set(code, licence);
+    }
+  }
 
   const identityRows: Array<[string, unknown]> = [
     ["Nom", profile.name],
@@ -206,11 +246,14 @@ export default async function CitizenDetailPage({
           <div className={styles.recordGrid}>
             {licenseTypes.map((license) => {
               const eligibility = academyEligibilityByCode.get(license.code);
+              const officialLicence = officialLicenceByAcademyCode.get(license.code);
               return (
                 <article className={styles.record} key={`eligibility-${license.code}`}>
                   <strong>{license.label}</strong>
                   <small>
-                    {eligibility?.eligible
+                    {officialLicence
+                      ? `✓ LICENCE OFFICIELLE DÉLIVRÉE · ${officialLicence.licence_number}`
+                      : eligibility?.eligible
                       ? "✓ ACHAT AUTORISÉ CÔTÉ ACADEMY"
                       : eligibility?.reason === "license_revoked"
                         ? "⛔ LICENCE RETIRÉE"
