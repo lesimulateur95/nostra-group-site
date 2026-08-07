@@ -287,3 +287,43 @@
     width: 100%;
   }
 }
+
+
+.backHomeWrap {
+  width: min(1480px, calc(100% - 36px));
+  margin: 22px auto -10px;
+}
+
+.backHome {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 42px;
+  padding: 0 14px;
+  border: 1px solid rgba(212, 175, 55, 0.32);
+  border-radius: 12px;
+  background: rgba(8, 9, 9, 0.86);
+  color: #f2d15d;
+  font-size: 0.9rem;
+  font-weight: 850;
+  text-decoration: none;
+  transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+}
+
+.backHome:hover {
+  border-color: rgba(235, 201, 77, 0.72);
+  background: rgba(212, 175, 55, 0.08);
+  transform: translateX(-2px);
+}
+
+.backHome:focus-visible {
+  outline: 2px solid #ebc94d;
+  outline-offset: 3px;
+}
+
+@media (max-width: 620px) {
+  .backHomeWrap {
+    width: min(100% - 20px, 1480px);
+    margin-top: 14px;
+  }
+}

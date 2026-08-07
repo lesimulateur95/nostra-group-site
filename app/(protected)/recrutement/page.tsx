@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { submitRecruitmentApplication } from "@/app/actions/recruitment";
@@ -5,6 +6,7 @@ import { getDiscordName, getRpName } from "@/lib/auth/user-profile";
 import { formatParisDateTime } from "@/lib/dates/paris";
 import { getOwnRecruitmentApplications } from "@/lib/recruitment/data";
 import { createClient } from "@/lib/supabase/server";
+import styles from "./page.module.css";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -35,6 +37,13 @@ export default async function RecruitmentPage({
 
   return (
     <>
+      <div className={styles.backHomeWrap}>
+        <Link className={styles.backHome} href="/accueil">
+          <span aria-hidden="true">←</span>
+          Retour à l’accueil
+        </Link>
+      </div>
+
       <section className="profile-heading">
         <span className="eyebrow">NOSTRA GROUP</span>
         <h1 className="page-title">Recrutement</h1>
