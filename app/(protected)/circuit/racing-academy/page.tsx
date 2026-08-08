@@ -1,7 +1,7 @@
+import Link from "next/link";
 import {
   cancelAcademyEnrollmentV137,
   enrollAcademyCourseV137,
-  startAcademyQuizV143,
 } from "@/app/actions/racing-academy";
 import { getRequestUser } from "@/lib/auth/request-context";
 import {
@@ -11,6 +11,7 @@ import {
   getAcademyQualificationsV137,
 } from "@/lib/racing-academy/data";
 import {
+  getAcademyQuizAssignmentsV147,
   getAcademyQuizAttemptsV143,
   getAcademyQuizConfiguredV143,
   getAcademyQuizzesV143,
@@ -45,18 +46,20 @@ export default async function RacingAcademyPage({ searchParams }: { searchParams
     getAcademyQuizConfiguredV143(),
   ]);
 
-  const [courses, enrollments, qualifications, quizzes, quizAttempts] = user && configured
+  const [courses, enrollments, qualifications, quizzes, quizAttempts, assignments] = user && configured
     ? await Promise.all([
         getAcademyCoursesV137(),
         getAcademyEnrollmentsV137(user.id),
         getAcademyQualificationsV137(user.id),
         quizConfigured ? getAcademyQuizzesV143() : Promise.resolve([]),
         quizConfigured ? getAcademyQuizAttemptsV143(user.id) : Promise.resolve([]),
+        quizConfigured ? getAcademyQuizAssignmentsV147(user.id) : Promise.resolve([]),
       ])
-    : [[], [], [], [], []];
+    : [[], [], [], [], [], []];
 
   const enrollmentByCourse = new Map(enrollments.map((row) => [row.courseId, row]));
   const quizByCourse = new Map(quizzes.map((quiz) => [quiz.courseId, quiz]));
+  const assignmentByEnrollment = new Map(assignments.map((row) => [row.enrollmentId, row]));
 
   return <>
     <section className="page-hero">
@@ -92,6 +95,7 @@ export default async function RacingAcademyPage({ searchParams }: { searchParams
           {courses.map((course) => {
             const enrollment = enrollmentByCourse.get(course.id);
             const quiz = quizByCourse.get(course.id);
+            const assignment = enrollment ? assignmentByEnrollment.get(enrollment.id) : undefined;
             const attempts = quiz ? quizAttempts.filter((attempt) => attempt.quizId === quiz.id && attempt.enrollmentId === enrollment?.id) : [];
             const passedAttempt = attempts.find((attempt) => attempt.status === "passed");
             const inProgressAttempt = attempts.find((attempt) => attempt.status === "in_progress");
@@ -117,12 +121,15 @@ export default async function RacingAcademyPage({ searchParams }: { searchParams
                 {quiz && <div className={styles.notice}>
                   <strong>Questionnaire théorique · {passedAttempt ? "VALIDÉ" : inProgressAttempt ? "EN COURS" : "À PASSER"}</strong>
                   <p>Seuil : {Math.max(quiz.passScore, course.theoryPassScore)}/100 · {quiz.timeLimitMinutes > 0 ? `${quiz.timeLimitMinutes} min` : "sans chrono"} · {usedAttempts}/{quiz.maxAttempts} tentative(s) utilisée(s){bestScore == null ? "" : ` · meilleur score ${bestScore}/100`}.</p>
-                  {passedAttempt ? <p className={styles.badge}>QCM réussi avec {passedAttempt.score}/100</p> : ["accepted", "training"].includes(enrollment.status) ? (
-                    <form action={startAcademyQuizV143} className={styles.actions}>
-                      <input type="hidden" name="quiz_id" value={quiz.id} />
-                      <button className={styles.primary} disabled={usedAttempts >= quiz.maxAttempts}>{inProgressAttempt ? "Reprendre mon questionnaire" : usedAttempts >= quiz.maxAttempts ? "Tentatives épuisées" : "Passer le questionnaire"}</button>
-                    </form>
-                  ) : <p>Le questionnaire sera disponible lorsque ton inscription sera acceptée et la formation ouverte.</p>}
+                  {passedAttempt ? <p className={styles.badge}>QCM réussi avec {passedAttempt.score}/100</p> : assignment && assignment.status !== "cancelled" ? (
+                    <div className={styles.actions}>
+                      <Link className={styles.primary} href={`/circuit/racing-academy/questionnaire/convocation/${assignment.id}`}>
+                        {inProgressAttempt ? "Reprendre le questionnaire envoyé" : assignment.status === "failed" ? "Repasser le questionnaire" : "Ouvrir le questionnaire envoyé"}
+                      </Link>
+                    </div>
+                  ) : ["accepted", "training", "failed"].includes(enrollment.status) ? (
+                    <p>En attente de l’envoi du questionnaire par ton instructeur. Tu recevras une convocation dans ta boîte mail Nostra.</p>
+                  ) : <p>Le questionnaire sera envoyé par ton instructeur lorsque ta participation à la formation sera confirmée.</p>}
                 </div>}
 
                 {["pending", "accepted"].includes(enrollment.status) && <form action={cancelAcademyEnrollmentV137} className={styles.actions}><input type="hidden" name="enrollment_id" value={enrollment.id} /><button className={styles.secondary}>Annuler mon inscription</button></form>}

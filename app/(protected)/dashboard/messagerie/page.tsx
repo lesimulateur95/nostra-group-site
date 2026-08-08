@@ -16,6 +16,7 @@ import {
 } from "@/lib/mail/data";
 import { createClient } from "@/lib/supabase/server";
 import { MAIL_SETUP_SQL } from "@/lib/mail/setup-sql";
+import { MailBody, mailPreviewText } from "@/components/mail/mail-body";
 import styles from "@/components/mail/mail.module.css";
 
 export const dynamic = "force-dynamic";
@@ -190,7 +191,7 @@ export default async function TeamMailboxPage({
                     <time>{formatDate(message.created_at)}</time>
                   </span>
                   <span className={styles.subject}>{message.subject}</span>
-                  <span className={styles.preview}>{message.body}</span>
+                  <span className={styles.preview}>{mailPreviewText(message.body)}</span>
                 </button>
               </form>
             ))}
@@ -299,7 +300,7 @@ export default async function TeamMailboxPage({
                         <strong>{message.sender_name}</strong>
                         <time>{formatDate(message.created_at)}</time>
                       </div>
-                      <p>{message.body}</p>
+                      <MailBody body={message.body} />
                     </article>
                   ))}
                 </div>

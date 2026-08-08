@@ -1,6 +1,5 @@
 import Link from "next/link";
 import {
-  reviewAcademyEnrollmentV137,
   saveAcademyCourseV137,
   saveAcademyLicenseRequirementV140,
 } from "@/app/actions/racing-academy";
@@ -22,15 +21,6 @@ import styles from "@/components/used-vehicles/used-vehicles.module.css";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
-
-const statusLabels: Record<string, string> = {
-  pending: "Nouvelle demande",
-  accepted: "Acceptée",
-  training: "En formation",
-  passed: "Réussie",
-  failed: "Échouée",
-  cancelled: "Annulée",
-};
 
 function isQualificationUsable(active: boolean, validUntil: string | null): boolean {
   if (!active) return false;
@@ -64,7 +54,6 @@ export default async function AcademyDashboardPage({
       ])
     : [[], [], [], [], []];
 
-  const courseById = new Map(courses.map((course) => [course.id, course]));
   const requirementByCode = new Map(
     requirements.map((requirement) => [requirement.licenseCode, requirement]),
   );
@@ -210,70 +199,20 @@ export default async function AcademyDashboardPage({
             </div>
           </section>
 
-          <section className={styles.section}>
-            <div className="dashboard-section-heading dashboard-section-heading-tight">
-              <p className="eyebrow">DOSSIERS PILOTES</p>
-              <h2>Inscriptions et évaluations</h2>
+          <section className={styles.panel}>
+            <div className={styles.panelHeader}>
+              <div>
+                <span className={styles.badge}>RÉGIE FORMATION · V147</span>
+                <h2>Participants, questionnaires & évaluations</h2>
+                <p>Accepte les candidats, envoie le questionnaire directement dans leur boîte mail Nostra, suis la correction en direct puis note la pratique et ton appréciation.</p>
+              </div>
+              <Link href="/dashboard/racing-academy/evaluations" className={styles.primary}>Ouvrir les participants & évaluations</Link>
             </div>
-            <div className={styles.stack}>
-              {enrollments.length === 0 && (
-                <article className={styles.panel}>
-                  <p className={styles.empty}>Aucune inscription.</p>
-                </article>
-              )}
-              {enrollments.map((row) => {
-                const course = courseById.get(row.courseId);
-                return (
-                  <article className={styles.panel} key={row.id}>
-                    <div className={styles.caseHead}>
-                      <div>
-                        <span className={styles.badge}>{statusLabels[row.status] ?? row.status}</span>
-                        <h2>{row.applicantName}</h2>
-                        <p>
-                          {course?.title ?? "Formation supprimée"} · demande du {new Date(row.appliedAt).toLocaleDateString("fr-FR")}
-                        </p>
-                      </div>
-                      {row.status === "passed" && <strong>QUALIFIÉ</strong>}
-                    </div>
-                    {row.motivation && (
-                      <p className={styles.notice}>
-                        <strong>Motivation :</strong> {row.motivation}
-                      </p>
-                    )}
-                    <form action={reviewAcademyEnrollmentV137} className={styles.form}>
-                      <input type="hidden" name="enrollment_id" value={row.id} />
-                      <label>
-                        Statut
-                        <select name="status" defaultValue={row.status}>
-                          <option value="pending">Nouvelle demande</option>
-                          <option value="accepted">Acceptée</option>
-                          <option value="training">En formation</option>
-                          <option value="passed">Réussie</option>
-                          <option value="failed">Échouée</option>
-                          <option value="cancelled">Annulée</option>
-                        </select>
-                      </label>
-                      <label>
-                        Note théorie /100 (remplie automatiquement par le QCM si actif)
-                        <input name="theory_score" type="number" min="0" max="100" step="0.01" defaultValue={row.theoryScore ?? ""} />
-                      </label>
-                      <label>
-                        Note pratique /100
-                        <input name="practical_score" type="number" min="0" max="100" step="0.01" defaultValue={row.practicalScore ?? ""} />
-                      </label>
-                      <label>
-                        Instructeur
-                        <input name="instructor_name" defaultValue={row.instructorName ?? ""} />
-                      </label>
-                      <label className={styles.span4}>
-                        Compte rendu visible par le pilote
-                        <textarea name="staff_note" rows={3} defaultValue={row.staffNote ?? ""} />
-                      </label>
-                      <button className={styles.primary}>Enregistrer l’évaluation</button>
-                    </form>
-                  </article>
-                );
-              })}
+            <div className={styles.detailsGrid}>
+              <div><span>Dossiers</span><strong>{enrollments.length}</strong></div>
+              <div><span>Nouvelles demandes</span><strong>{enrollments.filter((row) => row.status === "pending").length}</strong></div>
+              <div><span>En formation</span><strong>{enrollments.filter((row) => ["accepted", "training"].includes(row.status)).length}</strong></div>
+              <div><span>Terminés</span><strong>{enrollments.filter((row) => ["passed", "failed"].includes(row.status)).length}</strong></div>
             </div>
           </section>
         </>
