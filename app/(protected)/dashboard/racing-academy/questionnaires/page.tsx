@@ -1,9 +1,13 @@
 import Link from "next/link";
 
 import {
+  createAcademyQuizV1471,
+  deleteAcademyQuizQuestionV1471,
+  deleteAcademyQuizV1471,
   resetAcademyQuizAttemptsV143,
   saveAcademyQuizQuestionV143,
   saveAcademyQuizSettingsV143,
+  syncAcademyQuizzesV1471,
   toggleAcademyQuizQuestionV143,
 } from "@/app/actions/racing-academy";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
@@ -47,6 +51,8 @@ export default async function AcademyQuestionnairesPage({
     : [[], [], [], [], []];
 
   const courseById = new Map(courses.map((course) => [course.id, course]));
+  const quizCourseIds = new Set(quizzes.map((quiz) => quiz.courseId));
+  const coursesWithoutQuiz = courses.filter((course) => !quizCourseIds.has(course.id));
   const enrollmentById = new Map(enrollments.map((row) => [row.id, row]));
   const questionsByQuiz = new Map<number, AcademyQuizQuestionV143[]>();
   for (const question of questions) {
@@ -69,7 +75,7 @@ export default async function AcademyQuestionnairesPage({
         description="Examens théoriques sécurisés, chrono, tentatives, correction automatique et liaison directe aux formations."
       />
 
-      <p><Link href="/dashboard/racing-academy">← Retour à la Nostra Racing Academy</Link></p>
+      <div className={styles.actions}><Link href="/dashboard/racing-academy" className={styles.secondary}>← Retour à la Nostra Racing Academy</Link><Link href="/dashboard/racing-academy/evaluations" className={styles.primary}>Participants & évaluations</Link></div>
 
       {!configured ? (
         <section className="dashboard-setup">
@@ -80,7 +86,11 @@ export default async function AcademyQuestionnairesPage({
       ) : (
         <>
           {params.quiz && <div className="dashboard-feedback dashboard-feedback-success">Configuration du questionnaire enregistrée.</div>}
+          {params.created && <div className="dashboard-feedback dashboard-feedback-success">Questionnaire créé.</div>}
+          {params.deleted && <div className="dashboard-feedback dashboard-feedback-success">Questionnaire supprimé.</div>}
+          {params.synced != null && <div className="dashboard-feedback dashboard-feedback-success">Synchronisation terminée : {params.synced} questionnaire(s) manquant(s) créé(s).</div>}
           {params.question && <div className="dashboard-feedback dashboard-feedback-success">Question enregistrée.</div>}
+          {params.question_deleted && <div className="dashboard-feedback dashboard-feedback-success">Question supprimée.</div>}
           {params.reset && <div className="dashboard-feedback dashboard-feedback-success">Tentatives du candidat réinitialisées.</div>}
           {params.error && (
             <div className="dashboard-feedback dashboard-feedback-error">
@@ -88,9 +98,52 @@ export default async function AcademyQuestionnairesPage({
                 ? "La question est incomplète ou la bonne réponse ne correspond à aucune proposition."
                 : params.error === "quiz-invalid"
                   ? "La configuration du questionnaire est invalide."
-                  : "Impossible d’enregistrer cette action."}
+                  : params.error === "quiz-exists"
+                    ? "Cette formation possède déjà un questionnaire."
+                    : params.error === "quiz-create"
+                      ? "Impossible de créer le questionnaire."
+                      : params.error === "quiz-delete"
+                        ? "Impossible de supprimer le questionnaire."
+                        : params.error === "quiz-sync"
+                          ? "Impossible de générer les questionnaires manquants."
+                          : params.error === "question-used"
+                            ? "Cette question a déjà été utilisée dans une tentative. Désactive-la au lieu de la supprimer pour conserver l’historique."
+                            : params.error === "question-delete"
+                              ? "Impossible de supprimer la question."
+                              : "Impossible d’enregistrer cette action."}
             </div>
           )}
+
+          <section className={styles.section}>
+            <div className="dashboard-section-heading dashboard-section-heading-tight">
+              <p className="eyebrow">GESTION</p>
+              <h2>Créer ou synchroniser les questionnaires</h2>
+              <p>Un questionnaire est lié à une formation. Tu peux le créer manuellement ou générer automatiquement tous ceux qui manquent.</p>
+            </div>
+            <div className={styles.panel}>
+              <div className={styles.actions}>
+                <form action={syncAcademyQuizzesV1471}>
+                  <button className={styles.secondary}>Générer les questionnaires manquants</button>
+                </form>
+              </div>
+              {coursesWithoutQuiz.length > 0 ? (
+                <form action={createAcademyQuizV1471} className={styles.form}>
+                  <label>Formation
+                    <select name="course_id" required defaultValue="">
+                      <option value="" disabled>Choisir une formation</option>
+                      {coursesWithoutQuiz.map((course) => <option key={course.id} value={course.id}>{course.title}</option>)}
+                    </select>
+                  </label>
+                  <label className={styles.span2}>Nom du questionnaire
+                    <input name="title" placeholder="Ex. Examen théorique GT3 RS" required />
+                  </label>
+                  <button className={styles.primary}>Créer le questionnaire</button>
+                </form>
+              ) : (
+                <p className={styles.empty}>{courses.length === 0 ? "Aucune formation Academy n’est encore créée." : "Toutes les formations possèdent déjà leur questionnaire."}</p>
+              )}
+            </div>
+          </section>
 
           <section className={styles.kpis}>
             <article className={styles.kpi}><span>Questionnaires</span><strong>{quizzes.length}</strong></article>
@@ -105,6 +158,11 @@ export default async function AcademyQuestionnairesPage({
               <h2>Questionnaires par formation</h2>
             </div>
             <div className={styles.stack}>
+              {quizzes.length === 0 && (
+                <div className={styles.empty}>
+                  Aucun questionnaire n’est encore enregistré. Utilise le bloc « Créer ou synchroniser les questionnaires » ci-dessus.
+                </div>
+              )}
               {quizzes.map((quiz) => {
                 const course = courseById.get(quiz.courseId);
                 const quizQuestions = questionsByQuiz.get(quiz.id) ?? [];
@@ -124,6 +182,10 @@ export default async function AcademyQuestionnairesPage({
                     </div>
 
                     <QuizSettingsForm quiz={quiz} courseTitle={course?.title ?? "Formation"} courseTheoryScore={course?.theoryPassScore ?? 70} />
+                    <form action={deleteAcademyQuizV1471} className={styles.actions}>
+                      <input type="hidden" name="quiz_id" value={quiz.id} />
+                      <button className={styles.danger}>Supprimer définitivement ce questionnaire</button>
+                    </form>
 
                     <hr />
                     <div className={styles.panelHeader}>
@@ -142,12 +204,19 @@ export default async function AcademyQuestionnairesPage({
                             <strong>Q{index + 1}.</strong> {question.prompt} · bonne réponse {question.correctOption} · {question.active ? "ACTIVE" : "DÉSACTIVÉE"}
                           </summary>
                           <QuestionForm quizId={quiz.id} question={question} sortOrder={question.sortOrder} />
-                          <form action={toggleAcademyQuizQuestionV143} className={styles.actions}>
-                            <input type="hidden" name="question_id" value={question.id} />
-                            <input type="hidden" name="quiz_id" value={quiz.id} />
-                            <input type="hidden" name="active" value={question.active ? "false" : "true"} />
-                            <button className={styles.secondary}>{question.active ? "Désactiver la question" : "Réactiver la question"}</button>
-                          </form>
+                          <div className={styles.actions}>
+                            <form action={toggleAcademyQuizQuestionV143}>
+                              <input type="hidden" name="question_id" value={question.id} />
+                              <input type="hidden" name="quiz_id" value={quiz.id} />
+                              <input type="hidden" name="active" value={question.active ? "false" : "true"} />
+                              <button className={styles.secondary}>{question.active ? "Désactiver la question" : "Réactiver la question"}</button>
+                            </form>
+                            <form action={deleteAcademyQuizQuestionV1471}>
+                              <input type="hidden" name="question_id" value={question.id} />
+                              <input type="hidden" name="quiz_id" value={quiz.id} />
+                              <button className={styles.danger}>Supprimer la question</button>
+                            </form>
+                          </div>
                         </details>
                       ))}
                     </div>

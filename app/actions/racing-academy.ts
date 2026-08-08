@@ -10,6 +10,7 @@ import { createClient } from "@/lib/supabase/server";
 const PUBLIC_PATH = "/circuit/racing-academy";
 const STAFF_PATH = "/dashboard/racing-academy";
 const QUIZ_STAFF_PATH = "/dashboard/racing-academy/questionnaires";
+const EVAL_STAFF_PATH = "/dashboard/racing-academy/evaluations";
 
 function text(value: FormDataEntryValue | null, max = 2000): string {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
@@ -37,6 +38,7 @@ function refresh() {
   revalidatePath("/profil/licences");
   revalidatePath("/dashboard/citoyens");
   revalidatePath(QUIZ_STAFF_PATH);
+  revalidatePath(EVAL_STAFF_PATH);
 }
 
 export async function saveAcademyCourseV137(formData: FormData) {
@@ -214,6 +216,61 @@ export async function saveAcademyLicenseRequirementV140(formData: FormData) {
 }
 
 
+
+export async function syncAcademyQuizzesV1471() {
+  const { supabase } = await requireAcademyStaff();
+  const { data, error } = await (supabase as any).rpc("academy_sync_quizzes_v147_1");
+  if (error) redirect(`${QUIZ_STAFF_PATH}?error=quiz-sync`);
+  refresh();
+  redirect(`${QUIZ_STAFF_PATH}?synced=${Number(data ?? 0)}`);
+}
+
+export async function createAcademyQuizV1471(formData: FormData) {
+  const courseId = Math.floor(numberValue(formData.get("course_id")));
+  const title = text(formData.get("title"), 180);
+  if (!courseId || !title) redirect(`${QUIZ_STAFF_PATH}?error=quiz-invalid`);
+  const { supabase } = await requireAcademyStaff();
+  const { data, error } = await (supabase as any).rpc("academy_create_quiz_v147_1", {
+    p_course_id: courseId,
+    p_title: title,
+  });
+  if (error || !data) {
+    const message = `${error?.message ?? ""}`;
+    const code = message.includes("quiz_already_exists") ? "quiz-exists" : "quiz-create";
+    redirect(`${QUIZ_STAFF_PATH}?error=${code}`);
+  }
+  refresh();
+  redirect(`${QUIZ_STAFF_PATH}?created=1&quiz=${Number(data)}&course=${courseId}`);
+}
+
+export async function deleteAcademyQuizV1471(formData: FormData) {
+  const quizId = Math.floor(numberValue(formData.get("quiz_id")));
+  if (!quizId) redirect(`${QUIZ_STAFF_PATH}?error=quiz-invalid`);
+  const { supabase } = await requireAcademyStaff();
+  const { error } = await (supabase as any).rpc("academy_delete_quiz_v147_1", { p_quiz_id: quizId });
+  if (error) redirect(`${QUIZ_STAFF_PATH}?error=quiz-delete`);
+  refresh();
+  redirect(`${QUIZ_STAFF_PATH}?deleted=1`);
+}
+
+export async function deleteAcademyQuizQuestionV1471(formData: FormData) {
+  const questionId = Math.floor(numberValue(formData.get("question_id")));
+  const quizId = Math.floor(numberValue(formData.get("quiz_id")));
+  if (!questionId || !quizId) redirect(`${QUIZ_STAFF_PATH}?error=question-invalid`);
+  const { supabase } = await requireAcademyStaff();
+  const { error } = await (supabase as any)
+    .from("academy_quiz_questions_v143")
+    .delete()
+    .eq("id", questionId)
+    .eq("quiz_id", quizId);
+  if (error) {
+    const code = `${error.message ?? ""}`.includes("foreign key") ? "question-used" : "question-delete";
+    redirect(`${QUIZ_STAFF_PATH}?error=${code}&quiz=${quizId}`);
+  }
+  refresh();
+  redirect(`${QUIZ_STAFF_PATH}?question_deleted=1&quiz=${quizId}`);
+}
+
 export async function saveAcademyQuizSettingsV143(formData: FormData) {
   const quizId = Math.floor(numberValue(formData.get("quiz_id")));
   const courseId = Math.floor(numberValue(formData.get("course_id")));
@@ -314,7 +371,8 @@ export async function toggleAcademyQuizQuestionV143(formData: FormData) {
 export async function resetAcademyQuizAttemptsV143(formData: FormData) {
   const enrollmentId = Math.floor(numberValue(formData.get("enrollment_id")));
   const quizId = Math.floor(numberValue(formData.get("quiz_id")));
-  if (!enrollmentId || !quizId) redirect(`${QUIZ_STAFF_PATH}?error=reset-invalid`);
+  const returnPath = text(formData.get("return_to"), 30) === "evaluations" ? EVAL_STAFF_PATH : QUIZ_STAFF_PATH;
+  if (!enrollmentId || !quizId) redirect(`${returnPath}?error=reset-invalid`);
   const { supabase } = await requireAcademyStaff();
 
   const { error } = await (supabase as any)
@@ -322,7 +380,7 @@ export async function resetAcademyQuizAttemptsV143(formData: FormData) {
     .delete()
     .eq("enrollment_id", enrollmentId)
     .eq("quiz_id", quizId);
-  if (error) redirect(`${QUIZ_STAFF_PATH}?error=reset-save`);
+  if (error) redirect(`${returnPath}?error=reset-save`);
 
   await supabase.from("academy_enrollments_v137").update({
     theory_quiz_passed_at: null,
@@ -331,8 +389,14 @@ export async function resetAcademyQuizAttemptsV143(formData: FormData) {
     updated_at: new Date().toISOString(),
   } as any).eq("id", enrollmentId);
 
+  await (supabase as any)
+    .from("academy_quiz_assignments_v147")
+    .update({ status: "sent", last_attempt_id: null, completed_at: null, updated_at: new Date().toISOString() })
+    .eq("enrollment_id", enrollmentId)
+    .eq("quiz_id", quizId);
+
   refresh();
-  redirect(`${QUIZ_STAFF_PATH}?reset=1&quiz=${quizId}`);
+  redirect(`${returnPath}?reset=1&quiz=${quizId}`);
 }
 
 export async function startAcademyQuizV143(formData: FormData) {
@@ -384,4 +448,161 @@ export async function submitAcademyQuizV143(formData: FormData) {
   refresh();
   revalidatePath(`${PUBLIC_PATH}/questionnaire/${attemptId}`);
   redirect(`${PUBLIC_PATH}/questionnaire/${attemptId}?result=1`);
+}
+
+export async function sendAcademyQuizInvitationV147(formData: FormData) {
+  const enrollmentId = Math.floor(numberValue(formData.get("enrollment_id")));
+  if (!enrollmentId) redirect(`${EVAL_STAFF_PATH}?error=invite-invalid`);
+
+  const { supabase } = await requireAcademyStaff();
+  const { error } = await (supabase as any).rpc("academy_send_quiz_invitation_v147", {
+    p_enrollment_id: enrollmentId,
+  });
+
+  if (error) {
+    const message = `${error.message ?? ""}`;
+    const code = message.includes("quiz_not_active")
+      ? "quiz-inactive"
+      : message.includes("quiz_has_no_questions")
+        ? "quiz-empty"
+        : message.includes("participant_not_ready")
+          ? "participant-not-ready"
+          : message.includes("quiz_already_passed")
+            ? "quiz-passed"
+            : message.includes("mail_not_configured") || message.includes("mailbox_unavailable")
+              ? "mail"
+              : "invite";
+    redirect(`${EVAL_STAFF_PATH}?error=${code}`);
+  }
+
+  refresh();
+  revalidatePath("/profil/messagerie");
+  redirect(`${EVAL_STAFF_PATH}?sent=1&enrollment=${enrollmentId}`);
+}
+
+export async function sendAcademyQuizToCourseV147(formData: FormData) {
+  const courseId = Math.floor(numberValue(formData.get("course_id")));
+  if (!courseId) redirect(`${EVAL_STAFF_PATH}?error=invite-invalid`);
+
+  const { supabase } = await requireAcademyStaff();
+  const { data: rows, error: enrollmentError } = await supabase
+    .from("academy_enrollments_v137")
+    .select("id")
+    .eq("course_id", courseId)
+    .in("status", ["accepted", "training", "failed"]);
+
+  if (enrollmentError) redirect(`${EVAL_STAFF_PATH}?error=invite`);
+
+  let sent = 0;
+  for (const row of rows ?? []) {
+    const { error } = await (supabase as any).rpc("academy_send_quiz_invitation_v147", {
+      p_enrollment_id: Number(row.id),
+    });
+    if (!error) sent += 1;
+  }
+
+  refresh();
+  revalidatePath("/profil/messagerie");
+  redirect(`${EVAL_STAFF_PATH}?sent_all=${sent}&course=${courseId}`);
+}
+
+export async function saveAcademyParticipantEvaluationV147(formData: FormData) {
+  const enrollmentId = Math.floor(numberValue(formData.get("enrollment_id")));
+  const status = text(formData.get("status"), 30);
+  const practicalRaw = text(formData.get("practical_score"), 20);
+  const practicalScore = practicalRaw ? numberValue(formData.get("practical_score")) : null;
+  const instructorName = text(formData.get("instructor_name"), 160) || null;
+  const appreciation = text(formData.get("staff_note"), 3000) || null;
+
+  if (
+    !enrollmentId ||
+    !["pending", "accepted", "training", "passed", "failed", "cancelled"].includes(status) ||
+    (practicalScore != null && (practicalScore < 0 || practicalScore > 100))
+  ) {
+    redirect(`${EVAL_STAFF_PATH}?error=evaluation-invalid`);
+  }
+
+  const { supabase } = await requireAcademyStaff();
+
+  if (status === "accepted") {
+    const { data: enrollment } = await supabase
+      .from("academy_enrollments_v137")
+      .select("course_id")
+      .eq("id", enrollmentId)
+      .maybeSingle();
+    if (enrollment) {
+      const [{ count }, { data: course }] = await Promise.all([
+        supabase
+          .from("academy_enrollments_v137")
+          .select("id", { count: "exact", head: true })
+          .eq("course_id", enrollment.course_id)
+          .neq("id", enrollmentId)
+          .in("status", ["accepted", "training"]),
+        supabase
+          .from("academy_courses_v137")
+          .select("max_participants")
+          .eq("id", enrollment.course_id)
+          .maybeSingle(),
+      ]);
+      if (course && (count ?? 0) >= Number(course.max_participants)) {
+        redirect(`${EVAL_STAFF_PATH}?error=full`);
+      }
+    }
+  }
+
+  const { error } = await supabase
+    .from("academy_enrollments_v137")
+    .update({
+      status,
+      practical_score: practicalScore,
+      instructor_name: instructorName,
+      staff_note: appreciation,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", enrollmentId);
+
+  if (error) {
+    const message = `${error.message ?? ""}`;
+    const code = message.includes("passing_scores_required")
+      ? "scores"
+      : message.includes("academy_quiz_required")
+        ? "quiz-required"
+        : "evaluation";
+    redirect(`${EVAL_STAFF_PATH}?error=${code}`);
+  }
+
+  refresh();
+  redirect(`${EVAL_STAFF_PATH}?saved=1&enrollment=${enrollmentId}`);
+}
+
+export async function startAcademyQuizFromInvitationV147(formData: FormData) {
+  const assignmentId = Math.floor(numberValue(formData.get("assignment_id")));
+  const quizId = Math.floor(numberValue(formData.get("quiz_id")));
+  if (!assignmentId || !quizId) redirect(`${PUBLIC_PATH}?error=quiz-start`);
+
+  const supabase = await createClient();
+  const { data: authData } = await supabase.auth.getUser();
+  if (!authData.user) redirect("/");
+
+  const { data, error } = await (supabase as any).rpc("academy_start_quiz_v143", {
+    p_quiz_id: quizId,
+  });
+
+  if (error || !data) {
+    const message = `${error?.message ?? ""}`;
+    const code = message.includes("max_attempts_reached")
+      ? "quiz-max"
+      : message.includes("quiz_already_passed")
+        ? "quiz-passed"
+        : message.includes("quiz_not_assigned")
+          ? "quiz-not-assigned"
+          : message.includes("training_not_open")
+            ? "quiz-not-open"
+            : message.includes("quiz_has_no_questions")
+              ? "quiz-empty"
+              : "quiz-start";
+    redirect(`${PUBLIC_PATH}/questionnaire/convocation/${assignmentId}?error=${code}`);
+  }
+
+  redirect(`${PUBLIC_PATH}/questionnaire/${Number(data)}`);
 }
