@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export type AcademyQuizV143 = {
   id: number;
-  courseId: number;
+  courseId: number | null;
   title: string;
   instructions: string | null;
   passScore: number;
@@ -84,7 +84,7 @@ const attemptColumns = "id,quiz_id,enrollment_id,user_id,attempt_number,status,s
 function mapQuiz(row: Record<string, unknown>): AcademyQuizV143 {
   return {
     id: Number(row.id),
-    courseId: Number(row.course_id),
+    courseId: row.course_id == null ? null : Number(row.course_id),
     title: String(row.title),
     instructions: typeof row.instructions === "string" ? row.instructions : null,
     passScore: Number(row.pass_score),
@@ -188,6 +188,103 @@ export async function getAcademyQuizAttemptDetailV143(attemptId: number): Promis
       courseId: Number(row.courseId),
       courseTitle: String(row.courseTitle),
       questions: Array.isArray(row.questions) ? (row.questions as AcademyQuizPlayerQuestionV143[]) : [],
+    };
+  } catch {
+    return null;
+  }
+}
+
+export type AcademyQuizAssignmentV147 = {
+  id: number;
+  quizId: number;
+  enrollmentId: number;
+  userId: string;
+  status: "sent" | "opened" | "in_progress" | "passed" | "failed" | "cancelled";
+  sentBy: string | null;
+  mailThreadId: string | null;
+  lastAttemptId: number | null;
+  sentAt: string;
+  openedAt: string | null;
+  completedAt: string | null;
+};
+
+export type AcademyQuizInvitationDetailV147 = {
+  id: number;
+  status: AcademyQuizAssignmentV147["status"];
+  sentAt: string;
+  openedAt: string | null;
+  completedAt: string | null;
+  quizId: number;
+  quizTitle: string;
+  instructions: string | null;
+  passScore: number;
+  maxAttempts: number;
+  timeLimitMinutes: number;
+  courseId: number;
+  courseTitle: string;
+  enrollmentId: number;
+  attemptsUsed: number;
+  bestScore: number | null;
+};
+
+const assignmentColumnsV147 = "id,quiz_id,enrollment_id,user_id,status,sent_by,mail_thread_id,last_attempt_id,sent_at,opened_at,completed_at";
+
+function mapAssignmentV147(row: Record<string, unknown>): AcademyQuizAssignmentV147 {
+  return {
+    id: Number(row.id),
+    quizId: Number(row.quiz_id),
+    enrollmentId: Number(row.enrollment_id),
+    userId: String(row.user_id),
+    status: String(row.status) as AcademyQuizAssignmentV147["status"],
+    sentBy: typeof row.sent_by === "string" ? row.sent_by : null,
+    mailThreadId: typeof row.mail_thread_id === "string" ? row.mail_thread_id : null,
+    lastAttemptId: row.last_attempt_id == null ? null : Number(row.last_attempt_id),
+    sentAt: String(row.sent_at),
+    openedAt: row.opened_at ? String(row.opened_at) : null,
+    completedAt: row.completed_at ? String(row.completed_at) : null,
+  };
+}
+
+export async function getAcademyQuizAssignmentsV147(userId?: string): Promise<AcademyQuizAssignmentV147[]> {
+  try {
+    const supabase = await createClient();
+    let query = (supabase as any)
+      .from("academy_quiz_assignments_v147")
+      .select(assignmentColumnsV147)
+      .order("sent_at", { ascending: false });
+    if (userId) query = query.eq("user_id", userId);
+    const { data, error } = await query;
+    return error ? [] : ((data ?? []) as Array<Record<string, unknown>>).map(mapAssignmentV147);
+  } catch {
+    return [];
+  }
+}
+
+export async function getAcademyQuizInvitationV147(assignmentId: number): Promise<AcademyQuizInvitationDetailV147 | null> {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await (supabase as any).rpc("academy_open_quiz_invitation_v147", {
+      p_assignment_id: assignmentId,
+    });
+    if (error || !data || typeof data !== "object") return null;
+    const row = data as Record<string, unknown>;
+    return {
+      id: Number(row.id),
+      status: String(row.status) as AcademyQuizInvitationDetailV147["status"],
+      sentAt: String(row.sentAt),
+      openedAt: row.openedAt ? String(row.openedAt) : null,
+      completedAt: row.completedAt ? String(row.completedAt) : null,
+      quizId: Number(row.quizId),
+      quizTitle: String(row.quizTitle),
+      instructions: typeof row.instructions === "string" ? row.instructions : null,
+      passScore: Number(row.passScore ?? 0),
+      maxAttempts: Number(row.maxAttempts ?? 0),
+      timeLimitMinutes: Number(row.timeLimitMinutes ?? 0),
+      courseId: Number(row.courseId),
+      courseTitle: String(row.courseTitle),
+      enrollmentId: Number(row.enrollmentId),
+      attemptsUsed: Number(row.attemptsUsed ?? 0),
+      bestScore: row.bestScore == null ? null : Number(row.bestScore),
     };
   } catch {
     return null;

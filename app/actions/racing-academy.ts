@@ -226,9 +226,10 @@ export async function syncAcademyQuizzesV1471() {
 }
 
 export async function createAcademyQuizV1471(formData: FormData) {
-  const courseId = Math.floor(numberValue(formData.get("course_id")));
+  const rawCourseId = Math.floor(numberValue(formData.get("course_id")));
+  const courseId = rawCourseId > 0 ? rawCourseId : null;
   const title = text(formData.get("title"), 180);
-  if (!courseId || !title) redirect(`${QUIZ_STAFF_PATH}?error=quiz-invalid`);
+  if (!title) redirect(`${QUIZ_STAFF_PATH}?error=quiz-invalid`);
   const { supabase } = await requireAcademyStaff();
   const { data, error } = await (supabase as any).rpc("academy_create_quiz_v147_1", {
     p_course_id: courseId,
@@ -240,7 +241,7 @@ export async function createAcademyQuizV1471(formData: FormData) {
     redirect(`${QUIZ_STAFF_PATH}?error=${code}`);
   }
   refresh();
-  redirect(`${QUIZ_STAFF_PATH}?created=1&quiz=${Number(data)}&course=${courseId}`);
+  redirect(`${QUIZ_STAFF_PATH}?created=1&quiz=${Number(data)}${courseId ? `&course=${courseId}` : ""}`);
 }
 
 export async function deleteAcademyQuizV1471(formData: FormData) {
@@ -273,7 +274,8 @@ export async function deleteAcademyQuizQuestionV1471(formData: FormData) {
 
 export async function saveAcademyQuizSettingsV143(formData: FormData) {
   const quizId = Math.floor(numberValue(formData.get("quiz_id")));
-  const courseId = Math.floor(numberValue(formData.get("course_id")));
+  const rawCourseId = Math.floor(numberValue(formData.get("course_id")));
+  const courseId = rawCourseId > 0 ? rawCourseId : null;
   const title = text(formData.get("title"), 180);
   const instructions = text(formData.get("instructions"), 3000) || null;
   const passScore = numberValue(formData.get("pass_score"));
@@ -284,7 +286,7 @@ export async function saveAcademyQuizSettingsV143(formData: FormData) {
   const showCorrection = formData.get("show_correction") === "true";
   const active = formData.get("active") === "true";
 
-  if (!courseId || !title || passScore < 0 || passScore > 100 || maxAttempts < 1 || maxAttempts > 20 || timeLimitMinutes < 0 || timeLimitMinutes > 180 || questionCount < 0 || questionCount > 200) {
+  if (!title || passScore < 0 || passScore > 100 || maxAttempts < 1 || maxAttempts > 20 || timeLimitMinutes < 0 || timeLimitMinutes > 180 || questionCount < 0 || questionCount > 200) {
     redirect(`${QUIZ_STAFF_PATH}?error=quiz-invalid`);
   }
 
@@ -309,7 +311,7 @@ export async function saveAcademyQuizSettingsV143(formData: FormData) {
 
   if (result.error) redirect(`${QUIZ_STAFF_PATH}?error=quiz-save`);
   refresh();
-  redirect(`${QUIZ_STAFF_PATH}?quiz=1&course=${courseId}`);
+  redirect(`${QUIZ_STAFF_PATH}?quiz=${quizId || 1}${courseId ? `&course=${courseId}` : ""}`);
 }
 
 export async function saveAcademyQuizQuestionV143(formData: FormData) {

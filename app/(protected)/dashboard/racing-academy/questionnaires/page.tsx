@@ -51,7 +51,7 @@ export default async function AcademyQuestionnairesPage({
     : [[], [], [], [], []];
 
   const courseById = new Map(courses.map((course) => [course.id, course]));
-  const quizCourseIds = new Set(quizzes.map((quiz) => quiz.courseId));
+  const quizCourseIds = new Set(quizzes.flatMap((quiz) => (quiz.courseId ? [quiz.courseId] : [])));
   const coursesWithoutQuiz = courses.filter((course) => !quizCourseIds.has(course.id));
   const enrollmentById = new Map(enrollments.map((row) => [row.id, row]));
   const questionsByQuiz = new Map<number, AcademyQuizQuestionV143[]>();
@@ -88,7 +88,15 @@ export default async function AcademyQuestionnairesPage({
           {params.quiz && <div className="dashboard-feedback dashboard-feedback-success">Configuration du questionnaire enregistrée.</div>}
           {params.created && <div className="dashboard-feedback dashboard-feedback-success">Questionnaire créé.</div>}
           {params.deleted && <div className="dashboard-feedback dashboard-feedback-success">Questionnaire supprimé.</div>}
-          {params.synced != null && <div className="dashboard-feedback dashboard-feedback-success">Synchronisation terminée : {params.synced} questionnaire(s) manquant(s) créé(s).</div>}
+          {params.synced != null && (
+            <div className="dashboard-feedback dashboard-feedback-success">
+              {Number(params.synced) > 0
+                ? `Synchronisation terminée : ${params.synced} questionnaire(s) manquant(s) créé(s).`
+                : courses.length === 0
+                  ? "Aucune formation à synchroniser. Tu peux quand même créer un questionnaire libre ci-dessous."
+                  : "Toutes les formations possèdent déjà leur questionnaire."}
+            </div>
+          )}
           {params.question && <div className="dashboard-feedback dashboard-feedback-success">Question enregistrée.</div>}
           {params.question_deleted && <div className="dashboard-feedback dashboard-feedback-success">Question supprimée.</div>}
           {params.reset && <div className="dashboard-feedback dashboard-feedback-success">Tentatives du candidat réinitialisées.</div>}
@@ -118,29 +126,34 @@ export default async function AcademyQuestionnairesPage({
             <div className="dashboard-section-heading dashboard-section-heading-tight">
               <p className="eyebrow">GESTION</p>
               <h2>Créer ou synchroniser les questionnaires</h2>
-              <p>Un questionnaire est lié à une formation. Tu peux le créer manuellement ou générer automatiquement tous ceux qui manquent.</p>
+              <p>Crée librement tes questionnaires, puis rattache-les à une formation quand tu le souhaites. La synchronisation sert uniquement à générer les QCM manquants des formations déjà créées.</p>
             </div>
             <div className={styles.panel}>
               <div className={styles.actions}>
                 <form action={syncAcademyQuizzesV1471}>
-                  <button className={styles.secondary}>Générer les questionnaires manquants</button>
+                  <button className={styles.secondary} disabled={courses.length === 0}>
+                    {courses.length === 0 ? "Aucune formation à synchroniser" : "Générer les questionnaires manquants"}
+                  </button>
                 </form>
               </div>
-              {coursesWithoutQuiz.length > 0 ? (
-                <form action={createAcademyQuizV1471} className={styles.form}>
-                  <label>Formation
-                    <select name="course_id" required defaultValue="">
-                      <option value="" disabled>Choisir une formation</option>
-                      {coursesWithoutQuiz.map((course) => <option key={course.id} value={course.id}>{course.title}</option>)}
-                    </select>
-                  </label>
-                  <label className={styles.span2}>Nom du questionnaire
-                    <input name="title" placeholder="Ex. Examen théorique GT3 RS" required />
-                  </label>
-                  <button className={styles.primary}>Créer le questionnaire</button>
-                </form>
-              ) : (
-                <p className={styles.empty}>{courses.length === 0 ? "Aucune formation Academy n’est encore créée." : "Toutes les formations possèdent déjà leur questionnaire."}</p>
+              <form action={createAcademyQuizV1471} className={styles.form}>
+                <label>Rattachement à une formation
+                  <select name="course_id" defaultValue="0">
+                    <option value="0">Aucune · questionnaire libre</option>
+                    {coursesWithoutQuiz.map((course) => <option key={course.id} value={course.id}>{course.title}</option>)}
+                  </select>
+                  <small>Tu peux créer le questionnaire maintenant et le rattacher à une formation plus tard.</small>
+                </label>
+                <label className={styles.span2}>Nom du questionnaire
+                  <input name="title" placeholder="Ex. Examen théorique GT3 RS" required />
+                </label>
+                <button className={styles.primary}>Créer le questionnaire</button>
+              </form>
+              {courses.length === 0 && (
+                <div className={styles.notice}>
+                  <strong>Aucune formation Academy créée pour le moment.</strong>
+                  <p>Ce n’est plus bloquant : crée d’abord tes questionnaires ici. Tu pourras les rattacher à une formation quand elle existera.</p>
+                </div>
               )}
             </div>
           </section>
@@ -154,8 +167,8 @@ export default async function AcademyQuestionnairesPage({
 
           <section className={styles.section}>
             <div className="dashboard-section-heading dashboard-section-heading-tight">
-              <p className="eyebrow">FORMATIONS</p>
-              <h2>Questionnaires par formation</h2>
+              <p className="eyebrow">BIBLIOTHÈQUE</p>
+              <h2>Mes questionnaires</h2>
             </div>
             <div className={styles.stack}>
               {quizzes.length === 0 && (
@@ -164,24 +177,24 @@ export default async function AcademyQuestionnairesPage({
                 </div>
               )}
               {quizzes.map((quiz) => {
-                const course = courseById.get(quiz.courseId);
+                const course = quiz.courseId ? courseById.get(quiz.courseId) : undefined;
                 const quizQuestions = questionsByQuiz.get(quiz.id) ?? [];
                 const quizAttempts = attemptsByQuiz.get(quiz.id) ?? [];
                 return (
                   <details className={styles.panel} key={quiz.id} open={params.quiz === String(quiz.id) || params.course === String(quiz.courseId)}>
                     <summary>
-                      <strong>{course?.title ?? quiz.title}</strong> · {quiz.active ? "QCM ACTIF" : "QCM DÉSACTIVÉ"} · {quizQuestions.filter((q) => q.active).length} question(s)
+                      <strong>{quiz.title}</strong> · {course ? course.title : "QUESTIONNAIRE LIBRE"} · {quiz.active ? "QCM ACTIF" : "QCM DÉSACTIVÉ"} · {quizQuestions.filter((q) => q.active).length} question(s)
                     </summary>
 
                     <div className={styles.panelHeader}>
                       <div>
                         <span className={styles.badge}>{quiz.active ? "OBLIGATOIRE POUR VALIDER" : "NON BLOQUANT"}</span>
                         <h2>{quiz.title}</h2>
-                        <p>Seuil Academy de la formation : {course?.theoryPassScore ?? 0}/100. Le seuil réellement exigé sera toujours le plus élevé entre ce seuil et celui du questionnaire.</p>
+                        <p>{course ? `Formation liée : ${course.title} · seuil théorie ${course.theoryPassScore}/100.` : "Questionnaire libre : rattache-le à une formation quand tu veux."} Le seuil du questionnaire reste configurable ci-dessous.</p>
                       </div>
                     </div>
 
-                    <QuizSettingsForm quiz={quiz} courseTitle={course?.title ?? "Formation"} courseTheoryScore={course?.theoryPassScore ?? 70} />
+                    <QuizSettingsForm quiz={quiz} courses={courses} courseTitle={course?.title ?? "Questionnaire libre"} courseTheoryScore={course?.theoryPassScore ?? 70} />
                     <form action={deleteAcademyQuizV1471} className={styles.actions}>
                       <input type="hidden" name="quiz_id" value={quiz.id} />
                       <button className={styles.danger}>Supprimer définitivement ce questionnaire</button>
@@ -256,11 +269,16 @@ export default async function AcademyQuestionnairesPage({
   );
 }
 
-function QuizSettingsForm({ quiz, courseTitle, courseTheoryScore }: { quiz: AcademyQuizV143; courseTitle: string; courseTheoryScore: number }) {
+function QuizSettingsForm({ quiz, courses, courseTitle, courseTheoryScore }: { quiz: AcademyQuizV143; courses: Awaited<ReturnType<typeof getAcademyCoursesV137>>; courseTitle: string; courseTheoryScore: number }) {
   return (
     <form action={saveAcademyQuizSettingsV143} className={styles.form}>
       <input type="hidden" name="quiz_id" value={quiz.id} />
-      <input type="hidden" name="course_id" value={quiz.courseId} />
+      <label>Formation liée
+        <select name="course_id" defaultValue={quiz.courseId ? String(quiz.courseId) : "0"}>
+          <option value="0">Aucune · questionnaire libre</option>
+          {courses.map((course) => <option key={course.id} value={course.id}>{course.title}</option>)}
+        </select>
+      </label>
       <label className={styles.span2}>Nom du questionnaire<input name="title" defaultValue={quiz.title || `Questionnaire · ${courseTitle}`} required /></label>
       <label>Seuil QCM /100<input name="pass_score" type="number" min="0" max="100" step="0.01" defaultValue={quiz.passScore || courseTheoryScore} required /></label>
       <label>Nombre de tentatives<input name="max_attempts" type="number" min="1" max="20" defaultValue={quiz.maxAttempts} required /></label>
