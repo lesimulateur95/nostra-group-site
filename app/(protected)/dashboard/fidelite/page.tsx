@@ -17,7 +17,7 @@ import {
   getLoyaltyCitizens,
 } from "@/lib/loyalty-cards/data";
 import { createClient } from "@/lib/supabase/server";
-import { getLoyaltyTiersV155 } from "@/lib/v155/data";
+import { getLoyaltyTiersV155, type LoyaltyTierV155 } from "@/lib/v155/data";
 import { updateLoyaltyTierV155 } from "@/app/actions/v155";
 import v155Styles from "@/components/v155/v155.module.css";
 
@@ -42,11 +42,12 @@ export default async function LoyaltyDashboardPage({ searchParams }: PageProps) 
   const roles = await getUserRoleKeys(data.user);
   if (!roles.includes("manager")) redirect("/dashboard");
 
-  const [params, overview, editableTiers] = await Promise.all([
+  const [params, overview, editableTiersRaw] = await Promise.all([
     searchParams,
     getLoyaltyCitizens(),
     getLoyaltyTiersV155(),
   ]);
+  const editableTiers: LoyaltyTierV155[] = editableTiersRaw;
   const currentYear = new Date().getFullYear();
 
   const errorMessage =

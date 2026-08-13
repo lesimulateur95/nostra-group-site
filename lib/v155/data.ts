@@ -10,6 +10,18 @@ const n = (value: unknown, fallback = 0) => {
 const s = (value: unknown, fallback = "") =>
   typeof value === "string" ? value : fallback;
 
+export type LoyaltyTierV155 = {
+  code: string;
+  label: string;
+  catalogDiscount: number;
+  plateDiscount: number;
+  benefits: string[];
+  minPoints: number;
+  description: string | null;
+  active: boolean;
+  sortOrder: number;
+};
+
 export type RentalVehicleV155 = {
   vehicleId: number;
   brand: string;
@@ -102,7 +114,7 @@ export async function getWalletV155(userId:string, steamId:string|null) {
   return {bank,points,activityRp,referrals:referrals.count??0,ticketSpend:(tickets.data??[]).filter((r:any)=>!["cancelled","refunded"].includes(s(r.status))).reduce((sum:number,r:any)=>sum+n(r.total),0),entries:rows.map((r:any)=>({id:n(r.id),type:s(r.entry_type),label:s(r.label),amountRp:n(r.amount_rp),points:n(r.loyalty_points),createdAt:s(r.created_at)}))};
 }
 
-export async function getLoyaltyTiersV155() {
+export async function getLoyaltyTiersV155(): Promise<LoyaltyTierV155[]> {
   const supabase=await createClient();
   const {data,error}=await (supabase as any).from("loyalty_tiers").select("*").order("sort_order");
   if(error)return [];

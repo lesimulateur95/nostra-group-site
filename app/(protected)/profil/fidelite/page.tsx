@@ -7,7 +7,7 @@ import {
   getLoyaltyDiscountPercent,
 } from "@/lib/loyalty-cards/data";
 import { createClient } from "@/lib/supabase/server";
-import { getLoyaltyTiersV155 } from "@/lib/v155/data";
+import { getLoyaltyTiersV155, type LoyaltyTierV155 } from "@/lib/v155/data";
 import stylesV155 from "@/components/v155/v155.module.css";
 
 export default async function ProfileLoyaltyPage() {
@@ -25,8 +25,9 @@ export default async function ProfileLoyaltyPage() {
     getLoyaltyTiersV155(),
     (supabase as any).rpc("nostra_loyalty_points_v155", { p_user_id: data.user.id }),
   ]);
+  const loyaltyTiers: LoyaltyTierV155[] = tiers;
   const currentTierName = card?.tier ?? loyalty.data?.tier ?? "";
-  const currentTier = tiers.find((tier) => tier.label.toLowerCase() === currentTierName.toLowerCase() || tier.code.toLowerCase() === currentTierName.toLowerCase().replaceAll(" ", "_"));
+  const currentTier = loyaltyTiers.find((tier) => tier.label.toLowerCase() === currentTierName.toLowerCase() || tier.code.toLowerCase() === currentTierName.toLowerCase().replaceAll(" ", "_"));
   const loyaltyDiscountPercent = currentTier?.catalogDiscount ?? getLoyaltyDiscountPercent(currentTierName);
   const points = Number(pointsResult.data ?? 0);
 
