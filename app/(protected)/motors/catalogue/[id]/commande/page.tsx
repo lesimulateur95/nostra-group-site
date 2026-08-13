@@ -99,6 +99,7 @@ export default async function VehicleConfigurationPage({
   const balanceAmount = Math.max(0, vehiclePrice - depositAmount);
   const stock = Math.max(0, Number(vehicle.stock_quantity) || 0);
   const isHeavyVehicle = vehicle.catalog_type === "heavy";
+  const isRentalCatalog = vehicle.catalog_type === "concession";
   const isUsedVehicle = vehicle.catalog_type === "used";
   const usedStatus = String(vehicle.used_vehicle_status ?? "available");
   const canOrderUsedVehicle = !isUsedVehicle || usedStatus === "available";
@@ -108,12 +109,15 @@ export default async function VehicleConfigurationPage({
     getVehicleFinancingSettings(),
   ]);
   const canReserve =
-    catalogReservationsEnabled && vehicleAvailability.reservation_enabled;
+    !isRentalCatalog &&
+    catalogReservationsEnabled &&
+    vehicleAvailability.reservation_enabled;
   const canOrder = vehicleAvailability.sale_enabled;
   const financingEligible =
     financingSettings.configured &&
     financingSettings.enabled &&
     canOrder &&
+    !isRentalCatalog &&
     vehiclePrice > financingSettings.minimumVehiclePrice &&
     (financingSettings.threeTimesEnabled || financingSettings.fourTimesEnabled);
   const financingDeposit = Math.round(vehiclePrice * 0.3 * 100) / 100;
@@ -133,7 +137,7 @@ export default async function VehicleConfigurationPage({
   const canPurchase = canReserve || canOrder;
   const cataloguePath =
     vehicle.catalog_type === "concession"
-      ? "/motors/catalogue/concession"
+      ? "/motors/catalogue/location"
       : vehicle.catalog_type === "heavy"
         ? "/motors/catalogue/poids-lourds"
         : vehicle.catalog_type === "exclusive"
@@ -177,6 +181,8 @@ export default async function VehicleConfigurationPage({
                       ? "Tu as déjà un dossier de financement actif pour ce véhicule."
                     : query.error === "financing-steam"
                       ? "Associe ton compte Steam avant de déposer un dossier de financement."
+                    : query.error === "rental-mode"
+                      ? "Les véhicules du catalogue location peuvent uniquement être loués avec retrait en concession Nostra Motors."
                     : query.error
                       ? "Impossible d’ajouter cette configuration au panier."
                       : null;
@@ -190,7 +196,9 @@ export default async function VehicleConfigurationPage({
             {vehicle.brand} {vehicle.model}
           </h1>
           <p>
-            {isHeavyVehicle
+            {isRentalCatalog
+              ? "Vérifie le véhicule de location avant de l’ajouter au panier. Le retrait s’effectue uniquement en concession Nostra Motors."
+              : isHeavyVehicle
               ? "Vérifie le poids lourd avant de l’ajouter au panier. Le retrait au showroom est le seul mode disponible."
               : isUsedVehicle
                 ? "Vérifie ce véhicule d’occasion contrôlé par Nostra Motors, puis choisis son mode de livraison."
@@ -268,38 +276,64 @@ export default async function VehicleConfigurationPage({
         >
           <input type="hidden" name="vehicle_id" value={vehicle.id} />
           <input type="hidden" name="profile_phone" value={profilePhone} />
+          {isRentalCatalog && (
+            <>
+              <input type="hidden" name="purchase_mode" value="order" />
+              <input type="hidden" name="delivery_mode" value="showroom" />
+            </>
+          )}
 
           <div className={styles.deliveryHeading}>
-            <p className={styles.eyebrow}>CHOIX D’ACHAT</p>
+            <p className={styles.eyebrow}>
+              {isRentalCatalog ? "LOCATION" : "CHOIX D’ACHAT"}
+            </p>
             <h2>
-              {canReserve && canOrder
-                ? "Réserver ou commander ?"
-                : canReserve
-                  ? "Réserver le véhicule"
-                  : canOrder
-                    ? "Commander le véhicule"
-                    : "Véhicule temporairement indisponible"}
+              {isRentalCatalog
+                ? canOrder
+                  ? "Louer ce véhicule"
+                  : "Véhicule temporairement indisponible"
+                : canReserve && canOrder
+                  ? "Réserver ou commander ?"
+                  : canReserve
+                    ? "Réserver le véhicule"
+                    : canOrder
+                      ? "Commander le véhicule"
+                      : "Véhicule temporairement indisponible"}
             </h2>
           </div>
 
           {canOrder && (
-            <label className={`${styles.option} ${styles.purchaseOption}`}>
-              <input
-                type="radio"
-                name="purchase_mode"
-                value="order"
-                defaultChecked
-              />
-              <span className={styles.optionIcon}>✓</span>
-              <span className={styles.optionText}>
-                <strong>Commander maintenant</strong>
-                <small>
-                  Le prix total du véhicule est ajouté au panier et la commande
-                  suit le fonctionnement habituel.
-                </small>
-              </span>
-              <span className={styles.optionPrice}>{formatPrice(vehiclePrice)}</span>
-            </label>
+            isRentalCatalog ? (
+              <div className={`${styles.option} ${styles.purchaseOption}`}>
+                <span className={styles.optionIcon}>◆</span>
+                <span className={styles.optionText}>
+                  <strong>Louer</strong>
+                  <small>
+                    Le véhicule est ajouté à ton panier de location. La remise
+                    du véhicule se fera exclusivement à la concession Nostra Motors.
+                  </small>
+                </span>
+                <span className={styles.optionPrice}>{formatPrice(vehiclePrice)}</span>
+              </div>
+            ) : (
+              <label className={`${styles.option} ${styles.purchaseOption}`}>
+                <input
+                  type="radio"
+                  name="purchase_mode"
+                  value="order"
+                  defaultChecked
+                />
+                <span className={styles.optionIcon}>✓</span>
+                <span className={styles.optionText}>
+                  <strong>Commander maintenant</strong>
+                  <small>
+                    Le prix total du véhicule est ajouté au panier et la commande
+                    suit le fonctionnement habituel.
+                  </small>
+                </span>
+                <span className={styles.optionPrice}>{formatPrice(vehiclePrice)}</span>
+              </label>
+            )
           )}
 
           {canReserve && (
@@ -384,7 +418,8 @@ export default async function VehicleConfigurationPage({
             </div>
           )}
 
-          {financingSettings.configured &&
+          {!isRentalCatalog &&
+            financingSettings.configured &&
             vehiclePrice <= financingSettings.minimumVehiclePrice && (
               <div className={styles.notice}>
                 Le paiement en 3×/4× est disponible uniquement pour les
@@ -394,19 +429,21 @@ export default async function VehicleConfigurationPage({
 
           {!vehicleAvailability.sale_enabled && (
             <div className={styles.notice}>
-              La vente directe est temporairement suspendue pour ce véhicule.
-              Il reste visible dans le catalogue.
+              {isRentalCatalog
+                ? "La location est temporairement suspendue pour ce véhicule. Il reste visible dans le catalogue."
+                : "La vente directe est temporairement suspendue pour ce véhicule. Il reste visible dans le catalogue."}
             </div>
           )}
 
-          {!vehicleAvailability.reservation_enabled && (
+          {!isRentalCatalog && !vehicleAvailability.reservation_enabled && (
             <div className={styles.notice}>
               La réservation avec acompte est temporairement suspendue pour ce
               véhicule.
             </div>
           )}
 
-          {vehicleAvailability.reservation_enabled &&
+          {!isRentalCatalog &&
+            vehicleAvailability.reservation_enabled &&
             !catalogReservationsEnabled && (
               <div className={styles.notice}>
                 Les réservations sont actuellement fermées pour l’ensemble de ce
@@ -416,23 +453,40 @@ export default async function VehicleConfigurationPage({
 
           {!canPurchase && (
             <div className={styles.error}>
-              La réservation et la vente sont temporairement suspendues pour ce
-              véhicule. Tu peux toujours consulter sa fiche dans le catalogue.
+              {isRentalCatalog
+                ? "La location est temporairement suspendue pour ce véhicule. Tu peux toujours consulter sa fiche dans le catalogue."
+                : "La réservation et la vente sont temporairement suspendues pour ce véhicule. Tu peux toujours consulter sa fiche dans le catalogue."}
             </div>
           )}
 
           <div className={styles.sectionDivider} />
 
           <div className={styles.deliveryHeading}>
-            <p className={styles.eyebrow}>MODE DE LIVRAISON</p>
+            <p className={styles.eyebrow}>
+              {isRentalCatalog ? "RETRAIT DU VÉHICULE" : "MODE DE LIVRAISON"}
+            </p>
             <h2>
-              {isHeavyVehicle
-                ? "Retrait obligatoire au showroom"
-                : "Où souhaites-tu recevoir le véhicule ?"}
+              {isRentalCatalog
+                ? "Retrait obligatoire en concession"
+                : isHeavyVehicle
+                  ? "Retrait obligatoire au showroom"
+                  : "Où souhaites-tu recevoir le véhicule ?"}
             </h2>
           </div>
 
-          {isHeavyVehicle ? (
+          {isRentalCatalog ? (
+            <div className={styles.option}>
+              <span className={styles.optionIcon}>◆</span>
+              <span className={styles.optionText}>
+                <strong>Retrait en concession Nostra Motors</strong>
+                <small>
+                  Les véhicules de location ne sont ni livrés à domicile ni
+                  expédiés. La remise des clés se fait uniquement en concession.
+                </small>
+              </span>
+              <span className={styles.optionPrice}>Obligatoire</span>
+            </div>
+          ) : isHeavyVehicle ? (
             <>
               <input type="hidden" name="delivery_mode" value="showroom" />
               <div className={styles.option}>
@@ -530,7 +584,7 @@ export default async function VehicleConfigurationPage({
 
           <div className={styles.summary}>
             <div>
-              <span>Prix total du véhicule</span>
+              <span>{isRentalCatalog ? "Tarif de location" : "Prix total du véhicule"}</span>
               <strong>{formatPrice(vehiclePrice)}</strong>
             </div>
             {canReserve && (
@@ -546,10 +600,10 @@ export default async function VehicleConfigurationPage({
               </>
             )}
             <div>
-              <span>Retrait au showroom</span>
-              <strong>Gratuit</strong>
+              <span>{isRentalCatalog ? "Retrait en concession" : "Retrait au showroom"}</span>
+              <strong>{isRentalCatalog ? "Obligatoire" : "Gratuit"}</strong>
             </div>
-            {!isHeavyVehicle && (
+            {!isRentalCatalog && !isHeavyVehicle && (
               <div>
                 <span>Option domicile</span>
                 <strong>
@@ -560,18 +614,23 @@ export default async function VehicleConfigurationPage({
           </div>
 
           <p className={styles.notice}>
-            {canReserve && canOrder
-              ? "Choisis entre la réservation avec 15 % d’acompte et la commande directe au prix total."
-              : canReserve
-                ? "Seule la réservation avec 15 % d’acompte est autorisée pour ce véhicule."
-                : canOrder
-                  ? "Seule la commande directe au prix total est autorisée pour ce véhicule."
-                  : "Aucune nouvelle réservation ou commande n’est actuellement autorisée pour ce véhicule."}
-            {isHeavyVehicle
-              ? " La livraison à domicile reste désactivée pour l’intégralité du catalogue poids lourd."
-              : canPurchase
-                ? " Une éventuelle livraison à domicile sera ajoutée au paiement concerné."
-                : ""}
+            {isRentalCatalog
+              ? canOrder
+                ? "Ce véhicule est proposé uniquement à la location. Après ajout au panier, le retrait se fera obligatoirement à la concession Nostra Motors."
+                : "La location de ce véhicule est temporairement indisponible."
+              : canReserve && canOrder
+                ? "Choisis entre la réservation avec 15 % d’acompte et la commande directe au prix total."
+                : canReserve
+                  ? "Seule la réservation avec 15 % d’acompte est autorisée pour ce véhicule."
+                  : canOrder
+                    ? "Seule la commande directe au prix total est autorisée pour ce véhicule."
+                    : "Aucune nouvelle réservation ou commande n’est actuellement autorisée pour ce véhicule."}
+            {!isRentalCatalog &&
+              (isHeavyVehicle
+                ? " La livraison à domicile reste désactivée pour l’intégralité du catalogue poids lourd."
+                : canPurchase
+                  ? " Une éventuelle livraison à domicile sera ajoutée au paiement concerné."
+                  : "")}
           </p>
 
           <button
@@ -580,13 +639,15 @@ export default async function VehicleConfigurationPage({
             disabled={stock <= 0 || !canOrderUsedVehicle || !canPurchase}
           >
             {stock > 0 && canOrderUsedVehicle && canPurchase
-              ? financingEligible
-                ? "Valider mon choix"
-                : canReserve && canOrder
-                ? "Ajouter le choix au panier"
-                : canReserve
-                  ? "Ajouter la réservation au panier"
-                  : "Ajouter la commande au panier"
+              ? isRentalCatalog
+                ? "Ajouter au panier"
+                : financingEligible
+                  ? "Valider mon choix"
+                  : canReserve && canOrder
+                    ? "Ajouter le choix au panier"
+                    : canReserve
+                      ? "Ajouter la réservation au panier"
+                      : "Ajouter la commande au panier"
               : usedStatus === "reserved"
                 ? "Véhicule déjà réservé"
                 : usedStatus === "sold"

@@ -117,6 +117,15 @@ export async function addConfiguredVehicleWithProfileDelivery(
     redirect(`/motors/catalogue/${vehicleId}/commande?error=used-unavailable`);
   }
 
+  const isRentalCatalog = vehicle.catalog_type === "concession";
+
+  if (
+    isRentalCatalog &&
+    (purchaseMode !== "order" || deliveryMode !== "showroom" || financingTerm !== null)
+  ) {
+    redirect(`/motors/catalogue/${vehicleId}/commande?error=rental-mode`);
+  }
+
   const [catalogReservationEnabled, vehicleAvailability] = await Promise.all([
     isVehicleReservationEnabled(String(vehicle.catalog_type ?? "standard")),
     getVehicleCommerceAvailability(vehicleId),
