@@ -60,7 +60,7 @@ type FavoriteStatRow = {
 };
 
 function normalizeCatalogType(value: unknown): CatalogType {
-  return value === "heavy" || value === "exclusive" || value === "used"
+  return value === "concession" || value === "heavy" || value === "exclusive" || value === "used"
     ? value
     : "standard";
 }

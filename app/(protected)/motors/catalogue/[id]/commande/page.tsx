@@ -132,13 +132,15 @@ export default async function VehicleConfigurationPage({
     Math.round(((financingPrincipal + financingFourFee) / 4) * 100) / 100;
   const canPurchase = canReserve || canOrder;
   const cataloguePath =
-    vehicle.catalog_type === "heavy"
-      ? "/motors/catalogue/poids-lourds"
-      : vehicle.catalog_type === "exclusive"
-        ? "/motors/catalogue/vehicules-exclusifs"
-        : vehicle.catalog_type === "used"
-          ? "/motors/catalogue/vehicules-occasion"
-          : "/motors/catalogue";
+    vehicle.catalog_type === "concession"
+      ? "/motors/catalogue/concession"
+      : vehicle.catalog_type === "heavy"
+        ? "/motors/catalogue/poids-lourds"
+        : vehicle.catalog_type === "exclusive"
+          ? "/motors/catalogue/vehicules-exclusifs"
+          : vehicle.catalog_type === "used"
+            ? "/motors/catalogue/vehicules-occasion"
+            : "/motors/catalogue";
 
   const errorMessage =
     query.error === "stock"

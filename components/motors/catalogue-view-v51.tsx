@@ -189,7 +189,7 @@ export async function CatalogueViewV51({
         {!configured && (
           <section className="catalogue-empty">
             <h2>Activation nécessaire</h2>
-            <p>Exécute le SQL V92 pour activer les quatre catalogues séparés.</p>
+            <p>Exécute le SQL V151 pour activer les cinq catalogues séparés.</p>
           </section>
         )}
 

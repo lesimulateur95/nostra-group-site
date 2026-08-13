@@ -46,6 +46,7 @@ function revalidateReservationSettings(vehicleId?: number) {
   revalidatePath("/dashboard/controle-vehicules");
   revalidatePath("/dashboard/occasion/catalogue");
   revalidatePath("/motors/catalogue");
+  revalidatePath("/motors/catalogue/concession");
   revalidatePath("/motors/catalogue/vehicules-exclusifs");
   revalidatePath("/motors/catalogue/poids-lourds");
   revalidatePath("/motors/catalogue/vehicules-occasion");

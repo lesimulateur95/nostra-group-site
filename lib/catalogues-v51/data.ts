@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export const CATALOG_TYPES = [
   "standard",
+  "concession",
   "heavy",
   "exclusive",
   "used",
@@ -28,6 +29,7 @@ export const CATALOG_LABELS: Record<
   string
 > = {
   standard: "Catalogue principal",
+  concession: "Catalogue concession",
   heavy: "Catalogue poids lourd",
   exclusive: "Catalogue véhicules exclusifs",
   used: "Véhicules d’occasion",
@@ -38,6 +40,7 @@ export const CATALOG_PATHS: Record<
   string
 > = {
   standard: "/motors/catalogue",
+  concession: "/motors/catalogue/concession",
   heavy: "/motors/catalogue/poids-lourds",
   exclusive:
     "/motors/catalogue/vehicules-exclusifs",

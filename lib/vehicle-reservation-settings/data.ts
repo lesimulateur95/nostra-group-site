@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export const VEHICLE_RESERVATION_CATALOG_TYPES = [
   "standard",
+  "concession",
   "exclusive",
   "heavy",
   "used",
@@ -21,6 +22,7 @@ export const VEHICLE_RESERVATION_CATALOG_LABELS: Record<
   string
 > = {
   standard: "Catalogue Nostra Motors",
+  concession: "Catalogue concession",
   exclusive: "Véhicules exclusifs",
   heavy: "Poids lourds",
   used: "Véhicules d’occasion",

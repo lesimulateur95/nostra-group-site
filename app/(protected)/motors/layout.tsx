@@ -17,6 +17,11 @@ const catalogChildren: SidebarNavItem["children"] = [
     label: "Catalogue principal",
   },
   {
+    key: "catalog-concession",
+    href: "/motors/catalogue/concession",
+    label: "Catalogue concession",
+  },
+  {
     key: "catalog-heavy",
     href: "/motors/catalogue/poids-lourds",
     label: "Catalogue poids lourd",
@@ -45,6 +50,7 @@ function addCatalogChildren(
       (child) =>
         child.key !== "builtin-catalogue" &&
         child.key !== "catalog-standard" &&
+        child.key !== "catalog-concession" &&
         child.key !== "catalog-heavy" &&
         child.key !== "catalog-exclusive" &&
         child.key !== "catalog-used",
