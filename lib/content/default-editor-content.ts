@@ -11,6 +11,13 @@ L’exclusivité prend la route.` },
   "motors-catalogue": { title: "Catalogue Nostra Motors", content: `Le catalogue officiel présente les véhicules disponibles, leurs caractéristiques, leurs tarifs et leur disponibilité.
 
 Le contenu peut être modifié depuis le Dashboard Gérant.` },
+  "motors-tarifs-peinture": { title: "Tarifs peinture", content: `Les changements de peinture sont réalisés exclusivement sur devis. Le tarif dépend du véhicule, de son gabarit, de l’état de la carrosserie, du type de teinte choisi et du niveau de finition demandé.
+
+IMMOBILISATION DU VÉHICULE
+Tout changement de peinture mobilise le véhicule entre 24 et 48 heures dans la concession Nostra Motors afin de réaliser un travail professionnel. Ce délai permet la préparation de la carrosserie, la protection des éléments, l’application de la teinte, le séchage et les contrôles de finition.
+
+TARIFICATION
+Il n’existe pas de tarif unique : le montant définitif est établi en fonction du véhicule et de la prestation demandée. Aucun travail n’est engagé avant validation du devis par le client.` },
   "motors-fidelite": { title: "Fidélité Nostra", content: `SILVER — accès après 5 achats
 • 2 % de remise
 • Peinture au choix offerte

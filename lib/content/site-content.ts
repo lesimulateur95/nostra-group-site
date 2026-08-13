@@ -5,6 +5,7 @@ export type EditableSiteSection = "motors" | "circuit" | "evenements";
 export const EDITABLE_PAGE_CONFIG = [
   { slug: "motors-presentation", label: "Nostra Motors — Présentation", route: "/motors", category: "Présentation", section: "motors" },
   { slug: "motors-catalogue", label: "Nostra Motors — Catalogue", route: "/motors/catalogue", category: "Catalogue", section: "motors" },
+  { slug: "motors-tarifs-peinture", label: "Nostra Motors — Tarifs peinture", route: "/motors/tarifs-peinture", category: "Tarifs peinture", section: "motors" },
   { slug: "motors-fidelite", label: "Nostra Motors — Programme fidélité", route: "/motors/fidelite", category: "Programme fidélité", section: "motors" },
 
   { slug: "circuit-presentation", label: "Présentation — Vue d’ensemble", route: "/circuit", category: "Présentation", section: "circuit" },

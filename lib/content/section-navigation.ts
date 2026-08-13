@@ -36,6 +36,12 @@ export const BUILT_IN_SECTION_CATEGORIES: Record<
       editableSlug: "motors-catalogue",
     },
     {
+      key: "tarifs-peinture",
+      label: "Tarifs peinture",
+      href: "/motors/tarifs-peinture",
+      editableSlug: "motors-tarifs-peinture",
+    },
+    {
       key: "financement",
       label: "Financement",
       href: "/motors/financement",
