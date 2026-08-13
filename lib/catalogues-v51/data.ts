@@ -29,7 +29,7 @@ export const CATALOG_LABELS: Record<
   string
 > = {
   standard: "Catalogue principal",
-  concession: "Catalogue concession",
+  concession: "Catalogue location",
   heavy: "Catalogue poids lourd",
   exclusive: "Catalogue véhicules exclusifs",
   used: "Véhicules d’occasion",
@@ -40,7 +40,7 @@ export const CATALOG_PATHS: Record<
   string
 > = {
   standard: "/motors/catalogue",
-  concession: "/motors/catalogue/concession",
+  concession: "/motors/catalogue/location",
   heavy: "/motors/catalogue/poids-lourds",
   exclusive:
     "/motors/catalogue/vehicules-exclusifs",

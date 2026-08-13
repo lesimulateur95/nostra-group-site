@@ -22,7 +22,7 @@ export const VEHICLE_RESERVATION_CATALOG_LABELS: Record<
   string
 > = {
   standard: "Catalogue Nostra Motors",
-  concession: "Catalogue concession",
+  concession: "Catalogue location",
   exclusive: "Véhicules exclusifs",
   heavy: "Poids lourds",
   used: "Véhicules d’occasion",
