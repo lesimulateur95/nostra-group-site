@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { CasinoShell } from "@/components/casino/casino-shell";
+import { PoleMaintenanceGuard } from "@/components/v153/pole-maintenance-guard";
 import { getRequestRoleKeys, getRequestUser } from "@/lib/auth/request-context";
 import { getCasinoProfile, getCasinoSettings, getCasinoWallet } from "@/lib/casino/data";
 
@@ -22,6 +23,7 @@ export default async function CasinoLayout({ children }: { children: React.React
   if (!settings.publicEnabled && !isManager) redirect("/accueil");
 
   return (
+    <PoleMaintenanceGuard pole="cercle">
     <CasinoShell
       profile={profile}
       settings={settings}
@@ -30,5 +32,6 @@ export default async function CasinoLayout({ children }: { children: React.React
     >
       {children}
     </CasinoShell>
+    </PoleMaintenanceGuard>
   );
 }

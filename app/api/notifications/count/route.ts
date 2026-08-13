@@ -22,6 +22,7 @@ export async function GET() {
     .select("id", { count: "exact", head: true })
     .eq("user_id", data.user.id)
     .in("notification_type", [...DISPLAYED_NOTIFICATION_TYPES])
+    .is("archived_at", null)
     .is("read_at", null);
 
   return NextResponse.json(

@@ -27,8 +27,7 @@ export default async function MotorAppointmentPage({ searchParams }: PageProps) 
         <span className={styles.eyebrow}>NOSTRA MOTORS</span>
         <h1>Prise de rendez-vous</h1>
         <p className={styles.muted}>
-          Réserve une visite du showroom ou demande l’essai d’un véhicule du catalogue.
-          La Direction recevra immédiatement ta demande dans son dashboard.
+          Réserve un rendez-vous Nostra Motors : showroom, essai, achat, retrait de véhicule, peinture, installation de plaque, SAV ou autre service. La Direction reçoit immédiatement ta demande dans son Dashboard.
         </p>
       </section>
 
@@ -67,6 +66,16 @@ export default async function MotorAppointmentPage({ searchParams }: PageProps) 
             <select id="appointment_type" name="appointment_type" required>
               <option value="showroom">Visite du showroom</option>
               <option value="test_drive">Essai d’un véhicule</option>
+              <option value="purchase">Projet d’achat / conseil commercial</option>
+              <option value="pickup">Retrait d’un véhicule commandé</option>
+              <option value="paint">Peinture / changement de teinte</option>
+              <option value="plate">Installation d’une nouvelle plaque</option>
+              <option value="sav">SAV / atelier</option>
+              <option value="financing">Financement</option>
+              <option value="trade_in">Reprise d’un véhicule</option>
+              <option value="consignment">Dépôt-vente</option>
+              <option value="search_mandate">Mandat de recherche</option>
+              <option value="other">Autre demande</option>
             </select>
           </div>
 

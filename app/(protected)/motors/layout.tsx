@@ -6,6 +6,7 @@ import type {
 } from "@/components/site/sidebar-nav";
 import { MotorsStatusBanner } from "@/components/site/motors-status-banner";
 import { SectionLayout } from "@/components/site/section-layout";
+import { PoleMaintenanceGuard } from "@/components/v153/pole-maintenance-guard";
 import {
   getSectionNavigation,
 } from "@/lib/content/section-navigation";
@@ -108,6 +109,7 @@ export default async function MotorsLayout({
     await getSectionNavigation("motors");
 
   return (
+    <PoleMaintenanceGuard pole="motors">
     <SectionLayout
       title="NOSTRA MOTORS"
       items={addV134Services(addShowroom(addCatalogChildren(navigation)))}
@@ -115,5 +117,6 @@ export default async function MotorsLayout({
       <MotorsStatusBanner />
       {children}
     </SectionLayout>
+    </PoleMaintenanceGuard>
   );
 }

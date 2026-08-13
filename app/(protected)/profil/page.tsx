@@ -177,7 +177,12 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
 
  : params.order_error === "unavailable" ? "Un véhicule de ton panier n’est plus publié dans le catalogue."
  : params.order_error === "cart-refresh" ? "Ton panier contient une ancienne ligne qui n’est plus liée au catalogue. Retire-la puis ajoute de nouveau le véhicule."
-
+ : params.order_error === "promo-unknown" ? "Ce code promotionnel n’existe pas."
+ : params.order_error === "promo-disabled" ? "Ce code promotionnel est désactivé."
+ : params.order_error === "promo-date" ? "Ce code promotionnel n’est pas utilisable à cette date."
+ : params.order_error === "promo-scope" ? "Ce code promotionnel ne s’applique pas aux commandes Nostra Motors."
+ : params.order_error === "promo-minimum" ? "Le montant minimum demandé par ce code promotionnel n’est pas atteint."
+ : params.order_error === "promo-limit" ? "La limite d’utilisation de ce code promotionnel est atteinte."
  : params.order_error ? "La commande n’a pas pu être envoyée. Réessaie dans un instant." : null;
 
  const errorMessage =
@@ -397,7 +402,8 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
  {normalVehicleCart.length > 0 && (
 
  <form action={placeCartOrder} className="profile-order-form">
- <label><span>Message pour Nostra Motors <small>(facultatif)</small></span><textarea name="customer_note" rows={3} maxLength={1500} placeholder="Exemple : couleur souhaitée, disponibilité pour la livraison…" /></label>
+ <label><span>Code promotionnel <small>(facultatif)</small></span><input name="promo_code" maxLength={40} placeholder="Exemple : NOSTRA10" /></label>
+ <label><span>Message pour Nostra Motors <small>(facultatif)</small></span><textarea name="customer_note" rows={3} maxLength={1500} placeholder="Exemple : couleur souhaitée, disponibilité pour le retrait…" /></label>
 
  <button className="btn" type="submit" disabled={!commerce.ordersConfigured}>Commander les véhicules au prix total</button>
 

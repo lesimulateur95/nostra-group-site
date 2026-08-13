@@ -841,6 +841,12 @@ export default async function DashboardPage() {
                   title="SAV Nostra Motors"
                   description="Consulter et traiter les demandes de service après-vente."
                 />
+                <DashboardCard
+                  href="/dashboard/crm-motors"
+                  icon="🧠"
+                  title="CRM clients Motors"
+                  description="Centraliser achats, véhicules, rendez-vous, statuts et notes commerciales."
+                />
               </DashboardModuleSubgroup>
 
               <DashboardModuleSubgroup
@@ -911,11 +917,20 @@ export default async function DashboardPage() {
                   }
                 />
                 <DashboardCard
+                  href="/dashboard/jeux/casino/statuts"
+                  icon="👑"
+                  title="Statuts Nostra Cercle"
+                  description="Configurer les niveaux Membre, Bronze, Or, Black, VIP et leurs avantages."
+                />
+                <DashboardCard
                   href="/dashboard/contrats"
                   icon="📝"
                   title="Contrats Nostra Circuit"
                   description="Créer des contrats mensuels, modifier les futurs tarifs et suivre les reconductions placées dans le panier."
                 />
+                <DashboardCard href="/dashboard/billetterie" icon="🎟️" title="Billetterie globale" description="Créer et vendre des billets pour tous les pôles Nostra." />
+                <DashboardCard href="/dashboard/direction-generale" icon="◈" title="Direction générale" description="Vue consolidée des activités et indicateurs du groupe." />
+                <DashboardCard href="/dashboard/recherche" icon="⌕" title="Recherche globale" description="Rechercher citoyens, commandes, véhicules, rendez-vous, écuries et documents." />
               </DashboardModuleSubgroup>
 
               <DashboardModuleSubgroup
@@ -929,6 +944,7 @@ export default async function DashboardPage() {
                   title="Comptabilité"
                   description="Enregistrer les recettes, les dépenses et suivre le solde du groupe."
                 />
+                <DashboardCard href="/dashboard/codes-promo" icon="%" title="Codes promotionnels" description="Créer des remises globales, Motors, billetterie ou Cercle." />
               </DashboardModuleSubgroup>
             </div>
             </DashboardModuleGroup>
@@ -962,6 +978,8 @@ export default async function DashboardPage() {
                 description="Supprimer les anciennes parties des jeux et remettre les compteurs des documents au début avant l’ouverture."
                 badge="Gérant"
               />
+              <DashboardCard href="/dashboard/maintenance-poles" icon="⛔" title="Maintenance par pôle" description="Fermer Motors, Circuit, Cercle, Academy ou Événements indépendamment." badge="Gérant" />
+              <DashboardCard href="/dashboard/sauvegardes" icon="💾" title="Sauvegardes / restauration" description="Créer des points de restauration de configuration avant une grosse modification." badge="Gérant" />
             </div>
           </DashboardModuleGroup>
         )}

@@ -1,18 +1,27 @@
 import Link from "next/link";
 
 import { getCasinoConversions, getCasinoProfile, getCasinoWallet } from "@/lib/casino/data";
+import { getCasinoTiersV153 } from "@/lib/v153/data";
 import styles from "@/components/casino/casino.module.css";
+import suiteStyles from "@/components/v153/v153.module.css";
 
 function n(value: number): string { return Math.trunc(value).toLocaleString("fr-FR"); }
 
 export default async function CasinoProfilePage() {
-  const [profile, wallet, conversions] = await Promise.all([
+  const [profile, wallet, conversions, tiers] = await Promise.all([
     getCasinoProfile(),
     getCasinoWallet(),
     getCasinoConversions(),
+    getCasinoTiersV153(),
   ]);
   if (!profile) return null;
   const xpProgress = wallet ? wallet.xp % 1_000 : 0;
+  const wagered = wallet?.lifetimeWagered ?? 0;
+  const currentTier = [...tiers].reverse().find((tier) => wagered >= tier.minWagered) ?? tiers[0] ?? null;
+  const nextTier = tiers.find((tier) => tier.minWagered > wagered) ?? null;
+  const tierProgress = currentTier && nextTier
+    ? Math.max(0, Math.min(100, ((wagered - currentTier.minWagered) / Math.max(1, nextTier.minWagered - currentTier.minWagered)) * 100))
+    : 100;
 
   return (
     <>
@@ -36,6 +45,21 @@ export default async function CasinoProfilePage() {
           <p>{n(xpProgress)} / 1 000 XP avant le prochain niveau</p>
         </div>
         <div className={styles.levelSeal}><span>NIVEAU<strong>{wallet?.level ?? 1}</strong></span></div>
+      </section>
+
+      <section className={styles.section}>
+        <article className={suiteStyles.card}>
+          <div className={suiteStyles.row}>
+            <div>
+              <p className={suiteStyles.eyebrow}>STATUT NOSTRA CERCLE</p>
+              <h2>{currentTier ? `${currentTier.icon} ${currentTier.name}` : "Membre"}</h2>
+              <p>{currentTier?.benefits || "Accès membre au Cercle."}</p>
+            </div>
+            {nextTier ? <span className={suiteStyles.pill}>PROCHAIN : {nextTier.icon} {nextTier.name}</span> : <span className={suiteStyles.pill}>RANG MAXIMUM</span>}
+          </div>
+          <div className={suiteStyles.progress}><span style={{ width: `${tierProgress}%` }} /></div>
+          <p>{nextTier ? `${n(Math.max(0, nextTier.minWagered - wagered))} jetons à miser avant le statut ${nextTier.name}.` : "Tu as atteint le plus haut statut actuellement configuré."}</p>
+        </article>
       </section>
 
       <section className={styles.section}>

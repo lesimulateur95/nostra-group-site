@@ -2,6 +2,7 @@ import { SectionLayout } from "@/components/site/section-layout";
 import type { SidebarNavItem } from "@/components/site/sidebar-nav";
 import { getSectionNavigation } from "@/lib/content/section-navigation";
 import { getMoneyDropPublicState } from "@/lib/money-drop/data";
+import { PoleMaintenanceGuard } from "@/components/v153/pole-maintenance-guard";
 
 export default async function EventsLayout({
   children,
@@ -65,8 +66,10 @@ export default async function EventsLayout({
   }
 
   return (
+    <PoleMaintenanceGuard pole="events">
     <SectionLayout title="ÉVÉNEMENTS & JEUX" items={items}>
       {children}
     </SectionLayout>
+    </PoleMaintenanceGuard>
   );
 }

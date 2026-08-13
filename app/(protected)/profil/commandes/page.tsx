@@ -2,33 +2,8 @@ import { redirect } from "next/navigation";
 import { ProfileSectionHeader } from "@/components/profile/profile-section-header";
 import { getProfileCommerceData } from "@/lib/backoffice/data";
 import { createClient } from "@/lib/supabase/server";
-
-function money(value: number | string) {
-  return Number(value).toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
-}
-
-export default async function ProfileOrdersPage() {
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getUser();
-  if (!data.user) redirect("/");
-  const commerce = await getProfileCommerceData(data.user.id);
-  const labels: Record<string, string> = { pending: "Envoyée", confirmed: "Confirmée", preparing: "En préparation", ready: "Prête", completed: "Livrée", cancelled: "Annulée" };
-
-  return (
-    <>
-      <ProfileSectionHeader eyebrow="NOSTRA MOTORS" title="Mes commandes" description="Suis l’avancement de chaque commande et les messages transmis par l’équipe commerciale." />
-      <section className="profile-data-section profile-standalone-section">
-        <div className="profile-data-heading"><div><p className="eyebrow">HISTORIQUE</p><h2>Commandes enregistrées</h2></div><span>{commerce.orders.length}</span></div>
-        <div className="profile-table-wrap">
-          <table className="profile-data-table">
-            <thead><tr><th>Numéro</th><th>Date</th><th>Statut</th><th>Total</th></tr></thead>
-            <tbody>
-              {commerce.orders.length === 0 && <tr><td colSpan={4} className="empty-table-cell">Aucune commande enregistrée.</td></tr>}
-              {commerce.orders.map((order) => <tr key={order.id}><td><strong>{order.order_number}</strong>{order.admin_note && <small className="order-client-note">{order.admin_note}</small>}</td><td>{new Date(order.created_at).toLocaleDateString("fr-FR")}</td><td><span className={`order-status order-status-${order.status}`}>{labels[order.status] ?? order.status}</span></td><td>{money(order.total)}</td></tr>)}
-            </tbody>
-          </table>
-        </div>
-      </section>
-    </>
-  );
-}
+import { getOrderProgressHistoryV153, getOrderProgressMapV153 } from "@/lib/v153/data";
+import styles from "@/components/v153/v153.module.css";
+function money(value:number|string){return Number(value).toLocaleString("fr-FR",{style:"currency",currency:"EUR",maximumFractionDigits:0})}
+const stageLabels:Record<string,string>={received:"Commande reçue",confirmed:"Commande confirmée",preparing:"Préparation du véhicule",paint:"Peinture",plate:"Installation de la nouvelle plaque",quality:"Contrôle qualité",ready:"Prêt en concession",collected:"Véhicule récupéré",cancelled:"Commande annulée"};
+export default async function ProfileOrdersPage(){const supabase=await createClient();const {data}=await supabase.auth.getUser();if(!data.user)redirect("/");const commerce=await getProfileCommerceData(data.user.id);const progressMap=await getOrderProgressMapV153(commerce.orders.map(o=>Number(o.id)));const histories=await Promise.all(commerce.orders.map(o=>getOrderProgressHistoryV153(Number(o.id))));const historyMap=new Map(commerce.orders.map((o,i)=>[Number(o.id),histories[i]]));return <><ProfileSectionHeader eyebrow="NOSTRA MOTORS" title="Mes commandes" description="Suis chaque étape réelle de ta commande jusqu’au retrait de ton véhicule en concession."/><section className={styles.stack}>{commerce.orders.length===0&&<article className={styles.card}>Aucune commande enregistrée.</article>}{commerce.orders.map(order=>{const p=progressMap.get(Number(order.id));const pct=p?.progressPercent??5;const stage=p?.stage??"received";const history=historyMap.get(Number(order.id))??[];return <article className={styles.card} key={order.id}><div className={styles.row}><div><p className={styles.eyebrow}>{order.order_number}</p><h2>{stageLabels[stage]??stage}</h2><p>Commande du {new Date(order.created_at).toLocaleDateString("fr-FR")}</p></div><strong style={{fontSize:"1.5rem"}}>{money(order.total)}</strong></div><div className={styles.progress}><span style={{width:`${pct}%`}}/></div><div className={styles.row} style={{marginTop:8}}><span>{pct}%</span>{p?.estimatedReadyAt&&<span>Disponibilité estimée : <strong>{new Date(p.estimatedReadyAt).toLocaleString("fr-FR")}</strong></span>}</div>{order.admin_note&&<p><strong>Message Nostra Motors :</strong> {order.admin_note}</p>}<div className={styles.timeline}>{history.slice(-8).reverse().map(h=><div className={styles.timelineItem} key={h.id}><span className={styles.timelineDot}/><div><strong>{stageLabels[h.stage]??h.stage} · {h.progressPercent}%</strong>{h.publicMessage&&<p>{h.publicMessage}</p>}<small>{new Date(h.createdAt).toLocaleString("fr-FR")}</small></div></div>)}</div></article>})}</section></>}

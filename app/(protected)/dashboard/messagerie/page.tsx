@@ -40,6 +40,7 @@ export default async function TeamMailboxPage({
     replied?: string;
     deleted?: string;
     error?: string;
+    q?: string;
   }>;
 }) {
   const supabase = await createClient();
@@ -86,10 +87,14 @@ export default async function TeamMailboxPage({
     );
   }
 
-  const [messages, citizens] = await Promise.all([
+  const [rawMessages, citizens] = await Promise.all([
     getTeamMailMessages(folder),
     getCitizenMailboxes(),
   ]);
+  const q = (params.q ?? "").trim().toLowerCase();
+  const messages = q
+    ? rawMessages.filter((message) => `${message.sender_name} ${message.recipient_name} ${message.subject} ${message.body}`.toLowerCase().includes(q))
+    : rawMessages;
   const selectedThread = params.thread
     ? await getTeamMailThread(params.thread)
     : [];
@@ -158,6 +163,12 @@ export default async function TeamMailboxPage({
             </Link>
           </nav>
 
+          <form method="get" className={styles.form} style={{ padding: "10px" }}>
+            <input type="hidden" name="folder" value={folder} />
+            <label>Rechercher<input name="q" defaultValue={params.q ?? ""} placeholder="Citoyen, sujet, contenu…" /></label>
+            <button className={styles.submitButton} type="submit">Rechercher</button>
+          </form>
+
           <div className={styles.messageList}>
             {messages.length === 0 && (
               <p className={styles.empty}>Aucun message dans ce dossier.</p>
@@ -206,6 +217,17 @@ export default async function TeamMailboxPage({
             </p>
 
             <form action={sendTeamMailToCitizen} className={styles.form}>
+              <label>
+                Service émetteur
+                <select name="service" defaultValue="DIRECTION">
+                  <option value="DIRECTION">Direction Nostra Group</option>
+                  <option value="MOTORS">Nostra Motors</option>
+                  <option value="CIRCUIT">Nostra Circuit</option>
+                  <option value="CERCLE">Nostra Cercle</option>
+                  <option value="ACADEMY">Racing Academy</option>
+                  <option value="EVENEMENTS">Événements & Jeux</option>
+                </select>
+              </label>
               <label>
                 Destinataire
                 <select name="recipient_mailbox_id" required defaultValue="">

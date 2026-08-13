@@ -1,0 +1,8 @@
+import Link from "next/link";
+import { DashboardHeader } from "@/components/dashboard/dashboard-header";
+import { DashboardShell } from "@/components/dashboard/dashboard-shell";
+import { searchDashboardV153 } from "@/lib/v153/data";
+import styles from "@/components/v153/v153.module.css";
+export const dynamic="force-dynamic";
+const icon:Record<string,string>={Citoyen:"👤",Catalogue:"🚘",Commande:"📦","Rendez-vous":"🗓️","Écurie":"🏎️",Document:"📄",Billetterie:"🎟️"};
+export default async function SearchPage({searchParams}:{searchParams:Promise<{q?:string}>}){const p=await searchParams;const q=p.q||"";const results=await searchDashboardV153(q);return <DashboardShell><DashboardHeader title="Recherche globale" description="Retrouver un citoyen, un véhicule, une commande, un rendez-vous, une écurie, un document ou un événement depuis un seul champ."/><div className={styles.searchBar}><form><input autoFocus className={styles.searchInput} name="q" defaultValue={q} placeholder="Nom RP, numéro de commande, véhicule, écurie…"/><button className={styles.button}>Rechercher</button></form></div>{q.length>0&&q.length<2&&<p className={styles.feedback}>Entre au moins 2 caractères.</p>}<section className={styles.stack}>{results.map((r,i)=><Link href={r.href} className={styles.result} key={`${r.kind}-${i}-${r.title}`}><span className={styles.resultIcon}>{icon[r.kind]||"⌕"}</span><span><strong>{r.title}</strong><small>{r.kind} · {r.subtitle}</small></span>{r.badge&&<span className={styles.pill}>{r.badge}</span>}</Link>)}{q.length>=2&&results.length===0&&<article className={styles.card}>Aucun résultat pour « {q} ».</article>}</section></DashboardShell>}

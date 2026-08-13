@@ -11,6 +11,13 @@ export const DISPLAYED_NOTIFICATION_TYPES = [
   "loyalty",
   "general",
   "mail",
+  "appointment",
+  "ticket",
+  "contract",
+  "promo",
+  "casino",
+  "maintenance",
+  "academy",
 ] as const;
 
 export type UserNotification = {
@@ -26,13 +33,23 @@ export type UserNotification = {
     | "invoice"
     | "loyalty"
     | "general"
-    | "mail";
+    | "mail"
+    | "appointment"
+    | "ticket"
+    | "contract"
+    | "promo"
+    | "casino"
+    | "maintenance"
+    | "academy";
   title: string;
   message: string;
   target_url: string | null;
   source_type: string | null;
   source_id: string | null;
   read_at: string | null;
+  priority: "normal" | "high" | "urgent" | string;
+  category: string;
+  archived_at: string | null;
   created_at: string;
 };
 
@@ -57,6 +74,7 @@ export async function getUnreadNotificationCount(
     .select("id", { count: "exact", head: true })
     .eq("user_id", userId)
     .in("notification_type", [...DISPLAYED_NOTIFICATION_TYPES])
+    .is("archived_at", null)
     .is("read_at", null);
 
   if (error) return 0;
@@ -76,10 +94,11 @@ export async function getOwnNotifications(
   let query = supabase
     .from("user_notifications")
     .select(
-      "id,user_id,notification_type,title,message,target_url,source_type,source_id,read_at,created_at",
+      "id,user_id,notification_type,title,message,target_url,source_type,source_id,read_at,priority,category,archived_at,created_at",
     )
     .eq("user_id", userId)
     .in("notification_type", [...DISPLAYED_NOTIFICATION_TYPES])
+    .is("archived_at", null)
     .order("created_at", { ascending: false })
     .limit(200);
 
@@ -91,4 +110,17 @@ export async function getOwnNotifications(
     configured: !error,
     notifications: (data ?? []) as UserNotification[],
   };
+}
+
+export async function getArchivedNotifications(userId: string): Promise<UserNotification[]> {
+  const supabase = await createClient();
+  const { data, error } = await (supabase as any)
+    .from("user_notifications")
+    .select("id,user_id,notification_type,title,message,target_url,source_type,source_id,read_at,priority,category,archived_at,created_at")
+    .eq("user_id", userId)
+    .in("notification_type", [...DISPLAYED_NOTIFICATION_TYPES])
+    .not("archived_at", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(200);
+  return error ? [] : (data ?? []) as UserNotification[];
 }

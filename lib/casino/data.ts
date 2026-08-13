@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 import type {
   CasinoConversion,
   CasinoCashout,
+  CasinoCashierPackage,
   CasinoAdminData,
   CasinoDifficulty,
   CasinoGameKey,
@@ -29,7 +30,8 @@ const DEFAULT_SETTINGS: CasinoSettings = {
   minConversion: 100,
   maxConversion: 100_000,
   cashoutEnabled: true,
-  cashoutRpPerChip: 1_000,
+  cashoutRpPerChip: 850,
+  cashoutCommissionPercent: 15,
   minCashout: 100,
   maxCashout: 100_000,
 };
@@ -114,30 +116,70 @@ export async function getCasinoServerGameSettings(game: CasinoGameKey): Promise<
 export const getCasinoSettings = cache(async (): Promise<CasinoSettings> => {
   try {
     const supabase = await createClient();
-    const { data, error } = await (supabase as any)
+    const modern = await (supabase as any)
       .from("casino_settings")
-      .select("public_enabled,name,subtitle,rp_per_chip,min_conversion,max_conversion,cashout_enabled,cashout_rp_per_chip,min_cashout,max_cashout")
+      .select("public_enabled,name,subtitle,rp_per_chip,min_conversion,max_conversion,cashout_enabled,cashout_rp_per_chip,cashout_commission_percent,min_cashout,max_cashout")
       .eq("id", 1)
       .abortSignal(AbortSignal.timeout(1_500))
       .maybeSingle();
 
-    if (error || !data) return DEFAULT_SETTINGS;
+    let data = modern.data as Record<string, unknown> | null;
+    if (modern.error || !data) {
+      const legacy = await (supabase as any)
+        .from("casino_settings")
+        .select("public_enabled,name,subtitle,rp_per_chip,min_conversion,max_conversion,cashout_enabled,cashout_rp_per_chip,min_cashout,max_cashout")
+        .eq("id", 1)
+        .abortSignal(AbortSignal.timeout(1_500))
+        .maybeSingle();
+      if (legacy.error || !legacy.data) return DEFAULT_SETTINGS;
+      data = legacy.data as Record<string, unknown>;
+    }
+
+    const rpPerChip = Math.max(1, numberValue(data.rp_per_chip, 1_000));
+    const legacyCashoutRate = Math.max(1, numberValue(data.cashout_rp_per_chip, rpPerChip));
+    const derivedCommission = Math.max(0, Math.min(90, Math.round((1 - legacyCashoutRate / rpPerChip) * 10_000) / 100));
+    const commission = Math.max(0, Math.min(90, numberValue(data.cashout_commission_percent, derivedCommission)));
 
     return {
       configured: true,
       publicEnabled: data.public_enabled === true,
       name: stringValue(data.name, DEFAULT_SETTINGS.name),
       subtitle: stringValue(data.subtitle, DEFAULT_SETTINGS.subtitle),
-      rpPerChip: Math.max(1, numberValue(data.rp_per_chip, 1_000)),
+      rpPerChip,
       minConversion: Math.max(1, numberValue(data.min_conversion, 100)),
       maxConversion: Math.max(1, numberValue(data.max_conversion, 100_000)),
       cashoutEnabled: data.cashout_enabled !== false,
-      cashoutRpPerChip: Math.max(1, numberValue(data.cashout_rp_per_chip, data.rp_per_chip ?? 1_000)),
-      minCashout: Math.max(1, numberValue(data.min_cashout, data.min_conversion ?? 100)),
-      maxCashout: Math.max(1, numberValue(data.max_cashout, data.max_conversion ?? 100_000)),
+      cashoutRpPerChip: legacyCashoutRate,
+      cashoutCommissionPercent: commission,
+      minCashout: Math.max(1, numberValue(data.min_cashout, numberValue(data.min_conversion, 100))),
+      maxCashout: Math.max(1, numberValue(data.max_cashout, numberValue(data.max_conversion, 100_000))),
     };
   } catch {
     return DEFAULT_SETTINGS;
+  }
+});
+
+export const getCasinoCashierPackages = cache(async (includeDisabled = false): Promise<CasinoCashierPackage[]> => {
+  try {
+    const supabase = await createClient();
+    let query = (supabase as any)
+      .from("casino_cashier_packages_v148")
+      .select("id,name,chip_amount,bonus_percent,enabled,sort_order")
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true });
+    if (!includeDisabled) query = query.eq("enabled", true);
+    const { data, error } = await query;
+    if (error || !Array.isArray(data)) return [];
+    return data.map((row: Record<string, unknown>) => ({
+      id: stringValue(row.id),
+      name: stringValue(row.name, "Pack du Cercle"),
+      chipAmount: Math.max(1, numberValue(row.chip_amount, 1)),
+      bonusPercent: Math.max(0, Math.min(100, numberValue(row.bonus_percent, 0))),
+      enabled: row.enabled !== false,
+      sortOrder: Math.max(0, numberValue(row.sort_order, 0)),
+    })).filter((row: CasinoCashierPackage) => Boolean(row.id));
+  } catch {
+    return [];
   }
 });
 
@@ -191,16 +233,27 @@ export const getCasinoWallet = cache(async (): Promise<CasinoWallet | null> => {
 export async function getCasinoConversions(): Promise<CasinoConversion[]> {
   try {
     const supabase = await createClient();
-    const { data, error } = await (supabase as any)
+    let result = await (supabase as any)
       .from("casino_conversion_requests")
-      .select("id,rp_amount,chip_amount,status,created_at")
+      .select("id,rp_amount,discount_amount,promo_code,chip_amount,base_chip_amount,bonus_chip_amount,package_id,status,created_at")
       .order("created_at", { ascending: false })
       .limit(30);
-    if (error || !Array.isArray(data)) return [];
-    return data.map((row) => ({
+    if (result.error) {
+      result = await (supabase as any)
+        .from("casino_conversion_requests")
+        .select("id,rp_amount,chip_amount,status,created_at")
+        .order("created_at", { ascending: false })
+        .limit(30);
+    }
+    const data = result.data;
+    if (result.error || !Array.isArray(data)) return [];
+    return data.map((row: Record<string, unknown>) => ({
       id: String(row.id),
-      rpAmount: numberValue(row.rp_amount),
+      rpAmount: Math.max(0, numberValue(row.rp_amount) - numberValue(row.discount_amount)) ,
       chipAmount: numberValue(row.chip_amount),
+      baseChipAmount: numberValue(row.base_chip_amount, row.chip_amount as number),
+      bonusChipAmount: numberValue(row.bonus_chip_amount),
+      packageId: row.package_id ? String(row.package_id) : null,
       status: row.status as CasinoConversion["status"],
       createdAt: String(row.created_at),
     }));
@@ -212,17 +265,26 @@ export async function getCasinoConversions(): Promise<CasinoConversion[]> {
 export async function getCasinoCashouts(): Promise<CasinoCashout[]> {
   try {
     const supabase = await createClient();
-    const { data, error } = await (supabase as any)
+    let result = await (supabase as any)
       .from("casino_cashout_requests")
-      .select("id,rp_amount,chip_amount,rate,status,created_at")
+      .select("id,rp_amount,chip_amount,rate,commission_percent,status,created_at")
       .order("created_at", { ascending: false })
       .limit(30);
-    if (error || !Array.isArray(data)) return [];
-    return data.map((row) => ({
+    if (result.error) {
+      result = await (supabase as any)
+        .from("casino_cashout_requests")
+        .select("id,rp_amount,chip_amount,rate,status,created_at")
+        .order("created_at", { ascending: false })
+        .limit(30);
+    }
+    const data = result.data;
+    if (result.error || !Array.isArray(data)) return [];
+    return data.map((row: Record<string, unknown>) => ({
       id: String(row.id),
       rpAmount: numberValue(row.rp_amount),
       chipAmount: numberValue(row.chip_amount),
       rate: numberValue(row.rate),
+      commissionPercent: numberValue(row.commission_percent),
       status: row.status as CasinoCashout["status"],
       createdAt: String(row.created_at),
     }));

@@ -53,7 +53,7 @@ export async function createMotorAppointment(formData: FormData) {
     !appointmentTime ||
     Number.isNaN(selectedDate.getTime()) ||
     selectedDate.getTime() < Date.now() - 60_000 ||
-    !["showroom", "test_drive"].includes(appointmentType)
+    !["showroom", "test_drive", "purchase", "pickup", "paint", "plate", "sav", "financing", "trade_in", "consignment", "search_mandate", "other"].includes(appointmentType)
   ) {
     redirect("/nostra-motors/rendez-vous?error=missing");
   }

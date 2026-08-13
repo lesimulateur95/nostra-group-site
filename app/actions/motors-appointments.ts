@@ -35,6 +35,8 @@ export async function createMotorAppointment(formData: FormData) {
   const email = field(formData, "email");
   const appointmentDate = field(formData, "appointment_date");
   const appointmentTime = field(formData, "appointment_time");
+  const appointmentType = field(formData, "appointment_type");
+  const allowedAppointmentTypes = new Set(["showroom","test_drive","purchase","pickup","paint","plate","sav","financing","trade_in","consignment","search_mandate","other"]);
   const vehicleSelection = field(formData, "vehicle_id");
   const customVehicleLabel = field(formData, "vehicle_label");
   const [vehicleId, selectedVehicleLabel] = vehicleSelection.split("|||", 2);
@@ -47,6 +49,7 @@ export async function createMotorAppointment(formData: FormData) {
     !phone ||
     !appointmentDate ||
     !appointmentTime ||
+    !allowedAppointmentTypes.has(appointmentType) ||
     reason.length < 3 ||
     Number.isNaN(selectedDate.getTime()) ||
     selectedDate.getTime() < Date.now() - 60_000
@@ -61,9 +64,7 @@ export async function createMotorAppointment(formData: FormData) {
       customer_name: customerName,
       phone,
       email: email || null,
-      // Valeur technique conservée pour rester compatible avec la table
-      // existante. Le véritable motif libre est enregistré dans message.
-      appointment_type: "showroom",
+      appointment_type: appointmentType,
       appointment_date: appointmentDate,
       appointment_time: appointmentTime,
       vehicle_id: vehicleId || null,

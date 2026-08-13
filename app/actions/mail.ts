@@ -32,7 +32,10 @@ async function requireUser() {
 }
 
 export async function sendMailToNostra(formData: FormData) {
-  const subject = text(formData.get("subject"), 180);
+  const rawSubject = text(formData.get("subject"), 160);
+  const service = text(formData.get("service"), 30).toUpperCase();
+  const allowedServices = new Set(["DIRECTION","MOTORS","CIRCUIT","CERCLE","ACADEMY","EVENEMENTS"]);
+  const subject = allowedServices.has(service) ? `[${service}] ${rawSubject}`.slice(0, 180) : rawSubject;
   const body = text(formData.get("body"), 5000);
 
   if (subject.length < 3 || body.length < 3) {
@@ -55,7 +58,10 @@ export async function sendMailToNostra(formData: FormData) {
 
 export async function sendTeamMailToCitizen(formData: FormData) {
   const mailboxId = integer(formData.get("recipient_mailbox_id"));
-  const subject = text(formData.get("subject"), 180);
+  const rawSubject = text(formData.get("subject"), 160);
+  const service = text(formData.get("service"), 30).toUpperCase();
+  const allowedServices = new Set(["DIRECTION","MOTORS","CIRCUIT","CERCLE","ACADEMY","EVENEMENTS"]);
+  const subject = allowedServices.has(service) ? `[${service}] ${rawSubject}`.slice(0, 180) : rawSubject;
   const body = text(formData.get("body"), 5000);
 
   if (mailboxId <= 0 || subject.length < 3 || body.length < 3) {

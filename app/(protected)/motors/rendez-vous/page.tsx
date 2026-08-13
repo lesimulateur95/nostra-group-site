@@ -32,8 +32,7 @@ export default async function MotorAppointmentPage({
         <span className={styles.eyebrow}>SERVICE CLIENT · NOSTRA MOTORS</span>
         <h1>Prise de rendez-vous</h1>
         <p>
-          Indique librement le motif de ta demande. Elle arrivera directement
-          dans la section Nostra Motors du Dashboard.
+          Choisis le service concerné puis précise ta demande. Peinture, installation de plaque, retrait de véhicule, essai, SAV et autres rendez-vous arrivent directement dans le Dashboard Nostra Motors.
         </p>
       </section>
 
@@ -66,6 +65,24 @@ export default async function MotorAppointmentPage({
           <label className={styles.field}>
             <span>E-mail</span>
             <input name="email" type="email" maxLength={150} />
+          </label>
+
+          <label className={styles.field}>
+            <span>Type de rendez-vous</span>
+            <select name="appointment_type" defaultValue="showroom" required>
+              <option value="showroom">Visite du showroom</option>
+              <option value="test_drive">Essai d’un véhicule</option>
+              <option value="purchase">Projet d’achat / conseil commercial</option>
+              <option value="pickup">Retrait d’un véhicule commandé</option>
+              <option value="paint">Peinture / changement de teinte</option>
+              <option value="plate">Installation d’une nouvelle plaque</option>
+              <option value="sav">SAV / atelier</option>
+              <option value="financing">Financement</option>
+              <option value="trade_in">Reprise d’un véhicule</option>
+              <option value="consignment">Dépôt-vente</option>
+              <option value="search_mandate">Mandat de recherche</option>
+              <option value="other">Autre demande</option>
+            </select>
           </label>
 
           <label className={styles.field}>

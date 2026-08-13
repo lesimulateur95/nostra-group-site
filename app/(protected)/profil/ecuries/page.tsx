@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { ProfileSectionHeader } from "@/components/profile/profile-section-header";
 import { getOwnTeamRegistrationRequests } from "@/lib/backoffice/data";
 import { createClient } from "@/lib/supabase/server";
@@ -18,10 +19,10 @@ export default async function ProfileTeamsPage() {
         <div className="profile-data-heading"><div><p className="eyebrow">SPORT AUTOMOBILE</p><h2>Écuries et inscriptions</h2></div><span>{teams.length}</span></div>
         <div className="profile-table-wrap">
           <table className="profile-data-table">
-            <thead><tr><th>Écurie</th><th>Championnat</th><th>Date</th><th>État</th><th>Réponse de la direction</th></tr></thead>
+            <thead><tr><th>Écurie</th><th>Championnat</th><th>Date</th><th>État</th><th>Réponse de la direction</th><th>Profil</th></tr></thead>
             <tbody>
-              {teams.length === 0 && <tr><td colSpan={5} className="empty-table-cell">Aucune écurie enregistrée.</td></tr>}
-              {teams.map((request) => <tr key={request.id}><td><strong>{request.team_name}</strong><small className="order-client-note">Directeur : {request.team_director}</small></td><td>{championshipLabels[request.registration_type] ?? request.registration_type}</td><td>{new Date(request.created_at).toLocaleDateString("fr-FR")}</td><td><span className={`request-status request-status-${request.status}`}>{statusLabels[request.status] ?? request.status}</span></td><td>{request.admin_note || "Aucune réponse pour le moment"}</td></tr>)}
+              {teams.length === 0 && <tr><td colSpan={6} className="empty-table-cell">Aucune écurie enregistrée.</td></tr>}
+              {teams.map((request) => <tr key={request.id}><td><strong>{request.team_name}</strong><small className="order-client-note">Directeur : {request.team_director}</small></td><td>{championshipLabels[request.registration_type] ?? request.registration_type}</td><td>{new Date(request.created_at).toLocaleDateString("fr-FR")}</td><td><span className={`request-status request-status-${request.status}`}>{statusLabels[request.status] ?? request.status}</span></td><td>{request.admin_note || "Aucune réponse pour le moment"}</td><td>{request.status === "approved" ? <Link className="btn btn-secondary" href={`/profil/ecuries/${request.id}`}>Gérer le profil</Link> : "—"}</td></tr>)}
             </tbody>
           </table>
         </div>

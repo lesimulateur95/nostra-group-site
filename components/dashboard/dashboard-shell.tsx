@@ -17,6 +17,7 @@ const OPERATIONS_DASHBOARD_PREFIXES = [
   "/dashboard/homologations",
   "/dashboard/inscriptions-ecuries",
   "/dashboard/championnats",
+  "/dashboard/crm-motors",
 ] as const;
 
 function isOperationsDashboardPath(pathname: string): boolean {

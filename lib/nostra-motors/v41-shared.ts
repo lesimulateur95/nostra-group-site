@@ -4,7 +4,7 @@ export type MotorAppointment = {
   customer_name: string;
   phone: string;
   email: string | null;
-  appointment_type: "showroom" | "test_drive";
+  appointment_type: "showroom" | "test_drive" | "purchase" | "pickup" | "paint" | "plate" | "sav" | "financing" | "trade_in" | "consignment" | "search_mandate" | "other";
   appointment_date: string;
   appointment_time: string;
   vehicle_id: string | null;

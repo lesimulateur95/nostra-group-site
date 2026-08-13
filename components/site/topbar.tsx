@@ -42,6 +42,12 @@ export async function Topbar() {
             Commissaires
           </Link>
         )}
+        <Link href="/recherche" className="top-link">
+          Recherche
+        </Link>
+        <Link href="/billetterie" className="top-link">
+          Billetterie
+        </Link>
         <Link href="/profil" className="top-link">
           Mon profil
         </Link>

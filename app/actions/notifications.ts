@@ -110,3 +110,28 @@ export async function deleteAllNotifications() {
   revalidatePath("/profil/notifications");
   redirect("/profil/notifications?cleared=1");
 }
+
+
+export async function archiveNotification(formData: FormData) {
+  const id = integer(formData.get("id"));
+  const { supabase, user } = await requireUser();
+  if (id > 0) {
+    await (supabase as any).from("user_notifications")
+      .update({ archived_at: new Date().toISOString(), read_at: new Date().toISOString() })
+      .eq("id", id).eq("user_id", user.id);
+  }
+  revalidatePath("/profil");
+  revalidatePath("/profil/notifications");
+  redirect("/profil/notifications?archived=1");
+}
+
+export async function restoreNotification(formData: FormData) {
+  const id = integer(formData.get("id"));
+  const { supabase, user } = await requireUser();
+  if (id > 0) {
+    await (supabase as any).from("user_notifications").update({ archived_at: null })
+      .eq("id", id).eq("user_id", user.id);
+  }
+  revalidatePath("/profil/notifications");
+  redirect("/profil/notifications?filter=archived&restored=1");
+}

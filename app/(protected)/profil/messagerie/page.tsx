@@ -37,6 +37,7 @@ export default async function CitizenMailboxPage({
     replied?: string;
     deleted?: string;
     error?: string;
+    q?: string;
   }>;
 }) {
   const supabase = await createClient();
@@ -71,7 +72,11 @@ export default async function CitizenMailboxPage({
     );
   }
 
-  const messages = await getMyMailMessages(folder);
+  const rawMessages = await getMyMailMessages(folder);
+  const q = (params.q ?? "").trim().toLowerCase();
+  const messages = q
+    ? rawMessages.filter((message) => `${message.sender_name} ${message.recipient_name} ${message.subject} ${message.body}`.toLowerCase().includes(q))
+    : rawMessages;
   const selectedThread = params.thread
     ? await getMyMailThread(params.thread)
     : [];
@@ -138,6 +143,15 @@ export default async function CitizenMailboxPage({
             </Link>
           </nav>
 
+          <form method="get" className={styles.form} style={{ padding: "10px" }}>
+            <input type="hidden" name="folder" value={folder} />
+            <label>
+              Rechercher
+              <input name="q" defaultValue={params.q ?? ""} placeholder="Sujet, expéditeur, contenu…" />
+            </label>
+            <button className={styles.submitButton} type="submit">Rechercher</button>
+          </form>
+
           <div className={styles.messageList}>
             {messages.length === 0 && (
               <p className={styles.empty}>Aucun message dans ce dossier.</p>
@@ -186,6 +200,17 @@ export default async function CitizenMailboxPage({
             </p>
 
             <form action={sendMailToNostra} className={styles.form}>
+              <label>
+                Service concerné
+                <select name="service" defaultValue="DIRECTION">
+                  <option value="DIRECTION">Direction Nostra Group</option>
+                  <option value="MOTORS">Nostra Motors</option>
+                  <option value="CIRCUIT">Nostra Circuit</option>
+                  <option value="CERCLE">Nostra Cercle</option>
+                  <option value="ACADEMY">Racing Academy</option>
+                  <option value="EVENEMENTS">Événements & Jeux</option>
+                </select>
+              </label>
               <label>
                 Sujet
                 <input

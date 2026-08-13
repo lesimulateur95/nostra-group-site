@@ -30,6 +30,7 @@ export async function GET() {
       .select("id", { count: "exact", head: true })
       .eq("user_id", authData.user.id)
       .in("notification_type", [...DISPLAYED_NOTIFICATION_TYPES])
+      .is("archived_at", null)
       .is("read_at", null),
     supabase
       .from("user_notifications")
@@ -38,6 +39,7 @@ export async function GET() {
       )
       .eq("user_id", authData.user.id)
       .in("notification_type", [...DISPLAYED_NOTIFICATION_TYPES])
+      .is("archived_at", null)
       .is("read_at", null)
       .order("created_at", { ascending: false })
       .limit(6),

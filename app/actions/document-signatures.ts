@@ -61,9 +61,39 @@ export async function signNostraDocument(formData: FormData) {
     );
   }
 
+  // V153 : si le document signé est un bon de commande Nostra Motors déjà payé,
+  // génère immédiatement le contrat définitif de vente.
+  try {
+    const { data: registry } = await (supabase as any)
+      .from("nostra_document_registry")
+      .select("source_table,source_id,metadata")
+      .eq("id", documentId)
+      .eq("owner_user_id", data.user.id)
+      .maybeSingle();
+    const metadata = registry?.metadata && typeof registry.metadata === "object" ? registry.metadata : {};
+    const invoiceId = registry?.source_table === "invoices"
+      ? String(registry?.source_id ?? "")
+      : String((metadata as Record<string, unknown>)?.invoice_id ?? "");
+    if (invoiceId) {
+      const { data: invoice } = await (supabase as any)
+        .from("invoices")
+        .select("order_id,document_type")
+        .eq("id", invoiceId)
+        .maybeSingle();
+      if (invoice?.order_id && invoice?.document_type === "order_form") {
+        await (supabase as any).rpc("nostra_generate_vehicle_contract_v153", {
+          p_order_id: Number(invoice.order_id),
+        });
+      }
+    }
+  } catch (contractError) {
+    console.error("Génération du contrat V153 impossible :", contractError);
+  }
+
   revalidatePath("/profil/documents");
   revalidatePath(`/profil/documents/signature/${documentId}`);
   revalidatePath("/profil/licences");
+  revalidatePath("/profil/contrats");
   revalidatePath("/profil");
   revalidatePath("/dashboard/documents-signes");
 

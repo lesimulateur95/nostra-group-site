@@ -50,6 +50,12 @@ function orderErrorCode(
   if (value.includes("reservation_balance_unavailable")) return "balance-unavailable";
   if (value.includes("insufficient_stock")) return "stock";
   if (value.includes("vehicle_unavailable")) return "unavailable";
+  if (value.includes("promo_unknown")) return "promo-unknown";
+  if (value.includes("promo_disabled")) return "promo-disabled";
+  if (value.includes("promo_expired") || value.includes("promo_not_started")) return "promo-date";
+  if (value.includes("promo_scope")) return "promo-scope";
+  if (value.includes("promo_minimum")) return "promo-minimum";
+  if (value.includes("promo_limit") || value.includes("promo_user_limit")) return "promo-limit";
   if (
     value.includes("cart_needs_refresh") ||
     value.includes("invalid_delivery_cart")
@@ -139,6 +145,7 @@ export async function removeCartItem(formData: FormData) {
 
 export async function placeCartOrder(formData: FormData) {
   const customerNote = text(formData.get("customer_note"), 1500) || null;
+  const promoCode = text(formData.get("promo_code"), 40) || null;
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
   if (!data.user) redirect("/");
@@ -147,10 +154,11 @@ export async function placeCartOrder(formData: FormData) {
   const customerName =
     getRpName(data.user) || getDiscordName(data.user) || "Client Nostra Motors";
 
-  const { data: result, error } = await supabase.rpc("place_nostra_order_v93", {
+  const { data: result, error } = await (supabase as any).rpc("place_nostra_order_v153", {
     p_order_number: orderNumber,
     p_customer_name: customerName,
     p_customer_note: customerNote,
+    p_promo_code: promoCode,
   });
 
   if (error) redirect(`/profil?order_error=${orderErrorCode(error)}`);

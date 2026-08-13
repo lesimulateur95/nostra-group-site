@@ -7,6 +7,12 @@ import { DeleteAppointmentButton } from "@/components/motors/delete-appointment-
 import { getMotorAppointments } from "@/lib/nostra-motors/v41-data";
 import styles from "@/components/motors/motors-services.module.css";
 
+const appointmentTypeLabels: Record<string, string> = {
+  showroom: "Visite showroom", test_drive: "Essai véhicule", purchase: "Projet d’achat", pickup: "Retrait véhicule",
+  paint: "Peinture", plate: "Installation de plaque", sav: "SAV / atelier", financing: "Financement",
+  trade_in: "Reprise", consignment: "Dépôt-vente", search_mandate: "Mandat de recherche", other: "Autre",
+};
+
 const statusLabels: Record<string, string> = {
   pending: "En attente",
   confirmed: "Confirmé",
@@ -86,6 +92,7 @@ export default async function DashboardMotorAppointmentsPage({
               </div>
 
               <div className={styles.meta}>
+                <span>🎯 {appointmentTypeLabels[appointment.appointment_type] ?? appointment.appointment_type}</span>
                 <span>📅 {appointment.appointment_date}</span>
                 <span>🕒 {appointment.appointment_time.slice(0, 5)}</span>
                 <span>☎ {appointment.phone}</span>

@@ -86,6 +86,18 @@ const cards: NavigationCard[] = [
     countKey: "teams",
   },
   {
+    href: "/profil/billets",
+    icon: "🎟️",
+    label: "Mes billets",
+    description: "Retrouver mes billets Nostra Group et leurs codes de contrôle.",
+  },
+  {
+    href: "/recherche",
+    icon: "⌕",
+    label: "Recherche globale",
+    description: "Retrouver rapidement un véhicule, une commande, un document ou un événement.",
+  },
+  {
     href: "/profil/licences",
     icon: "🏁",
     label: "Licences & formations",
@@ -98,6 +110,13 @@ const cards: NavigationCard[] = [
     label: "Dossier disciplinaire",
     description:
       "Consulter les avertissements, pénalités, suspensions et points de licence.",
+  },
+  {
+    href: "/profil/contrats",
+    icon: "📝",
+    label: "Mes contrats de vente",
+    description:
+      "Retrouver les contrats définitifs générés après signature et paiement.",
   },
   {
     href: "/profil/documents",
