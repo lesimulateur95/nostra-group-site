@@ -15,9 +15,11 @@ import {
 import { getUserRoleKeys } from "@/lib/auth/access";
 import {
   getLoyaltyCitizens,
-  LOYALTY_DISCOUNTS,
 } from "@/lib/loyalty-cards/data";
 import { createClient } from "@/lib/supabase/server";
+import { getLoyaltyTiersV155 } from "@/lib/v155/data";
+import { updateLoyaltyTierV155 } from "@/app/actions/v155";
+import v155Styles from "@/components/v155/v155.module.css";
 
 type PageProps = {
   searchParams: Promise<{
@@ -40,9 +42,10 @@ export default async function LoyaltyDashboardPage({ searchParams }: PageProps) 
   const roles = await getUserRoleKeys(data.user);
   if (!roles.includes("manager")) redirect("/dashboard");
 
-  const [params, overview] = await Promise.all([
+  const [params, overview, editableTiers] = await Promise.all([
     searchParams,
     getLoyaltyCitizens(),
+    getLoyaltyTiersV155(),
   ]);
   const currentYear = new Date().getFullYear();
 
@@ -127,18 +130,43 @@ export default async function LoyaltyDashboardPage({ searchParams }: PageProps) 
 
       <section className="dashboard-panel">
         <div className="dashboard-section-heading dashboard-section-heading-tight">
+          <p className="eyebrow">FIDÉLITÉ GLOBALE V155</p>
+          <h2>Avantages modifiables en direct</h2>
+          <p>Modifie ici les avantages, seuils et remises. Les pages citoyennes lisent directement ces valeurs en base : aucun redéploiement n’est nécessaire.</p>
+        </div>
+        <div className={v155Styles.grid}>
+          {editableTiers.map((tier) => (
+            <form action={updateLoyaltyTierV155} className={v155Styles.card} key={tier.code}>
+              <input type="hidden" name="code" value={tier.code} />
+              <h3>{tier.label}</h3>
+              <div className={v155Styles.formGrid}>
+                <label>Nom public<input className={v155Styles.input} name="label" defaultValue={tier.label} /></label>
+                <label>Points minimum<input className={v155Styles.input} type="number" name="min_points" defaultValue={tier.minPoints} /></label>
+                <label>Remise catalogue (%)<input className={v155Styles.input} type="number" step="0.1" name="catalog_discount_percent" defaultValue={tier.catalogDiscount} /></label>
+                <label>Remise plaques (%)<input className={v155Styles.input} type="number" step="0.1" name="plate_discount_percent" defaultValue={tier.plateDiscount} /></label>
+                <label className={v155Styles.full}>Description<input className={v155Styles.input} name="public_description" defaultValue={tier.description ?? ""} /></label>
+                <label className={v155Styles.full}>Avantages · 1 ligne = 1 avantage<textarea className={v155Styles.textarea} name="benefits" defaultValue={tier.benefits.join("\n")} /></label>
+                <label><input type="checkbox" name="active" defaultChecked={tier.active} /> Niveau actif</label>
+                <button className={`${v155Styles.button} ${v155Styles.full}`} type="submit">Enregistrer ce niveau</button>
+              </div>
+            </form>
+          ))}
+        </div>
+      </section>
+
+      <section className="dashboard-panel">
+        <div className="dashboard-section-heading dashboard-section-heading-tight">
           <p className="eyebrow">RÈGLES DE REMISE</p>
           <h2>Pourcentages officiels</h2>
           <p>
-            Le statut, la carte et les remises du profil utilisent désormais la
-            même règle : Silver 2 %, Gold 5 % et Black Signature 15 %.
+            Les remises affichées ci-dessous sont maintenant lues directement dans la base et suivent les valeurs configurées dans le bloc V155 ci-dessus.
           </p>
         </div>
         <dl className="contract-summary-v114">
           {tiers.map((tier) => (
             <div key={tier}>
               <dt>{tier}</dt>
-              <dd>{LOYALTY_DISCOUNTS[tier]} %</dd>
+              <dd>{editableTiers.find((item) => item.label.toLowerCase() === tier.toLowerCase())?.catalogDiscount ?? 0} %</dd>
             </div>
           ))}
         </dl>

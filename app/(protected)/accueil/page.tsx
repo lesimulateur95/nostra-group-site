@@ -5,6 +5,8 @@ import { CommissionerPortalCard } from "@/components/home/commissioner-portal-ca
 import { HomeReviewsLoader } from "@/components/reviews/home-reviews-loader";
 import { Topbar } from "@/components/site/topbar";
 import { getCasinoSettings } from "@/lib/casino/data";
+import { getBannersV155 } from "@/lib/v155/data";
+import { HomeBannersV155 } from "@/components/v155/home-banners";
 
 type Portal = {
   href: string;
@@ -34,6 +36,24 @@ const publicPortals: Portal[] = [
     title: "ÉVÉNEMENTS & JEUX",
     description:
       "Agenda, inscriptions et animations organisées par Nostra Group.",
+  },
+  {
+    href: "/aujourdhui",
+    kicker: "EN DIRECT",
+    title: "AUJOURD’HUI CHEZ NOSTRA",
+    description: "Événements, showroom, billetterie et nouveautés du jour.",
+  },
+  {
+    href: "/actualites",
+    kicker: "NOSTRA GROUP",
+    title: "ACTUALITÉS",
+    description: "Retrouver toutes les annonces et nouveautés du groupe.",
+  },
+  {
+    href: "/ventes-privees",
+    kicker: "ACCÈS VIP",
+    title: "VENTES PRIVÉES",
+    description: "Offres réservées selon ton niveau de fidélité Nostra.",
   },
   {
     href: "/recrutement",
@@ -85,7 +105,7 @@ export default async function HomePage({
   }>;
 }) {
   const params = await searchParams;
-  const casinoSettings = await getCasinoSettings();
+  const [casinoSettings, banners] = await Promise.all([getCasinoSettings(), getBannersV155(false)]);
 
   return (
     <div className="site-shell">
@@ -96,6 +116,8 @@ export default async function HomePage({
         <p className="home-sub">
           Choisissez l’espace que vous souhaitez ouvrir.
         </p>
+
+        <HomeBannersV155 banners={banners} />
 
         <section className="portal-grid">
           {casinoSettings.publicEnabled && (

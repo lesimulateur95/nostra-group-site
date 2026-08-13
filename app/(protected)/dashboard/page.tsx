@@ -222,6 +222,8 @@ export default async function DashboardPage() {
                     : undefined
                 }
               />
+              <DashboardCard href="/dashboard/stock-reel" icon="📍" title="Stock réel Nostra Motors" description="Voir le stock physique, les véhicules réservés, loués, à l’atelier et leur localisation." />
+              <DashboardCard href="/dashboard/location-motors" icon="🔑" title="Gestion de la location" description="Configurer les tarifs de location, cautions, dates, départs, retours et états des lieux." />
               {managerAccess && (
                 <>
                   <DashboardCard
@@ -930,6 +932,11 @@ export default async function DashboardPage() {
                 />
                 <DashboardCard href="/dashboard/billetterie" icon="🎟️" title="Billetterie globale" description="Créer et vendre des billets pour tous les pôles Nostra." />
                 <DashboardCard href="/dashboard/direction-generale" icon="◈" title="Direction générale" description="Vue consolidée des activités et indicateurs du groupe." />
+                <DashboardCard href="/dashboard/statistiques-avancees" icon="📊" title="Statistiques avancées" description="Graphiques mensuels : Motors, billetterie, location, citoyens et remboursements." />
+                <DashboardCard href="/dashboard/remboursements" icon="↩" title="Remboursements Direction" description="Créer, valider et tracer les remboursements partiels ou totaux." />
+                <DashboardCard href="/dashboard/ventes-privees" icon="◆" title="Ventes privées / VIP" description="Réserver certaines offres aux citoyens ayant le niveau de fidélité requis." />
+                <DashboardCard href="/dashboard/parrainage" icon="🤝" title="Parrainage citoyen" description="Suivre les codes, parrains, filleuls et points de fidélité distribués." />
+                <DashboardCard href="/dashboard/communication" icon="📣" title="Communication Nostra" description="Actualités, bannières temporaires et annonces importantes." />
                 <DashboardCard href="/dashboard/recherche" icon="⌕" title="Recherche globale" description="Rechercher citoyens, commandes, véhicules, rendez-vous, écuries et documents." />
               </DashboardModuleSubgroup>
 
@@ -980,6 +987,8 @@ export default async function DashboardPage() {
               />
               <DashboardCard href="/dashboard/maintenance-poles" icon="⛔" title="Maintenance par pôle" description="Fermer Motors, Circuit, Cercle, Academy ou Événements indépendamment." badge="Gérant" />
               <DashboardCard href="/dashboard/sauvegardes" icon="💾" title="Sauvegardes / restauration" description="Créer des points de restauration de configuration avant une grosse modification." badge="Gérant" />
+              <DashboardCard href="/dashboard/audit" icon="🧾" title="Journal d’audit" description="Consulter la traçabilité des modifications sensibles du groupe." badge="Gérant" />
+              <DashboardCard href="/dashboard/corbeille" icon="🗑️" title="Corbeille administrative" description="Restaurer les contenus supprimés pendant 30 jours." badge="Gérant" />
             </div>
           </DashboardModuleGroup>
         )}

@@ -29,12 +29,12 @@ export function VehicleFavoriteControls({
   );
   const [favorite, setFavorite] = useState(initialFavorite ?? false);
   const [stockAlert, setStockAlert] = useState(initialAlert ?? false);
+  const [priceAlert, setPriceAlert] = useState(false);
+  const [showroomAlert, setShowroomAlert] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    if (typeof initialFavorite === "boolean") return;
-
     let active = true;
 
     async function loadState() {
@@ -50,7 +50,7 @@ export function VehicleFavoriteControls({
 
       const { data } = await supabase
         .from("vehicle_favorites")
-        .select("stock_alert")
+        .select("stock_alert,price_alert,showroom_alert")
         .eq("user_id", user.id)
         .eq("vehicle_id", vehicleId)
         .maybeSingle();
@@ -58,6 +58,8 @@ export function VehicleFavoriteControls({
       if (!active) return;
       setFavorite(Boolean(data));
       setStockAlert(data?.stock_alert === true);
+      setPriceAlert(data?.price_alert === true);
+      setShowroomAlert(data?.showroom_alert === true);
       setLoaded(true);
     }
 
@@ -98,6 +100,8 @@ export function VehicleFavoriteControls({
       } else {
         setFavorite(false);
         setStockAlert(false);
+        setPriceAlert(false);
+        setShowroomAlert(false);
         setMessage("Véhicule retiré de tes favoris.");
         if (refreshOnChange) router.refresh();
       }
@@ -164,6 +168,24 @@ export function VehicleFavoriteControls({
     setBusy(false);
   }
 
+  async function toggleExtraAlert(kind: "price" | "showroom") {
+    if (busy) return;
+    setBusy(true); setMessage(null);
+    const userId = await getUserId();
+    if (!userId) { setMessage("Connecte-toi pour gérer tes alertes."); setBusy(false); return; }
+    const next = kind === "price" ? !priceAlert : !showroomAlert;
+    const payload = { user_id: userId, vehicle_id: vehicleId, [kind === "price" ? "price_alert" : "showroom_alert"]: next, updated_at: new Date().toISOString() };
+    const { error } = await supabase.from("vehicle_favorites").upsert(payload, { onConflict: "user_id,vehicle_id" });
+    if (error) setMessage("Impossible de modifier cette alerte.");
+    else {
+      setFavorite(true);
+      if (kind === "price") setPriceAlert(next); else setShowroomAlert(next);
+      setMessage(next ? (kind === "price" ? "Alerte baisse de prix activée." : "Alerte showroom activée.") : "Alerte désactivée.");
+      if (refreshOnChange) router.refresh();
+    }
+    setBusy(false);
+  }
+
   return (
     <div className={styles.wrapper}>
       <div className={styles.actions}>
@@ -181,16 +203,10 @@ export function VehicleFavoriteControls({
         </button>
 
         {stockQuantity <= 0 && (
-          <label className={styles.alertControl}>
-            <input
-              type="checkbox"
-              checked={stockAlert}
-              onChange={toggleStockAlert}
-              disabled={!loaded || busy}
-            />
-            <span>Me prévenir au retour en stock</span>
-          </label>
+          <label className={styles.alertControl}><input type="checkbox" checked={stockAlert} onChange={toggleStockAlert} disabled={!loaded || busy}/><span>Me prévenir au retour en stock</span></label>
         )}
+        <label className={styles.alertControl}><input type="checkbox" checked={priceAlert} onChange={() => toggleExtraAlert("price")} disabled={!loaded || busy}/><span>Me prévenir si le prix baisse</span></label>
+        <label className={styles.alertControl}><input type="checkbox" checked={showroomAlert} onChange={() => toggleExtraAlert("showroom")} disabled={!loaded || busy}/><span>Me prévenir s’il arrive au showroom</span></label>
       </div>
 
       {message && <p className={styles.message}>{message}</p>}

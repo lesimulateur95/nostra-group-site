@@ -91,6 +91,9 @@ function addV134Services(items: SidebarNavItem[]): SidebarNavItem[] {
   const keys = new Set(items.map((item) => item.key));
   return [
     ...items,
+    ...(!keys.has("reserve-vehicle")
+      ? [{ key: "reserve-vehicle", href: "/motors/reserver", label: "Réserver un véhicule" }]
+      : []),
     ...(!keys.has("mandat-recherche")
       ? [{ key: "mandat-recherche", href: "/motors/mandat-recherche", label: "Mandat de recherche" }]
       : []),

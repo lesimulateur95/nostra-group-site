@@ -119,6 +119,28 @@ export async function addConfiguredVehicleWithProfileDelivery(
 
   const isRentalCatalog = vehicle.catalog_type === "concession";
 
+  // V155 — une vente privée active reste réellement réservée aux citoyens
+  // qui possèdent le niveau de fidélité demandé, même en appel direct de l’action.
+  const { data: privateSales } = await (supabase as any)
+    .from("nostra_private_sales_v155")
+    .select("min_loyalty_points,starts_at,ends_at,enabled")
+    .eq("vehicle_id", vehicleId)
+    .eq("enabled", true);
+  const now = Date.now();
+  const activePrivateSale = (privateSales ?? []).find((row: any) =>
+    (!row.starts_at || new Date(row.starts_at).getTime() <= now) &&
+    (!row.ends_at || new Date(row.ends_at).getTime() >= now),
+  );
+  if (activePrivateSale) {
+    const { data: loyaltyPoints } = await (supabase as any).rpc(
+      "nostra_loyalty_points_v155",
+      { p_user_id: authData.user.id },
+    );
+    if (Number(loyaltyPoints ?? 0) < Number(activePrivateSale.min_loyalty_points ?? 0)) {
+      redirect(`/motors/catalogue/${vehicleId}/commande?error=vip-required`);
+    }
+  }
+
   if (
     isRentalCatalog &&
     (purchaseMode !== "order" || deliveryMode !== "showroom" || financingTerm !== null)

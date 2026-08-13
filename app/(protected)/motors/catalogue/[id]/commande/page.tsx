@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { addConfiguredVehicleWithProfileDelivery } from "@/app/actions/configured-profile-delivery";
+import { joinVehicleWaitlistV155 } from "@/app/actions/v155";
 import type { CatalogVehicleImage } from "@/lib/backoffice/data";
 import { isVehicleReservationEnabled } from "@/lib/vehicle-reservation-settings/data";
 import { getVehicleCommerceAvailability } from "@/lib/vehicle-commerce-settings/data";
@@ -103,6 +104,23 @@ export default async function VehicleConfigurationPage({
   const isUsedVehicle = vehicle.catalog_type === "used";
   const usedStatus = String(vehicle.used_vehicle_status ?? "available");
   const canOrderUsedVehicle = !isUsedVehicle || usedStatus === "available";
+  const privateSaleResult = await (supabase as any)
+    .from("nostra_private_sales_v155")
+    .select("min_loyalty_points,starts_at,ends_at,enabled")
+    .eq("vehicle_id", vehicleId)
+    .eq("enabled", true);
+  const privateSaleNow = Date.now();
+  const activePrivateSale = (privateSaleResult.data ?? []).find((row: any) =>
+    (!row.starts_at || new Date(row.starts_at).getTime() <= privateSaleNow) &&
+    (!row.ends_at || new Date(row.ends_at).getTime() >= privateSaleNow),
+  );
+  let vipBlocked = false;
+  let vipRequiredPoints = 0;
+  if (activePrivateSale && authResult.data.user) {
+    const { data: loyaltyPoints } = await (supabase as any).rpc("nostra_loyalty_points_v155", { p_user_id: authResult.data.user.id });
+    vipRequiredPoints = Number(activePrivateSale.min_loyalty_points ?? 0);
+    vipBlocked = Number(loyaltyPoints ?? 0) < vipRequiredPoints;
+  }
   const [catalogReservationsEnabled, vehicleAvailability, financingSettings] = await Promise.all([
     isVehicleReservationEnabled(String(vehicle.catalog_type ?? "standard")),
     getVehicleCommerceAvailability(vehicleId),
@@ -134,7 +152,7 @@ export default async function VehicleConfigurationPage({
     Math.round(((financingPrincipal + financingThreeFee) / 3) * 100) / 100;
   const financingFourPayment =
     Math.round(((financingPrincipal + financingFourFee) / 4) * 100) / 100;
-  const canPurchase = canReserve || canOrder;
+  const canPurchase = (canReserve || canOrder) && !vipBlocked;
   const cataloguePath =
     vehicle.catalog_type === "concession"
       ? "/motors/catalogue/location"
@@ -183,6 +201,8 @@ export default async function VehicleConfigurationPage({
                       ? "Associe ton compte Steam avant de déposer un dossier de financement."
                     : query.error === "rental-mode"
                       ? "Les véhicules du catalogue location peuvent uniquement être loués avec retrait en concession Nostra Motors."
+                    : query.error === "vip-required"
+                      ? "Cette offre est réservée aux citoyens ayant le niveau de fidélité VIP requis."
                     : query.error
                       ? "Impossible d’ajouter cette configuration au panier."
                       : null;
@@ -451,7 +471,13 @@ export default async function VehicleConfigurationPage({
               </div>
             )}
 
-          {!canPurchase && (
+          {vipBlocked && (
+            <div className={styles.error}>
+              Vente privée : cette offre nécessite au minimum {vipRequiredPoints.toLocaleString("fr-FR")} points Nostra.
+            </div>
+          )}
+
+          {!canPurchase && !vipBlocked && (
             <div className={styles.error}>
               {isRentalCatalog
                 ? "La location est temporairement suspendue pour ce véhicule. Tu peux toujours consulter sa fiche dans le catalogue."
@@ -633,6 +659,12 @@ export default async function VehicleConfigurationPage({
                   : "")}
           </p>
 
+          {isRentalCatalog && canOrder && (
+            <Link className={styles.submit} href={`/motors/location/${vehicle.id}`} style={{display:"flex",textDecoration:"none",marginBottom:10}}>
+              Choisir mes dates de location
+            </Link>
+          )}
+
           <button
             className={styles.submit}
             type="submit"
@@ -655,6 +687,16 @@ export default async function VehicleConfigurationPage({
                   : "Véhicule indisponible"}
           </button>
         </form>
+        {stock <= 0 && (
+          <form action={joinVehicleWaitlistV155} className={styles.deliveryCard}>
+            <input type="hidden" name="vehicle_id" value={vehicle.id} />
+            <input type="hidden" name="reason" value={isRentalCatalog ? "rental" : "stock"} />
+            <p className={styles.eyebrow}>LISTE D’ATTENTE</p>
+            <h2>Être prévenu dès qu’il revient</h2>
+            <p>Le site t’enverra automatiquement une notification lorsque ce véhicule sera de nouveau disponible.</p>
+            <button className={styles.submit} type="submit">Rejoindre la liste d’attente</button>
+          </form>
+        )}
       </div>
     </article>
   );

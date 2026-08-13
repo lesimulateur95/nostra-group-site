@@ -35,7 +35,7 @@ export default async function ProfileFavoritesPage() {
       <ProfileSectionHeader
         eyebrow="NOSTRA MOTORS"
         title="Mes véhicules favoris"
-        description="Retrouve les véhicules enregistrés et active une alerte lorsqu’un modèle indisponible revient en stock."
+        description="Retrouve les véhicules enregistrés et active des alertes de stock, baisse de prix et arrivée au showroom."
       />
 
       {!collection.configured ? (

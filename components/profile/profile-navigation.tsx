@@ -148,6 +148,30 @@ const cards: NavigationCard[] = [
       "Suivre mes véhicules, leur livraison, leur historique et leurs documents.",
   },
   {
+    href: "/profil/wallet",
+    icon: "◈",
+    label: "Wallet Nostra",
+    description: "Voir mon solde RP, mes points Nostra, remboursements et activité du groupe.",
+  },
+  {
+    href: "/profil/locations",
+    icon: "🔑",
+    label: "Mes locations",
+    description: "Suivre mes véhicules loués, dates, retrait, retour et état des lieux.",
+  },
+  {
+    href: "/profil/parrainage",
+    icon: "🤝",
+    label: "Parrainage",
+    description: "Partager mon code personnel et suivre les récompenses de parrainage.",
+  },
+  {
+    href: "/profil/liste-attente",
+    icon: "⏳",
+    label: "Liste d’attente véhicules",
+    description: "Retrouver les véhicules suivis et être alerté lors de leur retour.",
+  },
+  {
     href: "/profil/informations-bancaires",
     icon: "🏦",
     label: "Informations bancaires",

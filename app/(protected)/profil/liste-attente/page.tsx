@@ -1,0 +1,7 @@
+import { redirect } from "next/navigation";
+import Link from "next/link";
+import { leaveVehicleWaitlistV155 } from "@/app/actions/v155";
+import { getRequestUser } from "@/lib/auth/request-context";
+import { getMyWaitlistV155 } from "@/lib/v155/data";
+import styles from "@/components/v155/v155.module.css";
+export default async function WaitlistPage(){const user=await getRequestUser();if(!user)redirect("/");const rows=await getMyWaitlistV155(user.id);return <main className={styles.page}><section className={styles.hero}><span className={styles.eyebrow}>NOSTRA MOTORS</span><h1>Ma liste d’attente</h1><p>Tu seras prévenu lorsque les véhicules suivis redeviennent disponibles.</p><Link className={styles.buttonAlt} href="/motors/catalogue">Voir les catalogues</Link></section>{!rows.length?<div className={styles.empty}>Aucun véhicule dans ta liste d’attente.</div>:<div className={styles.grid}>{rows.map((r:any)=><article className={styles.card} key={r.id}>{r.imageUrl?<div className={styles.media}><img src={r.imageUrl} alt={`${r.brand} ${r.model}`}/></div>:null}<h2>{r.brand} {r.model}</h2><p>Motif : {r.reason} · Stock actuel : {r.stock}</p><div className={styles.actions}><Link className={styles.buttonAlt} href={`/motors/catalogue/${r.vehicleId}/commande`}>Voir</Link><form action={leaveVehicleWaitlistV155}><input type="hidden" name="id" value={r.id}/><button className={styles.danger}>Quitter la liste</button></form></div></article>)}</div>}</main>}

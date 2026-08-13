@@ -7,23 +7,28 @@ import {
   getLoyaltyDiscountPercent,
 } from "@/lib/loyalty-cards/data";
 import { createClient } from "@/lib/supabase/server";
+import { getLoyaltyTiersV155 } from "@/lib/v155/data";
+import stylesV155 from "@/components/v155/v155.module.css";
 
 export default async function ProfileLoyaltyPage() {
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
   if (!data.user) redirect("/");
 
-  const [card, loyalty] = await Promise.all([
+  const [card, loyalty, tiers, pointsResult] = await Promise.all([
     getActiveLoyaltyCard(data.user.id),
     supabase
       .from("loyalty_profiles")
       .select("tier,purchases_count,discount_percent,updated_at")
       .eq("user_id", data.user.id)
       .maybeSingle(),
+    getLoyaltyTiersV155(),
+    (supabase as any).rpc("nostra_loyalty_points_v155", { p_user_id: data.user.id }),
   ]);
-  const loyaltyDiscountPercent = getLoyaltyDiscountPercent(
-    card?.tier ?? loyalty.data?.tier,
-  );
+  const currentTierName = card?.tier ?? loyalty.data?.tier ?? "";
+  const currentTier = tiers.find((tier) => tier.label.toLowerCase() === currentTierName.toLowerCase() || tier.code.toLowerCase() === currentTierName.toLowerCase().replaceAll(" ", "_"));
+  const loyaltyDiscountPercent = currentTier?.catalogDiscount ?? getLoyaltyDiscountPercent(currentTierName);
+  const points = Number(pointsResult.data ?? 0);
 
   return (
     <article className="profile-subpage">
@@ -72,6 +77,17 @@ export default async function ProfileLoyaltyPage() {
             <dd>{card?.card_number ?? "Non généré"}</dd>
           </div>
         </dl>
+      </section>
+
+      <section className={stylesV155.card} style={{marginTop: 18}}>
+        <span className={stylesV155.eyebrow}>FIDÉLITÉ GLOBALE NOSTRA</span>
+        <h2>Mes avantages en direct</h2>
+        <div className={stylesV155.grid2}>
+          <div className={stylesV155.kpi}><span>Points Nostra</span><strong>{points.toLocaleString("fr-FR")}</strong></div>
+          <div className={stylesV155.kpi}><span>Seuil du niveau</span><strong>{currentTier?.minPoints ?? 0}</strong></div>
+        </div>
+        <p>{currentTier?.description ?? "Les avantages ci-dessous sont ceux configurés actuellement par la Direction."}</p>
+        <ul>{(currentTier?.benefits ?? []).map((benefit) => <li key={benefit}>{benefit}</li>)}</ul>
       </section>
     </article>
   );
