@@ -145,7 +145,8 @@ export async function removeCartItem(formData: FormData) {
 
 export async function placeCartOrder(formData: FormData) {
   const customerNote = text(formData.get("customer_note"), 1500) || null;
-  const promoCode = text(formData.get("promo_code"), 40) || null;
+  const rawPromoCode = text(formData.get("promo_code"), 80);
+  const promoCode = rawPromoCode ? rawPromoCode.toUpperCase().replace(/[^A-Z0-9_-]/g, "").slice(0, 32) || null : null;
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
   if (!data.user) redirect("/");

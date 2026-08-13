@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
+import { EDITABLE_PAGE_CONFIG } from "@/lib/content/site-content";
 
 export type MaintenancePoleKey = "motors" | "circuit" | "cercle" | "academy" | "events";
 export type MaintenancePole = {
@@ -330,36 +331,142 @@ export async function getDirectionOverviewV153() {
 
 export type SearchResultV153 = { kind: string; title: string; subtitle: string; href: string; badge?: string };
 
+
+function normalizeCitizenSearch(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("fr-FR")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+type CitizenStaticSearchEntry = {
+  kind: string;
+  title: string;
+  subtitle: string;
+  href: string;
+  keywords: string;
+  badge?: string;
+};
+
+const CITIZEN_SITE_SEARCH_INDEX: CitizenStaticSearchEntry[] = [
+  { kind:"Page", title:"Accueil Nostra Group", subtitle:"Portail principal", href:"/accueil", keywords:"accueil home groupe nostra" },
+  { kind:"Page", title:"Aujourd’hui chez Nostra", subtitle:"Activité du jour", href:"/aujourdhui", keywords:"aujourd hui actualite programme evenement showroom" },
+  { kind:"Page", title:"Actualités Nostra Group", subtitle:"Toutes les nouveautés", href:"/actualites", keywords:"actualites nouvelles news annonces nouveautes" },
+  { kind:"Page", title:"Billetterie Nostra", subtitle:"Billets et événements", href:"/billetterie", keywords:"billetterie billet ticket evenement place reservation" },
+  { kind:"Page", title:"Ventes privées Nostra", subtitle:"Accès fidélité & VIP", href:"/ventes-privees", keywords:"vente privee vip exclusif fidelite" },
+  { kind:"Nostra Motors", title:"Nostra Motors", subtitle:"Concession automobile", href:"/motors", keywords:"motors concession automobile voiture vehicule" },
+  { kind:"Nostra Motors", title:"Catalogue Nostra Motors", subtitle:"Tous les véhicules", href:"/motors/catalogue", keywords:"catalogue vehicule voiture acheter commander" },
+  { kind:"Nostra Motors", title:"Catalogue location", subtitle:"Véhicules à louer", href:"/motors/catalogue/location", keywords:"location louer catalogue voiture vehicule" },
+  { kind:"Nostra Motors", title:"Showroom Nostra Motors", subtitle:"Véhicules présents en concession", href:"/motors/showroom", keywords:"showroom exposition present concession stock" },
+  { kind:"Nostra Motors", title:"Tarifs peinture", subtitle:"Peinture & personnalisation", href:"/motors/tarifs-peinture", keywords:"peinture couleur carrosserie tarif 24 48 heures" },
+  { kind:"Nostra Motors", title:"Commander une plaque", subtitle:"Plaques d’immatriculation", href:"/motors/plaques", keywords:"plaque immatriculation installation commander" },
+  { kind:"Nostra Motors", title:"Rendez-vous Nostra Motors", subtitle:"Prendre rendez-vous", href:"/motors/rendez-vous", keywords:"rendez vous rdv peinture plaque sav retrait commercial" },
+  { kind:"Nostra Motors", title:"SAV & assistance", subtitle:"Service après-vente", href:"/motors/sav", keywords:"sav assistance panne probleme atelier" },
+  { kind:"Nostra Motors", title:"Financement", subtitle:"Solutions de financement", href:"/motors/financement", keywords:"financement credit paiement mensualite" },
+  { kind:"Nostra Motors", title:"Programme fidélité Motors", subtitle:"Niveaux & avantages", href:"/motors/fidelite", keywords:"fidelite avantages points niveau remise" },
+  { kind:"Nostra Motors", title:"Reprise véhicule", subtitle:"Proposer son véhicule", href:"/motors/reprise", keywords:"reprise rachat vendre vehicule voiture" },
+  { kind:"Nostra Motors", title:"Dépôt-vente", subtitle:"Confier un véhicule à Nostra Motors", href:"/motors/depot-vente", keywords:"depot vente vehicule occasion vendre" },
+  { kind:"Nostra Motors", title:"Mandat de recherche", subtitle:"Recherche personnalisée de véhicule", href:"/motors/mandat-recherche", keywords:"mandat recherche trouver voiture vehicule" },
+  { kind:"Nostra Circuit", title:"Nostra Circuit", subtitle:"Portail circuit", href:"/circuit", keywords:"circuit course piste racing championnat" },
+  { kind:"Nostra Circuit", title:"Nostra Racing Academy", subtitle:"Formations & licences", href:"/circuit/racing-academy", keywords:"academy formation questionnaire licence pilote gt3 f1" },
+  { kind:"Événements", title:"Événements & Jeux", subtitle:"Agenda, jeux et inscriptions", href:"/evenements", keywords:"evenement jeux inscription agenda money drop roue bingo tombola" },
+  { kind:"Nostra Cercle", title:"Nostra Cercle", subtitle:"Casino Nostra Group", href:"/casino", keywords:"casino cercle jeux jetons table vip" },
+  { kind:"Nostra Cercle", title:"La caisse Nostra Cercle", subtitle:"Acheter ou revendre des jetons", href:"/casino/caisse", keywords:"caisse jeton acheter revendre change casino" },
+  { kind:"Profil", title:"Mon profil", subtitle:"Espace citoyen Nostra", href:"/profil", keywords:"profil compte citoyen espace nostra" },
+  { kind:"Profil", title:"Mes commandes", subtitle:"Suivi des commandes", href:"/profil/commandes", keywords:"commande suivi avancement vehicule statut" },
+  { kind:"Profil", title:"Mes locations", subtitle:"Locations Nostra Motors", href:"/profil/locations", keywords:"location louer contrat caution retour" },
+  { kind:"Profil", title:"Wallet Nostra", subtitle:"Solde, points et mouvements", href:"/profil/wallet", keywords:"wallet portefeuille solde rp points remboursement transaction" },
+  { kind:"Profil", title:"Mes favoris", subtitle:"Véhicules favoris & alertes", href:"/profil/favoris", keywords:"favoris alerte prix stock showroom vehicule" },
+  { kind:"Profil", title:"Liste d’attente", subtitle:"Alertes disponibilité véhicules", href:"/profil/liste-attente", keywords:"liste attente disponible stock vehicule location" },
+  { kind:"Profil", title:"Fidélité Nostra", subtitle:"Points, niveau et avantages", href:"/profil/fidelite", keywords:"fidelite points niveau avantages statut vip" },
+  { kind:"Profil", title:"Parrainage", subtitle:"Code de parrainage citoyen", href:"/profil/parrainage", keywords:"parrainage parrainer code filleul recompense" },
+  { kind:"Profil", title:"Messagerie Nostra", subtitle:"Messages avec les services Nostra", href:"/profil/messagerie", keywords:"messagerie message mail boite reception contact" },
+  { kind:"Profil", title:"Notifications", subtitle:"Centre de notifications", href:"/profil/notifications", keywords:"notification alerte information commande formation evenement" },
+  { kind:"Profil", title:"Mes contrats", subtitle:"Contrats de vente signés", href:"/profil/contrats", keywords:"contrat vente signature document" },
+  { kind:"Profil", title:"Mes documents", subtitle:"Documents & factures", href:"/profil/documents", keywords:"document facture certificat pdf" },
+  { kind:"Profil", title:"Mes licences & formations", subtitle:"Academy et licences officielles", href:"/profil/licences", keywords:"licence formation academy f1 gt3 circuit" },
+  { kind:"Recrutement", title:"Recrutement Nostra Group", subtitle:"Candidatures", href:"/recrutement", keywords:"recrutement candidature emploi rejoindre nostra" },
+];
+
 export async function searchCitizenV153(query: string, userId: string): Promise<SearchResultV153[]> {
-  const q = query.trim(); if (q.length < 2) return [];
-  const supabase = await createClient(); const pattern = `%${q}%`;
-  const [vehicles, events, docs, orders, teams, tickets, mailInbox, mailSent] = await Promise.all([
-    (supabase as any).from("catalog_vehicles").select("id,brand,model,price,catalog_type").eq("published", true).or(`brand.ilike.${pattern},model.ilike.${pattern}`).limit(12),
-    (supabase as any).from("events").select("id,title,location,starts_at").eq("status", "published").or(`title.ilike.${pattern},description.ilike.${pattern},location.ilike.${pattern}`).limit(8),
-    (supabase as any).from("invoices").select("id,invoice_number,document_title,document_type").eq("user_id", userId).or(`invoice_number.ilike.${pattern},document_title.ilike.${pattern}`).limit(8),
-    (supabase as any).from("orders").select("id,order_number,status,total").eq("user_id", userId).ilike("order_number", pattern).limit(8),
-    (supabase as any).from("team_registration_requests").select("id,team_name,registration_type,status").eq("user_id", userId).ilike("team_name", pattern).limit(8),
-    (supabase as any).from("nostra_ticket_events_v153").select("id,title,starts_at,location").eq("published", true).or(`title.ilike.${pattern},location.ilike.${pattern}`).limit(8),
+  const q = query.trim();
+  if (q.length < 2) return [];
+
+  const supabase = await createClient();
+  const pattern = `%${q}%`;
+  const normalizedQuery = normalizeCitizenSearch(q);
+  const [vehicles, events, docs, orders, teams, tickets, mailInbox, mailSent, sitePages, customPages, news, banners] = await Promise.all([
+    (supabase as any).from("catalog_vehicles").select("id,brand,model,price,catalog_type,description,power,top_speed").eq("published", true).or(`brand.ilike.${pattern},model.ilike.${pattern},description.ilike.${pattern},power.ilike.${pattern},top_speed.ilike.${pattern}`).limit(20),
+    (supabase as any).from("events").select("id,title,description,location,starts_at").eq("status", "published").or(`title.ilike.${pattern},description.ilike.${pattern},location.ilike.${pattern}`).limit(14),
+    (supabase as any).from("invoices").select("id,invoice_number,document_title,document_type").eq("user_id", userId).or(`invoice_number.ilike.${pattern},document_title.ilike.${pattern},document_type.ilike.${pattern}`).limit(12),
+    (supabase as any).from("orders").select("id,order_number,status,total,customer_name").eq("user_id", userId).or(`order_number.ilike.${pattern},status.ilike.${pattern},customer_name.ilike.${pattern}`).limit(12),
+    (supabase as any).from("team_registration_requests").select("id,team_name,registration_type,status").eq("user_id", userId).or(`team_name.ilike.${pattern},registration_type.ilike.${pattern},status.ilike.${pattern}`).limit(12),
+    (supabase as any).from("nostra_ticket_events_v153").select("id,title,description,starts_at,location").eq("published", true).or(`title.ilike.${pattern},description.ilike.${pattern},location.ilike.${pattern}`).limit(12),
     (supabase as any).rpc("nostra_get_my_mail_messages", { p_folder: "inbox" }),
     (supabase as any).rpc("nostra_get_my_mail_messages", { p_folder: "sent" }),
+    (supabase as any).from("site_pages").select("slug,title,content").or(`slug.ilike.${pattern},title.ilike.${pattern},content.ilike.${pattern}`).limit(30),
+    (supabase as any).from("custom_circuit_pages").select("category_key,category_label,slug,label,title,content,visible").eq("visible", true).or(`category_label.ilike.${pattern},label.ilike.${pattern},title.ilike.${pattern},content.ilike.${pattern}`).limit(30),
+    (supabase as any).from("nostra_news_v155").select("id,pole,title,excerpt,content").eq("published", true).or(`title.ilike.${pattern},excerpt.ilike.${pattern},content.ilike.${pattern},pole.ilike.${pattern}`).limit(20),
+    (supabase as any).from("nostra_banners_v155").select("id,pole,title,message,cta_label,cta_url,active").eq("active", true).or(`title.ilike.${pattern},message.ilike.${pattern},cta_label.ilike.${pattern},pole.ilike.${pattern}`).limit(20),
   ]);
+
   const out: SearchResultV153[] = [];
-  for (const r of vehicles.data ?? []) out.push({ kind: "Véhicule", title: `${r.brand} ${r.model}`, subtitle: `${num(r.price).toLocaleString("fr-FR")} €`, href: `/motors/catalogue/${r.id}/commande`, badge: str(r.catalog_type) });
-  for (const r of events.data ?? []) out.push({ kind: "Événement", title: str(r.title), subtitle: `${str(r.location)} · ${new Date(r.starts_at).toLocaleDateString("fr-FR")}`, href: "/evenements" });
-  for (const r of docs.data ?? []) out.push({ kind: "Document", title: str(r.document_title, str(r.invoice_number)), subtitle: str(r.invoice_number), href: `/profil/documents/${r.id}` });
-  for (const r of orders.data ?? []) out.push({ kind: "Commande", title: str(r.order_number), subtitle: str(r.status), href: "/profil/commandes" });
-  for (const r of teams.data ?? []) out.push({ kind: "Écurie", title: str(r.team_name), subtitle: str(r.registration_type).toUpperCase(), href: `/profil/ecuries/${r.id}` });
-  for (const r of tickets.data ?? []) out.push({ kind: "Billetterie", title: str(r.title), subtitle: str(r.location), href: `/billetterie#${r.id}` });
+  const seen = new Set<string>();
+  const add = (result: SearchResultV153) => {
+    const key = `${result.href}|${normalizeCitizenSearch(result.title)}`;
+    if (!seen.has(key)) { seen.add(key); out.push(result); }
+  };
+
+  // Index permanent des principales pages du site : la recherche citoyen ne dépend
+  // plus uniquement des données Supabase déjà créées.
+  for (const entry of CITIZEN_SITE_SEARCH_INDEX) {
+    const haystack = normalizeCitizenSearch(`${entry.title} ${entry.subtitle} ${entry.keywords}`);
+    if (haystack.includes(normalizedQuery)) add({ kind: entry.kind, title: entry.title, subtitle: entry.subtitle, href: entry.href, badge: entry.badge });
+  }
+
+  for (const page of EDITABLE_PAGE_CONFIG) {
+    const haystack = normalizeCitizenSearch(`${page.label} ${page.category} ${page.slug}`);
+    if (haystack.includes(normalizedQuery)) add({ kind: "Page", title: page.label, subtitle: page.category, href: page.route });
+  }
+
+  for (const r of vehicles.data ?? []) add({ kind: "Véhicule", title: `${r.brand} ${r.model}`, subtitle: `${num(r.price).toLocaleString("fr-FR")} € · ${str(r.power)}`, href: `/motors/catalogue/${r.id}/commande`, badge: str(r.catalog_type) });
+  for (const r of events.data ?? []) add({ kind: "Événement", title: str(r.title), subtitle: `${str(r.location)} · ${new Date(r.starts_at).toLocaleDateString("fr-FR")}`, href: "/evenements" });
+  for (const r of docs.data ?? []) add({ kind: "Document", title: str(r.document_title, str(r.invoice_number)), subtitle: `${str(r.document_type)} · ${str(r.invoice_number)}`, href: `/profil/documents/${r.id}` });
+  for (const r of orders.data ?? []) add({ kind: "Commande", title: str(r.order_number), subtitle: str(r.status), href: "/profil/commandes" });
+  for (const r of teams.data ?? []) add({ kind: "Écurie", title: str(r.team_name), subtitle: str(r.registration_type).toUpperCase(), href: `/profil/ecuries/${r.id}` });
+  for (const r of tickets.data ?? []) add({ kind: "Billetterie", title: str(r.title), subtitle: str(r.location), href: `/billetterie#${r.id}` });
+
+  for (const r of sitePages.data ?? []) {
+    const config = EDITABLE_PAGE_CONFIG.find((page) => page.slug === r.slug);
+    if (config) add({ kind: "Contenu", title: str(r.title, config.label), subtitle: config.category, href: config.route });
+  }
+
+  for (const r of customPages.data ?? []) {
+    const storedSlug = str(r.slug);
+    const categoryKey = str(r.category_key);
+    let href = `/circuit/personnalise/${storedSlug}`;
+    if (categoryKey.startsWith("motors:")) href = `/motors/personnalise/${storedSlug.replace(/^motors-/, "")}`;
+    else if (categoryKey.startsWith("evenements:")) href = `/evenements/personnalise/${storedSlug.replace(/^evenements-/, "")}`;
+    add({ kind: "Contenu", title: str(r.title, str(r.label, "Page Nostra")), subtitle: str(r.category_label, "Page personnalisée"), href });
+  }
+
+  for (const r of news.data ?? []) add({ kind: "Actualité", title: str(r.title), subtitle: str(r.excerpt, `Actualité ${str(r.pole, "Nostra Group")}`), href: "/actualites" });
+  for (const r of banners.data ?? []) add({ kind: "Annonce", title: str(r.title), subtitle: str(r.message), href: str(r.cta_url, "/accueil") || "/accueil" });
+
   const mailRows = [...(mailInbox.data ?? []), ...(mailSent.data ?? [])];
   const mailSeen = new Set<string>();
   for (const r of mailRows) {
-    const haystack = `${r.subject ?? ""} ${r.body ?? ""} ${r.sender_name ?? ""} ${r.recipient_name ?? ""}`.toLowerCase();
+    const haystack = normalizeCitizenSearch(`${r.subject ?? ""} ${r.body ?? ""} ${r.sender_name ?? ""} ${r.recipient_name ?? ""}`);
     const thread = str(r.thread_id);
-    if (thread && haystack.includes(q.toLowerCase()) && !mailSeen.has(thread)) { mailSeen.add(thread); out.push({ kind: "Messagerie", title: str(r.subject, "Conversation Nostra"), subtitle: str(r.sender_name, str(r.recipient_name)), href: `/profil/messagerie?thread=${thread}` }); }
+    if (thread && haystack.includes(normalizedQuery) && !mailSeen.has(thread)) {
+      mailSeen.add(thread);
+      add({ kind: "Messagerie", title: str(r.subject, "Conversation Nostra"), subtitle: str(r.sender_name, str(r.recipient_name)), href: `/profil/messagerie?thread=${thread}` });
+    }
   }
-  return out.slice(0, 50);
+  return out.slice(0, 100);
 }
-
 export async function searchDashboardV153(query: string): Promise<SearchResultV153[]> {
   const q = query.trim(); if (q.length < 2) return [];
   const supabase = await createClient(); const pattern = `%${q}%`;
