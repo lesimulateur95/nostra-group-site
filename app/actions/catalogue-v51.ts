@@ -163,6 +163,7 @@ function dashboardUrl(
 
 function revalidateCatalogs() {
   revalidatePath("/motors/catalogue");
+  revalidatePath("/motors/showroom");
   revalidatePath("/motors/catalogue/concession");
   revalidatePath(
     "/motors/catalogue/poids-lourds",

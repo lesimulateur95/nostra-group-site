@@ -7,6 +7,7 @@ import {
   saveCatalogVehicleV51,
 } from "@/app/actions/catalogue-v51";
 import { setVehicleCommerceAvailability } from "@/app/actions/vehicle-reservation-settings";
+import { setVehicleShowroomVisibility } from "@/app/actions/showroom";
 import {
   DashboardHeader,
 } from "@/components/dashboard/dashboard-header";
@@ -27,6 +28,7 @@ import {
   getStockCommerceConfigured,
 } from "@/lib/backoffice/data";
 import { getVehicleCommerceAvailabilityMap } from "@/lib/vehicle-commerce-settings/data";
+import { getShowroomConfigured, getShowroomStateMap } from "@/lib/nostra-motors/showroom";
 
 import styles from "@/components/motors/catalogue-v51.module.css";
 
@@ -69,6 +71,8 @@ export default async function DashboardCataloguePage({
     error?: string;
     commerce_saved?: string;
     commerce_error?: string;
+    showroom_saved?: string;
+    showroom_error?: string;
   }>;
 }) {
   const params = await searchParams;
@@ -92,9 +96,13 @@ export default async function DashboardCataloguePage({
 
   const managedTypes = CATALOG_TYPES.filter((type) => type !== "used");
   const managedVehicles = allVehicles.filter((vehicle) => vehicle.catalog_type !== "used");
-  const commerceAvailability = await getVehicleCommerceAvailabilityMap(
-    managedVehicles.map((vehicle) => Number(vehicle.id)),
-  );
+  const [commerceAvailability, showroomConfigured, showroomState] = await Promise.all([
+    getVehicleCommerceAvailabilityMap(
+      managedVehicles.map((vehicle) => Number(vehicle.id)),
+    ),
+    getShowroomConfigured(),
+    getShowroomStateMap(managedVehicles.map((vehicle) => Number(vehicle.id))),
+  ]);
 
   const selectedType:
     | CatalogType
@@ -152,6 +160,26 @@ export default async function DashboardCataloguePage({
             : params.commerce_error === "forbidden"
               ? "Seule la Direction peut modifier la vente d’un véhicule."
               : "Impossible de modifier la disponibilité commerciale de ce véhicule."}
+        </div>
+      )}
+
+      {params.showroom_saved && (
+        <div className="dashboard-feedback dashboard-feedback-success">
+          {params.showroom_saved === "removed"
+            ? "Le véhicule a été retiré du showroom."
+            : "Le véhicule est maintenant affiché dans le showroom Nostra Motors."}
+        </div>
+      )}
+
+      {params.showroom_error && (
+        <div className="dashboard-feedback dashboard-feedback-error">
+          {params.showroom_error === "setup"
+            ? "Exécute le SQL V152 dans Supabase avant d’utiliser le showroom."
+            : params.showroom_error === "forbidden"
+              ? "Seule la Direction peut modifier le showroom."
+              : params.showroom_error === "not-found"
+                ? "Ce véhicule n’existe plus dans le catalogue."
+                : "Impossible de modifier la présence de ce véhicule au showroom."}
         </div>
       )}
 
@@ -365,6 +393,7 @@ export default async function DashboardCataloguePage({
                   reservation_enabled: true,
                   sale_enabled: true,
                 };
+                const isInShowroom = showroomState.get(Number(vehicle.id)) === true;
 
                 return (
                 <article
@@ -394,6 +423,11 @@ export default async function DashboardCataloguePage({
                     </div>
 
                     <div className="catalog-admin-badges">
+                      {isInShowroom && (
+                        <span className="catalog-showroom-pill-v152">
+                          Présent au showroom
+                        </span>
+                      )}
                       <span className="catalog-stock-pill">
                         Stock :{" "}
                         {vehicle.stock_quantity}
@@ -592,6 +626,37 @@ export default async function DashboardCataloguePage({
                       Enregistrer et déplacer si nécessaire
                     </button>
                   </form>
+
+                  <section className={`catalog-admin-showroom-v152${isInShowroom ? " is-active" : ""}`}>
+                    <div className="catalog-admin-showroom-copy-v152">
+                      <span className="eyebrow">SHOWROOM NOSTRA MOTORS</span>
+                      <h3>{isInShowroom ? "Véhicule actuellement exposé" : "Véhicule non exposé"}</h3>
+                      <p>
+                        Ce réglage ne déplace pas le véhicule et ne le duplique pas : il contrôle uniquement sa présence sur la page publique Showroom.
+                      </p>
+                    </div>
+
+                    <form action={setVehicleShowroomVisibility}>
+                      <input type="hidden" name="vehicle_id" value={vehicle.id} />
+                      <input type="hidden" name="visible" value={isInShowroom ? "false" : "true"} />
+                      <input
+                        type="hidden"
+                        name="return_to"
+                        value={`/dashboard/catalogue?type=${selectedType}#vehicule-${vehicle.id}`}
+                      />
+                      <button
+                        className={isInShowroom ? "btn btn-danger-v98" : "btn"}
+                        type="submit"
+                        disabled={!showroomConfigured}
+                      >
+                        {isInShowroom ? "Retirer du showroom" : "Ajouter au showroom"}
+                      </button>
+                    </form>
+
+                    {!showroomConfigured && (
+                      <small>Exécute le SQL V152 pour activer ce bouton.</small>
+                    )}
+                  </section>
 
                   <section className="catalog-admin-commerce-v127">
                     <div className="catalog-admin-commerce-heading-v127">

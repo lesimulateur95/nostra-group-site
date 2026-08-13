@@ -5035,3 +5035,70 @@ select:focus { outline: 2px solid rgba(212,175,55,.32); outline-offset: 1px; }
 .team-license-gate-blocked { border-color: rgba(225,82,82,.4); background: rgba(225,82,82,.07); }
 .team-license-gate-blocked > span { color: #ffb1b1; border: 1px solid rgba(225,82,82,.42); background: rgba(225,82,82,.1); }
 .team-registration-form button:disabled { opacity: .42; cursor: not-allowed; filter: grayscale(.35); }
+
+/* V152 — Showroom Nostra Motors */
+.catalog-showroom-pill-v152 {
+  display: inline-flex;
+  min-height: 30px;
+  align-items: center;
+  padding: 0 10px;
+  border: 1px solid rgba(222, 190, 78, 0.48);
+  border-radius: 999px;
+  background: rgba(222, 190, 78, 0.11);
+  color: #efd26f;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+}
+
+.catalog-admin-showroom-v152 {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+  margin-top: 18px;
+  padding: 18px;
+  border: 1px solid rgba(212, 175, 55, 0.18);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.catalog-admin-showroom-v152.is-active {
+  border-color: rgba(227, 195, 82, 0.44);
+  background:
+    linear-gradient(120deg, rgba(212, 175, 55, 0.095), transparent 56%),
+    rgba(255, 255, 255, 0.018);
+}
+
+.catalog-admin-showroom-copy-v152 h3 {
+  margin: 4px 0 6px;
+}
+
+.catalog-admin-showroom-copy-v152 p {
+  max-width: 760px;
+  margin: 0;
+  color: #aeb3bb;
+  line-height: 1.55;
+}
+
+.catalog-admin-showroom-v152 form {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.catalog-admin-showroom-v152 small {
+  grid-column: 1 / -1;
+  color: #e4b6a0;
+}
+
+@media (max-width: 760px) {
+  .catalog-admin-showroom-v152 {
+    grid-template-columns: 1fr;
+  }
+
+  .catalog-admin-showroom-v152 form,
+  .catalog-admin-showroom-v152 form .btn,
+  .catalog-admin-showroom-v152 form button {
+    width: 100%;
+  }
+}

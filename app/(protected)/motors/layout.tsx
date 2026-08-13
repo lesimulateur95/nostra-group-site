@@ -67,6 +67,25 @@ function addCatalogChildren(
   });
 }
 
+function addShowroom(items: SidebarNavItem[]): SidebarNavItem[] {
+  if (items.some((item) => item.key === "showroom")) return items;
+
+  const catalogueIndex = items.findIndex((item) => item.key === "catalogue");
+  const showroomItem: SidebarNavItem = {
+    key: "showroom",
+    href: "/motors/showroom",
+    label: "Showroom",
+  };
+
+  if (catalogueIndex < 0) return [showroomItem, ...items];
+
+  return [
+    ...items.slice(0, catalogueIndex),
+    showroomItem,
+    ...items.slice(catalogueIndex),
+  ];
+}
+
 function addV134Services(items: SidebarNavItem[]): SidebarNavItem[] {
   const keys = new Set(items.map((item) => item.key));
   return [
@@ -91,7 +110,7 @@ export default async function MotorsLayout({
   return (
     <SectionLayout
       title="NOSTRA MOTORS"
-      items={addV134Services(addCatalogChildren(navigation))}
+      items={addV134Services(addShowroom(addCatalogChildren(navigation)))}
     >
       <MotorsStatusBanner />
       {children}
