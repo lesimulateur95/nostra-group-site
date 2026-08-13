@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import {
   deletePlateOrder,
   setPlateOrdersAvailability,
+  updatePlateBasePriceFromAdmin,
   updatePlateOrderStatusFromAdmin,
 } from "@/app/actions/plate-orders";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
@@ -76,6 +77,8 @@ export default async function PlateOrdersDashboardPage({
       ? "Les commandes de plaques sont maintenant ouvertes."
       : params.success === "closed"
         ? "Les commandes de plaques sont maintenant fermées."
+        : params.success === "price"
+          ? "Le tarif des plaques a été mis à jour."
         : params.success === "status"
           ? "Le statut de la commande a été mis à jour."
           : params.success === "deleted"
@@ -83,7 +86,9 @@ export default async function PlateOrdersDashboardPage({
             : null;
 
   const errorMessage =
-    params.error === "delete"
+    params.error === "price"
+      ? "Le tarif saisi est invalide ou n’a pas pu être enregistré."
+      : params.error === "delete"
       ? "La commande n’a pas pu être supprimée. Exécute le SQL V56 dans Supabase."
       : params.error === "not_found"
         ? "Cette commande n’existe plus."
@@ -130,47 +135,83 @@ export default async function PlateOrdersDashboardPage({
       )}
 
       <section className={styles.servicePanel}>
-        <div>
+        <div className={styles.serviceCopy}>
           <span className="eyebrow">SERVICE PLAQUES</span>
-          <h2>Ouverture et fermeture des commandes</h2>
+          <h2>Tarif et disponibilité des commandes</h2>
           <p>
             Tarif actuellement configuré :{" "}
             <strong>{money(state.plate_settings.base_price)}</strong>
           </p>
+          <small>
+            Le nouveau tarif est appliqué immédiatement aux nouvelles demandes.
+            Les commandes déjà enregistrées conservent leur ancien prix.
+          </small>
         </div>
 
-        <div className={styles.serviceActions}>
-          <form action={setPlateOrdersAvailability}>
+        <div className={styles.serviceControls}>
+          <form
+            action={updatePlateBasePriceFromAdmin}
+            className={styles.priceForm}
+          >
             <input
               type="hidden"
-              name="base_price"
-              value={state.plate_settings.base_price}
+              name="active"
+              value={String(state.plate_settings.active)}
             />
-            <input type="hidden" name="active" value="true" />
-            <button
-              type="submit"
-              className={styles.openButton}
-              disabled={state.plate_settings.active}
-            >
-              Ouvrir les commandes
-            </button>
+            <label htmlFor="plate-base-price">Tarif d’une nouvelle plaque</label>
+            <div className={styles.priceInputRow}>
+              <div className={styles.priceInputWrap}>
+                <input
+                  id="plate-base-price"
+                  name="base_price"
+                  type="number"
+                  min="0"
+                  max="1000000000"
+                  step="1000"
+                  defaultValue={state.plate_settings.base_price}
+                  required
+                />
+                <span>€</span>
+              </div>
+              <button type="submit" className={styles.priceButton}>
+                Enregistrer le tarif
+              </button>
+            </div>
           </form>
 
-          <form action={setPlateOrdersAvailability}>
-            <input
-              type="hidden"
-              name="base_price"
-              value={state.plate_settings.base_price}
-            />
-            <input type="hidden" name="active" value="false" />
-            <button
-              type="submit"
-              className={styles.closeButton}
-              disabled={!state.plate_settings.active}
-            >
-              Fermer les commandes
-            </button>
-          </form>
+          <div className={styles.serviceActions}>
+            <form action={setPlateOrdersAvailability}>
+              <input
+                type="hidden"
+                name="base_price"
+                value={state.plate_settings.base_price}
+              />
+              <input type="hidden" name="active" value="true" />
+              <button
+                type="submit"
+                className={styles.openButton}
+                disabled={state.plate_settings.active}
+              >
+                Ouvrir les commandes
+              </button>
+            </form>
+
+            <form action={setPlateOrdersAvailability}>
+              <input
+                type="hidden"
+                name="base_price"
+                value={state.plate_settings.base_price}
+              />
+              <input type="hidden" name="active" value="false" />
+              <button
+                type="submit"
+                className={styles.closeButton}
+                disabled={!state.plate_settings.active}
+              >
+                Fermer les commandes
+              </button>
+            </form>
+          </div>
         </div>
       </section>
 

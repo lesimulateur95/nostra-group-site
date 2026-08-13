@@ -69,6 +69,34 @@ export async function setPlateOrdersAvailability(
   );
 }
 
+
+export async function updatePlateBasePriceFromAdmin(
+  formData: FormData,
+) {
+  const basePrice = integer(formData.get("base_price"));
+  const active = text(formData.get("active"), 10) === "true";
+
+  if (basePrice < 0 || basePrice > 1_000_000_000) {
+    redirect("/dashboard/plaques?error=price");
+  }
+
+  const supabase = await requireManager();
+  const { error } = await (supabase as any).rpc(
+    "nostra_update_plate_settings",
+    {
+      p_base_price: basePrice,
+      p_active: active,
+    },
+  );
+
+  if (error) {
+    redirect("/dashboard/plaques?error=price");
+  }
+
+  refreshPlateOrders();
+  redirect("/dashboard/plaques?success=price");
+}
+
 export async function updatePlateOrderStatusFromAdmin(
   formData: FormData,
 ) {
