@@ -35,8 +35,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Référence de revente invalide. Recharge la page." }, { status: 400 });
   }
 
-  const rpAmount = chipAmount * settings.cashoutRpPerChip;
-  if (!Number.isSafeInteger(rpAmount) || rpAmount <= 0) {
+  const grossRpAmount = chipAmount * settings.rpPerChip;
+  const rpAmount = Math.floor(grossRpAmount * (100 - settings.cashoutCommissionPercent) / 100);
+  if (!Number.isSafeInteger(grossRpAmount) || !Number.isSafeInteger(rpAmount) || rpAmount <= 0) {
     return NextResponse.json({ error: "Montant RP trop élevé." }, { status: 400 });
   }
 
@@ -72,13 +73,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: existing.user_id === data.user.id && existing.status === "pending" ? "Cette revente est encore en cours de vérification. Contacte la Direction avant de réessayer." : "Cette référence de revente est déjà utilisée." }, { status: 409 });
   }
 
-  const { error: reserveError } = await (admin as any).rpc("casino_reserve_cashout_v120", {
+  const { error: reserveError } = await (admin as any).rpc("casino_reserve_cashout_v148", {
     p_request_id: requestId,
     p_user_id: data.user.id,
     p_steam_id: steamId,
     p_rp_amount: rpAmount,
     p_chip_amount: chipAmount,
-    p_rate: settings.cashoutRpPerChip,
+    p_rate: settings.rpPerChip,
+    p_commission_percent: settings.cashoutCommissionPercent,
   });
   if (reserveError) {
     const message = String(reserveError.message ?? reserveError.code ?? "");
@@ -113,5 +115,7 @@ export async function POST(request: Request) {
     chipsDebited: chipAmount,
     accountLabel: credit.accountLabel,
     gameBalanceAfter: credit.balanceAfter,
+    grossRpAmount,
+    commissionPercent: settings.cashoutCommissionPercent,
   });
 }

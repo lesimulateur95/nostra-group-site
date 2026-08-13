@@ -30,6 +30,7 @@ export type CasinoSettings = {
   maxConversion: number;
   cashoutEnabled: boolean;
   cashoutRpPerChip: number;
+  cashoutCommissionPercent: number;
   minCashout: number;
   maxCashout: number;
 };
@@ -89,6 +90,9 @@ export type CasinoConversion = {
   id: string;
   rpAmount: number;
   chipAmount: number;
+  baseChipAmount?: number;
+  bonusChipAmount?: number;
+  packageId?: string | null;
   status: "pending" | "approved" | "rejected" | "cancelled";
   createdAt: string;
   citizenName?: string;
@@ -100,6 +104,7 @@ export type CasinoCashout = {
   rpAmount: number;
   chipAmount: number;
   rate: number;
+  commissionPercent?: number;
   status: "pending" | "approved" | "rejected" | "cancelled";
   createdAt: string;
   citizenName?: string;
@@ -133,4 +138,13 @@ export type CasinoAdminData = {
   gameSettings: CasinoGameSettings[];
   gameStats: CasinoGameStat[];
   recentRounds: CasinoRound[];
+};
+
+export type CasinoCashierPackage = {
+  id: string;
+  name: string;
+  chipAmount: number;
+  bonusPercent: number;
+  enabled: boolean;
+  sortOrder: number;
 };

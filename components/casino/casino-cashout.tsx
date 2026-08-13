@@ -12,9 +12,14 @@ type PaymentStatus =
   | "not_found"
   | "unavailable";
 
+function n(value: number): string {
+  return Math.trunc(value).toLocaleString("fr-FR");
+}
+
 export function CasinoCashout({
   enabled,
   rpPerChip,
+  commissionPercent,
   minimum,
   maximum,
   chipBalance,
@@ -22,20 +27,24 @@ export function CasinoCashout({
 }: {
   enabled: boolean;
   rpPerChip: number;
+  commissionPercent: number;
   minimum: number;
   maximum: number;
   chipBalance: number;
   paymentStatus: PaymentStatus;
 }) {
   const upperLimit = Math.min(maximum, chipBalance);
-  const packages = [1_000, 5_000, 10_000, 25_000].filter(
-    (value) => value >= minimum && value <= upperLimit,
-  );
-  const [amount, setAmount] = useState(packages[0] ?? Math.min(minimum, upperLimit));
+  const [amount, setAmount] = useState(Math.min(Math.max(minimum, 1), Math.max(upperLimit, 1)));
   const [message, setMessage] = useState<{ kind: "success" | "error"; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
-  const rpAmount = useMemo(() => Math.trunc(amount * rpPerChip), [amount, rpPerChip]);
+
+  const grossRp = useMemo(() => Math.max(0, Math.trunc(amount * rpPerChip)), [amount, rpPerChip]);
+  const rpAmount = useMemo(
+    () => Math.max(0, Math.floor(grossRp * (100 - commissionPercent) / 100)),
+    [grossRp, commissionPercent],
+  );
+  const commissionAmount = Math.max(0, grossRp - rpAmount);
   const canCashout = enabled && paymentStatus === "connected" && amount >= minimum && amount <= upperLimit;
 
   function submit() {
@@ -56,7 +65,7 @@ export function CasinoCashout({
       }
       setMessage({
         kind: "success",
-        text: `${Number(result.chipsDebited ?? amount).toLocaleString("fr-FR")} jetons revendus : ${Number(result.rpCredited ?? rpAmount).toLocaleString("fr-FR")} € RP crédités sur ton compte bancaire principal en jeu.`,
+        text: `${Number(result.chipsDebited ?? amount).toLocaleString("fr-FR")} jetons revendus · ${Number(result.rpCredited ?? rpAmount).toLocaleString("fr-FR")} $RP crédités.`,
       });
       router.refresh();
     });
@@ -71,26 +80,35 @@ export function CasinoCashout({
         : "La banque RP est temporairement indisponible.";
 
   return (
-    <div className={styles.formStack}>
-      <div className={styles.packageGrid}>
-        {packages.map((value) => (
-          <button className={`${styles.packageButton} ${styles.cashoutPackage} ${amount === value ? styles.packageSelected : ""}`} type="button" onClick={() => setAmount(value)} key={value}>
-            <strong>{value.toLocaleString("fr-FR")} jetons</strong>
-            <span>+ {(value * rpPerChip).toLocaleString("fr-FR")} € RP</span>
-          </button>
-        ))}
+    <div className={styles.cashoutShop}>
+      <label className={styles.cashierField} htmlFor="cashout-chip-amount">
+        <span>Jetons à revendre</span>
+        <input
+          id="cashout-chip-amount"
+          type="number"
+          min={minimum}
+          max={Math.max(upperLimit, minimum)}
+          step="1"
+          value={amount}
+          onChange={(event) => setAmount(Math.max(0, Math.trunc(Number(event.target.value))))}
+        />
+      </label>
+
+      <div className={styles.cashierEquation}>{n(amount)} JT <b>⇄</b> <strong>{n(rpAmount)} $RP</strong></div>
+      <div className={styles.cashoutBreakdown}>
+        <span><small>Valeur brute</small><b>{n(grossRp)} $RP</b></span>
+        <span><small>Commission maison</small><b>− {n(commissionAmount)} $RP ({commissionPercent.toLocaleString("fr-FR")} %)</b></span>
+        <span><small>Net reversé</small><b>{n(rpAmount)} $RP</b></span>
       </div>
-      <div className={styles.field}>
-        <label htmlFor="cashout-chip-amount">Jetons à revendre</label>
-        <input id="cashout-chip-amount" type="number" min={minimum} max={upperLimit} step="100" value={amount} onChange={(event) => setAmount(Math.max(0, Math.trunc(Number(event.target.value))))} />
-      </div>
-      <div className={`${styles.notice} ${styles.cashoutNotice}`}>Tu rends <strong>{amount.toLocaleString("fr-FR")} jetons</strong> et récupères <strong>{rpAmount.toLocaleString("fr-FR")} € RP</strong> sur le compte bancaire principal de ton personnage.</div>
-      <div className={styles.notice}>Jetons disponibles : <strong>{chipBalance.toLocaleString("fr-FR")}</strong>.</div>
+
+      <p className={styles.cashierBalanceLine}>Jetons disponibles : <strong>{n(chipBalance)} JT</strong></p>
       {!enabled && <div className={`${styles.notice} ${styles.error}`}>La revente de jetons est actuellement fermée par la Direction.</div>}
       {paymentStatus !== "connected" && <div className={`${styles.notice} ${styles.error}`}>{unavailableMessage}</div>}
-      {chipBalance < minimum && <div className={`${styles.notice} ${styles.error}`}>Il faut au moins {minimum.toLocaleString("fr-FR")} jetons pour effectuer une revente.</div>}
+      {chipBalance < minimum && <div className={`${styles.notice} ${styles.error}`}>Il faut au moins {n(minimum)} jetons pour effectuer une revente.</div>}
       {message && <div className={`${styles.notice} ${styles[message.kind]}`}>{message.text}</div>}
-      <button className={styles.cashoutButton} disabled={pending || !canCashout} onClick={submit} type="button">{pending ? "Virement vers le compte en jeu…" : "Revendre mes jetons"}</button>
+      <button className={styles.cashierSellButton} disabled={pending || !canCashout} onClick={submit} type="button">
+        {pending ? "VIREMENT EN COURS…" : "REVENDRE"}
+      </button>
     </div>
   );
 }

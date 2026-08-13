@@ -420,3 +420,6 @@
   .resetGrid { grid-template-columns: 1fr; }
   .resetGrid article > p { min-height: 0; }
 }
+
+/* V148 · Gestion des packs de caisse */
+.cashierPackageAdminGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.cashierPackageAdminCard{padding:18px;border:1px solid rgba(227,183,65,.18);background:rgba(7,9,8,.45)}.cashierPackageAdminCard form{margin:0}.packagePreview{margin:2px 0 0;padding:12px;border:1px solid rgba(227,183,65,.13);color:#8d948e;background:rgba(227,183,65,.035);font-size:.72rem}.packagePreview strong{color:#e2bd54}.packageDeleteForm{margin-top:9px!important}.packageDeleteForm button{width:100%;min-height:38px;border:1px solid rgba(186,54,60,.3);color:#d88689;background:rgba(111,17,22,.12);font-weight:700;cursor:pointer}.newPackageTitle{display:block;margin:0 0 14px;color:#e1b83f;font-size:.78rem;letter-spacing:.08em;text-transform:uppercase}@media(max-width:900px){.cashierPackageAdminGrid{grid-template-columns:1fr}}

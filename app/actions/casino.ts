@@ -43,11 +43,11 @@ export async function saveCasinoSettings(formData: FormData) {
   const minConversion = integer(formData.get("min_conversion"));
   const maxConversion = integer(formData.get("max_conversion"));
   const cashoutEnabled = text(formData.get("cashout_enabled"), 10) === "true";
-  const cashoutRpPerChip = integer(formData.get("cashout_rp_per_chip"));
+  const cashoutCommissionPercent = decimal(formData.get("cashout_commission_percent"));
   const minCashout = integer(formData.get("min_cashout"));
   const maxCashout = integer(formData.get("max_cashout"));
-  if (!name || rpPerChip < 1 || minConversion < 1 || maxConversion < minConversion || cashoutRpPerChip < 1 || cashoutRpPerChip > rpPerChip || minCashout < 1 || maxCashout < minCashout) redirect("/dashboard/jeux/casino?error=settings");
-  const { error } = await (supabase as any).rpc("casino_update_cashier_settings_v120", {
+  if (!name || rpPerChip < 1 || minConversion < 1 || maxConversion < minConversion || cashoutCommissionPercent < 0 || cashoutCommissionPercent > 90 || minCashout < 1 || maxCashout < minCashout) redirect("/dashboard/jeux/casino?error=settings");
+  const { error } = await (supabase as any).rpc("casino_update_cashier_settings_v148", {
     p_public_enabled: publicEnabled,
     p_name: name,
     p_subtitle: subtitle,
@@ -55,13 +55,47 @@ export async function saveCasinoSettings(formData: FormData) {
     p_min_conversion: minConversion,
     p_max_conversion: maxConversion,
     p_cashout_enabled: cashoutEnabled,
-    p_cashout_rp_per_chip: cashoutRpPerChip,
+    p_cashout_commission_percent: cashoutCommissionPercent,
     p_min_cashout: minCashout,
     p_max_cashout: maxCashout,
   });
   if (error) redirect("/dashboard/jeux/casino?error=setup");
   refresh();
   redirect(`/dashboard/jeux/casino?saved=${publicEnabled ? "visible" : "hidden"}`);
+}
+
+export async function saveCasinoCashierPackage(formData: FormData) {
+  const supabase = await manager();
+  const id = text(formData.get("id"), 80) || null;
+  const name = text(formData.get("name"), 60);
+  const chipAmount = integer(formData.get("chip_amount"));
+  const bonusPercent = decimal(formData.get("bonus_percent"));
+  const sortOrder = integer(formData.get("sort_order"));
+  const enabled = text(formData.get("enabled"), 10) === "true";
+  if (!name || chipAmount < 1 || bonusPercent < 0 || bonusPercent > 100 || sortOrder < 0 || sortOrder > 999) {
+    redirect("/dashboard/jeux/casino?error=cashier-package");
+  }
+  const { error } = await (supabase as any).rpc("casino_save_cashier_package_v148", {
+    p_id: id,
+    p_name: name,
+    p_chip_amount: chipAmount,
+    p_bonus_percent: bonusPercent,
+    p_enabled: enabled,
+    p_sort_order: sortOrder,
+  });
+  if (error) redirect("/dashboard/jeux/casino?error=cashier-package");
+  refresh();
+  redirect("/dashboard/jeux/casino?saved=cashier-package");
+}
+
+export async function deleteCasinoCashierPackage(formData: FormData) {
+  const supabase = await manager();
+  const id = text(formData.get("id"), 80);
+  if (!id) redirect("/dashboard/jeux/casino?error=cashier-package");
+  const { error } = await (supabase as any).rpc("casino_delete_cashier_package_v148", { p_id: id });
+  if (error) redirect("/dashboard/jeux/casino?error=cashier-package");
+  refresh();
+  redirect("/dashboard/jeux/casino?saved=cashier-package-deleted");
 }
 
 export async function saveCasinoGameSettings(formData: FormData) {

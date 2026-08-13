@@ -1,9 +1,9 @@
 import Link from "next/link";
 
-import { adjustCasinoWallet, resetCasinoBeforeOpening, resetCasinoPlayer, saveCasinoGameSettings, saveCasinoSettings } from "@/app/actions/casino";
+import { adjustCasinoWallet, deleteCasinoCashierPackage, resetCasinoBeforeOpening, resetCasinoPlayer, saveCasinoCashierPackage, saveCasinoGameSettings, saveCasinoSettings } from "@/app/actions/casino";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
-import { getCasinoAdminData, getCasinoSettings } from "@/lib/casino/data";
+import { getCasinoAdminData, getCasinoCashierPackages, getCasinoSettings } from "@/lib/casino/data";
 import type { CasinoGameKey } from "@/lib/casino/types";
 import styles from "./casino-admin.module.css";
 
@@ -45,7 +45,7 @@ export const revalidate = 0;
 
 export default async function CasinoDashboardPage({ searchParams }: { searchParams: Promise<{ saved?: string; error?: string }> }) {
   const params = await searchParams;
-  const [settings, admin] = await Promise.all([getCasinoSettings(), getCasinoAdminData()]);
+  const [settings, admin, cashierPackages] = await Promise.all([getCasinoSettings(), getCasinoAdminData(), getCasinoCashierPackages(true)]);
   const recentPurchases = admin.conversions.slice(0, 30);
   const recentCashouts = admin.cashouts.slice(0, 30);
   const chipsInCirculation = admin.wallets.reduce((sum, wallet) => sum + wallet.balance, 0);
@@ -155,17 +155,50 @@ export default async function CasinoDashboardPage({ searchParams }: { searchPara
             <label><span>Visibilité</span><select name="public_enabled" defaultValue={settings.publicEnabled ? "true" : "false"}><option value="false">Masqué — privé Direction</option><option value="true">Visible — ouvert aux citoyens</option></select></label>
             <label><span>Nom du casino</span><input name="name" defaultValue={settings.name} maxLength={80} required /></label>
             <label><span>Sous-titre</span><input name="subtitle" defaultValue={settings.subtitle} maxLength={120} /></label>
-            <label><span>Valeur RP d’un jeton (€)</span><input name="rp_per_chip" type="number" min="1" defaultValue={settings.rpPerChip} required /></label>
+            <label><span>Valeur RP d’un jeton ($RP)</span><input name="rp_per_chip" type="number" min="1" defaultValue={settings.rpPerChip} required /></label>
             <label><span>Conversion minimum (jetons)</span><input name="min_conversion" type="number" min="1" defaultValue={settings.minConversion} required /></label>
             <label><span>Conversion maximum (jetons)</span><input name="max_conversion" type="number" min="1" defaultValue={settings.maxConversion} required /></label>
             <label><span>Revente des jetons</span><select name="cashout_enabled" defaultValue={settings.cashoutEnabled ? "true" : "false"}><option value="true">Ouverte — crédit automatique en jeu</option><option value="false">Fermée — revente bloquée</option></select></label>
-            <label><span>Valeur de revente d’un jeton (€ RP)</span><input name="cashout_rp_per_chip" type="number" min="1" max={settings.rpPerChip} defaultValue={settings.cashoutRpPerChip} required /></label>
+            <label><span>Commission maison à la revente (%)</span><input name="cashout_commission_percent" type="number" min="0" max="90" step="0.1" defaultValue={settings.cashoutCommissionPercent} required /></label>
             <label><span>Revente minimum (jetons)</span><input name="min_cashout" type="number" min="1" defaultValue={settings.minCashout} required /></label>
             <label><span>Revente maximum (jetons)</span><input name="max_cashout" type="number" min="1" defaultValue={settings.maxCashout} required /></label>
-            <p className={styles.rateNote}>Le taux de revente ne peut pas dépasser le prix d’achat d’un jeton, afin d’empêcher toute création d’argent par achat/revente.</p>
+            <p className={styles.rateNote}>La revente est calculée sur le taux officiel puis la commission est retirée. Exemple : 100 jetons × {n(settings.rpPerChip)} $RP avec {settings.cashoutCommissionPercent.toLocaleString("fr-FR")} % de commission = {n(Math.floor(100 * settings.rpPerChip * (100 - settings.cashoutCommissionPercent) / 100))} $RP reversés.</p>
             <button className="btn" type="submit">Enregistrer les réglages</button>
           </form>
           <Link className="secondary-link-button" href="/casino">Prévisualiser le casino →</Link>
+        </article>
+
+        <article className="backoffice-panel">
+          <div className="panel-heading"><span className="panel-icon">◈</span><div><h2>Packs de la caisse</h2><p>Configure les offres visibles sur le comptoir : nombre de jetons, bonus et ordre d’affichage.</p></div></div>
+          <div className={styles.cashierPackageAdminGrid}>
+            {cashierPackages.map((item) => (
+              <div className={styles.cashierPackageAdminCard} key={item.id}>
+                <form action={saveCasinoCashierPackage} className="tombola-settings-form">
+                  <input type="hidden" name="id" value={item.id} />
+                  <label><span>Nom du pack</span><input name="name" defaultValue={item.name} maxLength={60} required /></label>
+                  <label><span>Jetons de base</span><input name="chip_amount" type="number" min="1" step="1" defaultValue={item.chipAmount} required /></label>
+                  <label><span>Bonus (%)</span><input name="bonus_percent" type="number" min="0" max="100" step="0.1" defaultValue={item.bonusPercent} required /></label>
+                  <label><span>Ordre</span><input name="sort_order" type="number" min="0" max="999" step="1" defaultValue={item.sortOrder} required /></label>
+                  <label><span>Visibilité</span><select name="enabled" defaultValue={item.enabled ? "true" : "false"}><option value="true">Actif</option><option value="false">Masqué</option></select></label>
+                  <p className={styles.packagePreview}>{n(item.chipAmount * settings.rpPerChip)} $RP → <strong>{n(item.chipAmount + Math.floor(item.chipAmount * item.bonusPercent / 100))} jetons</strong></p>
+                  <button className="btn" type="submit">Enregistrer le pack</button>
+                </form>
+                <form action={deleteCasinoCashierPackage} className={styles.packageDeleteForm}>
+                  <input type="hidden" name="id" value={item.id} />
+                  <button type="submit">Supprimer le pack</button>
+                </form>
+              </div>
+            ))}
+            <form action={saveCasinoCashierPackage} className={`${styles.cashierPackageAdminCard} tombola-settings-form`}>
+              <strong className={styles.newPackageTitle}>+ Nouveau pack</strong>
+              <label><span>Nom du pack</span><input name="name" placeholder="Ex. Prestige" maxLength={60} required /></label>
+              <label><span>Jetons de base</span><input name="chip_amount" type="number" min="1" step="1" defaultValue="500" required /></label>
+              <label><span>Bonus (%)</span><input name="bonus_percent" type="number" min="0" max="100" step="0.1" defaultValue="0" required /></label>
+              <label><span>Ordre</span><input name="sort_order" type="number" min="0" max="999" step="1" defaultValue={cashierPackages.length * 10 + 10} required /></label>
+              <label><span>Visibilité</span><select name="enabled" defaultValue="true"><option value="true">Actif</option><option value="false">Masqué</option></select></label>
+              <button className="btn" type="submit">Créer le pack</button>
+            </form>
+          </div>
         </article>
 
         <article className="backoffice-panel">
@@ -185,7 +218,7 @@ export default async function CasinoDashboardPage({ searchParams }: { searchPara
           {recentPurchases.length === 0 && <p className="empty-state">Aucun achat enregistré pour le moment.</p>}
           {recentPurchases.map((item) => (
             <article className="order-card" key={item.id}>
-              <div><span className="module-status">{item.status === "approved" ? "PAYÉ" : item.status === "rejected" ? "REFUSÉ" : item.status === "cancelled" ? "ANNULÉ" : "À VÉRIFIER"}</span><h3>{item.citizenName}</h3><p>{n(item.rpAmount)} € RP → <strong>{n(item.chipAmount)} jetons</strong></p><small>{new Date(item.createdAt).toLocaleString("fr-FR")}</small></div>
+              <div><span className="module-status">{item.status === "approved" ? "PAYÉ" : item.status === "rejected" ? "REFUSÉ" : item.status === "cancelled" ? "ANNULÉ" : "À VÉRIFIER"}</span><h3>{item.citizenName}</h3><p>{n(item.rpAmount)} $RP → <strong>{n(item.chipAmount)} jetons</strong></p><small>{new Date(item.createdAt).toLocaleString("fr-FR")}</small></div>
             </article>
           ))}
         </div>
@@ -197,7 +230,7 @@ export default async function CasinoDashboardPage({ searchParams }: { searchPara
           {recentCashouts.length === 0 && <p className="empty-state">Aucune revente enregistrée pour le moment.</p>}
           {recentCashouts.map((item) => (
             <article className="order-card" key={item.id}>
-              <div><span className="module-status">{item.status === "approved" ? "CRÉDITÉ" : item.status === "rejected" ? "REMBOURSÉ" : item.status === "cancelled" ? "ANNULÉ" : "EN COURS"}</span><h3>{item.citizenName}</h3><p><strong>{n(item.chipAmount)} jetons</strong> → {n(item.rpAmount)} € RP</p><small>{new Date(item.createdAt).toLocaleString("fr-FR")}</small></div>
+              <div><span className="module-status">{item.status === "approved" ? "CRÉDITÉ" : item.status === "rejected" ? "REMBOURSÉ" : item.status === "cancelled" ? "ANNULÉ" : "EN COURS"}</span><h3>{item.citizenName}</h3><p><strong>{n(item.chipAmount)} jetons</strong> → {n(item.rpAmount)} $RP</p><small>{new Date(item.createdAt).toLocaleString("fr-FR")}</small></div>
             </article>
           ))}
         </div>
