@@ -446,27 +446,21 @@ export async function saveCatalogVehicleV51(
   }
 
   const savedVehicleId = Number(result.data?.id ?? id);
-  if (savedVehicleId > 0) {
-    if (catalogType === "exclusive" && exclusiveCollectionId) {
-      const { error: collectionError } = await (supabase as any)
-        .from("nostra_exclusive_collection_vehicles_v158")
-        .upsert(
-          {
-            vehicle_id: savedVehicleId,
-            collection_id: exclusiveCollectionId,
-            updated_by: user.id,
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: "vehicle_id" },
-        );
-      if (collectionError) {
-        redirect(dashboardUrl(catalogType, "error=collection-v158"));
-      }
-    } else if (catalogType !== "exclusive") {
-      await (supabase as any)
-        .from("nostra_exclusive_collection_vehicles_v158")
-        .delete()
-        .eq("vehicle_id", savedVehicleId);
+  if (savedVehicleId > 0 && catalogType === "exclusive" && exclusiveCollectionId) {
+    const { error: collectionError } = await (supabase as any)
+      .from("nostra_collection_vehicle_links_v159")
+      .upsert(
+        {
+          vehicle_id: savedVehicleId,
+          collection_id: exclusiveCollectionId,
+          created_by: user.id,
+          updated_by: user.id,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "collection_id,vehicle_id" },
+      );
+    if (collectionError) {
+      redirect(dashboardUrl(catalogType, "error=collection-v159"));
     }
   }
 

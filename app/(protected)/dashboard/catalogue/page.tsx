@@ -10,11 +10,14 @@ import { setVehicleCommerceAvailability } from "@/app/actions/vehicle-reservatio
 import { setVehicleShowroomVisibility } from "@/app/actions/showroom";
 import { saveVehicleMerchandisingV157 } from "@/app/actions/v157";
 import {
-  assignVehicleExclusiveCollectionV158,
   createExclusiveCollectionV158,
   deleteExclusiveCollectionV158,
   updateExclusiveCollectionV158,
 } from "@/app/actions/v158-exclusive-collections";
+import {
+  addExistingVehicleToCollectionV159,
+  removeVehicleFromCollectionV159,
+} from "@/app/actions/v159-collection-memberships";
 import {
   DashboardHeader,
 } from "@/components/dashboard/dashboard-header";
@@ -43,10 +46,8 @@ import {
   vehicleAccessTierLabelV157,
   vehicleTierBadgeClassV157,
 } from "@/lib/v157/data";
-import {
-  getExclusiveCollectionsV158,
-  getExclusiveCollectionVehicleMapV158,
-} from "@/lib/v158/exclusive-collections";
+import { getExclusiveCollectionsV158 } from "@/lib/v158/exclusive-collections";
+import { getVehicleCollectionMapV159 } from "@/lib/v159/collection-memberships";
 
 import styles from "@/components/motors/catalogue-v51.module.css";
 
@@ -74,7 +75,9 @@ function errorMessage(
     save:
       "Impossible d’enregistrer le véhicule. Vérifie que le SQL V51 a bien été exécuté.",
     "collection-v158":
-      "Le véhicule a été créé mais son rattachement à la collection a échoué. Exécute le SQL V158 puis réessaie.",
+      "Le véhicule a été créé mais son ancien rattachement V158 a échoué.",
+    "collection-v159":
+      "Le véhicule a été créé mais son rattachement à la collection a échoué. Exécute le SQL V159 puis réessaie.",
   };
 
   return messages[code ?? ""] ??
@@ -99,6 +102,9 @@ export default async function DashboardCataloguePage({
     brand?: string;
     v158_saved?: string;
     v158_error?: string;
+    v159_saved?: string;
+    v159_error?: string;
+    new_collection?: string;
   }>;
 }) {
   const params = await searchParams;
@@ -130,7 +136,7 @@ export default async function DashboardCataloguePage({
     getShowroomStateMap(managedVehicles.map((vehicle) => Number(vehicle.id))),
     getVehicleMerchandisingMapV157(managedVehicles.map((vehicle) => Number(vehicle.id))),
     getExclusiveCollectionsV158({ includeInactive: true }),
-    getExclusiveCollectionVehicleMapV158(managedVehicles.map((vehicle) => Number(vehicle.id))),
+    getVehicleCollectionMapV159(managedVehicles.map((vehicle) => Number(vehicle.id)), { includeInactive: true }),
   ]);
 
   const selectedType:
@@ -158,9 +164,15 @@ export default async function DashboardCataloguePage({
   const vehiclesInSelectedCatalogue =
     selectedType === "all"
       ? managedVehicles
-      : managedVehicles.filter(
-          (vehicle) => vehicle.catalog_type === selectedType,
-        );
+      : selectedType === "exclusive"
+        ? managedVehicles.filter(
+            (vehicle) =>
+              vehicle.catalog_type === "exclusive" ||
+              (exclusiveCollectionMap.get(Number(vehicle.id)) ?? []).length > 0,
+          )
+        : managedVehicles.filter(
+            (vehicle) => vehicle.catalog_type === selectedType,
+          );
 
   const availableBrands = Array.from(
     new Set(
@@ -250,11 +262,18 @@ export default async function DashboardCataloguePage({
       ? "standard"
       : selectedType;
 
+  const defaultCreateCollectionId =
+    createType === "exclusive" &&
+    typeof params.new_collection === "string" &&
+    exclusiveCollections.some((collection) => collection.id === params.new_collection && collection.active)
+      ? params.new_collection
+      : "";
+
   return (
     <DashboardShell>
       <DashboardHeader
         title="Catalogue Nostra Motors"
-        description="Chaque véhicule appartient à un seul catalogue. Choisis sa destination lors de l’ajout ou déplace-le ensuite avec le champ Catalogue."
+        description="Chaque véhicule garde un catalogue principal, mais peut aussi être présent dans une ou plusieurs collections sans dupliquer sa fiche."
       />
 
       {params.saved && (
@@ -343,9 +362,25 @@ export default async function DashboardCataloguePage({
         <div className="dashboard-feedback dashboard-feedback-error">
           {params.v158_error === "collection-name"
             ? "Donne un nom valide à la collection."
-            : params.v158_error === "vehicle"
-              ? "Seuls les véhicules du catalogue exclusif peuvent être rattachés à une collection."
-              : "Impossible de gérer les collections exclusives. Exécute le SQL V158 si nécessaire."}
+            : "Impossible de gérer les collections exclusives. Exécute le SQL V158 si nécessaire."}
+        </div>
+      )}
+
+      {params.v159_saved && (
+        <div className="dashboard-feedback dashboard-feedback-success">
+          {params.v159_saved === "vehicle-removed"
+            ? "Le véhicule a été retiré de la collection. Sa fiche et son catalogue principal restent inchangés."
+            : "Le véhicule existant a été ajouté à la collection sans dupliquer sa fiche."}
+        </div>
+      )}
+
+      {params.v159_error && (
+        <div className="dashboard-feedback dashboard-feedback-error">
+          {params.v159_error === "vehicle"
+            ? "Ce véhicule ne peut pas être ajouté à cette collection."
+            : params.v159_error === "collection"
+              ? "Cette collection n’existe plus."
+              : "Impossible de modifier les véhicules de la collection. Exécute le SQL V159 dans Supabase."}
         </div>
       )}
 
@@ -391,13 +426,15 @@ export default async function DashboardCataloguePage({
                 key={type}
               >
                 {CATALOG_LABELS[type]} ·{" "}
-                {
-                  managedVehicles.filter(
-                    (vehicle) =>
-                      vehicle.catalog_type ===
-                      type,
-                  ).length
-                }
+                {type === "exclusive"
+                  ? managedVehicles.filter(
+                      (vehicle) =>
+                        vehicle.catalog_type === "exclusive" ||
+                        (exclusiveCollectionMap.get(Number(vehicle.id)) ?? []).length > 0,
+                    ).length
+                  : managedVehicles.filter(
+                      (vehicle) => vehicle.catalog_type === type,
+                    ).length}
               </Link>
             ))}
 
@@ -485,7 +522,7 @@ export default async function DashboardCataloguePage({
                 <span className="panel-icon">✦</span>
                 <div>
                   <h2>Collections du catalogue exclusif</h2>
-                  <p>Crée tes collections puis rattache chaque véhicule exclusif à la collection voulue.</p>
+                  <p>Crée tes collections, crée des fiches directement dedans ou récupère des véhicules déjà présents dans les autres catalogues.</p>
                 </div>
               </div>
 
@@ -507,25 +544,120 @@ export default async function DashboardCataloguePage({
 
               {exclusiveCollections.length > 0 ? (
                 <div className={styles.collectionAdminGridV158}>
-                  {exclusiveCollections.map((collection) => (
-                    <article className={styles.collectionAdminCardV158} key={collection.id}>
-                      <form action={updateExclusiveCollectionV158}>
-                        <input type="hidden" name="collection_id" value={collection.id} />
-                        <label>Nom<input name="name" required defaultValue={collection.name} /></label>
-                        <label>Description<textarea name="description" rows={3} defaultValue={collection.description} /></label>
-                        <label>Ordre<input type="number" name="sort_order" min="0" defaultValue={collection.sortOrder} /></label>
-                        <label className="checkbox-label">
-                          <input type="checkbox" name="active" defaultChecked={collection.active} />
-                          Collection visible côté citoyen
-                        </label>
-                        <button className="btn" type="submit">Enregistrer</button>
-                      </form>
-                      <form action={deleteExclusiveCollectionV158}>
-                        <input type="hidden" name="collection_id" value={collection.id} />
-                        <button className="btn btn-danger-v98" type="submit">Supprimer la collection</button>
-                      </form>
-                    </article>
-                  ))}
+                  {exclusiveCollections.map((collection) => {
+                    const collectionVehicles = managedVehicles.filter((vehicle) =>
+                      (exclusiveCollectionMap.get(Number(vehicle.id)) ?? []).some((item) => item.id === collection.id),
+                    );
+                    const availableVehicles = managedVehicles.filter((vehicle) =>
+                      !(exclusiveCollectionMap.get(Number(vehicle.id)) ?? []).some((item) => item.id === collection.id),
+                    );
+                    const availableVehiclesByCatalogue = managedTypes
+                      .map((catalogType) => ({
+                        catalogType,
+                        label: CATALOG_LABELS[catalogType],
+                        vehicles: availableVehicles
+                          .filter((vehicle) => vehicle.catalog_type === catalogType)
+                          .slice()
+                          .sort((a, b) => {
+                            const brand = a.brand.localeCompare(b.brand, "fr", { sensitivity: "base", numeric: true });
+                            if (brand !== 0) return brand;
+                            return a.model.localeCompare(b.model, "fr", { sensitivity: "base", numeric: true });
+                          }),
+                      }))
+                      .filter((group) => group.vehicles.length > 0);
+
+                    return (
+                      <article className={styles.collectionAdminCardV158} id={`collection-${collection.id}`} key={collection.id}>
+                        <form action={updateExclusiveCollectionV158}>
+                          <input type="hidden" name="collection_id" value={collection.id} />
+                          <label>Nom<input name="name" required defaultValue={collection.name} /></label>
+                          <label>Description<textarea name="description" rows={3} defaultValue={collection.description} /></label>
+                          <label>Ordre<input type="number" name="sort_order" min="0" defaultValue={collection.sortOrder} /></label>
+                          <label className="checkbox-label">
+                            <input type="checkbox" name="active" defaultChecked={collection.active} />
+                            Collection visible côté citoyen
+                          </label>
+                          <button className="btn" type="submit">Enregistrer</button>
+                        </form>
+
+                        <div className={styles.collectionMembersV159}>
+                          <div className={styles.collectionMembersHeadingV159}>
+                            <div>
+                              <strong>Gérer les véhicules de cette collection</strong>
+                              <p>
+                                Récupère ici une fiche déjà créée dans le catalogue principal, location, poids lourd ou exclusif. La fiche reste aussi dans son catalogue d’origine.
+                              </p>
+                            </div>
+                            <span>{collectionVehicles.length}</span>
+                          </div>
+
+                          <div className={styles.collectionActionsV159}>
+                            <Link
+                              href={`/dashboard/catalogue?type=exclusive&new_collection=${encodeURIComponent(collection.id)}#nouveau-vehicule`}
+                              className="btn"
+                            >
+                              + Créer une nouvelle fiche dans cette collection
+                            </Link>
+                          </div>
+
+                          {availableVehicles.length > 0 ? (
+                            <form action={addExistingVehicleToCollectionV159} className={styles.collectionAddExistingV159}>
+                              <input type="hidden" name="collection_id" value={collection.id} />
+                              <label>
+                                Ajouter un véhicule existant à cette collection
+                                <select name="vehicle_id" required defaultValue="">
+                                  <option value="" disabled>Sélectionner un véhicule déjà créé</option>
+                                  {availableVehiclesByCatalogue.map((group) => (
+                                    <optgroup label={group.label} key={group.catalogType}>
+                                      {group.vehicles.map((vehicle) => (
+                                        <option value={vehicle.id} key={vehicle.id}>
+                                          {vehicle.brand} {vehicle.model}
+                                        </option>
+                                      ))}
+                                    </optgroup>
+                                  ))}
+                                </select>
+                              </label>
+                              <button className="btn" type="submit">+ Ajouter le véhicule sélectionné</button>
+                              <small>
+                                Aucune copie n’est créée : le même véhicule peut rester dans son catalogue d’origine et apparaître aussi dans cette collection.
+                              </small>
+                            </form>
+                          ) : (
+                            <p className={styles.collectionEmptyV159}>Tous les véhicules existants sont déjà présents dans cette collection.</p>
+                          )}
+
+                          <div className={styles.collectionCurrentMembersV159}>
+                            <strong>Déjà présents dans la collection</strong>
+                            {collectionVehicles.length > 0 ? (
+                              <div className={styles.collectionMemberListV159}>
+                                {collectionVehicles.map((vehicle) => (
+                                  <div className={styles.collectionMemberV159} key={vehicle.id}>
+                                    <div>
+                                      <strong>{vehicle.brand} {vehicle.model}</strong>
+                                      <small>{CATALOG_LABELS[vehicle.catalog_type]}</small>
+                                    </div>
+                                    <form action={removeVehicleFromCollectionV159}>
+                                      <input type="hidden" name="collection_id" value={collection.id} />
+                                      <input type="hidden" name="vehicle_id" value={vehicle.id} />
+                                      <button type="submit">Retirer de la collection</button>
+                                    </form>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className={styles.collectionEmptyV159}>Aucun véhicule dans cette collection.</p>
+                            )}
+                          </div>
+                        </div>
+
+                        <form action={deleteExclusiveCollectionV158}>
+                          <input type="hidden" name="collection_id" value={collection.id} />
+                          <button className="btn btn-danger-v98" type="submit">Supprimer la collection</button>
+                        </form>
+                      </article>
+                    );
+                  })}
                 </div>
               ) : (
                 <p style={{ color: "#aeb3bb" }}>Aucune collection créée pour le moment.</p>
@@ -533,7 +665,7 @@ export default async function DashboardCataloguePage({
             </section>
           )}
 
-          <article className="backoffice-panel catalog-admin-create">
+          <article className="backoffice-panel catalog-admin-create" id="nouveau-vehicule">
             <div className="panel-heading">
               <span className="panel-icon">
                 ◈
@@ -543,7 +675,7 @@ export default async function DashboardCataloguePage({
                   Ajouter un véhicule
                 </h2>
                 <p>
-                  Le véhicule apparaîtra uniquement dans le catalogue choisi.
+                  Choisis son catalogue principal. Si tu sélectionnes une collection, la même fiche y sera aussi affichée sans duplication.
                 </p>
               </div>
             </div>
@@ -563,6 +695,7 @@ export default async function DashboardCataloguePage({
                   name: collection.name,
                   active: collection.active,
                 }))}
+                defaultCollectionId={defaultCreateCollectionId}
               />
 
               <label>
@@ -708,11 +841,11 @@ export default async function DashboardCataloguePage({
                           ]
                         }
                       </span>
-                      {vehicle.catalog_type === "exclusive" && exclusiveCollectionMap.get(Number(vehicle.id)) && (
-                        <span className={styles.collectionLabelV158}>
-                          {exclusiveCollectionMap.get(Number(vehicle.id))?.name}
+                      {(exclusiveCollectionMap.get(Number(vehicle.id)) ?? []).map((collection) => (
+                        <span className={styles.collectionLabelV158} key={collection.id}>
+                          {collection.name}
                         </span>
-                      )}
+                      ))}
                     </div>
 
                     <div className="catalog-admin-badges">
@@ -919,32 +1052,6 @@ export default async function DashboardCataloguePage({
                       Enregistrer et déplacer si nécessaire
                     </button>
                   </form>
-
-                  {vehicle.catalog_type === "exclusive" && (
-                    <section className="catalog-admin-merchandising-v157">
-                      <div className="heading-v157">
-                        <div>
-                          <span className="eyebrow">COLLECTION EXCLUSIVE</span>
-                          <h3>Rattacher le véhicule à une collection</h3>
-                        </div>
-                      </div>
-                      <form action={assignVehicleExclusiveCollectionV158} className="form-v157">
-                        <input type="hidden" name="vehicle_id" value={vehicle.id} />
-                        <label className="wide-v157">
-                          Collection
-                          <select name="collection_id" defaultValue={exclusiveCollectionMap.get(Number(vehicle.id))?.id ?? ""}>
-                            <option value="">Aucune collection</option>
-                            {exclusiveCollections.map((collection) => (
-                              <option value={collection.id} key={collection.id}>
-                                {collection.name}{collection.active ? "" : " · masquée"}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                        <button className="btn" type="submit">Enregistrer la collection</button>
-                      </form>
-                    </section>
-                  )}
 
                   <section className={`catalog-admin-showroom-v152${isInShowroom ? " is-active" : ""}`}>
                     <div className="catalog-admin-showroom-copy-v152">

@@ -6,10 +6,12 @@ export function CatalogueAdminCreateFieldsV158({
   catalogTypes,
   defaultCatalogType,
   collections,
+  defaultCollectionId = "",
 }: {
   catalogTypes: Array<{ value: string; label: string }>;
   defaultCatalogType: string;
   collections: Array<{ id: string; name: string; active: boolean }>;
+  defaultCollectionId?: string;
 }) {
   const [catalogType, setCatalogType] = useState(defaultCatalogType);
 
@@ -33,7 +35,7 @@ export function CatalogueAdminCreateFieldsV158({
       {catalogType === "exclusive" && (
         <label>
           Collection exclusive
-          <select name="exclusive_collection_id" defaultValue="">
+          <select name="exclusive_collection_id" defaultValue={defaultCollectionId}>
             <option value="">Aucune collection</option>
             {collections
               .filter((collection) => collection.active)

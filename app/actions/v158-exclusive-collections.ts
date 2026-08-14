@@ -122,7 +122,7 @@ export async function addExclusiveCollectionToCartV158(formData: FormData) {
   const { data: authData } = await supabase.auth.getUser();
   if (!authData.user) redirect("/");
 
-  const { data, error } = await (supabase as any).rpc("nostra_add_exclusive_collection_to_cart_v158", {
+  const { data, error } = await (supabase as any).rpc("nostra_add_collection_to_cart_v159", {
     p_collection_id: collectionId,
   });
   if (error) {

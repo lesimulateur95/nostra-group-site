@@ -43,7 +43,7 @@ export function CatalogueFiltersV114({
 
       const matchSearch = !normalizedSearch || label.includes(normalizedSearch);
       const matchBrand = !brand || cardBrand === brand;
-      const matchCollection = !collection || cardCollection === collection;
+      const matchCollection = !collection || cardCollection.split("|").includes(collection);
       const matchPrice = price >= min && price <= max;
       const matchAvailability =
         availability === "all" ||

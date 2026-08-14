@@ -32,10 +32,11 @@ import {
   vehicleTierBadgeClassV157,
 } from "@/lib/v157/data";
 import { createClient } from "@/lib/supabase/server";
+import { getExclusiveCollectionsV158 } from "@/lib/v158/exclusive-collections";
 import {
-  getExclusiveCollectionsV158,
-  getExclusiveCollectionVehicleMapV158,
-} from "@/lib/v158/exclusive-collections";
+  getExclusiveCatalogueVehiclesV159,
+  getVehicleCollectionMapV159,
+} from "@/lib/v159/collection-memberships";
 import {
   getSitePage,
   type EditablePageSlug,
@@ -105,7 +106,9 @@ export async function CatalogueViewV51({
     exclusiveCollections,
   ] = await Promise.all([
     getCataloguesV51Configured(),
-    getCatalogVehiclesV51({ catalogType }),
+    catalogType === "exclusive"
+      ? getExclusiveCatalogueVehiclesV159()
+      : getCatalogVehiclesV51({ catalogType }),
     getStockCommerceConfigured(),
     sitePageSlug ? getSitePage(sitePageSlug) : Promise.resolve(null),
     isVehicleReservationEnabled(catalogType),
@@ -121,7 +124,7 @@ export async function CatalogueViewV51({
     getFlashSaleMapV156(vehicleIds),
     getVehicleMerchandisingMapV157(vehicleIds),
     getCurrentCitizenVehicleTierV157(authData.user?.id),
-    catalogType === "exclusive" ? getExclusiveCollectionVehicleMapV158(vehicleIds) : Promise.resolve(new Map()),
+    catalogType === "exclusive" ? getVehicleCollectionMapV159(vehicleIds) : Promise.resolve(new Map()),
   ]);
 
   const grouped = new Map<string, typeof vehicles>();
@@ -133,7 +136,7 @@ export async function CatalogueViewV51({
 
   const collectionGroups = exclusiveCollections.map((collection) => {
     const collectionVehicles = vehicles.filter(
-      (vehicle) => collectionMap.get(Number(vehicle.id))?.id === collection.id,
+      (vehicle) => (collectionMap.get(Number(vehicle.id)) ?? []).some((item) => item.id === collection.id),
     );
     let total = 0;
     let bundleReady = collectionVehicles.length > 0;
@@ -279,7 +282,7 @@ export async function CatalogueViewV51({
                   <div>
                     <span>COLLECTIONS NOSTRA</span>
                     <h2>Acheter véhicule par véhicule ou la collection entière</h2>
-                    <p>Chaque collection regroupe une sélection de véhicules exclusifs. L’achat groupé ajoute un exemplaire de chaque véhicule au panier.</p>
+                    <p>Chaque collection peut regrouper des véhicules venant de plusieurs catalogues, sans dupliquer leurs fiches. L’achat groupé ajoute un exemplaire de chaque véhicule au panier.</p>
                   </div>
                 </div>
                 <div className={styles.collectionGridV158}>
@@ -395,7 +398,7 @@ export async function CatalogueViewV51({
                           data-reserve={canReserve ? "true" : "false"}
                           data-sale={canOrder ? "true" : "false"}
                           data-status={catalogType === "used" ? (vehicle.used_vehicle_status || "available") : "available"}
-                          data-collection={collectionMap.get(Number(vehicle.id))?.slug ?? ""}
+                          data-collection={(collectionMap.get(Number(vehicle.id)) ?? []).map((item) => item.slug).join("|")}
                           data-order={vehicleIndex}
                         >
                           <div className="catalogue-vehicle-media">
@@ -419,9 +422,9 @@ export async function CatalogueViewV51({
                                 )}
                               </div>
                             )}
-                            {catalogType === "exclusive" && collectionMap.get(Number(vehicle.id)) && (
+                            {catalogType === "exclusive" && (collectionMap.get(Number(vehicle.id)) ?? []).length > 0 && (
                               <span className={styles.collectionVehicleBadgeV158}>
-                                {collectionMap.get(Number(vehicle.id))?.name}
+                                {(collectionMap.get(Number(vehicle.id)) ?? []).map((item) => item.name).join(" · ")}
                               </span>
                             )}
                             {vehicle.images[0] ? (
