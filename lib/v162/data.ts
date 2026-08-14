@@ -156,8 +156,8 @@ function mapConcierge(r: Record<string,unknown>): ConciergeRequestV162 { return 
 
 export async function getMyConciergeRequestsV162(userId:string):Promise<ConciergeRequestV162[]> {
   const s=await createClient(); const {data,error}=await (s as any).from("motors_concierge_requests_v162").select("*").eq("user_id",userId).order("created_at",{ascending:false}); if(error)return[];
-  const rows=(data??[]).map((r:Record<string,unknown>)=>mapConcierge(r)); const ids=[...new Set(rows.map(r=>r.proposedVehicleId).filter((x):x is number=>!!x))];
-  if(ids.length){const v=await (s as any).from("catalog_vehicles").select("id,brand,model").in("id",ids);const m=new Map((v.data??[]).map((x:any)=>[num(x.id),`${str(x.brand)} ${str(x.model)}`.trim()]));for(const r of rows)r.proposedVehicleLabel=r.proposedVehicleId?m.get(r.proposedVehicleId):undefined;}
+  const rows: ConciergeRequestV162[] = Array.isArray(data) ? data.map((r: Record<string, unknown>) => mapConcierge(r)) : []; const ids=[...new Set(rows.map((r: ConciergeRequestV162) => r.proposedVehicleId).filter((x: number | null): x is number => x != null))];
+  if(ids.length){const v=await (s as any).from("catalog_vehicles").select("id,brand,model").in("id",ids);const vehicleRows: Array<Record<string, unknown>> = Array.isArray(v.data) ? v.data : []; const m = new Map<number, string>(vehicleRows.map((x: Record<string, unknown>): [number, string] => [num(x.id), `${str(x.brand)} ${str(x.model)}`.trim()]));for(const r of rows)r.proposedVehicleLabel=r.proposedVehicleId?m.get(r.proposedVehicleId):undefined;}
   return rows;
 }
 
