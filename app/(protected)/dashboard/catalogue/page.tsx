@@ -83,6 +83,7 @@ export default async function DashboardCataloguePage({
     v157_saved?: string;
     v157_error?: string;
     sort?: string;
+    brand?: string;
   }>;
 }) {
   const params = await searchParams;
@@ -137,18 +138,53 @@ export default async function DashboardCataloguePage({
       ? params.sort
       : "brand_asc";
 
-  const buildCatalogueHref = (nextType: CatalogType | "all", nextSort = sortMode) =>
-    `/dashboard/catalogue?type=${nextType}&sort=${nextSort}`;
-
-  const visibleVehicles = (
+  const vehiclesInSelectedCatalogue =
     selectedType === "all"
       ? managedVehicles
       : managedVehicles.filter(
-          (vehicle) =>
-            vehicle.catalog_type ===
-            selectedType,
-        )
-  ).slice().sort((a, b) => {
+          (vehicle) => vehicle.catalog_type === selectedType,
+        );
+
+  const availableBrands = Array.from(
+    new Set(
+      vehiclesInSelectedCatalogue
+        .map((vehicle) => vehicle.brand.trim())
+        .filter(Boolean),
+    ),
+  ).sort((a, b) =>
+    a.localeCompare(b, "fr", { sensitivity: "base", numeric: true }),
+  );
+
+  const selectedBrand =
+    typeof params.brand === "string" &&
+    availableBrands.some(
+      (brand) => brand.localeCompare(params.brand ?? "", "fr", { sensitivity: "base" }) === 0,
+    )
+      ? availableBrands.find(
+          (brand) => brand.localeCompare(params.brand ?? "", "fr", { sensitivity: "base" }) === 0,
+        ) ?? "all"
+      : "all";
+
+  const buildCatalogueHref = (
+    nextType: CatalogType | "all",
+    nextSort = sortMode,
+    nextBrand = selectedBrand,
+  ) => {
+    const query = new URLSearchParams();
+    query.set("type", nextType);
+    query.set("sort", nextSort);
+    if (nextBrand !== "all") query.set("brand", nextBrand);
+    return `/dashboard/catalogue?${query.toString()}`;
+  };
+
+  const visibleVehicles = vehiclesInSelectedCatalogue
+    .filter(
+      (vehicle) =>
+        selectedBrand === "all" ||
+        vehicle.brand.localeCompare(selectedBrand, "fr", { sensitivity: "base" }) === 0,
+    )
+    .slice()
+    .sort((a, b) => {
     const brandDifference = a.brand.localeCompare(b.brand, "fr", {
       sensitivity: "base",
       numeric: true,
@@ -302,7 +338,7 @@ export default async function DashboardCataloguePage({
                   ? styles.activeAdminTab
                   : styles.adminTab
               }
-              href={buildCatalogueHref("all")}
+              href={buildCatalogueHref("all", sortMode, "all")}
             >
               Tous · {managedVehicles.length}
             </Link>
@@ -314,7 +350,7 @@ export default async function DashboardCataloguePage({
                     ? styles.activeAdminTab
                     : styles.adminTab
                 }
-                href={buildCatalogueHref(type)}
+                href={buildCatalogueHref(type, sortMode, "all")}
                 key={type}
               >
                 {CATALOG_LABELS[type]} ·{" "}
@@ -332,6 +368,42 @@ export default async function DashboardCataloguePage({
               Véhicules d’occasion →
             </Link>
           </nav>
+
+          <section className="backoffice-panel" style={{ marginTop: 14, marginBottom: 18 }}>
+            <div className="panel-heading" style={{ marginBottom: 12 }}>
+              <span className="panel-icon">⌕</span>
+              <div>
+                <h2 style={{ marginBottom: 2 }}>Filtrer par marque</h2>
+                <p>Affiche uniquement les véhicules de la marque choisie, sans changer leur catalogue.</p>
+              </div>
+            </div>
+
+            <nav className={styles.adminTabs} aria-label="Filtre des véhicules par marque">
+              <Link
+                className={selectedBrand === "all" ? styles.activeAdminTab : styles.adminTab}
+                href={buildCatalogueHref(selectedType, sortMode, "all")}
+              >
+                Toutes les marques · {vehiclesInSelectedCatalogue.length}
+              </Link>
+
+              {availableBrands.map((brand) => {
+                const brandCount = vehiclesInSelectedCatalogue.filter(
+                  (vehicle) =>
+                    vehicle.brand.localeCompare(brand, "fr", { sensitivity: "base" }) === 0,
+                ).length;
+
+                return (
+                  <Link
+                    className={selectedBrand === brand ? styles.activeAdminTab : styles.adminTab}
+                    href={buildCatalogueHref(selectedType, sortMode, brand)}
+                    key={brand}
+                  >
+                    {brand} · {brandCount}
+                  </Link>
+                );
+              })}
+            </nav>
+          </section>
 
           <section className="backoffice-panel" style={{ marginTop: 14, marginBottom: 18 }}>
             <div className="panel-heading" style={{ marginBottom: 12 }}>
