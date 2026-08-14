@@ -8,7 +8,11 @@ import {
   CatalogueCompareButtonV51,
 } from "@/components/motors/catalogue-comparator-v51";
 import { CatalogueFiltersV114 } from "@/components/motors/catalogue-filters-v114";
-import { addExclusiveCollectionToCartV158 } from "@/app/actions/v158-exclusive-collections";
+import {
+  CatalogueCollectionSelectionButtonV1601,
+  CatalogueSelectionButtonV1601,
+  CatalogueSelectionProviderV1601,
+} from "@/components/motors/catalogue-selection-v1601";
 import { VehicleFavoriteControls } from "@/components/motors/vehicle-favorite-controls";
 import {
   CATALOG_LABELS,
@@ -96,6 +100,7 @@ export async function CatalogueViewV51({
     cart_added?: string;
     cart_error?: string;
     collection_error?: string;
+    selection_error?: string;
   }>;
   sitePageSlug?: EditablePageSlug;
 }) {
@@ -123,6 +128,9 @@ export async function CatalogueViewV51({
   const vehicleIds = vehicles.map((vehicle) => Number(vehicle.id));
   const supabase = await createClient();
   const { data: authData } = await supabase.auth.getUser();
+  const authMetadata = (authData.user?.user_metadata ?? {}) as Record<string, unknown>;
+  const profilePhone = typeof authMetadata.phone === "string" ? authMetadata.phone : "";
+  const profileAddress = typeof authMetadata.address === "string" ? authMetadata.address : "";
   const [favoriteState, commerceAvailability, flashSales, merchandising, citizenTier, collectionMap] = await Promise.all([
     getCurrentFavoriteStateMap(vehicleIds),
     getVehicleCommerceAvailabilityMap(vehicleIds),
@@ -174,6 +182,10 @@ export async function CatalogueViewV51({
       key={catalogType}
       catalogType={catalogType}
     >
+      <CatalogueSelectionProviderV1601
+        profilePhone={profilePhone}
+        profileAddress={profileAddress}
+      >
       <article className="motors-catalogue-page">
         <header className="document-hero">
           <p className="eyebrow">NOSTRA MOTORS</p>
@@ -248,6 +260,30 @@ export async function CatalogueViewV51({
           </div>
         )}
 
+        {params.selection_error && (
+          <div className="catalogue-feedback catalogue-feedback-error">
+            {params.selection_error === "empty"
+              ? "Ta sélection est vide."
+              : params.selection_error === "stock"
+                ? "Au moins un véhicule sélectionné n’est plus disponible en stock."
+                : params.selection_error === "sale"
+                  ? "La vente d’au moins un véhicule sélectionné est actuellement suspendue."
+                  : params.selection_error === "tier"
+                    ? "Ton grade de fidélité ne permet pas l’achat de tous les véhicules sélectionnés."
+                    : params.selection_error === "vip"
+                      ? "Une vente privée de ta sélection nécessite un niveau VIP supérieur."
+                      : params.selection_error === "rental"
+                        ? "Les véhicules du catalogue Location ne peuvent pas entrer dans une commande groupée."
+                        : params.selection_error === "address"
+                          ? "Renseigne une adresse complète pour la livraison à domicile."
+                          : params.selection_error === "phone"
+                            ? "Renseigne un numéro de téléphone pour la livraison à domicile."
+                            : params.selection_error === "setup"
+                              ? "Exécute le SQL V160.1 avant d’utiliser la sélection multi-véhicules."
+                              : "Impossible de préparer cette sélection. Vérifie la disponibilité des véhicules."}
+          </div>
+        )}
+
         {catalogType === "exclusive" && params.collection_error && (
           <div className="catalogue-feedback catalogue-feedback-error">
             {params.collection_error === "stock"
@@ -289,7 +325,7 @@ export async function CatalogueViewV51({
                   <div>
                     <span>COLLECTIONS NOSTRA</span>
                     <h2>Acheter véhicule par véhicule ou la collection entière</h2>
-                    <p>Chaque collection peut regrouper des véhicules venant de plusieurs catalogues, sans dupliquer leurs fiches. L’achat groupé ajoute un exemplaire de chaque véhicule au panier.</p>
+                    <p>Chaque collection peut regrouper des véhicules venant de plusieurs catalogues, sans dupliquer leurs fiches. La sélection groupée permet de choisir toute la collection, puis de définir une seule fois le mode de récupération avant le panier.</p>
                   </div>
                 </div>
                 <div className={styles.collectionGridV158}>
@@ -304,12 +340,25 @@ export async function CatalogueViewV51({
                         <span>{collectionVehicles.length} véhicule{collectionVehicles.length > 1 ? "s" : ""}</span>
                         <strong>{formatPrice(total)}</strong>
                       </div>
-                      <form action={addExclusiveCollectionToCartV158}>
-                        <input type="hidden" name="collection_id" value={collection.id} />
-                        <button className="btn" type="submit" disabled={!bundleReady}>
-                          {bundleReady ? "Ajouter la collection complète au panier" : "Collection temporairement indisponible"}
-                        </button>
-                      </form>
+                      <CatalogueCollectionSelectionButtonV1601
+                        disabled={!bundleReady}
+                        items={collectionVehicles.map((vehicle) => {
+                          const vehicleMerchandising = merchandising.get(Number(vehicle.id));
+                          const regularSale = getActiveVehicleSaleV157(vehicleMerchandising, vehicle.price);
+                          const flashPrice = flashSales.get(Number(vehicle.id))?.flashPrice ?? null;
+                          const effectivePrice = Math.min(
+                            regularSale?.salePrice ?? vehicle.price,
+                            flashPrice ?? vehicle.price,
+                          );
+                          return {
+                            id: Number(vehicle.id),
+                            label: `${vehicle.brand} ${vehicle.model}`,
+                            price: effectivePrice,
+                            imageUrl: vehicle.images[0]?.url ?? null,
+                            catalogType: vehicle.catalog_type,
+                          };
+                        })}
+                      />
                     </article>
                   ))}
                 </div>
@@ -556,12 +605,25 @@ export async function CatalogueViewV51({
                               canStartPurchase &&
                               (catalogType !== "used" ||
                                 vehicle.used_vehicle_status === "available") ? (
-                                <Link
-                                  className="btn catalogue-cart-button"
-                                  href={`/motors/catalogue/${vehicle.id}/commande`}
-                                >
-                                  {purchaseLabel}
-                                </Link>
+                                vehicle.catalog_type !== "concession" && canOrder ? (
+                                  <CatalogueSelectionButtonV1601
+                                    item={{
+                                      id: Number(vehicle.id),
+                                      label: `${vehicle.brand} ${vehicle.model}`,
+                                      price: effectivePrice,
+                                      imageUrl: vehicle.images[0]?.url ?? null,
+                                      catalogType: vehicle.catalog_type,
+                                    }}
+                                    optionsHref={`/motors/catalogue/${vehicle.id}/commande`}
+                                  />
+                                ) : (
+                                  <Link
+                                    className="btn catalogue-cart-button"
+                                    href={`/motors/catalogue/${vehicle.id}/commande`}
+                                  >
+                                    {purchaseLabel}
+                                  </Link>
+                                )
                               ) : (
                                 <button
                                   className="btn catalogue-cart-button"
@@ -626,6 +688,7 @@ export async function CatalogueViewV51({
           </>
         )}
       </article>
+      </CatalogueSelectionProviderV1601>
     </CatalogueComparatorProviderV51>
   );
 }

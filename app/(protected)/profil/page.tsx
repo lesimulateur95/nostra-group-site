@@ -17,6 +17,7 @@ import { checkoutContractRenewals } from "@/app/actions/contracts";
 import { ProfileNavigation } from "@/components/profile/profile-navigation";
 import { LoyaltyCard } from "@/components/loyalty/loyalty-card";
 import { IdentityCard } from "@/components/profile/identity-card";
+import { ClearCatalogueSelectionV1601 } from "@/components/motors/clear-catalogue-selection-v1601";
 
 import { NotificationLauncher } from "@/components/profile/notification-launcher";
 
@@ -60,7 +61,7 @@ import styles from "./profile-top-layout.module.css";
 
 type ProfilePageProps = {
 
- searchParams: Promise<{ setup?: string; error?: string; profile_saved?: string; vehicle_added?: string; reservation_added?: string; reservation_paid?: string; reservation_error?: string; balance_paid?: string; balance_error?: string; order_sent?: string; order_error?: string; cart_removed?: string; cart_error?: string; tombola_added?: string; tombola_removed?: string; tombola_cart_error?: string; tombola_order_error?: string; bingo_added?: string; bingo_removed?: string; bingo_cart_error?: string; bingo_order_error?: string; license_added?: string; license_removed?: string; license_paid?: string; license_order_error?: string; contract_paid?: string; contract_error?: string }>;
+ searchParams: Promise<{ setup?: string; error?: string; profile_saved?: string; vehicle_added?: string; selection_added?: string; reservation_added?: string; reservation_paid?: string; reservation_error?: string; balance_paid?: string; balance_error?: string; order_sent?: string; order_error?: string; cart_removed?: string; cart_error?: string; tombola_added?: string; tombola_removed?: string; tombola_cart_error?: string; tombola_order_error?: string; bingo_added?: string; bingo_removed?: string; bingo_cart_error?: string; bingo_order_error?: string; license_added?: string; license_removed?: string; license_paid?: string; license_order_error?: string; contract_paid?: string; contract_error?: string }>;
 
 };
 
@@ -230,7 +231,8 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
  : params.error === "save_failed" ? "Le profil n’a pas pu être sauvegardé. Réessaie dans un instant." : null;
 
  return (
- <>
+  <>
+   {params.selection_added && <ClearCatalogueSelectionV1601 />}
 
  <section className="profile-heading">
 
@@ -309,7 +311,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
  <ProfileNavigation orders={commerce.orders.length} reservations={vehicleReservations.length} financing={vehicleFinancing.length} tradeIns={vehicleTradeIns.length} searchMandates={searchMandates.length} consignments={vehicleConsignments.length} homologations={homologations.length} teams={teamRegistrations.length} documents={commerce.invoices.length} games={wheelSpins.length + tombolaTickets.length + bingoCards.length} />
  {!commerce.configured && <div className="dashboard-feedback">Les rubriques commerciales seront disponibles dès que le script SQL du Dashboard aura été exécuté.</div>}
 
- {params.vehicle_added && <div className="dashboard-feedback dashboard-feedback-success">Le véhicule et son mode de livraison ont été ajoutés à ton panier au prix total.</div>}
+ {params.vehicle_added && <div className="dashboard-feedback dashboard-feedback-success">{Number(params.vehicle_added) > 1 ? `${Number(params.vehicle_added)} véhicules et le mode de récupération choisi ont été ajoutés à ton panier.` : "Le véhicule et son mode de récupération ont été ajoutés à ton panier au prix total."}</div>}
 
  {params.reservation_added && <div className="dashboard-feedback dashboard-feedback-success">L’acompte de réservation de 15 % a été ajouté à ton panier.</div>}
 
@@ -596,7 +598,6 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
 
  </section>
 
- </>
-
+  </>
  );
 }

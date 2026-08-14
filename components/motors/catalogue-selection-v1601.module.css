@@ -1,0 +1,385 @@
+.toggleWrap {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+}
+
+.selectButton,
+.collectionButton {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid rgba(197, 155, 66, 0.5);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(27, 28, 31, 0.98), rgba(15, 16, 18, 0.98));
+  color: #f5f0e6;
+  padding: 11px 14px;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  transition: 160ms ease;
+}
+
+.selectButton:hover,
+.collectionButton:hover {
+  transform: translateY(-1px);
+  border-color: rgba(214, 177, 94, 0.9);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+}
+
+.selected {
+  background: linear-gradient(180deg, #c59b42, #a77a24);
+  color: #15120b;
+  border-color: #e1bd6c;
+}
+
+.secondaryLink {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 34px;
+  color: #b8b9bd;
+  text-decoration: none;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.secondaryLink:hover {
+  color: #f0d48d;
+}
+
+.collectionButton:disabled,
+.selectButton:disabled {
+  opacity: 0.46;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.bar {
+  position: fixed;
+  left: 50%;
+  bottom: 22px;
+  z-index: 90;
+  width: min(980px, calc(100vw - 30px));
+  transform: translateX(-50%);
+  border: 1px solid rgba(213, 172, 81, 0.45);
+  border-radius: 18px;
+  background: rgba(13, 14, 16, 0.97);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.46);
+  backdrop-filter: blur(18px);
+  padding: 13px 15px;
+}
+
+.barInner {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 14px;
+  align-items: center;
+}
+
+.barCopy {
+  min-width: 0;
+}
+
+.barCopy strong {
+  display: block;
+  color: #fff;
+  font-size: 0.98rem;
+}
+
+.barCopy span {
+  display: block;
+  margin-top: 2px;
+  color: #aeb0b5;
+  font-size: 0.82rem;
+}
+
+.barActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.clearButton,
+.commandButton,
+.closeButton {
+  border: 0;
+  border-radius: 11px;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.clearButton {
+  background: transparent;
+  color: #aeb0b5;
+  padding: 10px 12px;
+}
+
+.commandButton {
+  background: linear-gradient(180deg, #d2ad5d, #a87b24);
+  color: #17120a;
+  padding: 11px 16px;
+}
+
+.dialogBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(4, 5, 7, 0.72);
+  backdrop-filter: blur(8px);
+}
+
+.dialog {
+  width: min(860px, 100%);
+  max-height: min(760px, calc(100vh - 40px));
+  overflow: auto;
+  border: 1px solid rgba(211, 172, 84, 0.34);
+  border-radius: 22px;
+  background: #111216;
+  box-shadow: 0 30px 100px rgba(0, 0, 0, 0.55);
+}
+
+.dialogHeader {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  padding: 20px 22px 16px;
+  background: rgba(17, 18, 22, 0.96);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+}
+
+.dialogHeader p {
+  margin: 0 0 4px;
+  color: #cba655;
+  font-size: 0.73rem;
+  font-weight: 900;
+  letter-spacing: 0.13em;
+}
+
+.dialogHeader h2 {
+  margin: 0;
+  color: #fff;
+  font-size: clamp(1.25rem, 2vw, 1.75rem);
+}
+
+.closeButton {
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  background: rgba(255, 255, 255, 0.07);
+  color: #fff;
+  font-size: 1.1rem;
+}
+
+.dialogBody {
+  display: grid;
+  gap: 18px;
+  padding: 20px 22px 24px;
+}
+
+.selectionList {
+  display: grid;
+  gap: 8px;
+}
+
+.selectionRow {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 12px;
+  align-items: center;
+  padding: 11px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.selectionRow strong {
+  color: #f7f7f8;
+  font-size: 0.9rem;
+}
+
+.selectionRow span {
+  color: #d3b870;
+  font-weight: 800;
+  font-size: 0.86rem;
+}
+
+.removeButton {
+  border: 0;
+  background: transparent;
+  color: #9c9fa6;
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.summaryCard {
+  padding: 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.summaryCard span {
+  display: block;
+  color: #94979f;
+  font-size: 0.76rem;
+}
+
+.summaryCard strong {
+  display: block;
+  margin-top: 5px;
+  color: #fff;
+  font-size: 1rem;
+}
+
+.deliverySection {
+  display: grid;
+  gap: 10px;
+}
+
+.deliveryTitle {
+  margin: 0;
+  color: #fff;
+  font-size: 1rem;
+}
+
+.option {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.025);
+  cursor: pointer;
+}
+
+.option input {
+  accent-color: #c89c43;
+}
+
+.optionCopy strong {
+  display: block;
+  color: #f8f8f8;
+  font-size: 0.92rem;
+}
+
+.optionCopy small {
+  display: block;
+  margin-top: 3px;
+  color: #999ca4;
+  line-height: 1.35;
+}
+
+.optionPrice {
+  color: #d8bb73;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.homeFields {
+  display: grid;
+  grid-template-columns: 0.7fr 1.3fr;
+  gap: 10px;
+  padding: 12px 0 0;
+}
+
+.homeFields label {
+  display: grid;
+  gap: 6px;
+  color: #b9bbc1;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.homeFields input,
+.homeFields textarea {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  background: #0c0d10;
+  color: #fff;
+  padding: 10px 11px;
+  font: inherit;
+}
+
+.transportBox {
+  padding: 13px 14px;
+  border-radius: 13px;
+  background: rgba(198, 156, 66, 0.08);
+  border: 1px solid rgba(198, 156, 66, 0.22);
+  color: #d8d9dc;
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.warning {
+  color: #d8b66b;
+}
+
+.submitRow {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.submitButton {
+  border: 0;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #d2ad5d, #a87b24);
+  color: #17120a;
+  padding: 12px 18px;
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+@media (max-width: 720px) {
+  .barInner,
+  .summaryGrid,
+  .homeFields {
+    grid-template-columns: 1fr;
+  }
+
+  .barActions {
+    justify-content: stretch;
+  }
+
+  .barActions > * {
+    flex: 1;
+  }
+
+  .selectionRow {
+    grid-template-columns: 1fr auto;
+  }
+
+  .selectionRow .removeButton {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+
+  .option {
+    grid-template-columns: auto 1fr;
+  }
+
+  .optionPrice {
+    grid-column: 2;
+  }
+}
