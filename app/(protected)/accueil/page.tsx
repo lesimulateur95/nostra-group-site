@@ -5,8 +5,6 @@ import { CommissionerPortalCard } from "@/components/home/commissioner-portal-ca
 import { HomeReviewsLoader } from "@/components/reviews/home-reviews-loader";
 import { Topbar } from "@/components/site/topbar";
 import { getCasinoSettings } from "@/lib/casino/data";
-import { getBannersV155 } from "@/lib/v155/data";
-import { HomeBannersV155 } from "@/components/v155/home-banners";
 
 type Portal = {
   href: string;
@@ -105,7 +103,7 @@ export default async function HomePage({
   }>;
 }) {
   const params = await searchParams;
-  const [casinoSettings, banners] = await Promise.all([getCasinoSettings(), getBannersV155(false)]);
+  const casinoSettings = await getCasinoSettings();
 
   return (
     <div className="site-shell">
@@ -117,7 +115,6 @@ export default async function HomePage({
           Choisissez l’espace que vous souhaitez ouvrir.
         </p>
 
-        <HomeBannersV155 banners={banners} />
 
         <section className="portal-grid">
           {casinoSettings.publicEnabled && (

@@ -3,8 +3,9 @@ import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { saveAnnouncementV155, saveBannerV155, saveNewsV155, trashContentV155 } from "@/app/actions/v155";
 import { getAnnouncementsV155, getBannersV155, getNewsV155 } from "@/lib/v155/data";
 import styles from "@/components/v155/v155.module.css";
+import { isoToParisLocalInput } from "@/lib/v155/paris-datetime";
 
-function localDate(value:string|null|undefined){if(!value)return "";const d=new Date(value);if(Number.isNaN(d.getTime()))return "";const z=(n:number)=>String(n).padStart(2,"0");return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}T${z(d.getHours())}:${z(d.getMinutes())}`;}
+const localDate = isoToParisLocalInput;
 
 export default async function CommunicationDashboard(){
   const [news,banners,announcements]=await Promise.all([getNewsV155(true),getBannersV155(true),getAnnouncementsV155(true)]);
