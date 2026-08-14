@@ -605,7 +605,7 @@ export async function CatalogueViewV51({
                               canStartPurchase &&
                               (catalogType !== "used" ||
                                 vehicle.used_vehicle_status === "available") ? (
-                                vehicle.catalog_type !== "concession" && canOrder ? (
+                                catalogType !== "concession" && canOrder ? (
                                   <CatalogueSelectionButtonV1601
                                     item={{
                                       id: Number(vehicle.id),
