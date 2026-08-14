@@ -32,6 +32,7 @@ export default async function Page({
           <span>DIRECTION · NOSTRA MOTORS</span>
           <h1>SAV Nostra Motors</h1>
           <p>Gestion de tous les dossiers clients.</p>
+          <Link className={styles.actionLink} href="/dashboard/atelier">Ouvrir le planning Atelier →</Link>
         </section>
 
         {params.deleted ? (

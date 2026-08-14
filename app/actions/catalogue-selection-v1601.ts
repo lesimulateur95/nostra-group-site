@@ -205,6 +205,10 @@ export async function addVehicleSelectionToCartV1601(formData: FormData) {
 
   if (error) fail(returnPath, rpcErrorCode(error));
 
+  // V162 : applique automatiquement la meilleure campagne active après
+  // la création des lignes panier (remise ou livraison offerte).
+  await (supabase as any).rpc("nostra_apply_active_campaigns_to_my_cart_v162");
+
   const response =
     result && typeof result === "object"
       ? (result as Record<string, unknown>)

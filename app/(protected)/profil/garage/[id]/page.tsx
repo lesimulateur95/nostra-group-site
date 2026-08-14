@@ -122,6 +122,11 @@ export default async function ProfileGarageVehiclePage({
           <div className={styles.actions}>
             <Link
               className={styles.primaryAction}
+              href={`/motors/atelier?vehicle=${vehicle.id}`}
+            >
+              Atelier / entretien
+            </Link>
+            <Link
               href={`/motors/rendez-vous?vehicule=${encodedVehicle}`}
             >
               Prendre un rendez-vous

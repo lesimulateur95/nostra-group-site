@@ -294,6 +294,10 @@ export async function addConfiguredVehicleWithProfileDelivery(
     );
   }
 
+  if (purchaseMode === "order" && !isRentalCatalog) {
+    await (supabase as any).rpc("nostra_apply_active_campaigns_to_my_cart_v162");
+  }
+
   revalidatePath("/motors/catalogue");
   revalidatePath("/motors/catalogue/vehicules-occasion");
   revalidatePath(`/motors/catalogue/${vehicleId}/commande`);

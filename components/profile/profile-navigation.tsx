@@ -148,6 +148,13 @@ const cards: NavigationCard[] = [
       "Suivre mes véhicules, leur livraison, leur historique et leurs documents.",
   },
   {
+    href: "/motors/atelier",
+    icon: "🛠️",
+    label: "Atelier Nostra",
+    description:
+      "Prendre rendez-vous, suivre un diagnostic et accepter un devis atelier.",
+  },
+  {
     href: "/profil/adresses",
     icon: "📍",
     label: "Mes adresses de livraison",

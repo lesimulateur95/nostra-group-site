@@ -13,6 +13,9 @@ import { getVehicleFinancingSettings } from "@/lib/vehicle-financing/data";
 import { createClient } from "@/lib/supabase/server";
 import { calculateHomeDeliveryFeeV160 } from "@/lib/nostra-motors/delivery-v160";
 import { getMyDeliveryAddressesV161 } from "@/lib/nostra-motors/v161-data";
+import { getVehicleCollectionMapV159 } from "@/lib/v159/collection-memberships";
+import { applyCampaignPriceV162, campaignMatchesVehicleV162, getCampaignsV162 } from "@/lib/v162/data";
+import v162Styles from "@/components/v162/v162.module.css";
 import { getActiveFlashSaleForVehicleV156 } from "@/lib/v156/data";
 import {
   canCitizenAccessVehicleTierV157,
@@ -110,19 +113,33 @@ export default async function VehicleConfigurationPage({
     : [];
   const vehicleImages = images(vehicle.images);
   const regularVehiclePrice = Number(vehicle.price) || 0;
-  const [flashSale, merchandising, citizenTier] = await Promise.all([
+  const [flashSale, merchandising, citizenTier, campaignsV162, collectionMapV162] = await Promise.all([
     vehicle.catalog_type === "concession" ? Promise.resolve(null) : getActiveFlashSaleForVehicleV156(vehicleId),
     getVehicleMerchandisingV157(vehicleId),
     getCurrentCitizenVehicleTierV157(authResult.data.user?.id),
+    getCampaignsV162(),
+    getVehicleCollectionMapV159([vehicleId]),
   ]);
   const regularSale = vehicle.catalog_type === "concession"
     ? null
     : getActiveVehicleSaleV157(merchandising, regularVehiclePrice);
+  const collectionIdsV162 = (collectionMapV162.get(vehicleId) ?? []).map((item) => item.id);
+  const matchingCampaignsV162 = campaignsV162.filter((campaign) =>
+    campaignMatchesVehicleV162(campaign, {
+      id: vehicleId,
+      brand: String(vehicle.brand ?? ""),
+      catalog_type: String(vehicle.catalog_type ?? "standard") as any,
+    } as any, collectionIdsV162),
+  );
+  const campaignOfferV162 = applyCampaignPriceV162(regularVehiclePrice, matchingCampaignsV162);
+  const campaignBadgeV162 = matchingCampaignsV162[0] ?? null;
+  const campaignDiscountActiveV162 = campaignOfferV162.price < regularVehiclePrice;
   const vehiclePrice = Math.min(
     flashSale?.flashPrice ?? regularVehiclePrice,
     regularSale?.salePrice ?? regularVehiclePrice,
+    campaignOfferV162.price,
   );
-  const homeDeliveryPrice = calculateHomeDeliveryFeeV160(vehiclePrice);
+  const homeDeliveryPrice = campaignOfferV162.freeDelivery ? 0 : calculateHomeDeliveryFeeV160(vehiclePrice);
   const requiredTier = vehicle.catalog_type === "concession" ? "all" : merchandising.requiredTier;
   const tierAllowed = canCitizenAccessVehicleTierV157(requiredTier, citizenTier);
   const requiredTierLabel = vehicleAccessTierLabelV157(requiredTier);
@@ -160,6 +177,7 @@ export default async function VehicleConfigurationPage({
     !isRentalCatalog &&
     !flashSale &&
     !regularSale &&
+    !campaignDiscountActiveV162 &&
     catalogReservationsEnabled &&
     vehicleAvailability.reservation_enabled;
   const canOrder = vehicleAvailability.sale_enabled;
@@ -170,6 +188,7 @@ export default async function VehicleConfigurationPage({
     !isRentalCatalog &&
     !flashSale &&
     !regularSale &&
+    !campaignDiscountActiveV162 &&
     vehiclePrice > financingSettings.minimumVehiclePrice &&
     (financingSettings.threeTimesEnabled || financingSettings.fourTimesEnabled);
   const financingDeposit = Math.round(vehiclePrice * 0.3 * 100) / 100;
@@ -305,6 +324,15 @@ export default async function VehicleConfigurationPage({
           <div className={styles.vehicleContent}>
             <p className={styles.eyebrow}>{vehicle.brand}</p>
             <h2>{vehicle.model}</h2>
+            {campaignBadgeV162 && (
+              <div className={v162Styles.campaignBanner}>
+                <div>
+                  <span className={v162Styles.campaignBadge}>{campaignBadgeV162.badgeText}</span>
+                  {campaignBadgeV162.description && <p>{campaignBadgeV162.description}</p>}
+                </div>
+                {campaignOfferV162.freeDelivery && <strong>LIVRAISON OFFERTE</strong>}
+              </div>
+            )}
             {vehicle.description && (
               <p className={styles.description}>{vehicle.description}</p>
             )}

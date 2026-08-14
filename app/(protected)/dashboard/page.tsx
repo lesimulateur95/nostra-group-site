@@ -222,7 +222,7 @@ export default async function DashboardPage() {
                     : undefined
                 }
               />
-              <DashboardCard href="/dashboard/stock-reel" icon="📍" title="Stock réel Nostra Motors" description="Voir le stock physique, les véhicules réservés, loués, à l’atelier et leur localisation." />
+              <DashboardCard href="/dashboard/stock-reel" icon="📍" title="Stock physique par exemplaire" description="Suivre chaque exemplaire Nostra, son identifiant, son état, sa réservation et sa localisation." />
               <DashboardCard href="/dashboard/location-motors" icon="🔑" title="Gestion de la location" description="Configurer les tarifs de location, cautions, dates, départs, retours et états des lieux." />
               <DashboardCard href="/dashboard/etat-des-lieux" icon="📋" title="États des lieux location" description="Créer les contrôles départ/retour, kilométrage, carburant, dégâts et photos." />
               <DashboardCard href="/dashboard/ventes-flash" icon="⚡" title="Ventes flash" description="Programmer des prix promotionnels temporaires directement sur les véhicules du catalogue." />
@@ -846,6 +846,12 @@ export default async function DashboardPage() {
                   description="Consulter et traiter les demandes de service après-vente."
                 />
                 <DashboardCard
+                  href="/dashboard/atelier"
+                  icon="🔧"
+                  title="Atelier Nostra Motors"
+                  description="Planning, diagnostic, devis, interventions et restitution des véhicules."
+                />
+                <DashboardCard
                   href="/dashboard/crm-motors"
                   icon="🧠"
                   title="CRM clients Motors"
@@ -938,6 +944,7 @@ export default async function DashboardPage() {
                 <DashboardCard href="/dashboard/statistiques-avancees" icon="📊" title="Statistiques avancées" description="Graphiques mensuels : Motors, billetterie, location, citoyens et remboursements." />
                 <DashboardCard href="/dashboard/remboursements" icon="↩" title="Remboursements Direction" description="Créer, valider et tracer les remboursements partiels ou totaux." />
                 <DashboardCard href="/dashboard/ventes-privees" icon="◆" title="Ventes privées / VIP" description="Réserver certaines offres aux citoyens ayant le niveau de fidélité requis." />
+                <DashboardCard href="/dashboard/concierge" icon="♛" title="Concierge Nostra" description="Gérer les demandes VIP privées, sourcing rare et propositions personnalisées." />
                 <DashboardCard href="/dashboard/parrainage" icon="🤝" title="Parrainage citoyen" description="Suivre les codes, parrains, filleuls et points de fidélité distribués." />
                 <DashboardCard href="/dashboard/communication" icon="📣" title="Communication Nostra" description="Actualités, bannières temporaires et annonces importantes." />
                 <DashboardCard href="/dashboard/evenement-mystere" icon="?" title="Événement mystère" description="Programmer un teaser puis une révélation automatique à une date précise." />
@@ -960,6 +967,7 @@ export default async function DashboardPage() {
                   description="Enregistrer les recettes, les dépenses et suivre le solde du groupe."
                 />
                 <DashboardCard href="/dashboard/codes-promo" icon="%" title="Codes promotionnels" description="Créer des remises globales, Motors, billetterie ou Cercle." />
+                <DashboardCard href="/dashboard/campagnes" icon="📣" title="Campagnes commerciales Motors" description="Programmer remises, livraison offerte et mises en avant par marque, catalogue, collection ou véhicule." />
               </DashboardModuleSubgroup>
             </div>
             </DashboardModuleGroup>

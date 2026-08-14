@@ -45,6 +45,8 @@ import {
   getVehicleCollectionMapV159,
 } from "@/lib/v159/collection-memberships";
 import { getMyDeliveryAddressesV161, getVehicleHoldCountsV161 } from "@/lib/nostra-motors/v161-data";
+import { applyCampaignPriceV162, campaignMatchesVehicleV162, getCampaignsV162 } from "@/lib/v162/data";
+import v162Styles from "@/components/v162/v162.module.css";
 import {
   getSitePage,
   type EditablePageSlug,
@@ -113,6 +115,7 @@ export async function CatalogueViewV51({
     customPage,
     reservationsEnabled,
     exclusiveCollections,
+    campaignsV162,
   ] = await Promise.all([
     getCataloguesV51Configured(),
     catalogType === "exclusive"
@@ -124,6 +127,7 @@ export async function CatalogueViewV51({
     catalogType === "exclusive"
       ? getExclusiveCollectionsV158()
       : Promise.resolve<ExclusiveCollectionV158[]>([]),
+    getCampaignsV162(),
   ]);
 
   const vehicleIds = vehicles.map((vehicle) => Number(vehicle.id));
@@ -141,11 +145,17 @@ export async function CatalogueViewV51({
     getFlashSaleMapV156(vehicleIds),
     getVehicleMerchandisingMapV157(vehicleIds),
     getCurrentCitizenVehicleTierV157(authData.user?.id),
-    catalogType === "exclusive"
-      ? getVehicleCollectionMapV159(vehicleIds)
-      : Promise.resolve(new Map<number, ExclusiveCollectionV158[]>()),
+    getVehicleCollectionMapV159(vehicleIds),
     getVehicleHoldCountsV161(vehicleIds),
   ]);
+
+  const campaignOfferV162 = (vehicle: (typeof vehicles)[number], basePrice: number) => {
+    const collectionIds = (collectionMap.get(Number(vehicle.id)) ?? []).map((item) => item.id);
+    const matching = campaignsV162.filter((campaign) =>
+      campaignMatchesVehicleV162(campaign, vehicle, collectionIds),
+    );
+    return { matching, ...applyCampaignPriceV162(basePrice, matching) };
+  };
 
   const grouped = new Map<string, typeof vehicles>();
   for (const vehicle of vehicles) {
@@ -164,9 +174,11 @@ export async function CatalogueViewV51({
       const vehicleMerchandising = merchandising.get(Number(vehicle.id));
       const regularSale = getActiveVehicleSaleV157(vehicleMerchandising, vehicle.price);
       const flashSale = flashSales.get(Number(vehicle.id));
+      const campaignOffer = campaignOfferV162(vehicle, vehicle.price);
       const effectivePrice = Math.min(
         regularSale?.salePrice ?? vehicle.price,
         flashSale?.flashPrice ?? vehicle.price,
+        campaignOffer.price,
       );
       total += effectivePrice;
       const availability = commerceAvailability.get(Number(vehicle.id));
@@ -356,9 +368,11 @@ export async function CatalogueViewV51({
                           const vehicleMerchandising = merchandising.get(Number(vehicle.id));
                           const regularSale = getActiveVehicleSaleV157(vehicleMerchandising, vehicle.price);
                           const flashPrice = flashSales.get(Number(vehicle.id))?.flashPrice ?? null;
+                          const campaignOffer = campaignOfferV162(vehicle, vehicle.price);
                           const effectivePrice = Math.min(
                             regularSale?.salePrice ?? vehicle.price,
                             flashPrice ?? vehicle.price,
+                            campaignOffer.price,
                           );
                           return {
                             id: Number(vehicle.id),
@@ -416,10 +430,13 @@ export async function CatalogueViewV51({
                         : getActiveVehicleSaleV157(vehicleMerchandising, vehicle.price);
                       const flashSale = catalogType === "concession" ? null : flashSales.get(Number(vehicle.id));
                       const flashPrice = flashSale?.flashPrice ?? null;
+                      const campaignOffer = campaignOfferV162(vehicle, vehicle.price);
                       const effectivePrice = Math.min(
                         regularSale?.salePrice ?? vehicle.price,
                         flashPrice ?? vehicle.price,
+                        campaignOffer.price,
                       );
+                      const campaignBadge = campaignOffer.matching[0] ?? null;
                       const regularSaleIsEffective = Boolean(
                         regularSale && regularSale.salePrice <= (flashPrice ?? Number.POSITIVE_INFINITY),
                       );
@@ -524,6 +541,15 @@ export async function CatalogueViewV51({
                           <div className="catalogue-vehicle-copy">
                             <p className="eyebrow">{vehicle.brand}</p>
                             <h3>{vehicle.model}</h3>
+                            {campaignBadge && (
+                              <div className={v162Styles.campaignBanner}>
+                                <div>
+                                  <span className={v162Styles.campaignBadge}>{campaignBadge.badgeText}</span>
+                                  {campaignBadge.description && <p>{campaignBadge.description}</p>}
+                                </div>
+                                {campaignOffer.freeDelivery && <strong>LIVRAISON OFFERTE</strong>}
+                              </div>
+                            )}
                             {flashSale && !regularSaleIsEffective && (
                               <div className="catalogue-flash-sale-v156">
                                 <strong>VENTE FLASH</strong>

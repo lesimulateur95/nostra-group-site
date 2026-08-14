@@ -215,6 +215,10 @@ export async function placeCartOrder(formData: FormData) {
     redirect(`/profil?order_error=${orderErrorCode(deliveryError)}`);
   }
 
+  // V162 : la préparation V160 recalcule les lignes de livraison ;
+  // on réapplique donc les campagnes juste avant le paiement final.
+  await (supabase as any).rpc("nostra_apply_active_campaigns_to_my_cart_v162");
+
   const orderNumber = createOrderNumber();
   const customerName =
     getRpName(data.user) || getDiscordName(data.user) || "Client Nostra Motors";
