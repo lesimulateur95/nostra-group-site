@@ -126,6 +126,9 @@ export default async function ProfileGarageVehiclePage({
             >
               Atelier / entretien
             </Link>
+            <Link href={`/profil/garanties?vehicle=${vehicle.id}`}>
+              Garantie Nostra Care
+            </Link>
             <Link
               href={`/motors/rendez-vous?vehicule=${encodedVehicle}`}
             >

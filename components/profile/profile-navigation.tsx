@@ -148,6 +148,13 @@ const cards: NavigationCard[] = [
       "Suivre mes véhicules, leur livraison, leur historique et leurs documents.",
   },
   {
+    href: "/profil/garanties",
+    icon: "🔧",
+    label: "Mes garanties Nostra",
+    description:
+      "Consulter ou souscrire une protection Nostra Care liée à mes véhicules.",
+  },
+  {
     href: "/motors/atelier",
     icon: "🛠️",
     label: "Atelier Nostra",

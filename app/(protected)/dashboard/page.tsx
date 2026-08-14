@@ -857,6 +857,24 @@ export default async function DashboardPage() {
                   title="CRM clients Motors"
                   description="Centraliser achats, véhicules, rendez-vous, statuts et notes commerciales."
                 />
+                <DashboardCard
+                  href="/dashboard/fournisseurs"
+                  icon="🚚"
+                  title="Fournisseurs & arrivages"
+                  description="Piloter les achats fournisseurs, arrivages, coûts et réception du stock."
+                />
+                <DashboardCard
+                  href="/dashboard/marges"
+                  icon="📈"
+                  title="Marges réelles Motors"
+                  description="Comparer prix de vente, coûts réels et marge réalisée véhicule par véhicule."
+                />
+                <DashboardCard
+                  href="/dashboard/garanties"
+                  icon="🔧"
+                  title="Garanties Nostra Care"
+                  description="Gérer les formules de garantie et les contrats liés aux véhicules clients."
+                />
               </DashboardModuleSubgroup>
 
               <DashboardModuleSubgroup
