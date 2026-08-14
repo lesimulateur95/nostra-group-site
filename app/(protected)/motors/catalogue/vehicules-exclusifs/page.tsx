@@ -8,6 +8,7 @@ export default function ExclusiveCataloguePage({
   searchParams: Promise<{
     cart_added?: string;
     cart_error?: string;
+    collection_error?: string;
   }>;
 }) {
   return (

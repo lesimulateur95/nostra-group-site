@@ -10,12 +10,19 @@ import { setVehicleCommerceAvailability } from "@/app/actions/vehicle-reservatio
 import { setVehicleShowroomVisibility } from "@/app/actions/showroom";
 import { saveVehicleMerchandisingV157 } from "@/app/actions/v157";
 import {
+  assignVehicleExclusiveCollectionV158,
+  createExclusiveCollectionV158,
+  deleteExclusiveCollectionV158,
+  updateExclusiveCollectionV158,
+} from "@/app/actions/v158-exclusive-collections";
+import {
   DashboardHeader,
 } from "@/components/dashboard/dashboard-header";
 import {
   DashboardShell,
 } from "@/components/dashboard/dashboard-shell";
 import { OptimizedImageInput } from "@/components/forms/optimized-image-input";
+import { CatalogueAdminCreateFieldsV158 } from "@/components/motors/catalogue-admin-create-fields-v158";
 import {
   CATALOG_LABELS,
   CATALOG_TYPES,
@@ -36,6 +43,10 @@ import {
   vehicleAccessTierLabelV157,
   vehicleTierBadgeClassV157,
 } from "@/lib/v157/data";
+import {
+  getExclusiveCollectionsV158,
+  getExclusiveCollectionVehicleMapV158,
+} from "@/lib/v158/exclusive-collections";
 
 import styles from "@/components/motors/catalogue-v51.module.css";
 
@@ -62,6 +73,8 @@ function errorMessage(
       "Ce véhicule n’existe plus.",
     save:
       "Impossible d’enregistrer le véhicule. Vérifie que le SQL V51 a bien été exécuté.",
+    "collection-v158":
+      "Le véhicule a été créé mais son rattachement à la collection a échoué. Exécute le SQL V158 puis réessaie.",
   };
 
   return messages[code ?? ""] ??
@@ -84,6 +97,8 @@ export default async function DashboardCataloguePage({
     v157_error?: string;
     sort?: string;
     brand?: string;
+    v158_saved?: string;
+    v158_error?: string;
   }>;
 }) {
   const params = await searchParams;
@@ -107,13 +122,15 @@ export default async function DashboardCataloguePage({
 
   const managedTypes = CATALOG_TYPES.filter((type) => type !== "used");
   const managedVehicles = allVehicles.filter((vehicle) => vehicle.catalog_type !== "used");
-  const [commerceAvailability, showroomConfigured, showroomState, merchandising] = await Promise.all([
+  const [commerceAvailability, showroomConfigured, showroomState, merchandising, exclusiveCollections, exclusiveCollectionMap] = await Promise.all([
     getVehicleCommerceAvailabilityMap(
       managedVehicles.map((vehicle) => Number(vehicle.id)),
     ),
     getShowroomConfigured(),
     getShowroomStateMap(managedVehicles.map((vehicle) => Number(vehicle.id))),
     getVehicleMerchandisingMapV157(managedVehicles.map((vehicle) => Number(vehicle.id))),
+    getExclusiveCollectionsV158({ includeInactive: true }),
+    getExclusiveCollectionVehicleMapV158(managedVehicles.map((vehicle) => Number(vehicle.id))),
   ]);
 
   const selectedType:
@@ -312,6 +329,26 @@ export default async function DashboardCataloguePage({
         </div>
       )}
 
+      {params.v158_saved && (
+        <div className="dashboard-feedback dashboard-feedback-success">
+          {params.v158_saved === "assignment"
+            ? "Collection du véhicule mise à jour."
+            : params.v158_saved === "collection-deleted"
+              ? "La collection a été supprimée. Les véhicules restent dans le catalogue exclusif."
+              : "Collection exclusive enregistrée."}
+        </div>
+      )}
+
+      {params.v158_error && (
+        <div className="dashboard-feedback dashboard-feedback-error">
+          {params.v158_error === "collection-name"
+            ? "Donne un nom valide à la collection."
+            : params.v158_error === "vehicle"
+              ? "Seuls les véhicules du catalogue exclusif peuvent être rattachés à une collection."
+              : "Impossible de gérer les collections exclusives. Exécute le SQL V158 si nécessaire."}
+        </div>
+      )}
+
       {!oldConfigured ||
       !stockConfigured ||
       !v51Configured ? (
@@ -442,6 +479,60 @@ export default async function DashboardCataloguePage({
             </nav>
           </section>
 
+          {selectedType === "exclusive" && (
+            <section className="backoffice-panel" style={{ marginTop: 14, marginBottom: 18 }}>
+              <div className="panel-heading">
+                <span className="panel-icon">✦</span>
+                <div>
+                  <h2>Collections du catalogue exclusif</h2>
+                  <p>Crée tes collections puis rattache chaque véhicule exclusif à la collection voulue.</p>
+                </div>
+              </div>
+
+              <form action={createExclusiveCollectionV158} className="backoffice-form backoffice-form-wide" style={{ marginBottom: 18 }}>
+                <label>
+                  Nom de la collection
+                  <input name="name" required placeholder="Ex. Ferrari Iconic Collection" />
+                </label>
+                <label>
+                  Ordre
+                  <input type="number" name="sort_order" min="0" defaultValue="0" />
+                </label>
+                <label className="form-span-2">
+                  Description
+                  <textarea name="description" rows={3} placeholder="Présentation courte visible dans le catalogue exclusif." />
+                </label>
+                <button className="btn" type="submit">Créer la collection</button>
+              </form>
+
+              {exclusiveCollections.length > 0 ? (
+                <div className={styles.collectionAdminGridV158}>
+                  {exclusiveCollections.map((collection) => (
+                    <article className={styles.collectionAdminCardV158} key={collection.id}>
+                      <form action={updateExclusiveCollectionV158}>
+                        <input type="hidden" name="collection_id" value={collection.id} />
+                        <label>Nom<input name="name" required defaultValue={collection.name} /></label>
+                        <label>Description<textarea name="description" rows={3} defaultValue={collection.description} /></label>
+                        <label>Ordre<input type="number" name="sort_order" min="0" defaultValue={collection.sortOrder} /></label>
+                        <label className="checkbox-label">
+                          <input type="checkbox" name="active" defaultChecked={collection.active} />
+                          Collection visible côté citoyen
+                        </label>
+                        <button className="btn" type="submit">Enregistrer</button>
+                      </form>
+                      <form action={deleteExclusiveCollectionV158}>
+                        <input type="hidden" name="collection_id" value={collection.id} />
+                        <button className="btn btn-danger-v98" type="submit">Supprimer la collection</button>
+                      </form>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <p style={{ color: "#aeb3bb" }}>Aucune collection créée pour le moment.</p>
+              )}
+            </section>
+          )}
+
           <article className="backoffice-panel catalog-admin-create">
             <div className="panel-heading">
               <span className="panel-icon">
@@ -464,24 +555,15 @@ export default async function DashboardCataloguePage({
               className="backoffice-form backoffice-form-wide"
               encType="multipart/form-data"
             >
-              <label>
-                Catalogue
-                <select
-                  name="catalog_type"
-                  defaultValue={createType}
-                >
-                  {managedTypes.map(
-                    (type) => (
-                      <option
-                        value={type}
-                        key={type}
-                      >
-                        {CATALOG_LABELS[type]}
-                      </option>
-                    ),
-                  )}
-                </select>
-              </label>
+              <CatalogueAdminCreateFieldsV158
+                catalogTypes={managedTypes.map((type) => ({ value: type, label: CATALOG_LABELS[type] }))}
+                defaultCatalogType={createType}
+                collections={exclusiveCollections.map((collection) => ({
+                  id: collection.id,
+                  name: collection.name,
+                  active: collection.active,
+                }))}
+              />
 
               <label>
                 Marque
@@ -626,6 +708,11 @@ export default async function DashboardCataloguePage({
                           ]
                         }
                       </span>
+                      {vehicle.catalog_type === "exclusive" && exclusiveCollectionMap.get(Number(vehicle.id)) && (
+                        <span className={styles.collectionLabelV158}>
+                          {exclusiveCollectionMap.get(Number(vehicle.id))?.name}
+                        </span>
+                      )}
                     </div>
 
                     <div className="catalog-admin-badges">
@@ -832,6 +919,32 @@ export default async function DashboardCataloguePage({
                       Enregistrer et déplacer si nécessaire
                     </button>
                   </form>
+
+                  {vehicle.catalog_type === "exclusive" && (
+                    <section className="catalog-admin-merchandising-v157">
+                      <div className="heading-v157">
+                        <div>
+                          <span className="eyebrow">COLLECTION EXCLUSIVE</span>
+                          <h3>Rattacher le véhicule à une collection</h3>
+                        </div>
+                      </div>
+                      <form action={assignVehicleExclusiveCollectionV158} className="form-v157">
+                        <input type="hidden" name="vehicle_id" value={vehicle.id} />
+                        <label className="wide-v157">
+                          Collection
+                          <select name="collection_id" defaultValue={exclusiveCollectionMap.get(Number(vehicle.id))?.id ?? ""}>
+                            <option value="">Aucune collection</option>
+                            {exclusiveCollections.map((collection) => (
+                              <option value={collection.id} key={collection.id}>
+                                {collection.name}{collection.active ? "" : " · masquée"}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <button className="btn" type="submit">Enregistrer la collection</button>
+                      </form>
+                    </section>
+                  )}
 
                   <section className={`catalog-admin-showroom-v152${isInShowroom ? " is-active" : ""}`}>
                     <div className="catalog-admin-showroom-copy-v152">

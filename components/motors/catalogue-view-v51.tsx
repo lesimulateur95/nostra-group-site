@@ -8,6 +8,7 @@ import {
   CatalogueCompareButtonV51,
 } from "@/components/motors/catalogue-comparator-v51";
 import { CatalogueFiltersV114 } from "@/components/motors/catalogue-filters-v114";
+import { addExclusiveCollectionToCartV158 } from "@/app/actions/v158-exclusive-collections";
 import { VehicleFavoriteControls } from "@/components/motors/vehicle-favorite-controls";
 import {
   CATALOG_LABELS,
@@ -31,6 +32,10 @@ import {
   vehicleTierBadgeClassV157,
 } from "@/lib/v157/data";
 import { createClient } from "@/lib/supabase/server";
+import {
+  getExclusiveCollectionsV158,
+  getExclusiveCollectionVehicleMapV158,
+} from "@/lib/v158/exclusive-collections";
 import {
   getSitePage,
   type EditablePageSlug,
@@ -86,6 +91,7 @@ export async function CatalogueViewV51({
   searchParams: Promise<{
     cart_added?: string;
     cart_error?: string;
+    collection_error?: string;
   }>;
   sitePageSlug?: EditablePageSlug;
 }) {
@@ -96,23 +102,26 @@ export async function CatalogueViewV51({
     stockConfigured,
     customPage,
     reservationsEnabled,
+    exclusiveCollections,
   ] = await Promise.all([
     getCataloguesV51Configured(),
     getCatalogVehiclesV51({ catalogType }),
     getStockCommerceConfigured(),
     sitePageSlug ? getSitePage(sitePageSlug) : Promise.resolve(null),
     isVehicleReservationEnabled(catalogType),
+    catalogType === "exclusive" ? getExclusiveCollectionsV158() : Promise.resolve([]),
   ]);
 
   const vehicleIds = vehicles.map((vehicle) => Number(vehicle.id));
   const supabase = await createClient();
   const { data: authData } = await supabase.auth.getUser();
-  const [favoriteState, commerceAvailability, flashSales, merchandising, citizenTier] = await Promise.all([
+  const [favoriteState, commerceAvailability, flashSales, merchandising, citizenTier, collectionMap] = await Promise.all([
     getCurrentFavoriteStateMap(vehicleIds),
     getVehicleCommerceAvailabilityMap(vehicleIds),
     getFlashSaleMapV156(vehicleIds),
     getVehicleMerchandisingMapV157(vehicleIds),
     getCurrentCitizenVehicleTierV157(authData.user?.id),
+    catalogType === "exclusive" ? getExclusiveCollectionVehicleMapV158(vehicleIds) : Promise.resolve(new Map()),
   ]);
 
   const grouped = new Map<string, typeof vehicles>();
@@ -121,6 +130,34 @@ export async function CatalogueViewV51({
     current.push(vehicle);
     grouped.set(vehicle.brand, current);
   }
+
+  const collectionGroups = exclusiveCollections.map((collection) => {
+    const collectionVehicles = vehicles.filter(
+      (vehicle) => collectionMap.get(Number(vehicle.id))?.id === collection.id,
+    );
+    let total = 0;
+    let bundleReady = collectionVehicles.length > 0;
+    for (const vehicle of collectionVehicles) {
+      const vehicleMerchandising = merchandising.get(Number(vehicle.id));
+      const regularSale = getActiveVehicleSaleV157(vehicleMerchandising, vehicle.price);
+      const flashSale = flashSales.get(Number(vehicle.id));
+      const effectivePrice = Math.min(
+        regularSale?.salePrice ?? vehicle.price,
+        flashSale?.flashPrice ?? vehicle.price,
+      );
+      total += effectivePrice;
+      const availability = commerceAvailability.get(Number(vehicle.id));
+      const requiredTier = vehicleMerchandising?.requiredTier ?? "all";
+      if (
+        vehicle.stock_quantity <= 0 ||
+        availability?.sale_enabled === false ||
+        !canCitizenAccessVehicleTierV157(requiredTier, citizenTier)
+      ) {
+        bundleReady = false;
+      }
+    }
+    return { collection, vehicles: collectionVehicles, total, bundleReady };
+  }).filter((entry) => entry.vehicles.length > 0);
 
   return (
     <CatalogueComparatorProviderV51
@@ -201,6 +238,22 @@ export async function CatalogueViewV51({
           </div>
         )}
 
+        {catalogType === "exclusive" && params.collection_error && (
+          <div className="catalogue-feedback catalogue-feedback-error">
+            {params.collection_error === "stock"
+              ? "La collection complète ne peut pas être ajoutée : au moins un véhicule est en rupture de stock."
+              : params.collection_error === "tier"
+                ? "Ton niveau fidélité ne permet pas encore l’achat de tous les véhicules de cette collection."
+                : params.collection_error === "vip"
+                  ? "Une vente privée de cette collection nécessite un niveau VIP supérieur."
+                  : params.collection_error === "sale"
+                    ? "La vente d’au moins un véhicule de cette collection est actuellement suspendue."
+                    : params.collection_error === "empty"
+                      ? "Cette collection ne contient actuellement aucun véhicule achetable."
+                      : "Impossible d’ajouter la collection complète au panier."}
+          </div>
+        )}
+
         {!configured && (
           <section className="catalogue-empty">
             <h2>Activation nécessaire</h2>
@@ -220,7 +273,43 @@ export async function CatalogueViewV51({
 
         {configured && vehicles.length > 0 && (
           <>
-            <CatalogueFiltersV114 brands={[...grouped.keys()]} />
+            {catalogType === "exclusive" && collectionGroups.length > 0 && (
+              <section className={styles.collectionShowcaseV158}>
+                <div className={styles.collectionShowcaseHeadingV158}>
+                  <div>
+                    <span>COLLECTIONS NOSTRA</span>
+                    <h2>Acheter véhicule par véhicule ou la collection entière</h2>
+                    <p>Chaque collection regroupe une sélection de véhicules exclusifs. L’achat groupé ajoute un exemplaire de chaque véhicule au panier.</p>
+                  </div>
+                </div>
+                <div className={styles.collectionGridV158}>
+                  {collectionGroups.map(({ collection, vehicles: collectionVehicles, total, bundleReady }) => (
+                    <article className={styles.collectionCardV158} key={collection.id}>
+                      <div>
+                        <span className={styles.collectionLabelV158}>COLLECTION</span>
+                        <h3>{collection.name}</h3>
+                        {collection.description && <p>{collection.description}</p>}
+                      </div>
+                      <div className={styles.collectionMetaV158}>
+                        <span>{collectionVehicles.length} véhicule{collectionVehicles.length > 1 ? "s" : ""}</span>
+                        <strong>{formatPrice(total)}</strong>
+                      </div>
+                      <form action={addExclusiveCollectionToCartV158}>
+                        <input type="hidden" name="collection_id" value={collection.id} />
+                        <button className="btn" type="submit" disabled={!bundleReady}>
+                          {bundleReady ? "Ajouter la collection complète au panier" : "Collection temporairement indisponible"}
+                        </button>
+                      </form>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            <CatalogueFiltersV114
+              brands={[...grouped.keys()]}
+              collections={catalogType === "exclusive" ? collectionGroups.map(({ collection }) => ({ slug: collection.slug, name: collection.name })) : []}
+            />
 
             <nav
               className="catalogue-brand-nav"
@@ -306,6 +395,7 @@ export async function CatalogueViewV51({
                           data-reserve={canReserve ? "true" : "false"}
                           data-sale={canOrder ? "true" : "false"}
                           data-status={catalogType === "used" ? (vehicle.used_vehicle_status || "available") : "available"}
+                          data-collection={collectionMap.get(Number(vehicle.id))?.slug ?? ""}
                           data-order={vehicleIndex}
                         >
                           <div className="catalogue-vehicle-media">
@@ -328,6 +418,11 @@ export async function CatalogueViewV51({
                                   </span>
                                 )}
                               </div>
+                            )}
+                            {catalogType === "exclusive" && collectionMap.get(Number(vehicle.id)) && (
+                              <span className={styles.collectionVehicleBadgeV158}>
+                                {collectionMap.get(Number(vehicle.id))?.name}
+                              </span>
                             )}
                             {vehicle.images[0] ? (
                               <img

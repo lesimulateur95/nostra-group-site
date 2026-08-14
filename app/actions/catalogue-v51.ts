@@ -164,6 +164,7 @@ function dashboardUrl(
 function revalidateCatalogs() {
   revalidatePath("/motors/catalogue");
   revalidatePath("/motors/showroom");
+  revalidatePath("/motors/catalogue/location");
   revalidatePath("/motors/catalogue/concession");
   revalidatePath(
     "/motors/catalogue/poids-lourds",
@@ -217,6 +218,7 @@ export async function saveCatalogVehicleV51(
       0,
     ),
   );
+  const exclusiveCollectionId = text(formData.get("exclusive_collection_id"), 80);
 
   if (
     brand.length < 2 ||
@@ -416,9 +418,13 @@ export async function saveCatalogVehicleV51(
           .from("catalog_vehicles")
           .update(payload)
           .eq("id", id)
+          .select("id")
+          .maybeSingle()
       : await supabase
           .from("catalog_vehicles")
-          .insert(payload);
+          .insert(payload)
+          .select("id")
+          .single();
 
   if (result.error) {
     if (uploaded.length) {
@@ -437,6 +443,31 @@ export async function saveCatalogVehicleV51(
         "error=save",
       ),
     );
+  }
+
+  const savedVehicleId = Number(result.data?.id ?? id);
+  if (savedVehicleId > 0) {
+    if (catalogType === "exclusive" && exclusiveCollectionId) {
+      const { error: collectionError } = await (supabase as any)
+        .from("nostra_exclusive_collection_vehicles_v158")
+        .upsert(
+          {
+            vehicle_id: savedVehicleId,
+            collection_id: exclusiveCollectionId,
+            updated_by: user.id,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "vehicle_id" },
+        );
+      if (collectionError) {
+        redirect(dashboardUrl(catalogType, "error=collection-v158"));
+      }
+    } else if (catalogType !== "exclusive") {
+      await (supabase as any)
+        .from("nostra_exclusive_collection_vehicles_v158")
+        .delete()
+        .eq("vehicle_id", savedVehicleId);
+    }
   }
 
   if (obsoletePaths.length) {

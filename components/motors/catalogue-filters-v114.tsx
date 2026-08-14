@@ -4,11 +4,14 @@ import { useEffect, useMemo, useState } from "react";
 
 export function CatalogueFiltersV114({
   brands,
+  collections = [],
 }: {
   brands: string[];
+  collections?: Array<{ slug: string; name: string }>;
 }) {
   const [search, setSearch] = useState("");
   const [brand, setBrand] = useState("");
+  const [collection, setCollection] = useState("");
   const [availability, setAvailability] = useState("all");
   const [commerce, setCommerce] = useState("all");
   const [minPrice, setMinPrice] = useState("");
@@ -16,8 +19,8 @@ export function CatalogueFiltersV114({
   const [sort, setSort] = useState("default");
 
   const filterKey = useMemo(
-    () => [search, brand, availability, commerce, minPrice, maxPrice, sort].join("|"),
-    [search, brand, availability, commerce, minPrice, maxPrice, sort],
+    () => [search, brand, collection, availability, commerce, minPrice, maxPrice, sort].join("|"),
+    [search, brand, collection, availability, commerce, minPrice, maxPrice, sort],
   );
 
   useEffect(() => {
@@ -31,6 +34,7 @@ export function CatalogueFiltersV114({
     for (const card of cards) {
       const cardBrand = card.dataset.brand ?? "";
       const label = card.dataset.search ?? "";
+      const cardCollection = card.dataset.collection ?? "";
       const price = Number(card.dataset.price ?? 0);
       const stock = Number(card.dataset.stock ?? 0);
       const canReserve = card.dataset.reserve === "true";
@@ -39,6 +43,7 @@ export function CatalogueFiltersV114({
 
       const matchSearch = !normalizedSearch || label.includes(normalizedSearch);
       const matchBrand = !brand || cardBrand === brand;
+      const matchCollection = !collection || cardCollection === collection;
       const matchPrice = price >= min && price <= max;
       const matchAvailability =
         availability === "all" ||
@@ -53,6 +58,7 @@ export function CatalogueFiltersV114({
       card.hidden = !(
         matchSearch &&
         matchBrand &&
+        matchCollection &&
         matchPrice &&
         matchAvailability &&
         matchCommerce
@@ -90,11 +96,12 @@ export function CatalogueFiltersV114({
     const visibleCount = cards.filter((card) => !card.hidden).length;
     if (root) root.dataset.visibleCount = String(visibleCount);
     if (noResults) noResults.hidden = visibleCount !== 0;
-  }, [filterKey, search, brand, availability, commerce, minPrice, maxPrice, sort]);
+  }, [filterKey, search, brand, collection, availability, commerce, minPrice, maxPrice, sort]);
 
   function reset() {
     setSearch("");
     setBrand("");
+    setCollection("");
     setAvailability("all");
     setCommerce("all");
     setMinPrice("");
@@ -123,6 +130,17 @@ export function CatalogueFiltersV114({
             ))}
           </select>
         </label>
+        {collections.length > 0 && (
+          <label>
+            <span>Collection</span>
+            <select value={collection} onChange={(event) => setCollection(event.target.value)}>
+              <option value="">Toutes les collections</option>
+              {collections.map((item) => (
+                <option value={item.slug} key={item.slug}>{item.name}</option>
+              ))}
+            </select>
+          </label>
+        )}
         <label>
           <span>Disponibilité</span>
           <select value={availability} onChange={(event) => setAvailability(event.target.value)}>
