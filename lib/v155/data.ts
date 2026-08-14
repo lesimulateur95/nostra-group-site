@@ -78,6 +78,7 @@ export async function getRentalBookingsV155(userId?: string) {
   return (data ?? []).map((row:any)=>({
     id:s(row.id), rentalNumber:s(row.rental_number), userId:s(row.user_id), vehicleId:n(row.vehicle_id), brand:s(row.catalog_vehicles?.brand), model:s(row.catalog_vehicles?.model), imageUrl:firstImage(row.catalog_vehicles?.images),
     startDate:s(row.start_date), endDate:s(row.end_date), days:n(row.days), dailyRate:n(row.daily_rate), depositAmount:n(row.deposit_amount), totalAmount:n(row.total_amount), status:s(row.status), pickupLocation:s(row.pickup_location),
+    renterFirstName:s(row.renter_first_name), renterLastName:s(row.renter_last_name), renterPhone:s(row.renter_phone),
     mileageOut:row.mileage_out==null?null:n(row.mileage_out), mileageIn:row.mileage_in==null?null:n(row.mileage_in), conditionOut:row.condition_out?s(row.condition_out):null, conditionIn:row.condition_in?s(row.condition_in):null,
     damageNotes:row.damage_notes?s(row.damage_notes):null, staffNotes:row.staff_notes?s(row.staff_notes):null,
     depositStatus:s(row.deposit_status,"not_paid"), depositRetainedAmount:n(row.deposit_retained_amount), depositHeldAt:row.deposit_held_at?s(row.deposit_held_at):null, depositPaidAt:row.deposit_paid_at?s(row.deposit_paid_at):null, depositRefundedAt:row.deposit_refunded_at?s(row.deposit_refunded_at):null,

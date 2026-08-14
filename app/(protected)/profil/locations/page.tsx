@@ -132,6 +132,11 @@ export default async function MyRentals({
                 <h2>{r.brand} {r.model}</h2>
                 <p className={styles.code}>{r.rentalNumber}</p>
                 <div className={styles.row}>
+                  <span>Locataire</span>
+                  <strong>{`${r.renterFirstName ?? ""} ${r.renterLastName ?? ""}`.trim() || "—"}</strong>
+                </div>
+                <div className={styles.row}><span>Téléphone</span><strong>{r.renterPhone || "—"}</strong></div>
+                <div className={styles.row}>
                   <span>Dates</span>
                   <strong>{new Date(r.startDate).toLocaleDateString("fr-FR")} → {new Date(r.endDate).toLocaleDateString("fr-FR")}</strong>
                 </div>

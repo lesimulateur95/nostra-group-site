@@ -137,6 +137,14 @@ export default async function RentalDashboard({
               </div>
               <div className={styles.grid2} style={{ marginBottom: 18 }}>
                 <div className={styles.kpi}>
+                  <span>Locataire</span>
+                  <strong>{`${booking.renterFirstName ?? ""} ${booking.renterLastName ?? ""}`.trim() || "Citoyen"}</strong>
+                </div>
+                <div className={styles.kpi}>
+                  <span>Téléphone</span>
+                  <strong>{booking.renterPhone || "—"}</strong>
+                </div>
+                <div className={styles.kpi}>
                   <span>Caution</span>
                   <strong>{money(Number(booking.depositAmount ?? 0))}</strong>
                 </div>
@@ -144,7 +152,6 @@ export default async function RentalDashboard({
                   <span>État caution</span>
                   <strong>{depositStatusLabel(String(booking.depositStatus ?? "not_held"))}</strong>
                 </div>
-
               </div>
               <div className={styles.formGrid}>
                 <label>

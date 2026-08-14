@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState, type ChangeEvent } from "react";
+import { useEffect, useMemo, useState, type ChangeEvent } from "react";
+import { useRouter } from "next/navigation";
 
 import {
   blockAccountAction,
@@ -53,6 +54,28 @@ function formatDate(value: string | null | undefined) {
     dateStyle: "short",
     timeStyle: "short",
   }).format(date);
+}
+
+
+function pathLabel(path: string | null | undefined) {
+  if (!path) return "—";
+  const known: Record<string, string> = {
+    "/accueil": "Accueil",
+    "/motors": "Nostra Motors",
+    "/motors/catalogue": "Catalogue Nostra Motors",
+    "/motors/catalogue/location": "Catalogue location",
+    "/motors/showroom": "Showroom Nostra Motors",
+    "/casino": "Nostra Cercle",
+    "/circuit": "Nostra Circuit",
+    "/profil": "Profil",
+    "/profil/wallet": "Wallet Nostra",
+    "/evenements": "Événements & Jeux",
+    "/recherche": "Recherche",
+  };
+  if (known[path]) return `${known[path]} · ${path}`;
+  if (path.startsWith("/motors/location/")) return `Location Nostra Motors · ${path}`;
+  if (path.startsWith("/dashboard/")) return `Dashboard · ${path}`;
+  return path;
 }
 
 function roleLabel(role: string) {
@@ -139,9 +162,17 @@ export function SecurityAdministrationPanel({
   const firstTab = TABS.some(([key]) => key === initialTab)
     ? (initialTab as TabKey)
     : "permissions";
+  const router = useRouter();
   const [tab, setTab] = useState<TabKey>(firstTab);
   const [pageSearch, setPageSearch] = useState("");
   const [memberSearch, setMemberSearch] = useState("");
+
+  useEffect(() => {
+    if (tab !== "presence") return;
+    router.refresh();
+    const id = window.setInterval(() => router.refresh(), 10_000);
+    return () => window.clearInterval(id);
+  }, [router, tab]);
 
   const filteredPages = useMemo(() => {
     const query = pageSearch.trim().toLowerCase();
@@ -259,7 +290,7 @@ export function SecurityAdministrationPanel({
       {tab === "presence" && (
         <div className={styles.sectionStack}>
           <div className={styles.sectionIntro}><div><span>PRÉSENCE EN DIRECT</span><h2>Citoyens actuellement en ligne</h2><p>Un citoyen est considéré en ligne lorsqu’il a envoyé un signal au site dans les deux dernières minutes.</p></div><span className={styles.counter}>{overview.members.filter((m) => m.online).length} en ligne</span></div>
-          <div className={styles.tableWrap}><table><thead><tr><th>Citoyen</th><th>État</th><th>Page actuelle</th><th>Dernière activité</th></tr></thead><tbody>{[...overview.members].sort((a,b)=>Number(Boolean(b.online))-Number(Boolean(a.online))).map((member)=><tr key={member.user_id}><td><strong>{member.display_name}</strong></td><td><span className={member.online?styles.onlineDot:styles.offlineDot}>{member.online?"● EN LIGNE":"○ Hors ligne"}</span></td><td><code>{member.current_path??"—"}</code></td><td>{formatDate(member.last_seen_at)}</td></tr>)}</tbody></table></div>
+          <div className={styles.tableWrap}><table><thead><tr><th>Citoyen</th><th>État</th><th>Page actuelle</th><th>Dernière activité</th></tr></thead><tbody>{[...overview.members].sort((a,b)=>Number(Boolean(b.online))-Number(Boolean(a.online))).map((member)=><tr key={member.user_id}><td><strong>{member.display_name}</strong></td><td><span className={member.online?styles.onlineDot:styles.offlineDot}>{member.online?"● EN LIGNE":"○ Hors ligne"}</span></td><td><code>{pathLabel(member.current_path)}</code></td><td>{formatDate(member.last_seen_at)}</td></tr>)}</tbody></table></div>
         </div>
       )}
 

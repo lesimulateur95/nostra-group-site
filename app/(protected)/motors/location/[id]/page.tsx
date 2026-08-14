@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { createRentalRequestV155, joinVehicleWaitlistV155 } from "@/app/actions/v155";
 import styles from "@/components/v155/v155.module.css";
 import { getRentalVehiclesV155 } from "@/lib/v155/data";
+import { createClient } from "@/lib/supabase/server";
 
 const money = (value: number) =>
   value.toLocaleString("fr-FR", {
@@ -21,6 +22,8 @@ const errorMessages: Record<string, string> = {
   "payment-funds": "Fonds insuffisants pour payer la location et la caution de 20 %.",
   "payment-bank": "Le service bancaire est temporairement indisponible. Aucun paiement n'a été débité.",
   save: "La demande n'a pas pu être enregistrée. Si un paiement avait été débité, il a été automatiquement remboursé.",
+  phone: "Renseigne un numéro de téléphone valide pour cette location.",
+  profile: "Ton nom et ton prénom doivent être renseignés dans ton profil avant de louer un véhicule.",
 };
 
 export default async function RentalVehiclePage({
@@ -32,9 +35,26 @@ export default async function RentalVehiclePage({
 }) {
   const [{ id }, query] = await Promise.all([params, searchParams]);
   const vehicleId = Number(id);
-  const vehicles = await getRentalVehiclesV155(true);
+  const supabase = await createClient();
+  const [{ data: authData }, vehicles] = await Promise.all([
+    supabase.auth.getUser(),
+    getRentalVehiclesV155(true),
+  ]);
   const vehicle = vehicles.find((item) => item.vehicleId === vehicleId);
   if (!vehicle) return notFound();
+
+  const profileResult = authData.user
+    ? await (supabase as any)
+        .from("member_profiles")
+        .select("rp_first_name,rp_last_name,phone")
+        .eq("user_id", authData.user.id)
+        .maybeSingle()
+    : { data: null };
+  const profile = profileResult.data ?? {};
+  const firstName = typeof profile.rp_first_name === "string" ? profile.rp_first_name.trim() : "";
+  const lastName = typeof profile.rp_last_name === "string" ? profile.rp_last_name.trim() : "";
+  const renterName = `${firstName} ${lastName}`.trim();
+  const profilePhone = typeof profile.phone === "string" ? profile.phone.trim() : "";
 
   return (
     <main className={styles.page}>
@@ -97,8 +117,33 @@ export default async function RentalVehiclePage({
 
         <article className={styles.card}>
           <h2>Louer ce véhicule</h2>
+          <div className={styles.grid2} style={{ marginBottom: 18 }}>
+            <div className={styles.kpi}>
+              <span>Locataire</span>
+              <strong>{renterName || "Profil incomplet"}</strong>
+            </div>
+            <div className={styles.kpi}>
+              <span>Contact</span>
+              <strong>{profilePhone || "À renseigner ci-dessous"}</strong>
+            </div>
+          </div>
           <form action={createRentalRequestV155} className={styles.formGrid}>
             <input type="hidden" name="vehicle_id" value={vehicle.vehicleId} />
+            <label className={styles.full}>
+              Numéro de téléphone du locataire
+              <input
+                className={styles.input}
+                type="tel"
+                name="renter_phone"
+                required
+                minLength={3}
+                maxLength={40}
+                defaultValue={profilePhone}
+                placeholder="Exemple : 06 12 34 56 78"
+                autoComplete="tel"
+              />
+              <span className={styles.small}>Le nom et le prénom sont récupérés automatiquement depuis ton profil. Le numéro peut être modifié pour cette location.</span>
+            </label>
             <label>
               Date de départ
               <input className={styles.input} type="date" name="start_date" required />

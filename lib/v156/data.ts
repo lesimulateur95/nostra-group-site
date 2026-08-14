@@ -1,6 +1,7 @@
 import "server-only";
 
 import { getLoyaltyTiersV155, getPrivateSalesV155 } from "@/lib/v155/data";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 const n = (value: unknown, fallback = 0) => {
@@ -240,13 +241,14 @@ export type BlacklistEntryV156 = {
 
 export async function getSecurityExtensionsV156() {
   const supabase = await createClient();
+  const admin = createAdminClient();
   const [roles, assignments, permissions, blacklist, emergency, presence] = await Promise.all([
     (supabase as any).from("nostra_custom_roles_v156").select("*").order("label"),
     (supabase as any).from("nostra_member_custom_roles_v156").select("user_id,role_key"),
     (supabase as any).from("nostra_custom_page_permissions_v156").select("path_pattern,allowed_roles"),
     (supabase as any).from("nostra_internal_blacklist_v156").select("*").order("created_at", { ascending: false }),
     (supabase as any).from("nostra_emergency_mode_v156").select("*").eq("singleton", true).maybeSingle(),
-    (supabase as any).from("nostra_presence_v156").select("user_id,last_seen_at,current_path,user_agent"),
+    (admin as any).from("nostra_presence_v156").select("user_id,last_seen_at,current_path,user_agent"),
   ]);
 
   const userIds = [...new Set((blacklist.data ?? []).map((row: any) => s(row.user_id)).filter(Boolean))];

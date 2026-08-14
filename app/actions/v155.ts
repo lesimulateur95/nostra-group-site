@@ -16,6 +16,7 @@ const text=(v:FormDataEntryValue|null,max=4000)=>typeof v==="string"?v.trim().sl
 const num=(v:FormDataEntryValue|null,fallback=0)=>{const x=Number(text(v,80).replace(/\s/g,"").replace(",","."));return Number.isFinite(x)?x:fallback;};
 const int=(v:FormDataEntryValue|null,fallback=0)=>{const x=Number.parseInt(text(v,40),10);return Number.isFinite(x)?x:fallback;};
 const nullableDate=(v:FormDataEntryValue|null)=>{const raw=text(v,50);return raw?new Date(raw).toISOString():null;};
+const validPhoneV1572=(value:string)=>value.length>=3&&value.length<=40&&/^[0-9+().\s-]+$/.test(value);
 
 async function manager(){const supabase=await createClient();const {data}=await supabase.auth.getUser();if(!data.user)redirect("/");const roles=await getUserRoleKeys(data.user);if(!roles.includes("manager"))redirect("/accueil");return{supabase,user:data.user};}
 async function motorsStaff(){const supabase=await createClient();const {data}=await supabase.auth.getUser();if(!data.user)redirect("/");const roles=await getUserRoleKeys(data.user);if(!roles.some(r=>["manager","employee","commercial"].includes(r)))redirect("/accueil");return{supabase,user:data.user};}
@@ -216,8 +217,10 @@ async function refundRentalFullPaymentV157({
 export async function createRentalRequestV155(formData:FormData){
   const {user}=await currentUser();
   const vehicleId=int(formData.get("vehicle_id"));
+  const renterPhone=text(formData.get("renter_phone"),40);
   const start=text(formData.get("start_date"),20);
   const end=text(formData.get("end_date"),20);
+  if(!validPhoneV1572(renterPhone))redirect(`/motors/location/${vehicleId}?error=phone`);
   if(!vehicleId||!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(start)||!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(end))redirect(`/motors/location/${vehicleId}?error=dates`);
 
   const startDate=new Date(`${start}T00:00:00Z`);
@@ -226,11 +229,15 @@ export async function createRentalRequestV155(formData:FormData){
   if(Number.isNaN(startDate.getTime())||Number.isNaN(endDate.getTime())||endDate<startDate||startDate<today)redirect(`/motors/location/${vehicleId}?error=dates`);
 
   const admin=createAdminClient();
-  const [{data:vehicle},{data:setting},{data:stockState}] = await Promise.all([
+  const [{data:vehicle},{data:setting},{data:stockState},{data:profile}] = await Promise.all([
     (admin as any).from("catalog_vehicles").select("id,brand,model,price,stock_quantity,published,catalog_type").eq("id",vehicleId).maybeSingle(),
     (admin as any).from("motors_rental_settings_v155").select("*").eq("vehicle_id",vehicleId).eq("active",true).maybeSingle(),
     (admin as any).from("motors_vehicle_stock_v155").select("operational_status").eq("vehicle_id",vehicleId).maybeSingle(),
+    (admin as any).from("member_profiles").select("rp_first_name,rp_last_name").eq("user_id",user.id).maybeSingle(),
   ]);
+  const renterFirstName=typeof profile?.rp_first_name==="string"?profile.rp_first_name.trim():"";
+  const renterLastName=typeof profile?.rp_last_name==="string"?profile.rp_last_name.trim():"";
+  if(renterFirstName.length<2||renterLastName.length<2)redirect(`/motors/location/${vehicleId}?error=profile`);
   if(!vehicle||vehicle.published!==true||vehicle.catalog_type!=="concession")redirect(`/motors/location/${vehicleId}?error=vehicle`);
   if(!setting||["workshop","unavailable"].includes(String(stockState?.operational_status??"")))redirect(`/motors/location/${vehicleId}?error=unavailable`);
 
@@ -276,6 +283,9 @@ export async function createRentalRequestV155(formData:FormData){
     total_amount:rentalTotal,
     status:"pending",
     pickup_location:"Nostra Motors",
+    renter_first_name:renterFirstName,
+    renter_last_name:renterLastName,
+    renter_phone:renterPhone,
     deposit_status:"paid",
     deposit_payment_details:debit.debits,
     deposit_paid_at:now,
@@ -296,7 +306,7 @@ export async function createRentalRequestV155(formData:FormData){
     source_id:String(booking.id),
     metadata:{rental_number:rentalNumber,vehicle_id:vehicleId,rental_amount:rentalTotal,deposit_amount:deposit,deposit_rate_percent:20,total_paid:amountToPay},
   },{onConflict:"user_id,source_type,source_id,entry_type"});
-  await audit(admin as any,user.id,"create","motors_rental_bookings_v155",String(booking.id),`Location payée avec caution 20 % · ${rentalNumber}`,{vehicle_id:vehicleId,rental_amount:rentalTotal,deposit_amount:deposit,total_paid:amountToPay,deposit_status:"paid"});
+  await audit(admin as any,user.id,"create","motors_rental_bookings_v155",String(booking.id),`Location payée avec caution 20 % · ${rentalNumber}`,{vehicle_id:vehicleId,renter_name:`${renterFirstName} ${renterLastName}`.trim(),renter_phone:renterPhone,rental_amount:rentalTotal,deposit_amount:deposit,total_paid:amountToPay,deposit_status:"paid"});
   await (admin as any).from("user_notifications").insert({
     user_id:user.id,
     notification_type:"rental_deposit",
