@@ -8,6 +8,7 @@ import {
 } from "@/app/actions/catalogue-v51";
 import { setVehicleCommerceAvailability } from "@/app/actions/vehicle-reservation-settings";
 import { setVehicleShowroomVisibility } from "@/app/actions/showroom";
+import { saveVehicleMerchandisingV157 } from "@/app/actions/v157";
 import {
   DashboardHeader,
 } from "@/components/dashboard/dashboard-header";
@@ -29,6 +30,12 @@ import {
 } from "@/lib/backoffice/data";
 import { getVehicleCommerceAvailabilityMap } from "@/lib/vehicle-commerce-settings/data";
 import { getShowroomConfigured, getShowroomStateMap } from "@/lib/nostra-motors/showroom";
+import {
+  getActiveVehicleSaleV157,
+  getVehicleMerchandisingMapV157,
+  vehicleAccessTierLabelV157,
+  vehicleTierBadgeClassV157,
+} from "@/lib/v157/data";
 
 import styles from "@/components/motors/catalogue-v51.module.css";
 
@@ -73,6 +80,8 @@ export default async function DashboardCataloguePage({
     commerce_error?: string;
     showroom_saved?: string;
     showroom_error?: string;
+    v157_saved?: string;
+    v157_error?: string;
   }>;
 }) {
   const params = await searchParams;
@@ -96,12 +105,13 @@ export default async function DashboardCataloguePage({
 
   const managedTypes = CATALOG_TYPES.filter((type) => type !== "used");
   const managedVehicles = allVehicles.filter((vehicle) => vehicle.catalog_type !== "used");
-  const [commerceAvailability, showroomConfigured, showroomState] = await Promise.all([
+  const [commerceAvailability, showroomConfigured, showroomState, merchandising] = await Promise.all([
     getVehicleCommerceAvailabilityMap(
       managedVehicles.map((vehicle) => Number(vehicle.id)),
     ),
     getShowroomConfigured(),
     getShowroomStateMap(managedVehicles.map((vehicle) => Number(vehicle.id))),
+    getVehicleMerchandisingMapV157(managedVehicles.map((vehicle) => Number(vehicle.id))),
   ]);
 
   const selectedType:
@@ -113,14 +123,30 @@ export default async function DashboardCataloguePage({
           params.type,
         );
 
-  const visibleVehicles =
+  const visibleVehicles = (
     selectedType === "all"
       ? managedVehicles
       : managedVehicles.filter(
           (vehicle) =>
             vehicle.catalog_type ===
             selectedType,
-        );
+        )
+  ).slice().sort((a, b) => {
+    const orderDifference = a.sort_order - b.sort_order;
+    if (orderDifference !== 0) return orderDifference;
+
+    const brandDifference = a.brand.localeCompare(b.brand, "fr", {
+      sensitivity: "base",
+    });
+    if (brandDifference !== 0) return brandDifference;
+
+    const modelDifference = a.model.localeCompare(b.model, "fr", {
+      sensitivity: "base",
+    });
+    if (modelDifference !== 0) return modelDifference;
+
+    return a.id - b.id;
+  });
 
   const createType:
     CatalogType =
@@ -186,6 +212,24 @@ export default async function DashboardCataloguePage({
       {params.error && (
         <div className="dashboard-feedback dashboard-feedback-error">
           {errorMessage(params.error)}
+        </div>
+      )}
+
+      {params.v157_saved && (
+        <div className="dashboard-feedback dashboard-feedback-success">
+          Soldes et accès fidélité du véhicule enregistrés.
+        </div>
+      )}
+
+      {params.v157_error && (
+        <div className="dashboard-feedback dashboard-feedback-error">
+          {params.v157_error === "sale"
+            ? "Vérifie la remise ou le prix soldé."
+            : params.v157_error === "dates"
+              ? "La date de fin des soldes doit être postérieure à la date de début."
+              : params.v157_error === "vehicle"
+                ? "Ce véhicule n’existe plus."
+                : "Impossible d’enregistrer les soldes ou l’accès fidélité. Exécute le SQL V157 si nécessaire."}
         </div>
       )}
 
@@ -394,6 +438,16 @@ export default async function DashboardCataloguePage({
                   sale_enabled: true,
                 };
                 const isInShowroom = showroomState.get(Number(vehicle.id)) === true;
+                const merchandisingState = merchandising.get(Number(vehicle.id)) ?? {
+                  vehicleId: Number(vehicle.id),
+                  saleEnabled: false,
+                  saleMode: "percent" as const,
+                  saleValue: 0,
+                  saleStartsAt: null,
+                  saleEndsAt: null,
+                  requiredTier: "all" as const,
+                };
+                const activeSale = getActiveVehicleSaleV157(merchandisingState, vehicle.price);
 
                 return (
                 <article
@@ -423,6 +477,9 @@ export default async function DashboardCataloguePage({
                     </div>
 
                     <div className="catalog-admin-badges">
+                      <span className="catalog-order-pill-v1574">
+                        Ordre : {vehicle.sort_order}
+                      </span>
                       {isInShowroom && (
                         <span className="catalog-showroom-pill-v152">
                           Présent au showroom
@@ -742,6 +799,82 @@ export default async function DashboardCataloguePage({
                         </form>
                       </div>
                     </div>
+                  </section>
+
+                  <section className="catalog-admin-merchandising-v157">
+                    <div className="heading-v157">
+                      <div>
+                        <span className="eyebrow">VENTE & ACCÈS FIDÉLITÉ</span>
+                        <h3>Soldes et grade autorisé</h3>
+                      </div>
+                      <div className="preview-v157">
+                        {activeSale && (
+                          <span className="catalogue-sale-badge-v157">◆ SOLDES -{activeSale.discountPercent}%</span>
+                        )}
+                        {merchandisingState.requiredTier !== "all" && (
+                          <span className={`catalogue-tier-badge-v157 ${vehicleTierBadgeClassV157(merchandisingState.requiredTier)}`}>
+                            ♛ {vehicleAccessTierLabelV157(merchandisingState.requiredTier).toUpperCase()}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <form action={saveVehicleMerchandisingV157} className="form-v157">
+                      <input type="hidden" name="vehicle_id" value={vehicle.id} />
+                      <input type="hidden" name="return_to" value={`/dashboard/catalogue?type=${selectedType}`} />
+
+                      <label className="check-v157">
+                        <input
+                          type="checkbox"
+                          name="sale_enabled"
+                          defaultChecked={merchandisingState.saleEnabled}
+                          disabled={vehicle.catalog_type === "concession"}
+                        />
+                        {vehicle.catalog_type === "concession" ? "Soldes indisponibles sur la location" : "Mettre ce véhicule en soldes"}
+                      </label>
+
+                      <label>
+                        Type de remise
+                        <select name="sale_mode" defaultValue={merchandisingState.saleMode} disabled={vehicle.catalog_type === "concession"}>
+                          <option value="percent">Pourcentage (%)</option>
+                          <option value="price">Prix soldé fixe (€)</option>
+                        </select>
+                      </label>
+
+                      <label>
+                        Valeur
+                        <input
+                          type="number"
+                          name="sale_value"
+                          min="0"
+                          step="0.01"
+                          defaultValue={merchandisingState.saleValue || ""}
+                          disabled={vehicle.catalog_type === "concession"}
+                        />
+                      </label>
+
+                      <label>
+                        Achat réservé à
+                        <select name="required_tier" defaultValue={merchandisingState.requiredTier} disabled={vehicle.catalog_type === "concession"}>
+                          <option value="all">Tous les membres</option>
+                          <option value="silver">Silver</option>
+                          <option value="gold">Gold</option>
+                          <option value="black_signature">Black Signature</option>
+                        </select>
+                        {vehicle.catalog_type === "concession" && <small>Les grades d’achat ne s’appliquent pas aux véhicules de location.</small>}
+                      </label>
+
+                      <label className="wide-v157">
+                        Début des soldes · facultatif
+                        <input type="datetime-local" name="sale_starts_at" defaultValue={merchandisingState.saleStartsAt ? merchandisingState.saleStartsAt.slice(0, 16) : ""} disabled={vehicle.catalog_type === "concession"} />
+                      </label>
+                      <label className="wide-v157">
+                        Fin des soldes · facultatif
+                        <input type="datetime-local" name="sale_ends_at" defaultValue={merchandisingState.saleEndsAt ? merchandisingState.saleEndsAt.slice(0, 16) : ""} disabled={vehicle.catalog_type === "concession"} />
+                      </label>
+
+                      <button className="btn" type="submit">Enregistrer soldes & accès</button>
+                    </form>
                   </section>
 
                   <form
