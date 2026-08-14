@@ -68,12 +68,21 @@ export function vehicleTierBadgeClassV157(
   return "";
 }
 
+export function vehicleAccessTierRankV157(
+  tier: VehicleAccessTierV157,
+): number {
+  if (tier === "silver") return 1;
+  if (tier === "gold") return 2;
+  if (tier === "black_signature") return 3;
+  return 0;
+}
+
 export function canCitizenAccessVehicleTierV157(
   requiredTier: VehicleAccessTierV157,
   citizenTier: VehicleAccessTierV157,
 ): boolean {
   if (requiredTier === "all") return true;
-  return requiredTier === citizenTier;
+  return vehicleAccessTierRankV157(citizenTier) >= vehicleAccessTierRankV157(requiredTier);
 }
 
 export async function getCurrentCitizenVehicleTierV157(

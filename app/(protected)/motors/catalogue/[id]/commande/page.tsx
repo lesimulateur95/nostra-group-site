@@ -265,13 +265,16 @@ export default async function VehicleConfigurationPage({
       {(vehiclePrice < regularVehiclePrice || requiredTier !== "all") && (
         <div className="catalogue-command-badges-v157">
           {vehiclePrice < regularVehiclePrice && (
-            <span className="catalogue-sale-badge-v157">◆ SOLDES -{Math.max(1, Math.round(((regularVehiclePrice - vehiclePrice) / regularVehiclePrice) * 100))}%</span>
+            <span className="catalogue-sale-badge-v157">
+              <span className="catalogue-badge-icon-v158" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M3 12.2V5.4C3 4.07 4.07 3 5.4 3h6.8c.64 0 1.25.25 1.7.7l6.4 6.4a2.4 2.4 0 0 1 0 3.4l-6.8 6.8a2.4 2.4 0 0 1-3.4 0L3.7 13.9a2.4 2.4 0 0 1-.7-1.7Zm5.1-5.4a1.6 1.6 0 1 0 0 3.2 1.6 1.6 0 0 0 0-3.2Z"/></svg></span>
+              <span>SOLDES -{Math.max(1, Math.round(((regularVehiclePrice - vehiclePrice) / regularVehiclePrice) * 100))}%</span>
+            </span>
           )}
           {requiredTier !== "all" && (
-            <span className={`catalogue-tier-badge-v157 ${vehicleTierBadgeClassV157(requiredTier)}`}>♛ {requiredTierLabel.toUpperCase()}</span>
-          )}
-          {!tierAllowed && requiredTier !== "all" && (
-            <span className="catalogue-command-lock-v157">Accès réservé aux membres {requiredTierLabel}</span>
+            <span className={`catalogue-tier-badge-v157 ${vehicleTierBadgeClassV157(requiredTier)}`}>
+              <span className="catalogue-badge-icon-v158" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="m3.2 7.1 4.2 3.2L12 4l4.6 6.3 4.2-3.2-1.8 9.7H5L3.2 7.1Zm2.4 11.2h12.8v2H5.6v-2Z"/></svg></span>
+              <span>{requiredTierLabel.toUpperCase()}</span>
+            </span>
           )}
         </div>
       )}
