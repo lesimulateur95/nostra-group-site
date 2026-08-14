@@ -18,6 +18,8 @@ import { ProfileNavigation } from "@/components/profile/profile-navigation";
 import { LoyaltyCard } from "@/components/loyalty/loyalty-card";
 import { IdentityCard } from "@/components/profile/identity-card";
 import { ClearCatalogueSelectionV1601 } from "@/components/motors/clear-catalogue-selection-v1601";
+import { DeliveryAddressPickerV161 } from "@/components/motors/delivery-address-picker-v161";
+import { VehicleHoldCountdownV161 } from "@/components/motors/vehicle-hold-countdown-v161";
 
 import { NotificationLauncher } from "@/components/profile/notification-launcher";
 
@@ -49,6 +51,7 @@ import { getUserRoleLabel } from "@/lib/auth/access";
 
 import { createClient } from "@/lib/supabase/server";
 import { calculateDeliveryTransportPlanV160, calculateHomeDeliveryFeeV160, formatDeliveryTransportPlanV160 } from "@/lib/nostra-motors/delivery-v160";
+import { getMyDeliveryAddressesV161, getMyVehicleHoldSummaryV161 } from "@/lib/nostra-motors/v161-data";
 import { getOwnVehicleReservations } from "@/lib/vehicle-reservations/data";
 import { getOwnVehicleTradeInRequests } from "@/lib/vehicle-trade-ins/data";
 import { getOwnSearchMandatesV134 } from "@/lib/vehicle-search-mandates/data";
@@ -79,6 +82,8 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
  if (!data.user) redirect("/");
 
  const params = await searchParams;
+
+ await (supabase as any).rpc("nostra_cleanup_expired_holds_v161");
 
  const metadata = data.user.user_metadata ?? {};
 
@@ -142,6 +147,11 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
 
  getOwnVehicleConsignmentsV134(data.user.id),
 
+ ]);
+
+ const [deliveryAddressesV161, vehicleHoldSummaryV161] = await Promise.all([
+  getMyDeliveryAddressesV161(data.user.id),
+  getMyVehicleHoldSummaryV161(data.user.id),
  ]);
 
  const normalVehicleCart = commerce.cart.filter((item) => ["vehicle", "delivery"].includes(String(item.item_type)));
@@ -216,6 +226,8 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
  : params.order_error === "delivery" ? "Choisis un mode de récupération valide pour la commande."
  : params.order_error === "address" ? "Renseigne une adresse complète pour la livraison à domicile."
  : params.order_error === "phone" ? "Renseigne un numéro de téléphone pour la livraison."
+ : params.order_error === "hold-expired" ? "La réservation temporaire du stock a expiré. Les véhicules concernés ont été libérés : refais ta sélection si tu veux les commander."
+ : params.order_error === "hold-reserved" ? "Un véhicule de ton panier vient d’être temporairement réservé par un autre citoyen."
  : params.order_error ? "La commande n’a pas pu être envoyée. Réessaie dans un instant." : null;
 
  const errorMessage =
@@ -354,6 +366,10 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
 
  {orderErrorMessage && <div className="dashboard-feedback dashboard-feedback-error">{orderErrorMessage}</div>}
 
+ {vehicleHoldSummaryV161.configured && vehicleHoldSummaryV161.count > 0 && vehicleHoldSummaryV161.expiresAt && (
+  <VehicleHoldCountdownV161 expiresAt={vehicleHoldSummaryV161.expiresAt} vehicleCount={vehicleHoldSummaryV161.count} />
+ )}
+
  <section className="profile-commerce-grid profile-commerce-grid-v115">
 
  <article className="profile-commerce-card">
@@ -465,8 +481,11 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
  </div>
  <p><strong>Transport prévu :</strong> {deliveryTransportLabel} · capacité totale {deliveryTransportPlan.totalCapacity} véhicule{deliveryTransportPlan.totalCapacity > 1 ? "s" : ""}.</p>
  {excludedDeliveryVehicleCount > 0 && <p className="profile-delivery-warning-v160">{excludedDeliveryVehicleCount} véhicule{excludedDeliveryVehicleCount > 1 ? "s" : ""} du catalogue Location/Poids lourd reste{excludedDeliveryVehicleCount > 1 ? "nt" : ""} en retrait showroom.</p>}
- <label><span>Téléphone de livraison</span><input name="delivery_phone" type="tel" maxLength={40} defaultValue={profileDeliveryPhone} placeholder="06 12 34 56 78" /></label>
- <label><span>Adresse complète de livraison</span><textarea name="delivery_address" rows={3} maxLength={500} defaultValue={profileDeliveryAddress} placeholder="Adresse, résidence, bâtiment…" /></label>
+ <DeliveryAddressPickerV161
+  addresses={deliveryAddressesV161}
+  fallbackPhone={profileDeliveryPhone}
+  fallbackAddress={profileDeliveryAddress}
+ />
  </div>
  </fieldset>
  ) : <input type="hidden" name="delivery_mode" value="showroom" />}

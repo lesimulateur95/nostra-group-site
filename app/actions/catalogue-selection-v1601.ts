@@ -63,6 +63,7 @@ function rpcErrorCode(
   if (
     value.includes("pgrst202") ||
     value.includes("nostra_add_vehicle_selection_to_cart_v1601") ||
+    value.includes("nostra_add_vehicle_selection_to_cart_v161") ||
     value.includes("nostra_prepare_cart_delivery_v160") ||
     value.includes("add_vehicle_purchase_to_cart_v93")
   ) {
@@ -79,6 +80,8 @@ function rpcErrorCode(
   if (value.includes("invalid_delivery_address")) return "address";
   if (value.includes("invalid_delivery_phone")) return "phone";
   if (value.includes("selection_empty")) return "empty";
+  if (value.includes("vehicle_temporarily_reserved")) return "held";
+  if (value.includes("hold_limit_reached")) return "limit";
   return "save";
 }
 
@@ -191,7 +194,7 @@ export async function addVehicleSelectionToCartV1601(formData: FormData) {
   }
 
   const { data: result, error } = await (supabase as any).rpc(
-    "nostra_add_vehicle_selection_to_cart_v1601",
+    "nostra_add_vehicle_selection_to_cart_v161",
     {
       p_vehicle_ids: vehicleIds,
       p_delivery_mode: deliveryMode,
@@ -206,10 +209,10 @@ export async function addVehicleSelectionToCartV1601(formData: FormData) {
     result && typeof result === "object"
       ? (result as Record<string, unknown>)
       : {};
-  const addedCount = Math.max(
-    1,
-    Number(response.added_count) || vehicleIds.length,
-  );
+  const rawAddedCount = Number(response.added_count);
+  const addedCount = Number.isFinite(rawAddedCount)
+    ? Math.max(0, rawAddedCount)
+    : vehicleIds.length;
 
   revalidateSelectionPaths();
   redirect(`/profil?vehicle_added=${addedCount}&selection_added=1`);

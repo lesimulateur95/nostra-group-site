@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { addConfiguredVehicleWithProfileDelivery } from "@/app/actions/configured-profile-delivery";
+import { DeliveryAddressPickerV161 } from "@/components/motors/delivery-address-picker-v161";
 import { joinVehicleWaitlistV155 } from "@/app/actions/v155";
 import type { CatalogVehicleImage } from "@/lib/backoffice/data";
 import { isVehicleReservationEnabled } from "@/lib/vehicle-reservation-settings/data";
@@ -11,6 +12,7 @@ import { getVehicleCommerceAvailability } from "@/lib/vehicle-commerce-settings/
 import { getVehicleFinancingSettings } from "@/lib/vehicle-financing/data";
 import { createClient } from "@/lib/supabase/server";
 import { calculateHomeDeliveryFeeV160 } from "@/lib/nostra-motors/delivery-v160";
+import { getMyDeliveryAddressesV161 } from "@/lib/nostra-motors/v161-data";
 import { getActiveFlashSaleForVehicleV156 } from "@/lib/v156/data";
 import {
   canCitizenAccessVehicleTierV157,
@@ -103,6 +105,9 @@ export default async function VehicleConfigurationPage({
   >;
   const profilePhone = metadataText(metadata, "phone");
   const profileAddress = metadataText(metadata, "address");
+  const deliveryAddressesV161 = authResult.data.user
+    ? await getMyDeliveryAddressesV161(authResult.data.user.id)
+    : [];
   const vehicleImages = images(vehicle.images);
   const regularVehiclePrice = Number(vehicle.price) || 0;
   const [flashSale, merchandising, citizenTier] = await Promise.all([
@@ -196,6 +201,10 @@ export default async function VehicleConfigurationPage({
   const errorMessage =
     query.error === "stock"
       ? "Ce véhicule n’est plus disponible dans cette quantité."
+      : query.error === "held"
+        ? "Ce véhicule vient d’être temporairement réservé par un autre citoyen."
+      : query.error === "hold-limit"
+        ? "Tu as atteint la limite de véhicules pouvant être bloqués temporairement dans ton panier."
       : query.error === "setup"
         ? "Le profil de livraison doit encore être activé dans Supabase."
         : query.error === "delivery"
@@ -619,49 +628,11 @@ export default async function VehicleConfigurationPage({
               </label>
 
               <div className={styles.addressField}>
-                <div className={styles.profilePrefill}>
-                  <strong>Informations reprises depuis ton profil</strong>
-                  <span>
-                    Tu peux modifier le téléphone ou l’adresse uniquement pour
-                    cette livraison.
-                  </span>
-                </div>
-
-                <label htmlFor="delivery_phone">Numéro de téléphone</label>
-                <input
-                  id="delivery_phone"
-                  name="delivery_phone"
-                  type="tel"
-                  maxLength={40}
-                  defaultValue={profilePhone}
-                  placeholder="Exemple : 06 12 34 56 78"
-                  autoComplete="tel"
+                <DeliveryAddressPickerV161
+                  addresses={deliveryAddressesV161}
+                  fallbackPhone={profilePhone}
+                  fallbackAddress={profileAddress}
                 />
-
-                <label htmlFor="delivery_address">
-                  Adresse complète de livraison
-                </label>
-                <textarea
-                  id="delivery_address"
-                  name="delivery_address"
-                  maxLength={500}
-                  rows={4}
-                  defaultValue={profileAddress}
-                  placeholder="Exemple : 12 rue de Locmaria, résidence Nostra, bâtiment B"
-                  autoComplete="street-address"
-                />
-
-                <small>
-                  Les informations saisies ici seront enregistrées avec la
-                  commande et transmises à l’équipe chargée de la livraison.
-                </small>
-
-                {(!profilePhone || !profileAddress) && (
-                  <small>
-                    Ton profil est incomplet. Tu peux remplir les champs ici ou{" "}
-                    <Link href="/profil">compléter ton identité</Link>.
-                  </small>
-                )}
               </div>
             </>
           )}

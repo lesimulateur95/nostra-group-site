@@ -148,6 +148,13 @@ const cards: NavigationCard[] = [
       "Suivre mes véhicules, leur livraison, leur historique et leurs documents.",
   },
   {
+    href: "/profil/adresses",
+    icon: "📍",
+    label: "Mes adresses de livraison",
+    description:
+      "Enregistrer domicile, garage ou entreprise pour les réutiliser dans mes commandes.",
+  },
+  {
     href: "/profil/wallet",
     icon: "◈",
     label: "Wallet Nostra",

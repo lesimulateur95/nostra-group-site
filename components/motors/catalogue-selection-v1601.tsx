@@ -13,6 +13,7 @@ import {
 } from "react";
 
 import { addVehicleSelectionToCartV1601 } from "@/app/actions/catalogue-selection-v1601";
+import type { DeliveryAddressV161 } from "@/lib/nostra-motors/v161-data";
 import styles from "./catalogue-selection-v1601.module.css";
 
 const STORAGE_KEY = "nostra-motors-vehicle-selection-v1601";
@@ -92,10 +93,12 @@ export function CatalogueSelectionProviderV1601({
   children,
   profilePhone,
   profileAddress,
+  deliveryAddresses = [],
 }: {
   children: ReactNode;
   profilePhone?: string;
   profileAddress?: string;
+  deliveryAddresses?: DeliveryAddressV161[];
 }) {
   const pathname = usePathname();
   const [items, setItems] = useState<CatalogueSelectionItemV1601[]>([]);
@@ -104,6 +107,18 @@ export function CatalogueSelectionProviderV1601({
   const [deliveryMode, setDeliveryMode] = useState<"showroom" | "home">(
     "showroom",
   );
+  const defaultDeliveryAddress =
+    deliveryAddresses.find((address) => address.is_default) ?? deliveryAddresses[0] ?? null;
+  const [deliveryAddressId, setDeliveryAddressId] = useState<string>(
+    defaultDeliveryAddress ? String(defaultDeliveryAddress.id) : "manual",
+  );
+  const selectedDeliveryAddress =
+    deliveryAddresses.find((address) => String(address.id) === deliveryAddressId) ?? null;
+  const selectedDeliveryAddressText = selectedDeliveryAddress
+    ? [selectedDeliveryAddress.address_line, selectedDeliveryAddress.city, selectedDeliveryAddress.zone]
+        .filter(Boolean)
+        .join(", ")
+    : "";
 
   useEffect(() => {
     setItems(readStorage());
@@ -298,14 +313,43 @@ export function CatalogueSelectionProviderV1601({
                       )}
                     </div>
                     <div className={styles.homeFields}>
-                      <label>
-                        Téléphone
-                        <input name="delivery_phone" type="tel" maxLength={40} defaultValue={profilePhone ?? ""} placeholder="06 12 34 56 78" />
-                      </label>
-                      <label>
-                        Adresse complète
-                        <textarea name="delivery_address" rows={2} maxLength={500} defaultValue={profileAddress ?? ""} placeholder="Adresse, résidence, bâtiment…" />
-                      </label>
+                      {deliveryAddresses.length > 0 && (
+                        <label>
+                          Adresse enregistrée
+                          <select value={deliveryAddressId} onChange={(event) => setDeliveryAddressId(event.target.value)}>
+                            {deliveryAddresses.map((address) => (
+                              <option key={address.id} value={address.id}>
+                                {address.label}{address.is_default ? " · Par défaut" : ""}
+                              </option>
+                            ))}
+                            <option value="manual">Autre adresse</option>
+                          </select>
+                        </label>
+                      )}
+                      {selectedDeliveryAddress ? (
+                        <>
+                          <label>
+                            Téléphone
+                            <input name="delivery_phone" type="tel" readOnly value={selectedDeliveryAddress.phone || profilePhone || ""} />
+                          </label>
+                          <label>
+                            Adresse complète
+                            <textarea name="delivery_address" rows={2} readOnly value={selectedDeliveryAddressText} />
+                          </label>
+                        </>
+                      ) : (
+                        <>
+                          <label>
+                            Téléphone
+                            <input name="delivery_phone" type="tel" maxLength={40} defaultValue={profilePhone ?? ""} placeholder="06 12 34 56 78" />
+                          </label>
+                          <label>
+                            Adresse complète
+                            <textarea name="delivery_address" rows={2} maxLength={500} defaultValue={profileAddress ?? ""} placeholder="Adresse, résidence, bâtiment…" />
+                          </label>
+                        </>
+                      )}
+                      <Link href="/profil/adresses">Gérer mes adresses de livraison</Link>
                     </div>
                   </>
                 )}

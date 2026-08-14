@@ -315,8 +315,8 @@ export default async function DashboardPage() {
               <DashboardCard
                 href="/dashboard/livraisons"
                 icon="🚚"
-                title="Gestion des livraisons"
-                description="Planifier les livraisons, assigner un livreur et suivre leur progression."
+                title="Centre logistique"
+                description="Planning, flotte 1/2/5 places, réservations temporaires, chargement et suivi des livraisons."
                 badge={
                   !overview.motorsV41Configured
                     ? "À activer"

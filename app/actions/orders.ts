@@ -63,6 +63,8 @@ function orderErrorCode(
   if (value.includes("invalid_delivery_mode")) return "delivery";
   if (value.includes("invalid_delivery_address")) return "address";
   if (value.includes("invalid_delivery_phone")) return "phone";
+  if (value.includes("hold_expired")) return "hold-expired";
+  if (value.includes("vehicle_temporarily_reserved")) return "hold-reserved";
   if (
     value.includes("cart_needs_refresh") ||
     value.includes("invalid_delivery_cart")
@@ -146,6 +148,11 @@ export async function removeCartItem(formData: FormData) {
     .eq("user_id", data.user.id);
 
   if (error) redirect("/profil?cart_error=delete");
+  if (lookup.data.item_type === "vehicle" && lookup.data.vehicle_id) {
+    await (supabase as any).rpc("nostra_release_vehicle_hold_v161", {
+      p_vehicle_id: Number(lookup.data.vehicle_id),
+    });
+  }
   revalidateCommerce();
   redirect("/profil?cart_removed=1");
 }
@@ -155,12 +162,37 @@ export async function placeCartOrder(formData: FormData) {
   const rawPromoCode = text(formData.get("promo_code"), 80);
   const promoCode = rawPromoCode ? rawPromoCode.toUpperCase().replace(/[^A-Z0-9_-]/g, "").slice(0, 32) || null : null;
   const deliveryMode = text(formData.get("delivery_mode"), 30) || "showroom";
-  const deliveryAddress = text(formData.get("delivery_address"), 500);
-  const deliveryPhone = text(formData.get("delivery_phone"), 40);
+  const deliveryAddressId = integer(formData.get("delivery_address_id"));
+  let deliveryAddress = text(formData.get("delivery_address"), 500);
+  let deliveryPhone = text(formData.get("delivery_phone"), 40);
+  let deliveryAddressLabel = text(formData.get("delivery_address_label"), 100) || null;
+  let deliveryInstructions = text(formData.get("delivery_instructions"), 500) || null;
 
   if (!["showroom", "home"].includes(deliveryMode)) {
     redirect("/profil?order_error=delivery");
   }
+
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getUser();
+  if (!data.user) redirect("/");
+
+  if (deliveryMode === "home" && deliveryAddressId > 0) {
+    const { data: savedAddress } = await (supabase as any)
+      .from("nostra_delivery_addresses_v161")
+      .select("label,address_line,city,zone,phone,instructions")
+      .eq("id", deliveryAddressId)
+      .eq("user_id", data.user.id)
+      .maybeSingle();
+    if (savedAddress) {
+      deliveryAddress = [savedAddress.address_line, savedAddress.city, savedAddress.zone]
+        .filter(Boolean)
+        .join(", ");
+      deliveryPhone = String(savedAddress.phone || deliveryPhone || "");
+      deliveryAddressLabel = String(savedAddress.label || deliveryAddressLabel || "Adresse enregistrée");
+      deliveryInstructions = String(savedAddress.instructions || deliveryInstructions || "") || null;
+    }
+  }
+
   if (deliveryMode === "home" && deliveryAddress.length < 5) {
     redirect("/profil?order_error=address");
   }
@@ -168,9 +200,8 @@ export async function placeCartOrder(formData: FormData) {
     redirect("/profil?order_error=phone");
   }
 
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getUser();
-  if (!data.user) redirect("/");
+  const { error: holdError } = await (supabase as any).rpc("nostra_validate_my_cart_holds_v161");
+  if (holdError) redirect(`/profil?order_error=${orderErrorCode(holdError)}`);
 
   const { error: deliveryError } = await (supabase as any).rpc(
     "nostra_prepare_cart_delivery_v160",
@@ -205,8 +236,26 @@ export async function placeCartOrder(formData: FormData) {
     typeof response.order_number === "string"
       ? response.order_number
       : orderNumber;
+  const savedOrderId = Number(response.id);
+
+  if (Number.isFinite(savedOrderId) && savedOrderId > 0) {
+    await (supabase as any).rpc("nostra_convert_my_holds_v161", {
+      p_order_id: savedOrderId,
+    });
+    if (deliveryMode === "home") {
+      await (supabase as any).rpc("nostra_attach_delivery_snapshot_v161", {
+        p_order_id: savedOrderId,
+        p_address_id: deliveryAddressId > 0 ? deliveryAddressId : null,
+        p_label: deliveryAddressLabel,
+        p_address: deliveryAddress,
+        p_phone: deliveryPhone,
+        p_instructions: deliveryInstructions,
+      });
+    }
+  }
 
   revalidateCommerce();
+  revalidatePath("/dashboard/livraisons");
   redirect(`/profil?order_sent=${encodeURIComponent(savedNumber)}`);
 }
 

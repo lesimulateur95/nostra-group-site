@@ -364,7 +364,7 @@ export async function getOwnHomologationRequests(userId: string): Promise<Homolo
 export async function getProfileCommerceData(userId: string) {
   const supabase = await createClient();
   const [orders, invoices, loyalty, cart] = await Promise.all([
-    supabase.from("orders").select("id,order_number,status,total,created_at,customer_name,items,customer_note,admin_note,stock_deducted,updated_at").eq("user_id", userId).order("created_at", { ascending: false }),
+    supabase.from("orders").select("id,order_number,status,total,created_at,customer_name,items,customer_note,admin_note,stock_deducted,updated_at,delivery_status,delivery_stage,delivery_date,delivery_window_end,delivery_driver,delivery_notes,delivery_address_id,delivery_address_label,delivery_address,delivery_phone,delivery_instructions").eq("user_id", userId).order("created_at", { ascending: false }),
     supabase.from("invoices").select("id,invoice_number,status,amount,issued_at,download_url").eq("user_id", userId).order("issued_at", { ascending: false }),
     supabase.from("loyalty_profiles").select("tier,purchases_count,discount_percent,updated_at").eq("user_id", userId).maybeSingle(),
     supabase.from("cart_items").select("id,vehicle_id,related_vehicle_id,reservation_id,item_type,delivery_mode,delivery_address,delivery_phone,item_name,quantity,unit_price,original_unit_price,image_url,locked,created_at").eq("user_id", userId).order("created_at", { ascending: false }),

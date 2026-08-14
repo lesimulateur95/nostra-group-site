@@ -62,6 +62,8 @@ function configuredCartErrorCode(
   if (value.includes("steam_identity_required")) return "financing-steam";
   if (value.includes("loyalty_tier_required")) return "tier-required";
   if (value.includes("insufficient_stock")) return "stock";
+  if (value.includes("vehicle_temporarily_reserved")) return "held";
+  if (value.includes("hold_limit_reached")) return "hold-limit";
   if (value.includes("vehicle_unavailable")) return "not-found";
   if (value.includes("invalid_purchase_mode")) return "purchase";
   if (value.includes("invalid_delivery_mode")) return "delivery";
@@ -242,13 +244,18 @@ export async function addConfiguredVehicleWithProfileDelivery(
     );
   }
 
-  const { error } = await supabase.rpc("add_vehicle_purchase_to_cart_v93", {
-    p_vehicle_id: vehicleId,
-    p_delivery_mode: deliveryMode,
-    p_delivery_address: deliveryMode === "home" ? deliveryAddress : null,
-    p_delivery_phone: deliveryMode === "home" ? deliveryPhone : null,
-    p_purchase_mode: purchaseMode,
-  });
+  const { error } = await (supabase as any).rpc(
+    !isRentalCatalog
+      ? "nostra_add_vehicle_purchase_to_cart_v161"
+      : "add_vehicle_purchase_to_cart_v93",
+    {
+      p_vehicle_id: vehicleId,
+      p_delivery_mode: deliveryMode,
+      p_delivery_address: deliveryMode === "home" ? deliveryAddress : null,
+      p_delivery_phone: deliveryMode === "home" ? deliveryPhone : null,
+      p_purchase_mode: purchaseMode,
+    },
+  );
 
   if (!error && purchaseMode === "order" && !isRentalCatalog) {
     const [{ data: flashPrice }] = await Promise.all([

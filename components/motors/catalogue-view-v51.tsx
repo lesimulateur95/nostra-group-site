@@ -44,6 +44,7 @@ import {
   getExclusiveCatalogueVehiclesV159,
   getVehicleCollectionMapV159,
 } from "@/lib/v159/collection-memberships";
+import { getMyDeliveryAddressesV161, getVehicleHoldCountsV161 } from "@/lib/nostra-motors/v161-data";
 import {
   getSitePage,
   type EditablePageSlug,
@@ -131,7 +132,10 @@ export async function CatalogueViewV51({
   const authMetadata = (authData.user?.user_metadata ?? {}) as Record<string, unknown>;
   const profilePhone = typeof authMetadata.phone === "string" ? authMetadata.phone : "";
   const profileAddress = typeof authMetadata.address === "string" ? authMetadata.address : "";
-  const [favoriteState, commerceAvailability, flashSales, merchandising, citizenTier, collectionMap] = await Promise.all([
+  const deliveryAddressesV161 = authData.user
+    ? await getMyDeliveryAddressesV161(authData.user.id)
+    : [];
+  const [favoriteState, commerceAvailability, flashSales, merchandising, citizenTier, collectionMap, holdCountsV161] = await Promise.all([
     getCurrentFavoriteStateMap(vehicleIds),
     getVehicleCommerceAvailabilityMap(vehicleIds),
     getFlashSaleMapV156(vehicleIds),
@@ -140,6 +144,7 @@ export async function CatalogueViewV51({
     catalogType === "exclusive"
       ? getVehicleCollectionMapV159(vehicleIds)
       : Promise.resolve(new Map<number, ExclusiveCollectionV158[]>()),
+    getVehicleHoldCountsV161(vehicleIds),
   ]);
 
   const grouped = new Map<string, typeof vehicles>();
@@ -167,7 +172,7 @@ export async function CatalogueViewV51({
       const availability = commerceAvailability.get(Number(vehicle.id));
       const requiredTier = vehicleMerchandising?.requiredTier ?? "all";
       if (
-        vehicle.stock_quantity <= 0 ||
+        Math.max(0, Number(vehicle.stock_quantity) - (holdCountsV161.get(Number(vehicle.id)) ?? 0)) <= 0 ||
         availability?.sale_enabled === false ||
         !canCitizenAccessVehicleTierV157(requiredTier, citizenTier)
       ) {
@@ -185,6 +190,7 @@ export async function CatalogueViewV51({
       <CatalogueSelectionProviderV1601
         profilePhone={profilePhone}
         profileAddress={profileAddress}
+        deliveryAddresses={deliveryAddressesV161}
       >
       <article className="motors-catalogue-page">
         <header className="document-hero">
@@ -274,12 +280,16 @@ export async function CatalogueViewV51({
                       ? "Une vente privée de ta sélection nécessite un niveau VIP supérieur."
                       : params.selection_error === "rental"
                         ? "Les véhicules du catalogue Location ne peuvent pas entrer dans une commande groupée."
+                        : params.selection_error === "held"
+                          ? "Au moins un véhicule vient d’être temporairement réservé par un autre citoyen."
+                        : params.selection_error === "limit"
+                          ? "Tu as atteint le nombre maximal de véhicules pouvant être réservés temporairement dans un panier."
                         : params.selection_error === "address"
                           ? "Renseigne une adresse complète pour la livraison à domicile."
                           : params.selection_error === "phone"
                             ? "Renseigne un numéro de téléphone pour la livraison à domicile."
                             : params.selection_error === "setup"
-                              ? "Exécute le SQL V160.1 avant d’utiliser la sélection multi-véhicules."
+                              ? "Exécute le SQL V161 avant d’utiliser la réservation temporaire du stock."
                               : "Impossible de préparer cette sélection. Vérifie la disponibilité des véhicules."}
           </div>
         )}
@@ -427,7 +437,9 @@ export async function CatalogueViewV51({
                       const canReserve =
                         reservationsEnabled && availability.reservation_enabled && !regularSale && !flashSale;
                       const canOrder = availability.sale_enabled;
-                      const canStartPurchase = (canReserve || canOrder) && tierAllowed;
+                      const temporarilyReserved = holdCountsV161.get(Number(vehicle.id)) ?? 0;
+                      const availableAfterHolds = Math.max(0, Number(vehicle.stock_quantity) - temporarilyReserved);
+                      const canStartPurchase = (canReserve || canOrder) && tierAllowed && availableAfterHolds > 0;
                       const purchaseLabel = !tierAllowed
                         ? `Réservé ${requiredTierLabel}`
                         : catalogType === "concession"
@@ -450,7 +462,7 @@ export async function CatalogueViewV51({
                           data-brand={vehicle.brand.toLocaleLowerCase("fr-FR")}
                           data-search={`${vehicle.brand} ${vehicle.model}`.toLocaleLowerCase("fr-FR")}
                           data-price={Number(effectivePrice)}
-                          data-stock={Number(vehicle.stock_quantity)}
+                          data-stock={availableAfterHolds}
                           data-reserve={canReserve ? "true" : "false"}
                           data-sale={canOrder ? "true" : "false"}
                           data-status={catalogType === "used" ? (vehicle.used_vehicle_status || "available") : "available"}
@@ -561,7 +573,7 @@ export async function CatalogueViewV51({
 
                             <div
                               className={`catalogue-stock-status${
-                                vehicle.stock_quantity <= 0 ||
+                                availableAfterHolds <= 0 ||
                                 (catalogType === "used" &&
                                   vehicle.used_vehicle_status !== "available")
                                   ? " catalogue-stock-status-empty"
@@ -571,9 +583,11 @@ export async function CatalogueViewV51({
                               <span>
                                 {catalogType === "used"
                                   ? usedStatusLabel(vehicle.used_vehicle_status)
-                                  : vehicle.stock_quantity > 0
+                                  : availableAfterHolds > 0
                                     ? "Disponible"
-                                    : "Rupture de stock"}
+                                    : temporarilyReserved > 0
+                                      ? "Réservation temporaire en cours"
+                                      : "Rupture de stock"}
                               </span>
                               <strong>
                                 {stockConfigured
@@ -581,7 +595,9 @@ export async function CatalogueViewV51({
                                     ? vehicle.used_vehicle_status === "available"
                                       ? `${vehicle.stock_quantity} disponible${vehicle.stock_quantity > 1 ? "s" : ""}`
                                       : usedStatusLabel(vehicle.used_vehicle_status)
-                                    : `${vehicle.stock_quantity} en stock`
+                                    : temporarilyReserved > 0
+                                      ? `${availableAfterHolds} disponible${availableAfterHolds > 1 ? "s" : ""} · ${temporarilyReserved} réservé${temporarilyReserved > 1 ? "s" : ""} temporairement`
+                                      : `${vehicle.stock_quantity} en stock`
                                   : "Stock en cours d’activation"}
                               </strong>
                             </div>
@@ -600,7 +616,7 @@ export async function CatalogueViewV51({
                             </div>
 
                             <div className="catalogue-cart-form">
-                              {vehicle.stock_quantity > 0 &&
+                              {availableAfterHolds > 0 &&
                               stockConfigured &&
                               canStartPurchase &&
                               (catalogType !== "used" ||
@@ -630,7 +646,7 @@ export async function CatalogueViewV51({
                                   type="button"
                                   disabled
                                 >
-                                  {vehicle.stock_quantity <= 0 ||
+                                  {availableAfterHolds <= 0 ||
                                   (catalogType === "used" &&
                                     vehicle.used_vehicle_status !== "available")
                                     ? "Indisponible"
