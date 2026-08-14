@@ -30,8 +30,12 @@ function revalidateExclusive() {
   revalidatePath("/profil");
 }
 
-function dashboardRedirect(code: string): never {
-  redirect(`/dashboard/catalogue?type=exclusive&${code}`);
+function dashboardRedirect(code: string, collectionId?: string): never {
+  const collectionQuery = collectionId
+    ? `&collection=${encodeURIComponent(collectionId)}`
+    : "";
+  const anchor = collectionId ? `#collection-${collectionId}` : "";
+  redirect(`/dashboard/catalogue?type=exclusive&${code}${collectionQuery}${anchor}`);
 }
 
 export async function createExclusiveCollectionV158(formData: FormData) {
@@ -61,14 +65,14 @@ export async function updateExclusiveCollectionV158(formData: FormData) {
   const description = text(formData.get("description"), 800);
   const sortOrder = Math.max(0, integer(formData.get("sort_order")));
   const active = formData.get("active") === "on";
-  if (!collectionId || name.length < 2) dashboardRedirect("v158_error=collection-name");
+  if (!collectionId || name.length < 2) dashboardRedirect("v158_error=collection-name", collectionId);
   const { error } = await (supabase as any)
     .from("nostra_exclusive_collections_v158")
     .update({ name, description, sort_order: sortOrder, active, updated_by: user.id, updated_at: new Date().toISOString() })
     .eq("id", collectionId);
-  if (error) dashboardRedirect("v158_error=collection-save");
+  if (error) dashboardRedirect("v158_error=collection-save", collectionId);
   revalidateExclusive();
-  dashboardRedirect("v158_saved=collection");
+  dashboardRedirect("v158_saved=collection", collectionId);
 }
 
 export async function deleteExclusiveCollectionV158(formData: FormData) {

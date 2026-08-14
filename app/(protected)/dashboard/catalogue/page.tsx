@@ -105,6 +105,7 @@ export default async function DashboardCataloguePage({
     v159_saved?: string;
     v159_error?: string;
     new_collection?: string;
+    collection?: string;
   }>;
 }) {
   const params = await searchParams;
@@ -518,32 +519,42 @@ export default async function DashboardCataloguePage({
 
           {selectedType === "exclusive" && (
             <section className="backoffice-panel" style={{ marginTop: 14, marginBottom: 18 }}>
-              <div className="panel-heading">
-                <span className="panel-icon">✦</span>
-                <div>
-                  <h2>Collections du catalogue exclusif</h2>
-                  <p>Crée tes collections, crée des fiches directement dedans ou récupère des véhicules déjà présents dans les autres catalogues.</p>
+              <div className={styles.collectionSectionHeaderV1594}>
+                <div className="panel-heading">
+                  <span className="panel-icon">✦</span>
+                  <div>
+                    <h2>Collections du catalogue exclusif</h2>
+                    <p>
+                      Une collection peut contenir ses propres fiches et récupérer des véhicules des autres catalogues sans les dupliquer.
+                    </p>
+                  </div>
                 </div>
+
+                <details className={styles.collectionCreateV1594}>
+                  <summary>
+                    <span aria-hidden="true">＋</span>
+                    Nouvelle collection
+                  </summary>
+                  <form action={createExclusiveCollectionV158} className={styles.collectionCreateFormV1594}>
+                    <label>
+                      Nom
+                      <input name="name" required placeholder="Ex. Ferrari Iconic Collection" />
+                    </label>
+                    <label className={styles.collectionCreateOrderV1594}>
+                      Ordre
+                      <input type="number" name="sort_order" min="0" defaultValue="0" />
+                    </label>
+                    <label className={styles.collectionCreateDescriptionV1594}>
+                      Description
+                      <textarea name="description" rows={2} placeholder="Présentation courte visible côté citoyen." />
+                    </label>
+                    <button type="submit">Créer la collection</button>
+                  </form>
+                </details>
               </div>
 
-              <form action={createExclusiveCollectionV158} className="backoffice-form backoffice-form-wide" style={{ marginBottom: 18 }}>
-                <label>
-                  Nom de la collection
-                  <input name="name" required placeholder="Ex. Ferrari Iconic Collection" />
-                </label>
-                <label>
-                  Ordre
-                  <input type="number" name="sort_order" min="0" defaultValue="0" />
-                </label>
-                <label className="form-span-2">
-                  Description
-                  <textarea name="description" rows={3} placeholder="Présentation courte visible dans le catalogue exclusif." />
-                </label>
-                <button className="btn" type="submit">Créer la collection</button>
-              </form>
-
               {exclusiveCollections.length > 0 ? (
-                <div className={styles.collectionAdminGridV158}>
+                <div className={styles.collectionAccordionV1594}>
                   {exclusiveCollections.map((collection) => {
                     const collectionVehicles = managedVehicles.filter((vehicle) =>
                       (exclusiveCollectionMap.get(Number(vehicle.id)) ?? []).some((item) => item.id === collection.id),
@@ -566,47 +577,51 @@ export default async function DashboardCataloguePage({
                       }))
                       .filter((group) => group.vehicles.length > 0);
 
-                    return (
-                      <article className={styles.collectionAdminCardV158} id={`collection-${collection.id}`} key={collection.id}>
-                        <form action={updateExclusiveCollectionV158}>
-                          <input type="hidden" name="collection_id" value={collection.id} />
-                          <label>Nom<input name="name" required defaultValue={collection.name} /></label>
-                          <label>Description<textarea name="description" rows={3} defaultValue={collection.description} /></label>
-                          <label>Ordre<input type="number" name="sort_order" min="0" defaultValue={collection.sortOrder} /></label>
-                          <label className="checkbox-label">
-                            <input type="checkbox" name="active" defaultChecked={collection.active} />
-                            Collection visible côté citoyen
-                          </label>
-                          <button className="btn" type="submit">Enregistrer</button>
-                        </form>
+                    const shouldOpenCollection = params.collection === collection.id;
 
-                        <div className={styles.collectionMembersV159}>
-                          <div className={styles.collectionMembersHeadingV159}>
+                    return (
+                      <details
+                        className={styles.collectionRowV1594}
+                        id={`collection-${collection.id}`}
+                        key={collection.id}
+                        open={shouldOpenCollection}
+                      >
+                        <summary className={styles.collectionRowSummaryV1594}>
+                          <div className={styles.collectionRowIdentityV1594}>
+                            <span className={styles.collectionRowIconV1594} aria-hidden="true">✦</span>
                             <div>
-                              <strong>Gérer les véhicules de cette collection</strong>
-                              <p>
-                                Récupère ici une fiche déjà créée dans le catalogue principal, location, poids lourd ou exclusif. La fiche reste aussi dans son catalogue d’origine.
-                              </p>
+                              <strong>{collection.name}</strong>
+                              <small>
+                                {collection.description?.trim() || "Aucune description"}
+                              </small>
                             </div>
-                            <span>{collectionVehicles.length}</span>
                           </div>
 
-                          <div className={styles.collectionActionsV159}>
+                          <div className={styles.collectionRowStatsV1594}>
+                            <span className={collection.active ? styles.collectionVisibleV1594 : styles.collectionHiddenV1594}>
+                              {collection.active ? "Visible" : "Masquée"}
+                            </span>
+                            <span className={styles.collectionVehicleCountV1594}>
+                              {collectionVehicles.length} {collectionVehicles.length > 1 ? "véhicules" : "véhicule"}
+                            </span>
+                            <span className={styles.collectionChevronV1594} aria-hidden="true">⌄</span>
+                          </div>
+                        </summary>
+
+                        <div className={styles.collectionRowBodyV1594}>
+                          <div className={styles.collectionTopActionsV1594}>
                             <Link
                               href={`/dashboard/catalogue?type=exclusive&new_collection=${encodeURIComponent(collection.id)}#nouveau-vehicule`}
-                              className="btn"
+                              className={styles.collectionCreateVehicleV1594}
                             >
-                              + Créer une nouvelle fiche dans cette collection
+                              ＋ Créer une nouvelle fiche
                             </Link>
-                          </div>
 
-                          {availableVehicles.length > 0 ? (
-                            <form action={addExistingVehicleToCollectionV159} className={styles.collectionAddExistingV159}>
-                              <input type="hidden" name="collection_id" value={collection.id} />
-                              <label>
-                                Ajouter un véhicule existant à cette collection
-                                <select name="vehicle_id" required defaultValue="">
-                                  <option value="" disabled>Sélectionner un véhicule déjà créé</option>
+                            {availableVehicles.length > 0 ? (
+                              <form action={addExistingVehicleToCollectionV159} className={styles.collectionInlineAddV1594}>
+                                <input type="hidden" name="collection_id" value={collection.id} />
+                                <select name="vehicle_id" required defaultValue="" aria-label={`Ajouter un véhicule à ${collection.name}`}>
+                                  <option value="" disabled>Ajouter un véhicule existant…</option>
                                   {availableVehiclesByCatalogue.map((group) => (
                                     <optgroup label={group.label} key={group.catalogType}>
                                       {group.vehicles.map((vehicle) => (
@@ -617,50 +632,99 @@ export default async function DashboardCataloguePage({
                                     </optgroup>
                                   ))}
                                 </select>
-                              </label>
-                              <button className="btn" type="submit">+ Ajouter le véhicule sélectionné</button>
-                              <small>
-                                Aucune copie n’est créée : le même véhicule peut rester dans son catalogue d’origine et apparaître aussi dans cette collection.
-                              </small>
-                            </form>
-                          ) : (
-                            <p className={styles.collectionEmptyV159}>Tous les véhicules existants sont déjà présents dans cette collection.</p>
-                          )}
+                                <button type="submit">Ajouter</button>
+                              </form>
+                            ) : (
+                              <span className={styles.collectionAllAddedV1594}>Tous les véhicules sont déjà ajoutés.</span>
+                            )}
+                          </div>
 
-                          <div className={styles.collectionCurrentMembersV159}>
-                            <strong>Déjà présents dans la collection</strong>
+                          <section className={styles.collectionVehicleSectionV1594}>
+                            <div className={styles.collectionVehicleSectionTitleV1594}>
+                              <div>
+                                <span>VÉHICULES DE LA COLLECTION</span>
+                                <strong>{collection.name}</strong>
+                              </div>
+                              <span>{collectionVehicles.length}</span>
+                            </div>
+
                             {collectionVehicles.length > 0 ? (
-                              <div className={styles.collectionMemberListV159}>
+                              <div className={styles.collectionVehicleTableV1594}>
+                                <div className={styles.collectionVehicleTableHeadV1594}>
+                                  <span>Véhicule</span>
+                                  <span>Catalogue d’origine</span>
+                                  <span>Action</span>
+                                </div>
+
                                 {collectionVehicles.map((vehicle) => (
-                                  <div className={styles.collectionMemberV159} key={vehicle.id}>
-                                    <div>
+                                  <div className={styles.collectionVehicleTableRowV1594} key={vehicle.id}>
+                                    <div className={styles.collectionVehicleNameV1594}>
+                                      <span>{(vehicle.brand || vehicle.model || "V").slice(0, 1).toUpperCase()}</span>
                                       <strong>{vehicle.brand} {vehicle.model}</strong>
-                                      <small>{CATALOG_LABELS[vehicle.catalog_type]}</small>
                                     </div>
+                                    <span className={styles.collectionVehicleOriginV1594}>
+                                      {CATALOG_LABELS[vehicle.catalog_type]}
+                                    </span>
                                     <form action={removeVehicleFromCollectionV159}>
                                       <input type="hidden" name="collection_id" value={collection.id} />
                                       <input type="hidden" name="vehicle_id" value={vehicle.id} />
-                                      <button type="submit">Retirer de la collection</button>
+                                      <button className={styles.collectionRemoveV1594} type="submit">Retirer</button>
                                     </form>
                                   </div>
                                 ))}
                               </div>
                             ) : (
-                              <p className={styles.collectionEmptyV159}>Aucun véhicule dans cette collection.</p>
+                              <div className={styles.collectionEmptyV1594}>
+                                Aucun véhicule dans cette collection. Utilise la barre d’ajout ci-dessus.
+                              </div>
                             )}
-                          </div>
-                        </div>
+                          </section>
 
-                        <form action={deleteExclusiveCollectionV158}>
-                          <input type="hidden" name="collection_id" value={collection.id} />
-                          <button className="btn btn-danger-v98" type="submit">Supprimer la collection</button>
-                        </form>
-                      </article>
+                          <details className={styles.collectionSettingsV1594}>
+                            <summary>Paramètres de la collection</summary>
+                            <div className={styles.collectionSettingsContentV1594}>
+                              <form action={updateExclusiveCollectionV158} className={styles.collectionSettingsFormV1594}>
+                                <input type="hidden" name="collection_id" value={collection.id} />
+                                <label>
+                                  Nom
+                                  <input name="name" required defaultValue={collection.name} />
+                                </label>
+                                <label>
+                                  Ordre
+                                  <input type="number" name="sort_order" min="0" defaultValue={collection.sortOrder} />
+                                </label>
+                                <label className={styles.collectionSettingsDescriptionV1594}>
+                                  Description
+                                  <textarea name="description" rows={3} defaultValue={collection.description} />
+                                </label>
+                                <label className={styles.collectionSettingsVisibilityV1594}>
+                                  <input type="checkbox" name="active" defaultChecked={collection.active} />
+                                  Visible côté citoyen
+                                </label>
+                                <button className={styles.collectionSettingsSaveV1594} type="submit">
+                                  Enregistrer
+                                </button>
+                              </form>
+
+                              <form action={deleteExclusiveCollectionV158} className={styles.collectionDeleteV1594}>
+                                <input type="hidden" name="collection_id" value={collection.id} />
+                                <div>
+                                  <strong>Supprimer la collection</strong>
+                                  <small>Les fiches restent dans leurs catalogues d’origine.</small>
+                                </div>
+                                <button type="submit">Supprimer</button>
+                              </form>
+                            </div>
+                          </details>
+                        </div>
+                      </details>
                     );
                   })}
                 </div>
               ) : (
-                <p style={{ color: "#aeb3bb" }}>Aucune collection créée pour le moment.</p>
+                <div className={styles.collectionNoCollectionV1594}>
+                  Aucune collection créée pour le moment.
+                </div>
               )}
             </section>
           )}

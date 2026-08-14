@@ -34,8 +34,11 @@ function revalidateCollections() {
 }
 
 function collectionRedirect(code: string, collectionId?: string): never {
+  const collectionQuery = collectionId
+    ? `&collection=${encodeURIComponent(collectionId)}`
+    : "";
   const anchor = collectionId ? `#collection-${collectionId}` : "";
-  redirect(`/dashboard/catalogue?type=exclusive&${code}${anchor}`);
+  redirect(`/dashboard/catalogue?type=exclusive&${code}${collectionQuery}${anchor}`);
 }
 
 export async function addExistingVehicleToCollectionV159(formData: FormData) {

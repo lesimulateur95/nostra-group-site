@@ -487,3 +487,1210 @@
   color: #aeb3bb;
   line-height: 1.45;
 }
+
+/* V159.3 — refonte premium du gestionnaire de collections (dashboard) */
+.collectionAdminGridV158 {
+  grid-template-columns: 1fr;
+  gap: 18px;
+}
+
+.collectionAdminCardV1593 {
+  position: relative;
+  display: grid;
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid rgba(212, 175, 55, 0.22);
+  border-radius: 20px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.026), rgba(255, 255, 255, 0.008)),
+    rgba(6, 6, 6, 0.72);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.16);
+  scroll-margin-top: 90px;
+}
+
+.collectionCardHeaderV1593 {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 22px 24px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.collectionCardIdentityV1593 {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.collectionCardIdentityV1593 h3 {
+  margin: 0;
+  color: #f7f7f5;
+  font-size: clamp(1.15rem, 1.4vw, 1.4rem);
+  line-height: 1.2;
+}
+
+.collectionCardIdentityV1593 > p {
+  max-width: 780px;
+  margin: 0;
+  color: #9fa5ae;
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.collectionCardMetaV1593 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.collectionCardMetaV1593 > span:first-child {
+  color: #d9bb50;
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.collectionStatusActiveV1593,
+.collectionStatusHiddenV1593 {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.collectionStatusActiveV1593 {
+  border: 1px solid rgba(102, 218, 151, 0.24);
+  background: rgba(69, 176, 113, 0.08);
+  color: #9ee2bb;
+}
+
+.collectionStatusHiddenV1593 {
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.035);
+  color: #9da3ac;
+}
+
+.collectionStatusActiveV1593::before,
+.collectionStatusHiddenV1593::before {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: currentColor;
+  content: "";
+}
+
+.collectionCountV1593 {
+  display: grid;
+  min-width: 88px;
+  place-items: center;
+  padding: 13px 16px;
+  border: 1px solid rgba(212, 175, 55, 0.16);
+  border-radius: 14px;
+  background: rgba(212, 175, 55, 0.045);
+}
+
+.collectionCountV1593 strong {
+  color: #e4c44f;
+  font-size: 1.45rem;
+  line-height: 1;
+}
+
+.collectionCountV1593 span {
+  margin-top: 5px;
+  color: #9198a1;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.collectionQuickActionsV1593 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 9px;
+  padding: 14px 24px;
+  background: rgba(255, 255, 255, 0.012);
+}
+
+.collectionPrimaryActionV1593,
+.collectionSecondaryActionV1593 {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 8px 13px;
+  border-radius: 10px;
+  font-size: 0.82rem;
+  font-weight: 900;
+  text-decoration: none;
+  transition: border-color 150ms ease, background 150ms ease, transform 150ms ease;
+}
+
+.collectionPrimaryActionV1593 {
+  border: 1px solid rgba(212, 175, 55, 0.34);
+  background: rgba(212, 175, 55, 0.13);
+  color: #f0d46c;
+}
+
+.collectionSecondaryActionV1593 {
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.03);
+  color: #d3d6db;
+}
+
+.collectionPrimaryActionV1593:hover,
+.collectionSecondaryActionV1593:hover {
+  border-color: rgba(212, 175, 55, 0.48);
+  background: rgba(212, 175, 55, 0.1);
+  transform: translateY(-1px);
+}
+
+.collectionManagerGridV1593 {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(300px, 0.85fr);
+  gap: 14px;
+  padding: 0 24px 22px;
+}
+
+.collectionCurrentPanelV1593,
+.collectionAddPanelV1593 {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.collectionAddPanelV1593 {
+  scroll-margin-top: 100px;
+}
+
+.collectionPanelTitleV1593 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 13px;
+}
+
+.collectionPanelTitleV1593 > div {
+  display: grid;
+  gap: 3px;
+}
+
+.collectionPanelTitleV1593 > div > span {
+  color: #a58d38;
+  font-size: 0.64rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+}
+
+.collectionPanelTitleV1593 h4 {
+  margin: 0;
+  color: #f3f3f1;
+  font-size: 0.96rem;
+}
+
+.collectionMiniCountV1593 {
+  display: inline-grid;
+  min-width: 26px;
+  min-height: 26px;
+  place-items: center;
+  padding: 0 8px;
+  border: 1px solid rgba(212, 175, 55, 0.16);
+  border-radius: 999px;
+  background: rgba(212, 175, 55, 0.07);
+  color: #d7bc58;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.collectionMemberListV1593 {
+  display: grid;
+  gap: 8px;
+  max-height: 340px;
+  overflow: auto;
+  padding-right: 3px;
+}
+
+.collectionMemberV1593 {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 10px 11px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 11px;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.collectionMemberIdentityV1593 {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+}
+
+.collectionMemberInitialV1593 {
+  display: inline-grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  place-items: center;
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  border-radius: 9px;
+  background: rgba(212, 175, 55, 0.06);
+  color: #e3c656;
+  font-size: 0.78rem;
+  font-weight: 950;
+}
+
+.collectionMemberIdentityV1593 > div {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.collectionMemberIdentityV1593 strong,
+.collectionMemberIdentityV1593 small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.collectionMemberIdentityV1593 strong {
+  color: #f2f2f0;
+  font-size: 0.86rem;
+}
+
+.collectionMemberIdentityV1593 small {
+  color: #858c96;
+  font-size: 0.73rem;
+}
+
+.collectionMemberV1593 form {
+  display: block;
+  flex: 0 0 auto;
+}
+
+.collectionRemoveActionV1593 {
+  min-height: 32px;
+  border: 1px solid rgba(255, 112, 112, 0.16);
+  border-radius: 8px;
+  padding: 6px 9px;
+  background: transparent;
+  color: #cf8585;
+  cursor: pointer;
+  font-size: 0.74rem;
+  font-weight: 850;
+}
+
+.collectionRemoveActionV1593:hover {
+  border-color: rgba(255, 112, 112, 0.34);
+  background: rgba(140, 30, 30, 0.12);
+  color: #ffaaaa;
+}
+
+.collectionEmptyStateV1593 {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 16px;
+  border: 1px dashed rgba(255, 255, 255, 0.09);
+  border-radius: 11px;
+  color: #8e959e;
+}
+
+.collectionEmptyStateV1593 > span {
+  color: #c8ab43;
+  font-size: 1.15rem;
+}
+
+.collectionEmptyStateV1593 strong {
+  color: #d8dadd;
+  font-size: 0.86rem;
+}
+
+.collectionEmptyStateV1593 p {
+  margin: 4px 0 0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.collectionAddIntroV1593 {
+  margin: -2px 0 14px;
+  color: #9299a3;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.collectionAddExistingV1593 {
+  display: grid;
+  gap: 11px;
+}
+
+.collectionAddExistingV1593 label {
+  display: grid;
+  gap: 7px;
+  color: #c9cdd2;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.collectionAddExistingV1593 select {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 10px;
+  padding: 0 12px;
+  background: #101010;
+  color: #f0d36a;
+  font: inherit;
+  font-size: 0.84rem;
+  outline: none;
+}
+
+.collectionAddExistingV1593 select:focus {
+  border-color: rgba(212, 175, 55, 0.5);
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.07);
+}
+
+.collectionAddButtonV1593 {
+  min-height: 42px;
+  border: 1px solid #d1ad37;
+  border-radius: 10px;
+  padding: 8px 14px;
+  background: #d1ad37;
+  color: #090909;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 950;
+}
+
+.collectionAddButtonV1593:hover {
+  filter: brightness(1.06);
+}
+
+.collectionSettingsV1593 {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.collectionSettingsV1593 > summary {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  color: #aaaeb5;
+  cursor: pointer;
+  font-size: 0.79rem;
+  font-weight: 850;
+  list-style: none;
+  user-select: none;
+}
+
+.collectionSettingsV1593 > summary::-webkit-details-marker {
+  display: none;
+}
+
+.collectionSettingsV1593 > summary::after {
+  content: "+";
+  color: #c8aa41;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.collectionSettingsV1593[open] > summary::after {
+  content: "−";
+}
+
+.collectionSettingsV1593[open] > summary {
+  color: #e0e1e3;
+}
+
+.collectionSettingsBodyV1593 {
+  display: grid;
+  gap: 16px;
+  padding: 0 24px 22px;
+}
+
+.collectionSettingsFormV1593 {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 150px;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.016);
+}
+
+.collectionSettingsFormV1593 label {
+  display: grid;
+  gap: 6px;
+  color: #b8bdc4;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.collectionSettingsFormV1593 input:not([type="checkbox"]),
+.collectionSettingsFormV1593 textarea {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 9px;
+  background: #111;
+  color: #f3f3f3;
+}
+
+.collectionSettingsDescriptionV1593 {
+  grid-column: 1 / -1;
+}
+
+.collectionVisibilityV1593 {
+  display: flex !important;
+  grid-column: 1 / -1;
+  align-items: center;
+  gap: 8px !important;
+}
+
+.collectionSaveButtonV1593 {
+  width: fit-content;
+  min-height: 38px;
+  grid-column: 1 / -1;
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  border-radius: 9px;
+  padding: 7px 13px;
+  background: rgba(212, 175, 55, 0.12);
+  color: #ecd165;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 900;
+}
+
+.collectionDangerZoneV1593 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 13px 15px;
+  border: 1px solid rgba(255, 93, 93, 0.14);
+  border-radius: 12px;
+  background: rgba(112, 20, 20, 0.06);
+}
+
+.collectionDangerZoneV1593 > div {
+  display: grid;
+  gap: 3px;
+}
+
+.collectionDangerZoneV1593 strong {
+  color: #d6a2a2;
+  font-size: 0.82rem;
+}
+
+.collectionDangerZoneV1593 p {
+  margin: 0;
+  color: #8f7f82;
+  font-size: 0.74rem;
+}
+
+.collectionDangerZoneV1593 form {
+  display: block;
+}
+
+.collectionDangerZoneV1593 button {
+  border: 1px solid rgba(255, 91, 91, 0.26);
+  border-radius: 9px;
+  padding: 7px 11px;
+  background: transparent;
+  color: #e68b8b;
+  cursor: pointer;
+  font-size: 0.76rem;
+  font-weight: 850;
+}
+
+@media (max-width: 900px) {
+  .collectionManagerGridV1593 {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 650px) {
+  .collectionCardHeaderV1593 {
+    padding: 18px;
+  }
+
+  .collectionCountV1593 {
+    min-width: 70px;
+    padding: 11px;
+  }
+
+  .collectionQuickActionsV1593,
+  .collectionManagerGridV1593,
+  .collectionSettingsBodyV1593 {
+    padding-right: 18px;
+    padding-left: 18px;
+  }
+
+  .collectionPrimaryActionV1593,
+  .collectionSecondaryActionV1593 {
+    width: 100%;
+  }
+
+  .collectionSettingsFormV1593 {
+    grid-template-columns: 1fr;
+  }
+
+  .collectionSettingsDescriptionV1593,
+  .collectionVisibilityV1593,
+  .collectionSaveButtonV1593 {
+    grid-column: 1;
+  }
+
+  .collectionDangerZoneV1593 {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .collectionDangerZoneV1593 button {
+    width: 100%;
+  }
+}
+
+
+/* V159.4 — gestionnaire de collections en accordéon compact */
+.collectionSectionHeaderV1594 {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.collectionCreateV1594 {
+  overflow: hidden;
+  border: 1px solid rgba(212, 175, 55, 0.18);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.015);
+}
+
+.collectionCreateV1594 > summary {
+  display: flex;
+  min-height: 46px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px;
+  color: #dfc55c;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 900;
+  list-style: none;
+  user-select: none;
+}
+
+.collectionCreateV1594 > summary::-webkit-details-marker,
+.collectionRowV1594 > summary::-webkit-details-marker,
+.collectionSettingsV1594 > summary::-webkit-details-marker {
+  display: none;
+}
+
+.collectionCreateV1594[open] > summary {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.collectionCreateFormV1594 {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 130px auto;
+  gap: 12px;
+  align-items: end;
+  padding: 14px 16px 16px;
+}
+
+.collectionCreateFormV1594 label {
+  display: grid;
+  gap: 6px;
+  color: #aeb4bd;
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.collectionCreateFormV1594 input,
+.collectionCreateFormV1594 textarea {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 9px;
+  padding: 9px 11px;
+  background: #111;
+  color: #f4f4f4;
+  font: inherit;
+}
+
+.collectionCreateDescriptionV1594 {
+  grid-column: 1 / 3;
+}
+
+.collectionCreateFormV1594 button {
+  min-height: 40px;
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  border-radius: 9px;
+  padding: 0 16px;
+  background: rgba(212, 175, 55, 0.12);
+  color: #ead064;
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.collectionAccordionV1594 {
+  display: grid !important;
+  width: 100%;
+  grid-template-columns: minmax(0, 1fr) !important;
+  gap: 10px;
+}
+
+.collectionRowV1594 {
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid rgba(212, 175, 55, 0.18);
+  border-radius: 14px;
+  background: rgba(7, 7, 7, 0.76);
+  scroll-margin-top: 90px;
+}
+
+.collectionRowV1594[open] {
+  border-color: rgba(212, 175, 55, 0.34);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.17);
+}
+
+.collectionRowSummaryV1594 {
+  display: flex;
+  min-height: 72px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 14px 16px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  transition: background 150ms ease;
+}
+
+.collectionRowSummaryV1594:hover {
+  background: rgba(212, 175, 55, 0.035);
+}
+
+.collectionRowV1594[open] > .collectionRowSummaryV1594 {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(212, 175, 55, 0.035);
+}
+
+.collectionRowIdentityV1594 {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+}
+
+.collectionRowIconV1594 {
+  display: inline-grid;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  place-items: center;
+  border: 1px solid rgba(212, 175, 55, 0.22);
+  border-radius: 10px;
+  background: rgba(212, 175, 55, 0.07);
+  color: #d8ba4e;
+  font-size: 0.9rem;
+}
+
+.collectionRowIdentityV1594 > div {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.collectionRowIdentityV1594 strong,
+.collectionRowIdentityV1594 small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.collectionRowIdentityV1594 strong {
+  color: #f5f5f3;
+  font-size: 0.94rem;
+}
+
+.collectionRowIdentityV1594 small {
+  max-width: 720px;
+  color: #858c96;
+  font-size: 0.76rem;
+}
+
+.collectionRowStatsV1594 {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.collectionVisibleV1594,
+.collectionHiddenV1594,
+.collectionVehicleCountV1594 {
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0 10px;
+  font-size: 0.7rem;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.collectionVisibleV1594 {
+  border: 1px solid rgba(91, 202, 137, 0.18);
+  background: rgba(91, 202, 137, 0.07);
+  color: #96d9b2;
+}
+
+.collectionHiddenV1594 {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  color: #90969f;
+}
+
+.collectionVehicleCountV1594 {
+  border: 1px solid rgba(212, 175, 55, 0.16);
+  background: rgba(212, 175, 55, 0.05);
+  color: #cdb654;
+}
+
+.collectionChevronV1594 {
+  display: inline-grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  color: #bba33e;
+  font-size: 1rem;
+  transition: transform 160ms ease;
+}
+
+.collectionRowV1594[open] .collectionChevronV1594 {
+  transform: rotate(180deg);
+}
+
+.collectionRowBodyV1594 {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+}
+
+.collectionTopActionsV1594 {
+  display: grid;
+  grid-template-columns: max-content minmax(320px, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.collectionCreateVehicleV1594 {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  border-radius: 9px;
+  padding: 0 13px;
+  background: rgba(212, 175, 55, 0.08);
+  color: #e4c85b;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.collectionInlineAddV1594 {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  min-width: 0;
+}
+
+.collectionInlineAddV1594 select {
+  width: 100%;
+  min-width: 0;
+  min-height: 40px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 9px;
+  padding: 0 11px;
+  background: #101010;
+  color: #e7cb5e;
+  font: inherit;
+  font-size: 0.8rem;
+  outline: none;
+}
+
+.collectionInlineAddV1594 button {
+  min-width: 92px;
+  min-height: 40px;
+  border: 1px solid rgba(212, 175, 55, 0.36);
+  border-radius: 9px;
+  padding: 0 14px;
+  background: #c8a72f;
+  color: #090909;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 950;
+}
+
+.collectionAllAddedV1594 {
+  display: flex;
+  min-height: 40px;
+  align-items: center;
+  padding: 0 12px;
+  border: 1px dashed rgba(255, 255, 255, 0.08);
+  border-radius: 9px;
+  color: #858c96;
+  font-size: 0.76rem;
+}
+
+.collectionVehicleSectionV1594 {
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.012);
+}
+
+.collectionVehicleSectionTitleV1594 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 13px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.collectionVehicleSectionTitleV1594 > div {
+  display: grid;
+  gap: 2px;
+}
+
+.collectionVehicleSectionTitleV1594 > div > span {
+  color: #8f7c34;
+  font-size: 0.61rem;
+  font-weight: 900;
+  letter-spacing: 0.13em;
+}
+
+.collectionVehicleSectionTitleV1594 strong {
+  color: #e7e7e5;
+  font-size: 0.82rem;
+}
+
+.collectionVehicleSectionTitleV1594 > span {
+  display: inline-grid;
+  min-width: 26px;
+  min-height: 26px;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(212, 175, 55, 0.07);
+  color: #d3b94c;
+  font-size: 0.74rem;
+  font-weight: 900;
+}
+
+.collectionVehicleTableV1594 {
+  display: grid;
+}
+
+.collectionVehicleTableHeadV1594,
+.collectionVehicleTableRowV1594 {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.4fr) minmax(180px, 0.8fr) 80px;
+  gap: 12px;
+  align-items: center;
+}
+
+.collectionVehicleTableHeadV1594 {
+  min-height: 34px;
+  padding: 0 13px;
+  background: rgba(255, 255, 255, 0.018);
+  color: #717882;
+  font-size: 0.64rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.collectionVehicleTableRowV1594 {
+  min-height: 52px;
+  padding: 7px 13px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.collectionVehicleNameV1594 {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 9px;
+}
+
+.collectionVehicleNameV1594 > span {
+  display: inline-grid;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  place-items: center;
+  border: 1px solid rgba(212, 175, 55, 0.17);
+  border-radius: 8px;
+  background: rgba(212, 175, 55, 0.05);
+  color: #d7ba4b;
+  font-size: 0.7rem;
+  font-weight: 900;
+}
+
+.collectionVehicleNameV1594 strong {
+  overflow: hidden;
+  color: #ededeb;
+  font-size: 0.8rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.collectionVehicleOriginV1594 {
+  overflow: hidden;
+  color: #89909a;
+  font-size: 0.74rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.collectionVehicleTableRowV1594 form {
+  display: block;
+}
+
+.collectionRemoveV1594 {
+  min-height: 30px;
+  border: 1px solid rgba(255, 102, 102, 0.18);
+  border-radius: 7px;
+  padding: 0 9px;
+  background: transparent;
+  color: #d78b8b;
+  cursor: pointer;
+  font-size: 0.7rem;
+  font-weight: 850;
+}
+
+.collectionEmptyV1594,
+.collectionNoCollectionV1594 {
+  padding: 18px;
+  color: #8b929b;
+  font-size: 0.8rem;
+}
+
+.collectionNoCollectionV1594 {
+  border: 1px dashed rgba(212, 175, 55, 0.15);
+  border-radius: 12px;
+}
+
+.collectionSettingsV1594 {
+  overflow: hidden;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.collectionSettingsV1594 > summary {
+  display: flex;
+  min-height: 38px;
+  align-items: center;
+  justify-content: space-between;
+  color: #818892;
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 850;
+  list-style: none;
+}
+
+.collectionSettingsV1594 > summary::after {
+  content: "+";
+  color: #a28a32;
+  font-size: 1rem;
+}
+
+.collectionSettingsV1594[open] > summary::after {
+  content: "−";
+}
+
+.collectionSettingsContentV1594 {
+  display: grid;
+  gap: 10px;
+  padding-top: 10px;
+}
+
+.collectionSettingsFormV1594 {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 120px;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.012);
+}
+
+.collectionSettingsFormV1594 label {
+  display: grid;
+  gap: 5px;
+  color: #9aa1aa;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.collectionSettingsFormV1594 input:not([type="checkbox"]),
+.collectionSettingsFormV1594 textarea {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 8px;
+  background: #101010;
+  color: #ededed;
+}
+
+.collectionSettingsDescriptionV1594,
+.collectionSettingsVisibilityV1594,
+.collectionSettingsSaveV1594 {
+  grid-column: 1 / -1;
+}
+
+.collectionSettingsVisibilityV1594 {
+  display: flex !important;
+  align-items: center;
+  gap: 7px !important;
+}
+
+.collectionSettingsSaveV1594 {
+  width: fit-content;
+  min-height: 34px;
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  border-radius: 8px;
+  padding: 0 12px;
+  background: rgba(212, 175, 55, 0.08);
+  color: #dbc253;
+  cursor: pointer;
+  font-size: 0.74rem;
+  font-weight: 900;
+}
+
+.collectionDeleteV1594 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 98, 98, 0.12);
+  border-radius: 10px;
+  background: rgba(112, 20, 20, 0.04);
+}
+
+.collectionDeleteV1594 > div {
+  display: grid;
+  gap: 2px;
+}
+
+.collectionDeleteV1594 strong {
+  color: #c99191;
+  font-size: 0.74rem;
+}
+
+.collectionDeleteV1594 small {
+  color: #7d7275;
+  font-size: 0.68rem;
+}
+
+.collectionDeleteV1594 button {
+  min-height: 30px;
+  border: 1px solid rgba(255, 98, 98, 0.2);
+  border-radius: 7px;
+  padding: 0 9px;
+  background: transparent;
+  color: #d98585;
+  cursor: pointer;
+  font-size: 0.7rem;
+  font-weight: 850;
+}
+
+@media (max-width: 820px) {
+  .collectionCreateFormV1594 {
+    grid-template-columns: 1fr 110px;
+  }
+
+  .collectionCreateDescriptionV1594 {
+    grid-column: 1 / -1;
+  }
+
+  .collectionCreateFormV1594 button {
+    grid-column: 1 / -1;
+  }
+
+  .collectionTopActionsV1594 {
+    grid-template-columns: 1fr;
+  }
+
+  .collectionVehicleTableHeadV1594,
+  .collectionVehicleTableRowV1594 {
+    grid-template-columns: minmax(0, 1fr) 80px;
+  }
+
+  .collectionVehicleTableHeadV1594 > span:nth-child(2),
+  .collectionVehicleOriginV1594 {
+    display: none;
+  }
+}
+
+@media (max-width: 620px) {
+  .collectionRowSummaryV1594 {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .collectionRowStatsV1594 {
+    width: 100%;
+  }
+
+  .collectionVehicleCountV1594 {
+    margin-left: auto;
+  }
+
+  .collectionTopActionsV1594,
+  .collectionInlineAddV1594 {
+    grid-template-columns: 1fr;
+  }
+
+  .collectionCreateVehicleV1594,
+  .collectionInlineAddV1594 button {
+    width: 100%;
+  }
+
+  .collectionCreateFormV1594,
+  .collectionSettingsFormV1594 {
+    grid-template-columns: 1fr;
+  }
+
+  .collectionCreateDescriptionV1594,
+  .collectionSettingsDescriptionV1594,
+  .collectionSettingsVisibilityV1594,
+  .collectionSettingsSaveV1594 {
+    grid-column: 1;
+  }
+
+  .collectionDeleteV1594 {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .collectionDeleteV1594 button {
+    width: 100%;
+  }
+}
