@@ -32,7 +32,10 @@ import {
   vehicleTierBadgeClassV157,
 } from "@/lib/v157/data";
 import { createClient } from "@/lib/supabase/server";
-import { getExclusiveCollectionsV158 } from "@/lib/v158/exclusive-collections";
+import {
+  getExclusiveCollectionsV158,
+  type ExclusiveCollectionV158,
+} from "@/lib/v158/exclusive-collections";
 import {
   getExclusiveCatalogueVehiclesV159,
   getVehicleCollectionMapV159,
@@ -112,7 +115,9 @@ export async function CatalogueViewV51({
     getStockCommerceConfigured(),
     sitePageSlug ? getSitePage(sitePageSlug) : Promise.resolve(null),
     isVehicleReservationEnabled(catalogType),
-    catalogType === "exclusive" ? getExclusiveCollectionsV158() : Promise.resolve([]),
+    catalogType === "exclusive"
+      ? getExclusiveCollectionsV158()
+      : Promise.resolve<ExclusiveCollectionV158[]>([]),
   ]);
 
   const vehicleIds = vehicles.map((vehicle) => Number(vehicle.id));
@@ -124,7 +129,9 @@ export async function CatalogueViewV51({
     getFlashSaleMapV156(vehicleIds),
     getVehicleMerchandisingMapV157(vehicleIds),
     getCurrentCitizenVehicleTierV157(authData.user?.id),
-    catalogType === "exclusive" ? getVehicleCollectionMapV159(vehicleIds) : Promise.resolve(new Map()),
+    catalogType === "exclusive"
+      ? getVehicleCollectionMapV159(vehicleIds)
+      : Promise.resolve(new Map<number, ExclusiveCollectionV158[]>()),
   ]);
 
   const grouped = new Map<string, typeof vehicles>();
