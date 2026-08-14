@@ -166,6 +166,18 @@ const cards: NavigationCard[] = [
     description: "Partager mon code personnel et suivre les récompenses de parrainage.",
   },
   {
+    href: "/profil/vip",
+    icon: "♛",
+    label: "Centre VIP",
+    description: "Voir mon statut Nostra, mes avantages et les accès réservés à mon niveau.",
+  },
+  {
+    href: "/ventes-privees",
+    icon: "◆",
+    label: "Ventes privées",
+    description: "Consulter les offres VIP accessibles selon mon niveau de fidélité.",
+  },
+  {
     href: "/profil/liste-attente",
     icon: "⏳",
     label: "Liste d’attente véhicules",

@@ -21,6 +21,7 @@ import { getStockCommerceConfigured } from "@/lib/backoffice/data";
 import { getCurrentFavoriteStateMap } from "@/lib/favorites/data";
 import { getVehicleCommerceAvailabilityMap } from "@/lib/vehicle-commerce-settings/data";
 import { isVehicleReservationEnabled } from "@/lib/vehicle-reservation-settings/data";
+import { getFlashSaleMapV156 } from "@/lib/v156/data";
 import {
   getSitePage,
   type EditablePageSlug,
@@ -95,9 +96,10 @@ export async function CatalogueViewV51({
   ]);
 
   const vehicleIds = vehicles.map((vehicle) => Number(vehicle.id));
-  const [favoriteState, commerceAvailability] = await Promise.all([
+  const [favoriteState, commerceAvailability, flashSales] = await Promise.all([
     getCurrentFavoriteStateMap(vehicleIds),
     getVehicleCommerceAvailabilityMap(vehicleIds),
+    getFlashSaleMapV156(vehicleIds),
   ]);
 
   const grouped = new Map<string, typeof vehicles>();
@@ -237,7 +239,9 @@ export async function CatalogueViewV51({
 
                   <div className="catalogue-vehicle-grid">
                     {brandVehicles.map((vehicle, vehicleIndex) => {
-                      const formattedPrice = formatPrice(vehicle.price);
+                      const flashSale = catalogType === "concession" ? null : flashSales.get(Number(vehicle.id));
+                      const effectivePrice = flashSale?.flashPrice ?? vehicle.price;
+                      const formattedPrice = formatPrice(effectivePrice);
                       const availability = commerceAvailability.get(
                         Number(vehicle.id),
                       ) ?? {
@@ -249,13 +253,17 @@ export async function CatalogueViewV51({
                         reservationsEnabled && availability.reservation_enabled;
                       const canOrder = availability.sale_enabled;
                       const canStartPurchase = canReserve || canOrder;
-                      const purchaseLabel = canReserve && canOrder
-                        ? "Réserver / Commander"
-                        : canReserve
-                          ? "Réserver"
-                          : canOrder
-                            ? "Commander"
-                            : "Temporairement indisponible";
+                      const purchaseLabel = catalogType === "concession"
+                        ? canOrder
+                          ? "Louer"
+                          : "Temporairement indisponible"
+                        : canReserve && canOrder
+                          ? "Réserver / Commander"
+                          : canReserve
+                            ? "Réserver"
+                            : canOrder
+                              ? "Commander"
+                              : "Temporairement indisponible";
 
                       return (
                         <article
@@ -264,7 +272,7 @@ export async function CatalogueViewV51({
                           data-catalogue-card-v114
                           data-brand={vehicle.brand.toLocaleLowerCase("fr-FR")}
                           data-search={`${vehicle.brand} ${vehicle.model}`.toLocaleLowerCase("fr-FR")}
-                          data-price={Number(vehicle.price)}
+                          data-price={Number(effectivePrice)}
                           data-stock={Number(vehicle.stock_quantity)}
                           data-reserve={canReserve ? "true" : "false"}
                           data-sale={canOrder ? "true" : "false"}
@@ -301,6 +309,12 @@ export async function CatalogueViewV51({
                           <div className="catalogue-vehicle-copy">
                             <p className="eyebrow">{vehicle.brand}</p>
                             <h3>{vehicle.model}</h3>
+                            {flashSale && (
+                              <div className="catalogue-flash-sale-v156">
+                                <strong>VENTE FLASH</strong>
+                                <span>jusqu’au {new Date(flashSale.endsAt).toLocaleString("fr-FR")}</span>
+                              </div>
+                            )}
 
                             {vehicle.description && (
                               <p className="catalogue-description">
@@ -331,7 +345,7 @@ export async function CatalogueViewV51({
                               </div>
                               <div className="catalogue-price">
                                 <dt>Prix</dt>
-                                <dd>{formattedPrice}</dd>
+                                <dd>{flashSale ? <><small className="catalogue-old-price-v156">{formatPrice(vehicle.price)}</small><br />{formattedPrice}</> : formattedPrice}</dd>
                               </div>
                             </dl>
 

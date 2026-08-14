@@ -3,15 +3,17 @@ import type { SidebarNavItem } from "@/components/site/sidebar-nav";
 import { getSectionNavigation } from "@/lib/content/section-navigation";
 import { getMoneyDropPublicState } from "@/lib/money-drop/data";
 import { PoleMaintenanceGuard } from "@/components/v153/pole-maintenance-guard";
+import { getCurrentMysteryEventV156 } from "@/lib/v156/data";
 
 export default async function EventsLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const [baseItems, moneyDropState] = await Promise.all([
+  const [baseItems, moneyDropState, mysteryEvent] = await Promise.all([
     getSectionNavigation("evenements"),
     getMoneyDropPublicState(),
+    getCurrentMysteryEventV156(),
   ]);
   const moneyDropVisible = moneyDropState.configured && moneyDropState.settings.enabled;
   const items: SidebarNavItem[] = [];
@@ -48,6 +50,13 @@ export default async function EventsLayout({
               ? [{ key: "money-drop-spectator", href: "/evenements/jeux/money-drop/spectateur", label: "Écran spectateur" }]
               : []),
           ],
+        });
+      }
+      if (mysteryEvent) {
+        items.push({
+          key: "mystery-event",
+          href: "/evenements/mystere",
+          label: "Événement mystère",
         });
       }
       items.push({

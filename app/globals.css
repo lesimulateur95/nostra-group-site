@@ -5246,3 +5246,6 @@ select:focus { outline: 2px solid rgba(212,175,55,.32); outline-offset: 1px; }
     grid-template-columns: 1fr !important;
   }
 }
+
+/* V156 — ventes flash */
+.catalogue-flash-sale-v156{display:flex;justify-content:space-between;gap:10px;align-items:center;margin:8px 0;padding:7px 9px;border:1px solid rgba(255,73,73,.45);border-radius:10px;background:rgba(146,10,17,.18);color:#ffd0d0;font-size:.72rem}.catalogue-flash-sale-v156 strong{color:#ff7171;letter-spacing:.08em}.catalogue-old-price-v156{color:#8e929a;text-decoration:line-through;font-size:.72rem;font-weight:600}

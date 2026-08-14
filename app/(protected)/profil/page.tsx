@@ -59,7 +59,7 @@ import styles from "./profile-top-layout.module.css";
 
 type ProfilePageProps = {
 
- searchParams: Promise<{ error?: string; profile_saved?: string; vehicle_added?: string; reservation_added?: string; reservation_paid?: string; reservation_error?: string; balance_paid?: string; balance_error?: string; order_sent?: string; order_error?: string; cart_removed?: string; cart_error?: string; tombola_added?: string; tombola_removed?: string; tombola_cart_error?: string; tombola_order_error?: string; bingo_added?: string; bingo_removed?: string; bingo_cart_error?: string; bingo_order_error?: string; license_added?: string; license_removed?: string; license_paid?: string; license_order_error?: string; contract_paid?: string; contract_error?: string }>;
+ searchParams: Promise<{ setup?: string; error?: string; profile_saved?: string; vehicle_added?: string; reservation_added?: string; reservation_paid?: string; reservation_error?: string; balance_paid?: string; balance_error?: string; order_sent?: string; order_error?: string; cart_removed?: string; cart_error?: string; tombola_added?: string; tombola_removed?: string; tombola_cart_error?: string; tombola_order_error?: string; bingo_added?: string; bingo_removed?: string; bingo_cart_error?: string; bingo_order_error?: string; license_added?: string; license_removed?: string; license_paid?: string; license_order_error?: string; contract_paid?: string; contract_error?: string }>;
 
 };
 
@@ -209,6 +209,12 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
  <p className="lead">Ton identité, ton panier et tous tes dossiers sont maintenant rangés dans des pages séparées.</p>
 
  </section>
+
+ {params.setup === "required" && (
+   <div className="dashboard-feedback dashboard-feedback-error" style={{marginBottom:22}}>
+     <strong>Profil incomplet.</strong> Merci de remplir vos informations personnelles dans votre profil : prénom et nom. Tant que ces informations ne sont pas enregistrées, les autres services du site restent bloqués.
+   </div>
+ )}
 
  <div className="profile-layout">
 

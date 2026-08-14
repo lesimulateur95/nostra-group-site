@@ -224,6 +224,8 @@ export default async function DashboardPage() {
               />
               <DashboardCard href="/dashboard/stock-reel" icon="📍" title="Stock réel Nostra Motors" description="Voir le stock physique, les véhicules réservés, loués, à l’atelier et leur localisation." />
               <DashboardCard href="/dashboard/location-motors" icon="🔑" title="Gestion de la location" description="Configurer les tarifs de location, cautions, dates, départs, retours et états des lieux." />
+              <DashboardCard href="/dashboard/etat-des-lieux" icon="📋" title="États des lieux location" description="Créer les contrôles départ/retour, kilométrage, carburant, dégâts et photos." />
+              <DashboardCard href="/dashboard/ventes-flash" icon="⚡" title="Ventes flash" description="Programmer des prix promotionnels temporaires directement sur les véhicules du catalogue." />
               {managerAccess && (
                 <>
                   <DashboardCard
@@ -932,11 +934,17 @@ export default async function DashboardPage() {
                 />
                 <DashboardCard href="/dashboard/billetterie" icon="🎟️" title="Billetterie globale" description="Créer et vendre des billets pour tous les pôles Nostra." />
                 <DashboardCard href="/dashboard/direction-generale" icon="◈" title="Direction générale" description="Vue consolidée des activités et indicateurs du groupe." />
+                <DashboardCard href="/dashboard/nouveautes-v155" icon="✦" title="Nouveautés Nostra Group" description="Accès direct aux derniers modules Direction, sécurité, Motors, VIP et événements." badge="Nouveau" />
                 <DashboardCard href="/dashboard/statistiques-avancees" icon="📊" title="Statistiques avancées" description="Graphiques mensuels : Motors, billetterie, location, citoyens et remboursements." />
                 <DashboardCard href="/dashboard/remboursements" icon="↩" title="Remboursements Direction" description="Créer, valider et tracer les remboursements partiels ou totaux." />
                 <DashboardCard href="/dashboard/ventes-privees" icon="◆" title="Ventes privées / VIP" description="Réserver certaines offres aux citoyens ayant le niveau de fidélité requis." />
                 <DashboardCard href="/dashboard/parrainage" icon="🤝" title="Parrainage citoyen" description="Suivre les codes, parrains, filleuls et points de fidélité distribués." />
                 <DashboardCard href="/dashboard/communication" icon="📣" title="Communication Nostra" description="Actualités, bannières temporaires et annonces importantes." />
+                <DashboardCard href="/dashboard/evenement-mystere" icon="?" title="Événement mystère" description="Programmer un teaser puis une révélation automatique à une date précise." />
+                <DashboardCard href="/dashboard/compte-a-rebours" icon="⏱" title="Compte à rebours global" description="Afficher un compte à rebours sur toutes les pages jusqu’à une nouveauté ou un événement." />
+                <DashboardCard href="/dashboard/communication#actualites" icon="📰" title="Actualités Nostra" description="Créer et modifier les actualités visibles côté citoyen." badge="V155" />
+                <DashboardCard href="/dashboard/communication#bannieres" icon="▰" title="Bannières temporaires" description="Programmer des bannières avec dates, priorité et lien d’action." badge="V155" />
+                <DashboardCard href="/dashboard/communication#annonces" icon="⚠" title="Annonces importantes" description="Afficher un message global important ou critique sur le site." badge="V155" />
                 <DashboardCard href="/dashboard/recherche" icon="⌕" title="Recherche globale" description="Rechercher citoyens, commandes, véhicules, rendez-vous, écuries et documents." />
               </DashboardModuleSubgroup>
 
@@ -977,6 +985,13 @@ export default async function DashboardPage() {
                 icon="👥"
                 title="Membres et rôles"
                 description="Attribuer les rôles et gérer les accès des comptes."
+              />
+              <DashboardCard
+                href="/dashboard/securite"
+                icon="🔐"
+                title="Sécurité & permissions"
+                description="Rôles personnalisés, permissions fines, citoyens en ligne, liste noire, maintenance, corbeille et mode urgence."
+                badge="Direction"
               />
               <DashboardCard
                 href="/dashboard/remise-a-zero"

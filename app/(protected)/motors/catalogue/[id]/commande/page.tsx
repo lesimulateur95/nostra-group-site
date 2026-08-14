@@ -10,6 +10,7 @@ import { isVehicleReservationEnabled } from "@/lib/vehicle-reservation-settings/
 import { getVehicleCommerceAvailability } from "@/lib/vehicle-commerce-settings/data";
 import { getVehicleFinancingSettings } from "@/lib/vehicle-financing/data";
 import { createClient } from "@/lib/supabase/server";
+import { getActiveFlashSaleForVehicleV156 } from "@/lib/v156/data";
 
 import styles from "./page.module.css";
 
@@ -95,7 +96,9 @@ export default async function VehicleConfigurationPage({
   const profilePhone = metadataText(metadata, "phone");
   const profileAddress = metadataText(metadata, "address");
   const vehicleImages = images(vehicle.images);
-  const vehiclePrice = Number(vehicle.price) || 0;
+  const regularVehiclePrice = Number(vehicle.price) || 0;
+  const flashSale = vehicle.catalog_type === "concession" ? null : await getActiveFlashSaleForVehicleV156(vehicleId);
+  const vehiclePrice = flashSale?.flashPrice ?? regularVehiclePrice;
   const depositAmount = Math.round(vehiclePrice * 0.15 * 100) / 100;
   const balanceAmount = Math.max(0, vehiclePrice - depositAmount);
   const stock = Math.max(0, Number(vehicle.stock_quantity) || 0);
@@ -128,6 +131,7 @@ export default async function VehicleConfigurationPage({
   ]);
   const canReserve =
     !isRentalCatalog &&
+    !flashSale &&
     catalogReservationsEnabled &&
     vehicleAvailability.reservation_enabled;
   const canOrder = vehicleAvailability.sale_enabled;
@@ -136,6 +140,7 @@ export default async function VehicleConfigurationPage({
     financingSettings.enabled &&
     canOrder &&
     !isRentalCatalog &&
+    !flashSale &&
     vehiclePrice > financingSettings.minimumVehiclePrice &&
     (financingSettings.threeTimesEnabled || financingSettings.fourTimesEnabled);
   const financingDeposit = Math.round(vehiclePrice * 0.3 * 100) / 100;
@@ -284,8 +289,9 @@ export default async function VehicleConfigurationPage({
             </dl>
 
             <div className={styles.vehiclePrice}>
-              <span>Prix du véhicule</span>
+              <span>{flashSale ? "Prix vente flash" : "Prix du véhicule"}</span>
               <strong>{formatPrice(vehiclePrice)}</strong>
+              {flashSale && <small style={{display:"block",marginTop:5,color:"#9aa0aa"}}>Prix habituel : <s>{formatPrice(regularVehiclePrice)}</s> · jusqu’au {new Date(flashSale.endsAt).toLocaleString("fr-FR")}</small>}
             </div>
           </div>
         </section>

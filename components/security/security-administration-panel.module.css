@@ -152,3 +152,4 @@
   .memberActions, .memberActions form { width: 100%; }
   .memberActions button { width: 100%; }
 }
+.customRoleBox{display:grid;gap:12px;padding:14px;border-top:1px solid rgba(255,255,255,.08)}.customRoleBox p{margin:0;color:#9ea2ac}.onlineDot{color:#78e49c;font-weight:850}.offlineDot{color:#8f949e;font-weight:700}

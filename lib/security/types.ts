@@ -35,6 +35,10 @@ export type SecurityMember = {
   is_direction: boolean;
   blocked_until: string | null;
   block_reason: string | null;
+  custom_roles?: string[];
+  online?: boolean;
+  last_seen_at?: string | null;
+  current_path?: string | null;
 };
 
 export type SecurityBackup = {
@@ -89,4 +93,8 @@ export type SecurityOverview = {
   trash: SecurityTrashItem[];
   logins: SecurityLogin[];
   audit: SecurityAuditEntry[];
+  customRoles?: Array<{ roleKey: string; label: string; description: string; baseRole: string; active: boolean }>;
+  customPermissions?: Array<{ pathPattern: string; allowedRoles: string[] }>;
+  blacklist?: Array<{ id: string; userId: string; displayName: string; scope: string; reason: string; blockedUntil: string | null; active: boolean; createdAt: string }>;
+  emergency?: { enabled: boolean; message: string; blockMotors: boolean; blockCircuit: boolean; blockCercle: boolean; blockEvents: boolean } | null;
 };

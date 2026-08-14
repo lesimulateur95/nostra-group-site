@@ -294,13 +294,14 @@ export async function getUserRoleKeys(
 
     // Important : on ne dépend plus uniquement de nostra_roles().
     // Une RPC peut réussir tout en renvoyant null, [] ou un format ancien.
-    const [rpcResult, completeResult] = await Promise.all([
+    const [rpcResult, completeResult, customBaseResult] = await Promise.all([
       supabase.rpc("nostra_roles"),
       supabase
         .from("member_profiles")
         .select("roles,role")
         .eq("user_id", user.id)
         .maybeSingle(),
+      (supabase as any).rpc("nostra_custom_role_base_roles_v156"),
     ]);
 
     let legacyRole: unknown = null;
@@ -325,6 +326,7 @@ export async function getUserRoleKeys(
       user.app_metadata?.role,
       user.user_metadata?.roles,
       user.user_metadata?.role,
+      !customBaseResult?.error ? customBaseResult.data : null,
     );
 
     if (

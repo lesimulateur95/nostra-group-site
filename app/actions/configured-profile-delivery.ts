@@ -233,6 +233,18 @@ export async function addConfiguredVehicleWithProfileDelivery(
     p_purchase_mode: purchaseMode,
   });
 
+  if (!error && purchaseMode === "order" && !isRentalCatalog) {
+    const { data: flashPrice } = await (supabase as any).rpc("nostra_active_flash_price_v156", { p_vehicle_id: vehicleId });
+    if (Number.isFinite(Number(flashPrice)) && Number(flashPrice) >= 0) {
+      await (supabase as any)
+        .from("cart_items")
+        .update({ unit_price: Number(flashPrice), original_unit_price: Number(vehicle.price) || 0 })
+        .eq("user_id", authData.user.id)
+        .eq("vehicle_id", vehicleId)
+        .eq("item_type", "vehicle");
+    }
+  }
+
   if (error) {
     redirect(
       `/motors/catalogue/${vehicleId}/commande?error=${configuredCartErrorCode(

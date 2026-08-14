@@ -22,8 +22,8 @@ export default async function SecurityAdministrationPage({
             <span>DASHBOARD · SITE ET MEMBRES</span>
             <h1>Sécurité & administration</h1>
             <p>
-              Contrôle les accès par rôle, le mode maintenance, les comptes bloqués,
-              les sauvegardes, la corbeille et tous les journaux de sécurité.
+              Contrôle les rôles personnalisés, les permissions de pages, les citoyens en ligne,
+              la liste noire, la maintenance, les sauvegardes, la corbeille et le mode urgence.
             </p>
           </div>
           <Link href="/dashboard" className={styles.back}>← Retour au Dashboard</Link>

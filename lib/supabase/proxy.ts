@@ -3,6 +3,8 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { hasRpProfile, isManager } from "@/lib/auth/user-profile";
 
+type V156GatePayload = { configured?: boolean; allowed?: boolean; blocked?: boolean; reason?: string | null; until?: string | null; scope?: string | null; message?: string | null; matched_page?: string | null };
+
 type SecurityGatePayload = {
   roles?: string[];
   is_direction?: boolean;
@@ -76,6 +78,14 @@ function hasOperationsRole(roles: string[]): boolean {
   return roles.some((role) => ["employee", "commercial", "manager"].includes(role));
 }
 
+function hasCompletedRpNames(profile: unknown): boolean {
+  if (!profile || typeof profile !== "object") return false;
+  const row = profile as Record<string, unknown>;
+  const firstName = typeof row.rp_first_name === "string" ? row.rp_first_name.trim() : "";
+  const lastName = typeof row.rp_last_name === "string" ? row.rp_last_name.trim() : "";
+  return firstName.length >= 2 && lastName.length >= 2;
+}
+
 async function hashValue(value: string | null): Promise<string | null> {
   if (!value) return null;
 
@@ -142,8 +152,11 @@ export async function updateSession(request: NextRequest) {
     path.startsWith("/verification/") ||
     path === "/maintenance" ||
     path === "/compte-bloque" ||
-    path === "/compte-supprime";
-  const isProfilePage = path === "/profil" || path.startsWith("/profil/");
+    path === "/compte-supprime" ||
+    path === "/acces-restreint";
+  // Un compte incomplet peut uniquement ouvrir la page principale du profil
+  // afin d'enregistrer prénom + nom. Les sous-pages du profil restent bloquées.
+  const isProfileSetupPage = path === "/profil";
   const isDashboardPage = path === "/dashboard" || path.startsWith("/dashboard/");
   const isCommissionerPage =
     path === "/commissaires" || path.startsWith("/commissaires/");
@@ -154,8 +167,18 @@ export async function updateSession(request: NextRequest) {
       : redirectTo(request, "/");
   }
 
+  let profileComplete = hasRpProfile(user);
+  if (user && !profileComplete) {
+    const { data: memberProfile } = await supabase
+      .from("member_profiles")
+      .select("rp_first_name,rp_last_name")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    profileComplete = hasCompletedRpNames(memberProfile);
+  }
+
   if (user && path === "/") {
-    return redirectTo(request, hasRpProfile(user) ? "/accueil" : "/profil");
+    return redirectTo(request, profileComplete ? "/accueil" : "/profil", profileComplete ? undefined : { setup: "required" });
   }
 
   let securityGate: SecurityGatePayload | null = null;
@@ -164,11 +187,34 @@ export async function updateSession(request: NextRequest) {
     const forwardedFor =
       request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
     const ipHash = await hashValue(forwardedFor);
-    const gateResult = await supabase.rpc("nostra_security_gate", {
-      p_path: path,
-      p_user_agent: request.headers.get("user-agent"),
-      p_ip_hash: ipHash,
-    });
+    const [gateResult, customGateResult, blacklistResult, emergencyResult] = await Promise.all([
+      supabase.rpc("nostra_security_gate", {
+        p_path: path,
+        p_user_agent: request.headers.get("user-agent"),
+        p_ip_hash: ipHash,
+      }),
+      (supabase as any).rpc("nostra_custom_access_gate_v156", { p_path: path }),
+      (supabase as any).rpc("nostra_blacklist_gate_v156", { p_path: path }),
+      (supabase as any).rpc("nostra_emergency_gate_v156", { p_path: path }),
+    ]);
+
+    const customGate = !customGateResult.error && customGateResult.data && typeof customGateResult.data === "object" ? customGateResult.data as V156GatePayload : null;
+    const blacklistGate = !blacklistResult.error && blacklistResult.data && typeof blacklistResult.data === "object" ? blacklistResult.data as V156GatePayload : null;
+    const emergencyGate = !emergencyResult.error && emergencyResult.data && typeof emergencyResult.data === "object" ? emergencyResult.data as V156GatePayload : null;
+
+    if (blacklistGate?.blocked) {
+      if (isApi) return NextResponse.json({ error: "Accès restreint", reason: blacklistGate.reason, scope: blacklistGate.scope, until: blacklistGate.until }, { status: 403 });
+      return redirectTo(request, "/acces-restreint", {
+        reason: blacklistGate.reason ?? "Accès temporairement restreint",
+        scope: blacklistGate.scope ?? "all",
+        until: blacklistGate.until ?? "",
+      });
+    }
+
+    if (emergencyGate?.blocked) {
+      if (isApi) return NextResponse.json({ error: emergencyGate.message ?? "Service temporairement indisponible" }, { status: 503 });
+      return redirectTo(request, "/maintenance", { urgence: "1", message: emergencyGate.message ?? "Mode urgence Nostra" });
+    }
 
     if (
       !gateResult.error &&
@@ -176,6 +222,24 @@ export async function updateSession(request: NextRequest) {
       typeof gateResult.data === "object"
     ) {
       securityGate = gateResult.data as SecurityGatePayload;
+
+      // Les permissions des rôles personnalisés sont réellement restrictives :
+      // lorsqu'une page est configurée pour ces rôles, être rattaché à un rôle
+      // non autorisé ne doit pas hériter automatiquement de toutes les pages de
+      // son rôle de base. La Direction conserve toujours son accès de secours.
+      if (
+        customGate?.configured === true &&
+        customGate.allowed === false &&
+        securityGate.is_direction !== true
+      ) {
+        if (isApi) {
+          return NextResponse.json({ error: "Accès refusé pour ce rôle" }, { status: 403 });
+        }
+        return redirectTo(request, "/accueil", {
+          acces: "refuse",
+          page: customGate.matched_page ?? "Page protégée",
+        });
+      }
 
       if (securityGate.account_blocked) {
         if (isApi) {
@@ -212,7 +276,7 @@ export async function updateSession(request: NextRequest) {
         return redirectTo(request, "/maintenance");
       }
 
-      if (securityGate.page_allowed === false) {
+      if (securityGate.page_allowed === false && customGate?.allowed !== true) {
         let resolvedRoles = normalizeRoles(securityGate.roles, null);
 
         // La matrice Supabase peut encore contenir les anciens réglages.
@@ -256,7 +320,13 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
-  if (user && !isPublic && !isProfilePage && !hasRpProfile(user)) {
+  if (user && !isPublic && !isProfileSetupPage && !profileComplete) {
+    if (isApi) {
+      return NextResponse.json(
+        { error: "Merci de remplir vos informations personnelles dans votre profil.", code: "profile_required" },
+        { status: 403 },
+      );
+    }
     const url = request.nextUrl.clone();
     url.pathname = "/profil";
     url.searchParams.set("setup", "required");

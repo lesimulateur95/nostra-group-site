@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ChangeEvent } from "react";
 
 import {
   blockAccountAction,
@@ -14,6 +14,14 @@ import {
   updateSecuritySettingsAction,
 } from "@/app/actions/security-administration";
 import {
+  addBlacklistEntryV156,
+  removeBlacklistEntryV156,
+  saveCustomPagePermissionsV156,
+  saveCustomRoleV156,
+  saveEmergencyModeV156,
+  saveMemberCustomRolesV156,
+} from "@/app/actions/v156";
+import {
   SECURITY_ROLE_OPTIONS,
   type SecurityOverview,
   type SecurityPageAccess,
@@ -23,12 +31,16 @@ import styles from "./security-administration-panel.module.css";
 
 const TABS = [
   ["permissions", "Permissions des pages"],
+  ["roles", "Rôles du staff"],
+  ["presence", "Citoyens en ligne"],
+  ["blacklist", "Liste noire interne"],
   ["comptes", "Comptes"],
   ["maintenance", "Maintenance"],
   ["corbeille", "Corbeille"],
   ["sauvegardes", "Sauvegardes"],
   ["connexions", "Connexions"],
   ["journal", "Journal"],
+  ["urgence", "Mode urgence"],
 ] as const;
 
 type TabKey = (typeof TABS)[number][0];
@@ -47,7 +59,7 @@ function roleLabel(role: string) {
   return SECURITY_ROLE_OPTIONS.find((item) => item.key === role)?.label ?? role;
 }
 
-function PageAccessForm({ page }: { page: SecurityPageAccess }) {
+function PageAccessForm({ page, customRoles = [], customAllowed = [] }: { page: SecurityPageAccess; customRoles?: NonNullable<SecurityOverview["customRoles"]>; customAllowed?: string[] }) {
   return (
     <form action={savePageAccessAction} className={styles.permissionCard}>
       <input type="hidden" name="id" value={page.id} />
@@ -98,6 +110,21 @@ function PageAccessForm({ page }: { page: SecurityPageAccess }) {
         <input type="hidden" name="role_direction" value="on" />
       )}
       <button className={styles.primaryButton} type="submit">Enregistrer cette page</button>
+      {customRoles.length > 0 && (
+        <div className={styles.customRoleBox}>
+          <strong>Permissions des rôles personnalisés</strong>
+          <p>Ces règles affinent les accès des rôles créés par la Direction.</p>
+          <div className={styles.roleMatrix}>
+            {customRoles.map((role) => (
+              <label key={role.roleKey}>
+                <input type="checkbox" name={`custom_role_${role.roleKey}`} defaultChecked={customAllowed.includes(role.roleKey)} />
+                <span>{role.label}</span>
+              </label>
+            ))}
+          </div>
+          <button className={styles.secondaryButton} formAction={saveCustomPagePermissionsV156} type="submit">Enregistrer les permissions personnalisées</button>
+        </div>
+      )}
     </form>
   );
 }
@@ -161,7 +188,7 @@ export function SecurityAdministrationPanel({
             <input
               className={styles.search}
               value={pageSearch}
-              onChange={(event) => setPageSearch(event.target.value)}
+              onChange={(event: ChangeEvent<HTMLInputElement>) => setPageSearch(event.target.value)}
               placeholder="Rechercher une page…"
             />
           </div>
@@ -188,8 +215,62 @@ export function SecurityAdministrationPanel({
           </details>
 
           <div className={styles.permissionList}>
-            {filteredPages.map((page) => <PageAccessForm key={page.id} page={page} />)}
+            {filteredPages.map((page) => { const custom = overview.customPermissions?.find((item) => item.pathPattern === page.path_pattern)?.allowedRoles ?? []; return <PageAccessForm key={page.id} page={page} customRoles={overview.customRoles ?? []} customAllowed={custom} />; })}
           </div>
+        </div>
+      )}
+
+      {tab === "roles" && (
+        <div className={styles.sectionStack}>
+          <div className={styles.sectionIntro}><div><span>RÔLES PERSONNALISÉS</span><h2>Créer et attribuer les rôles du staff</h2><p>Chaque rôle personnalisé possède un niveau de base puis des permissions de pages précises dans l’onglet Permissions.</p></div></div>
+          <form action={saveCustomRoleV156} className={styles.settingsCard}>
+            <div className={styles.compactFields}>
+              <label>Nom du rôle<input name="label" required placeholder="Ex. Préparateur Motors" /></label>
+              <label>Clé technique<input name="role_key" placeholder="preparateur_motors" /></label>
+              <label>Niveau de base<select name="base_role" defaultValue="employee"><option value="employee">Employé</option><option value="commercial">Commercial</option><option value="commissioner">Commissaire</option><option value="manager">Gérant</option><option value="citizen">Citoyen</option></select></label>
+              <label className={styles.switchLabel}><input type="checkbox" name="active" defaultChecked /> Actif</label>
+            </div>
+            <label>Description<textarea name="description" rows={2} /></label>
+            <button className={styles.primaryButton}>Créer / modifier le rôle</button>
+          </form>
+          <div className={styles.permissionList}>
+            {(overview.customRoles ?? []).map((role) => (
+              <form action={saveCustomRoleV156} className={styles.permissionCard} key={role.roleKey}>
+                <input type="hidden" name="role_key" value={role.roleKey} />
+                <div className={styles.permissionHeader}><div><strong>{role.label}</strong><code>{role.roleKey}</code></div><span className={styles.actionBadge}>{role.baseRole}</span></div>
+                <div className={styles.compactFields}><label>Nom<input name="label" defaultValue={role.label} /></label><label>Niveau de base<select name="base_role" defaultValue={role.baseRole}><option value="employee">Employé</option><option value="commercial">Commercial</option><option value="commissioner">Commissaire</option><option value="manager">Gérant</option><option value="citizen">Citoyen</option></select></label><label>Description<input name="description" defaultValue={role.description} /></label><label className={styles.switchLabel}><input type="checkbox" name="active" defaultChecked={role.active} /> Actif</label></div>
+                <button className={styles.secondaryButton}>Enregistrer</button>
+              </form>
+            ))}
+          </div>
+          <div className={styles.sectionIntro}><div><span>ATTRIBUTION</span><h2>Attribuer les rôles aux citoyens</h2><p>Un citoyen peut cumuler plusieurs rôles personnalisés. Les permissions se règlent ensuite page par page.</p></div></div>
+          <div className={styles.memberList}>
+            {overview.members.map((member) => (
+              <form action={saveMemberCustomRolesV156} className={styles.memberCard} key={member.user_id}>
+                <input type="hidden" name="user_id" value={member.user_id} />
+                <div className={styles.memberIdentity}><strong>{member.display_name}</strong><span>{member.custom_roles?.length ? member.custom_roles.join(" · ") : "Aucun rôle personnalisé"}</span></div>
+                <div className={styles.memberActions}><div className={styles.roleMatrix}>{(overview.customRoles ?? []).map((role) => <label key={role.roleKey}><input type="checkbox" name={`custom_role_${role.roleKey}`} defaultChecked={member.custom_roles?.includes(role.roleKey)} /><span>{role.label}</span></label>)}</div><button className={styles.primaryButton}>Enregistrer les rôles</button></div>
+              </form>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {tab === "presence" && (
+        <div className={styles.sectionStack}>
+          <div className={styles.sectionIntro}><div><span>PRÉSENCE EN DIRECT</span><h2>Citoyens actuellement en ligne</h2><p>Un citoyen est considéré en ligne lorsqu’il a envoyé un signal au site dans les deux dernières minutes.</p></div><span className={styles.counter}>{overview.members.filter((m) => m.online).length} en ligne</span></div>
+          <div className={styles.tableWrap}><table><thead><tr><th>Citoyen</th><th>État</th><th>Page actuelle</th><th>Dernière activité</th></tr></thead><tbody>{[...overview.members].sort((a,b)=>Number(Boolean(b.online))-Number(Boolean(a.online))).map((member)=><tr key={member.user_id}><td><strong>{member.display_name}</strong></td><td><span className={member.online?styles.onlineDot:styles.offlineDot}>{member.online?"● EN LIGNE":"○ Hors ligne"}</span></td><td><code>{member.current_path??"—"}</code></td><td>{formatDate(member.last_seen_at)}</td></tr>)}</tbody></table></div>
+        </div>
+      )}
+
+      {tab === "blacklist" && (
+        <div className={styles.sectionStack}>
+          <div className={styles.sectionIntro}><div><span>RESTRICTIONS INTERNES</span><h2>Liste noire par service</h2><p>Bloque un citoyen uniquement sur Motors, Circuit, Academy, Nostra Cercle, Événements ou sur tous les pôles.</p></div></div>
+          <form action={addBlacklistEntryV156} className={styles.settingsCard}>
+            <div className={styles.compactFields}><label>Citoyen<select name="user_id" required><option value="">Choisir…</option>{overview.members.map((m)=><option value={m.user_id} key={m.user_id}>{m.display_name}</option>)}</select></label><label>Périmètre<select name="scope" defaultValue="all"><option value="all">Tous les pôles</option><option value="motors">Nostra Motors</option><option value="circuit">Nostra Circuit</option><option value="academy">Racing Academy</option><option value="cercle">Nostra Cercle</option><option value="events">Événements & Jeux</option></select></label><label>Durée<select name="duration_hours" defaultValue="0"><option value="0">Sans date de fin</option><option value="24">24 heures</option><option value="72">3 jours</option><option value="168">7 jours</option><option value="720">30 jours</option></select></label><label>Motif<input name="reason" required minLength={4} /></label></div>
+            <button className={styles.dangerButton}>Ajouter à la liste noire</button>
+          </form>
+          <div className={styles.tableWrap}><table><thead><tr><th>Citoyen</th><th>Périmètre</th><th>Motif</th><th>Fin</th><th>État</th><th>Action</th></tr></thead><tbody>{(overview.blacklist??[]).map((item)=><tr key={item.id}><td><strong>{item.displayName}</strong></td><td>{item.scope}</td><td>{item.reason}</td><td>{formatDate(item.blockedUntil)}</td><td>{item.active?"Active":"Levée"}</td><td>{item.active&&<form action={removeBlacklistEntryV156}><input type="hidden" name="id" value={item.id}/><button className={styles.successButton}>Lever la restriction</button></form>}</td></tr>)}{!(overview.blacklist??[]).length&&<tr><td colSpan={6}>Aucune restriction interne.</td></tr>}</tbody></table></div>
         </div>
       )}
 
@@ -204,7 +285,7 @@ export function SecurityAdministrationPanel({
             <input
               className={styles.search}
               value={memberSearch}
-              onChange={(event) => setMemberSearch(event.target.value)}
+              onChange={(event: ChangeEvent<HTMLInputElement>) => setMemberSearch(event.target.value)}
               placeholder="Rechercher un citoyen…"
             />
           </div>
@@ -448,6 +529,18 @@ export function SecurityAdministrationPanel({
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {tab === "urgence" && (
+        <div className={styles.sectionStack}>
+          <div className={styles.sectionIntro}><div><span>MODE URGENCE</span><h2>Couper immédiatement certains pôles</h2><p>Ce mode est réservé au Dashboard. Il permet de bloquer instantanément l’accès citoyen aux pôles sélectionnés sans modifier leur configuration habituelle.</p></div></div>
+          <form action={saveEmergencyModeV156} className={styles.settingsCard}>
+            <label className={styles.bigSwitch}><input type="checkbox" name="enabled" defaultChecked={overview.emergency?.enabled ?? false}/><span><strong>Activer le mode urgence</strong><small>Les pôles cochés deviennent immédiatement indisponibles côté citoyen.</small></span></label>
+            <label>Message affiché<textarea name="message" rows={3} defaultValue={overview.emergency?.message ?? "Une opération de sécurité est en cours. Ce service est temporairement indisponible."}/></label>
+            <div className={styles.twoColumns}><label className={styles.bigSwitch}><input type="checkbox" name="block_motors" defaultChecked={overview.emergency?.blockMotors}/><span><strong>Bloquer Nostra Motors</strong></span></label><label className={styles.bigSwitch}><input type="checkbox" name="block_circuit" defaultChecked={overview.emergency?.blockCircuit}/><span><strong>Bloquer Nostra Circuit</strong></span></label><label className={styles.bigSwitch}><input type="checkbox" name="block_cercle" defaultChecked={overview.emergency?.blockCercle}/><span><strong>Bloquer Nostra Cercle</strong></span></label><label className={styles.bigSwitch}><input type="checkbox" name="block_events" defaultChecked={overview.emergency?.blockEvents}/><span><strong>Bloquer Événements & Jeux</strong></span></label></div>
+            <button className={styles.dangerButton}>Enregistrer le mode urgence</button>
+          </form>
         </div>
       )}
     </section>
