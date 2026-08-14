@@ -28,6 +28,7 @@ export type RentalVehicleV155 = {
   model: string;
   imageUrl: string | null;
   stock: number;
+  vehiclePrice: number;
   dailyRate: number;
   depositAmount: number;
   minDays: number;
@@ -50,7 +51,7 @@ export async function getRentalVehiclesV155(includeInactive = false): Promise<Re
   const [vehicles, settings] = await Promise.all([
     (supabase as any)
       .from("catalog_vehicles")
-      .select("id,brand,model,images,stock_quantity,published,catalog_type")
+      .select("id,brand,model,images,stock_quantity,published,catalog_type,price")
       .eq("catalog_type", "concession")
       .order("brand"),
     (supabase as any).from("motors_rental_settings_v155").select("*")
@@ -61,8 +62,8 @@ export async function getRentalVehiclesV155(includeInactive = false): Promise<Re
     const cfg = settingMap.get(String(row.id));
     if (!includeInactive && (!row.published || cfg?.active === false)) return [];
     return [{
-      vehicleId: n(row.id), brand: s(row.brand), model: s(row.model), imageUrl: firstImage(row.images), stock: n(row.stock_quantity),
-      dailyRate: n(cfg?.daily_rate), depositAmount: n(cfg?.deposit_amount), minDays: Math.max(1,n(cfg?.min_days,1)), maxDays: Math.max(1,n(cfg?.max_days,30)),
+      vehicleId: n(row.id), brand: s(row.brand), model: s(row.model), imageUrl: firstImage(row.images), stock: n(row.stock_quantity), vehiclePrice: n(row.price),
+      dailyRate: n(cfg?.daily_rate), depositAmount: Math.round(n(row.price) * 0.20 * 100) / 100, minDays: Math.max(1,n(cfg?.min_days,1)), maxDays: Math.max(1,n(cfg?.max_days,30)),
       mileageIncludedPerDay: n(cfg?.mileage_included_per_day,200), extraKmPrice: n(cfg?.extra_km_price), active: cfg?.active !== false,
     }];
   });
@@ -78,7 +79,9 @@ export async function getRentalBookingsV155(userId?: string) {
     id:s(row.id), rentalNumber:s(row.rental_number), userId:s(row.user_id), vehicleId:n(row.vehicle_id), brand:s(row.catalog_vehicles?.brand), model:s(row.catalog_vehicles?.model), imageUrl:firstImage(row.catalog_vehicles?.images),
     startDate:s(row.start_date), endDate:s(row.end_date), days:n(row.days), dailyRate:n(row.daily_rate), depositAmount:n(row.deposit_amount), totalAmount:n(row.total_amount), status:s(row.status), pickupLocation:s(row.pickup_location),
     mileageOut:row.mileage_out==null?null:n(row.mileage_out), mileageIn:row.mileage_in==null?null:n(row.mileage_in), conditionOut:row.condition_out?s(row.condition_out):null, conditionIn:row.condition_in?s(row.condition_in):null,
-    damageNotes:row.damage_notes?s(row.damage_notes):null, staffNotes:row.staff_notes?s(row.staff_notes):null, createdAt:s(row.created_at)
+    damageNotes:row.damage_notes?s(row.damage_notes):null, staffNotes:row.staff_notes?s(row.staff_notes):null,
+    depositStatus:s(row.deposit_status,"not_paid"), depositRetainedAmount:n(row.deposit_retained_amount), depositHeldAt:row.deposit_held_at?s(row.deposit_held_at):null, depositPaidAt:row.deposit_paid_at?s(row.deposit_paid_at):null, depositRefundedAt:row.deposit_refunded_at?s(row.deposit_refunded_at):null,
+    createdAt:s(row.created_at)
   }));
 }
 

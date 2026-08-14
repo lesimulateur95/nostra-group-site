@@ -15,6 +15,20 @@ const money = (value: number) =>
     maximumFractionDigits: 0,
   });
 
+function depositStatusLabel(value: string) {
+  const labels: Record<string, string> = {
+    not_held: "Non encaissée",
+    not_paid: "Non encaissée",
+    held: "Ancienne caution bloquée",
+    paid: "Encaissée",
+    refund_processing: "Restitution en cours",
+    refunded: "Restituée",
+    partially_refunded: "Partiellement restituée",
+    retained: "Retenue",
+  };
+  return labels[value] ?? value;
+}
+
 function InspectionSummary({
   title,
   inspection,
@@ -58,7 +72,12 @@ function InspectionSummary({
   );
 }
 
-export default async function MyRentals() {
+export default async function MyRentals({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string; cancelled?: string; created?: string }>;
+}) {
+  const query = await searchParams;
   const user = await getRequestUser();
   if (!user) redirect("/");
 
@@ -84,6 +103,22 @@ export default async function MyRentals() {
         </Link>
       </section>
 
+      {query.error && (
+        <div className={styles.card}>
+          <strong className={styles.bad}>
+            {query.error === "deposit-refund"
+              ? "La restitution de la caution a échoué. Le dossier reste inchangé."
+              : query.error === "steam"
+                ? "Impossible de restituer la caution : ton compte Steam doit être correctement associé."
+                : query.error === "deposit-state"
+                  ? "Cette caution est déjà en cours de traitement ou a déjà été régularisée."
+                  : "Impossible d’effectuer cette action sur la location."}
+          </strong>
+        </div>
+      )}
+      {query.created && <div className={styles.card}><strong>Location payée. Le prix de la location et la caution de 20 % ont été encaissés.</strong></div>}
+      {query.cancelled && <div className={styles.card}><strong>Location annulée. Le paiement de la location et la caution ont été remboursés.</strong></div>}
+
       {!rows.length ? (
         <div className={styles.empty}>Aucune location pour le moment.</div>
       ) : (
@@ -101,7 +136,9 @@ export default async function MyRentals() {
                   <strong>{new Date(r.startDate).toLocaleDateString("fr-FR")} → {new Date(r.endDate).toLocaleDateString("fr-FR")}</strong>
                 </div>
                 <div className={styles.row}><span>Total</span><strong>{money(r.totalAmount)}</strong></div>
-                <div className={styles.row}><span>Caution</span><strong>{money(r.depositAmount)}</strong></div>
+                <div className={styles.row}><span>Caution · 20 %</span><strong>{money(r.depositAmount)}</strong></div>
+                <div className={styles.row}><span>État caution</span><strong>{depositStatusLabel(String(r.depositStatus ?? "not_held"))}</strong></div>
+                {Number(r.depositRetainedAmount ?? 0) > 0 && <div className={styles.row}><span>Retenue</span><strong>{money(Number(r.depositRetainedAmount))}</strong></div>}
                 <div className={styles.row}><span>Retrait</span><strong>Concession Nostra Motors</strong></div>
 
                 <section className={v156Styles.grid2} style={{ marginTop: 20 }}>
