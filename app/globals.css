@@ -5629,19 +5629,3 @@ select:focus { outline: 2px solid rgba(212,175,55,.32); outline-offset: 1px; }
     grid-template-columns: 1fr;
   }
 }
-
-/* V157.4 — repère d'ordre dans le catalogue Dashboard */
-.catalog-order-pill-v1574 {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 6px 9px;
-  border: 1px solid rgba(212,175,55,.4);
-  border-radius: 999px;
-  background: rgba(212,175,55,.08);
-  color: #f1d46a;
-  font-size: .72rem;
-  font-weight: 900;
-  letter-spacing: .04em;
-  white-space: nowrap;
-}

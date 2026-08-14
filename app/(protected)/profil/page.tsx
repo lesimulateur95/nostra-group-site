@@ -176,6 +176,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
  : params.order_error === "stock" ? "La quantité demandée n’est plus disponible. Retire l’article concerné ou réduis ton panier."
 
  : params.order_error === "unavailable" ? "Un véhicule de ton panier n’est plus publié dans le catalogue."
+ : params.order_error === "tier-required" ? "Achat bloqué : au moins un véhicule de ton panier est réservé à un autre grade de fidélité (Silver, Gold ou Black Signature)."
  : params.order_error === "cart-refresh" ? "Ton panier contient une ancienne ligne qui n’est plus liée au catalogue. Retire-la puis ajoute de nouveau le véhicule."
  : params.order_error === "promo-unknown" ? "Ce code promotionnel n’existe pas."
  : params.order_error === "promo-disabled" ? "Ce code promotionnel est désactivé."

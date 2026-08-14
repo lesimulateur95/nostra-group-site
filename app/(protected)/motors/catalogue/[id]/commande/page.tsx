@@ -11,6 +11,14 @@ import { getVehicleCommerceAvailability } from "@/lib/vehicle-commerce-settings/
 import { getVehicleFinancingSettings } from "@/lib/vehicle-financing/data";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveFlashSaleForVehicleV156 } from "@/lib/v156/data";
+import {
+  canCitizenAccessVehicleTierV157,
+  getActiveVehicleSaleV157,
+  getCurrentCitizenVehicleTierV157,
+  getVehicleMerchandisingV157,
+  vehicleAccessTierLabelV157,
+  vehicleTierBadgeClassV157,
+} from "@/lib/v157/data";
 
 import styles from "./page.module.css";
 
@@ -97,8 +105,21 @@ export default async function VehicleConfigurationPage({
   const profileAddress = metadataText(metadata, "address");
   const vehicleImages = images(vehicle.images);
   const regularVehiclePrice = Number(vehicle.price) || 0;
-  const flashSale = vehicle.catalog_type === "concession" ? null : await getActiveFlashSaleForVehicleV156(vehicleId);
-  const vehiclePrice = flashSale?.flashPrice ?? regularVehiclePrice;
+  const [flashSale, merchandising, citizenTier] = await Promise.all([
+    vehicle.catalog_type === "concession" ? Promise.resolve(null) : getActiveFlashSaleForVehicleV156(vehicleId),
+    getVehicleMerchandisingV157(vehicleId),
+    getCurrentCitizenVehicleTierV157(authResult.data.user?.id),
+  ]);
+  const regularSale = vehicle.catalog_type === "concession"
+    ? null
+    : getActiveVehicleSaleV157(merchandising, regularVehiclePrice);
+  const vehiclePrice = Math.min(
+    flashSale?.flashPrice ?? regularVehiclePrice,
+    regularSale?.salePrice ?? regularVehiclePrice,
+  );
+  const requiredTier = vehicle.catalog_type === "concession" ? "all" : merchandising.requiredTier;
+  const tierAllowed = canCitizenAccessVehicleTierV157(requiredTier, citizenTier);
+  const requiredTierLabel = vehicleAccessTierLabelV157(requiredTier);
   const depositAmount = Math.round(vehiclePrice * 0.15 * 100) / 100;
   const balanceAmount = Math.max(0, vehiclePrice - depositAmount);
   const stock = Math.max(0, Number(vehicle.stock_quantity) || 0);
@@ -132,6 +153,7 @@ export default async function VehicleConfigurationPage({
   const canReserve =
     !isRentalCatalog &&
     !flashSale &&
+    !regularSale &&
     catalogReservationsEnabled &&
     vehicleAvailability.reservation_enabled;
   const canOrder = vehicleAvailability.sale_enabled;
@@ -141,6 +163,7 @@ export default async function VehicleConfigurationPage({
     canOrder &&
     !isRentalCatalog &&
     !flashSale &&
+    !regularSale &&
     vehiclePrice > financingSettings.minimumVehiclePrice &&
     (financingSettings.threeTimesEnabled || financingSettings.fourTimesEnabled);
   const financingDeposit = Math.round(vehiclePrice * 0.3 * 100) / 100;
@@ -157,7 +180,7 @@ export default async function VehicleConfigurationPage({
     Math.round(((financingPrincipal + financingThreeFee) / 3) * 100) / 100;
   const financingFourPayment =
     Math.round(((financingPrincipal + financingFourFee) / 4) * 100) / 100;
-  const canPurchase = (canReserve || canOrder) && !vipBlocked;
+  const canPurchase = (canReserve || canOrder) && !vipBlocked && tierAllowed;
   const cataloguePath =
     vehicle.catalog_type === "concession"
       ? "/motors/catalogue/location"
@@ -208,6 +231,8 @@ export default async function VehicleConfigurationPage({
                       ? "Les véhicules du catalogue location peuvent uniquement être loués avec retrait en concession Nostra Motors."
                     : query.error === "vip-required"
                       ? "Cette offre est réservée aux citoyens ayant le niveau de fidélité VIP requis."
+                    : query.error === "tier-required"
+                      ? `Ce véhicule est réservé aux membres ${requiredTierLabel}. Ton grade actuel ne permet pas cet achat.`
                     : query.error
                       ? "Impossible d’ajouter cette configuration au panier."
                       : null;
@@ -236,6 +261,20 @@ export default async function VehicleConfigurationPage({
       </header>
 
       {errorMessage && <div className={styles.error}>{errorMessage}</div>}
+
+      {(vehiclePrice < regularVehiclePrice || requiredTier !== "all") && (
+        <div className="catalogue-command-badges-v157">
+          {vehiclePrice < regularVehiclePrice && (
+            <span className="catalogue-sale-badge-v157">◆ SOLDES -{Math.max(1, Math.round(((regularVehiclePrice - vehiclePrice) / regularVehiclePrice) * 100))}%</span>
+          )}
+          {requiredTier !== "all" && (
+            <span className={`catalogue-tier-badge-v157 ${vehicleTierBadgeClassV157(requiredTier)}`}>♛ {requiredTierLabel.toUpperCase()}</span>
+          )}
+          {!tierAllowed && requiredTier !== "all" && (
+            <span className="catalogue-command-lock-v157">Accès réservé aux membres {requiredTierLabel}</span>
+          )}
+        </div>
+      )}
 
       <div className={styles.layout}>
         <section className={styles.vehicleCard}>
@@ -289,9 +328,14 @@ export default async function VehicleConfigurationPage({
             </dl>
 
             <div className={styles.vehiclePrice}>
-              <span>{flashSale ? "Prix vente flash" : "Prix du véhicule"}</span>
+              <span>{vehiclePrice < regularVehiclePrice ? "Prix soldé" : "Prix du véhicule"}</span>
               <strong>{formatPrice(vehiclePrice)}</strong>
-              {flashSale && <small style={{display:"block",marginTop:5,color:"#9aa0aa"}}>Prix habituel : <s>{formatPrice(regularVehiclePrice)}</s> · jusqu’au {new Date(flashSale.endsAt).toLocaleString("fr-FR")}</small>}
+              {vehiclePrice < regularVehiclePrice && (
+                <small style={{display:"block",marginTop:5,color:"#9aa0aa"}}>
+                  Prix habituel : <s>{formatPrice(regularVehiclePrice)}</s>
+                  {flashSale ? ` · jusqu’au ${new Date(flashSale.endsAt).toLocaleString("fr-FR")}` : regularSale?.saleEndsAt ? ` · jusqu’au ${new Date(regularSale.saleEndsAt).toLocaleString("fr-FR")}` : ""}
+                </small>
+              )}
             </div>
           </div>
         </section>
@@ -357,7 +401,10 @@ export default async function VehicleConfigurationPage({
                     suit le fonctionnement habituel.
                   </small>
                 </span>
-                <span className={styles.optionPrice}>{formatPrice(vehiclePrice)}</span>
+                <span className={styles.optionPrice}>
+                  {vehiclePrice < regularVehiclePrice && <small className="catalogue-old-price-v156">{formatPrice(regularVehiclePrice)}</small>}
+                  {formatPrice(vehiclePrice)}
+                </span>
               </label>
             )
           )}
@@ -646,7 +693,9 @@ export default async function VehicleConfigurationPage({
           </div>
 
           <p className={styles.notice}>
-            {isRentalCatalog
+            {!tierAllowed && requiredTier !== "all"
+              ? `Ce véhicule est visible dans le catalogue mais son achat est réservé aux membres ${requiredTierLabel}.`
+              : isRentalCatalog
               ? canOrder
                 ? "Ce véhicule est proposé uniquement à la location. Après ajout au panier, le retrait se fera obligatoirement à la concession Nostra Motors."
                 : "La location de ce véhicule est temporairement indisponible."

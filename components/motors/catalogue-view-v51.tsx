@@ -23,6 +23,15 @@ import { getVehicleCommerceAvailabilityMap } from "@/lib/vehicle-commerce-settin
 import { isVehicleReservationEnabled } from "@/lib/vehicle-reservation-settings/data";
 import { getFlashSaleMapV156 } from "@/lib/v156/data";
 import {
+  canCitizenAccessVehicleTierV157,
+  getActiveVehicleSaleV157,
+  getCurrentCitizenVehicleTierV157,
+  getVehicleMerchandisingMapV157,
+  vehicleAccessTierLabelV157,
+  vehicleTierBadgeClassV157,
+} from "@/lib/v157/data";
+import { createClient } from "@/lib/supabase/server";
+import {
   getSitePage,
   type EditablePageSlug,
 } from "@/lib/content/site-content";
@@ -96,10 +105,14 @@ export async function CatalogueViewV51({
   ]);
 
   const vehicleIds = vehicles.map((vehicle) => Number(vehicle.id));
-  const [favoriteState, commerceAvailability, flashSales] = await Promise.all([
+  const supabase = await createClient();
+  const { data: authData } = await supabase.auth.getUser();
+  const [favoriteState, commerceAvailability, flashSales, merchandising, citizenTier] = await Promise.all([
     getCurrentFavoriteStateMap(vehicleIds),
     getVehicleCommerceAvailabilityMap(vehicleIds),
     getFlashSaleMapV156(vehicleIds),
+    getVehicleMerchandisingMapV157(vehicleIds),
+    getCurrentCitizenVehicleTierV157(authData.user?.id),
   ]);
 
   const grouped = new Map<string, typeof vehicles>();
@@ -239,9 +252,23 @@ export async function CatalogueViewV51({
 
                   <div className="catalogue-vehicle-grid">
                     {brandVehicles.map((vehicle, vehicleIndex) => {
+                      const vehicleMerchandising = merchandising.get(Number(vehicle.id));
+                      const regularSale = catalogType === "concession"
+                        ? null
+                        : getActiveVehicleSaleV157(vehicleMerchandising, vehicle.price);
                       const flashSale = catalogType === "concession" ? null : flashSales.get(Number(vehicle.id));
-                      const effectivePrice = flashSale?.flashPrice ?? vehicle.price;
+                      const flashPrice = flashSale?.flashPrice ?? null;
+                      const effectivePrice = Math.min(
+                        regularSale?.salePrice ?? vehicle.price,
+                        flashPrice ?? vehicle.price,
+                      );
+                      const regularSaleIsEffective = Boolean(
+                        regularSale && regularSale.salePrice <= (flashPrice ?? Number.POSITIVE_INFINITY),
+                      );
                       const formattedPrice = formatPrice(effectivePrice);
+                      const requiredTier = vehicleMerchandising?.requiredTier ?? "all";
+                      const tierAllowed = canCitizenAccessVehicleTierV157(requiredTier, citizenTier);
+                      const requiredTierLabel = vehicleAccessTierLabelV157(requiredTier);
                       const availability = commerceAvailability.get(
                         Number(vehicle.id),
                       ) ?? {
@@ -250,10 +277,12 @@ export async function CatalogueViewV51({
                         sale_enabled: true,
                       };
                       const canReserve =
-                        reservationsEnabled && availability.reservation_enabled;
+                        reservationsEnabled && availability.reservation_enabled && !regularSale && !flashSale;
                       const canOrder = availability.sale_enabled;
-                      const canStartPurchase = canReserve || canOrder;
-                      const purchaseLabel = catalogType === "concession"
+                      const canStartPurchase = (canReserve || canOrder) && tierAllowed;
+                      const purchaseLabel = !tierAllowed
+                        ? `Réservé ${requiredTierLabel}`
+                        : catalogType === "concession"
                         ? canOrder
                           ? "Louer"
                           : "Temporairement indisponible"
@@ -280,6 +309,20 @@ export async function CatalogueViewV51({
                           data-order={vehicleIndex}
                         >
                           <div className="catalogue-vehicle-media">
+                            {(regularSaleIsEffective || requiredTier !== "all") && (
+                              <div className="catalogue-badge-stack-v157">
+                                {regularSaleIsEffective && regularSale && (
+                                  <span className="catalogue-sale-badge-v157">
+                                    <span aria-hidden="true">◆</span> SOLDES -{regularSale.discountPercent}%
+                                  </span>
+                                )}
+                                {requiredTier !== "all" && (
+                                  <span className={`catalogue-tier-badge-v157 ${vehicleTierBadgeClassV157(requiredTier)}`}>
+                                    <span aria-hidden="true">♛</span> {requiredTierLabel.toUpperCase()}
+                                  </span>
+                                )}
+                              </div>
+                            )}
                             {vehicle.images[0] ? (
                               <img
                                 src={vehicle.images[0].url}
@@ -309,10 +352,22 @@ export async function CatalogueViewV51({
                           <div className="catalogue-vehicle-copy">
                             <p className="eyebrow">{vehicle.brand}</p>
                             <h3>{vehicle.model}</h3>
-                            {flashSale && (
+                            {regularSaleIsEffective && regularSale && (
+                              <div className="catalogue-sale-summary-v157">
+                                <strong>SOLDES -{regularSale.discountPercent}%</strong>
+                                <span>Prix Nostra exceptionnel</span>
+                              </div>
+                            )}
+                            {flashSale && !regularSaleIsEffective && (
                               <div className="catalogue-flash-sale-v156">
                                 <strong>VENTE FLASH</strong>
                                 <span>jusqu’au {new Date(flashSale.endsAt).toLocaleString("fr-FR")}</span>
+                              </div>
+                            )}
+                            {!tierAllowed && requiredTier !== "all" && (
+                              <div className="catalogue-tier-lock-v157">
+                                <strong>Accès {requiredTierLabel}</strong>
+                                <span>Ton grade actuel ne permet pas l’achat de ce véhicule.</span>
                               </div>
                             )}
 
@@ -345,7 +400,7 @@ export async function CatalogueViewV51({
                               </div>
                               <div className="catalogue-price">
                                 <dt>Prix</dt>
-                                <dd>{flashSale ? <><small className="catalogue-old-price-v156">{formatPrice(vehicle.price)}</small><br />{formattedPrice}</> : formattedPrice}</dd>
+                                <dd>{effectivePrice < vehicle.price ? <><small className="catalogue-old-price-v156">{formatPrice(vehicle.price)}</small><br />{formattedPrice}</> : formattedPrice}</dd>
                               </div>
                             </dl>
 

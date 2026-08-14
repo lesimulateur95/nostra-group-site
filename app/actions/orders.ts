@@ -27,6 +27,7 @@ function isMissingStockOrderSetup(
   const value = errorText(error);
   return (
     value.includes("pgrst202") ||
+    value.includes("place_nostra_order_v157") ||
     value.includes("place_nostra_order_v93") ||
     value.includes("checkout_vehicle_reservation") ||
     value.includes("review_vehicle_reservation_v93") ||
@@ -56,6 +57,7 @@ function orderErrorCode(
   if (value.includes("promo_scope")) return "promo-scope";
   if (value.includes("promo_minimum")) return "promo-minimum";
   if (value.includes("promo_limit") || value.includes("promo_user_limit")) return "promo-limit";
+  if (value.includes("loyalty_tier_required")) return "tier-required";
   if (
     value.includes("cart_needs_refresh") ||
     value.includes("invalid_delivery_cart")
@@ -155,7 +157,7 @@ export async function placeCartOrder(formData: FormData) {
   const customerName =
     getRpName(data.user) || getDiscordName(data.user) || "Client Nostra Motors";
 
-  const { data: result, error } = await (supabase as any).rpc("place_nostra_order_v153", {
+  const { data: result, error } = await (supabase as any).rpc("place_nostra_order_v157", {
     p_order_number: orderNumber,
     p_customer_name: customerName,
     p_customer_note: customerNote,

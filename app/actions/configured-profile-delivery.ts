@@ -7,6 +7,12 @@ import { createClient } from "@/lib/supabase/server";
 import { isVehicleReservationEnabled } from "@/lib/vehicle-reservation-settings/data";
 import { getVehicleCommerceAvailability } from "@/lib/vehicle-commerce-settings/data";
 import { getDiscordName, getRpName } from "@/lib/auth/user-profile";
+import {
+  canCitizenAccessVehicleTierV157,
+  getActiveVehicleSaleV157,
+  getCurrentCitizenVehicleTierV157,
+  getVehicleMerchandisingV157,
+} from "@/lib/v157/data";
 
 function text(value: FormDataEntryValue | null, max = 2000): string {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
@@ -53,6 +59,7 @@ function configuredCartErrorCode(
   if (value.includes("financing_minimum_price")) return "financing-minimum";
   if (value.includes("financing_already_exists")) return "financing-exists";
   if (value.includes("steam_identity_required")) return "financing-steam";
+  if (value.includes("loyalty_tier_required")) return "tier-required";
   if (value.includes("insufficient_stock")) return "stock";
   if (value.includes("vehicle_unavailable")) return "not-found";
   if (value.includes("invalid_purchase_mode")) return "purchase";
@@ -118,6 +125,15 @@ export async function addConfiguredVehicleWithProfileDelivery(
   }
 
   const isRentalCatalog = vehicle.catalog_type === "concession";
+
+  // V157 — accès Silver / Gold / Black Signature vérifié côté serveur.
+  const merchandising = await getVehicleMerchandisingV157(vehicleId);
+  if (!isRentalCatalog && merchandising.requiredTier !== "all") {
+    const citizenTier = await getCurrentCitizenVehicleTierV157(authData.user.id);
+    if (!canCitizenAccessVehicleTierV157(merchandising.requiredTier, citizenTier)) {
+      redirect(`/motors/catalogue/${vehicleId}/commande?error=tier-required`);
+    }
+  }
 
   // V155 — une vente privée active reste réellement réservée aux citoyens
   // qui possèdent le niveau de fidélité demandé, même en appel direct de l’action.
@@ -234,11 +250,19 @@ export async function addConfiguredVehicleWithProfileDelivery(
   });
 
   if (!error && purchaseMode === "order" && !isRentalCatalog) {
-    const { data: flashPrice } = await (supabase as any).rpc("nostra_active_flash_price_v156", { p_vehicle_id: vehicleId });
-    if (Number.isFinite(Number(flashPrice)) && Number(flashPrice) >= 0) {
+    const [{ data: flashPrice }] = await Promise.all([
+      (supabase as any).rpc("nostra_active_flash_price_v156", { p_vehicle_id: vehicleId }),
+    ]);
+    const regularPrice = Number(vehicle.price) || 0;
+    const regularSale = getActiveVehicleSaleV157(merchandising, regularPrice);
+    const candidates = [regularPrice];
+    if (regularSale) candidates.push(regularSale.salePrice);
+    if (Number.isFinite(Number(flashPrice)) && Number(flashPrice) >= 0) candidates.push(Number(flashPrice));
+    const effectivePrice = Math.min(...candidates);
+    if (effectivePrice < regularPrice) {
       await (supabase as any)
         .from("cart_items")
-        .update({ unit_price: Number(flashPrice), original_unit_price: Number(vehicle.price) || 0 })
+        .update({ unit_price: effectivePrice, original_unit_price: regularPrice })
         .eq("user_id", authData.user.id)
         .eq("vehicle_id", vehicleId)
         .eq("item_type", "vehicle");
