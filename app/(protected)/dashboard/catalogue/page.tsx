@@ -82,6 +82,7 @@ export default async function DashboardCataloguePage({
     showroom_error?: string;
     v157_saved?: string;
     v157_error?: string;
+    sort?: string;
   }>;
 }) {
   const params = await searchParams;
@@ -123,6 +124,22 @@ export default async function DashboardCataloguePage({
           params.type,
         );
 
+  type CatalogueSortMode =
+    | "brand_asc"
+    | "brand_desc"
+    | "price_asc"
+    | "price_desc";
+
+  const sortMode: CatalogueSortMode =
+    params.sort === "brand_desc" ||
+    params.sort === "price_asc" ||
+    params.sort === "price_desc"
+      ? params.sort
+      : "brand_asc";
+
+  const buildCatalogueHref = (nextType: CatalogType | "all", nextSort = sortMode) =>
+    `/dashboard/catalogue?type=${nextType}&sort=${nextSort}`;
+
   const visibleVehicles = (
     selectedType === "all"
       ? managedVehicles
@@ -132,25 +149,44 @@ export default async function DashboardCataloguePage({
             selectedType,
         )
   ).slice().sort((a, b) => {
-    // Dashboard : classement strict par prix croissant.
-    // Avec la grille CSS, le navigateur remplit les cartes de gauche à droite
-    // puis passe à la ligne suivante : le moins cher est donc en haut à gauche.
-    const priceDifference = a.price - b.price;
-    if (priceDifference !== 0) return priceDifference;
-
-    // En cas de prix identique, garder un ordre stable et prévisible.
-    const orderDifference = a.sort_order - b.sort_order;
-    if (orderDifference !== 0) return orderDifference;
-
     const brandDifference = a.brand.localeCompare(b.brand, "fr", {
       sensitivity: "base",
+      numeric: true,
     });
-    if (brandDifference !== 0) return brandDifference;
-
     const modelDifference = a.model.localeCompare(b.model, "fr", {
       sensitivity: "base",
+      numeric: true,
     });
-    if (modelDifference !== 0) return modelDifference;
+    const priceDifference = a.price - b.price;
+
+    if (sortMode === "brand_asc") {
+      // Toutes les marques restent regroupées. À l’intérieur d’une marque,
+      // les véhicules sont classés du moins cher au plus cher.
+      if (brandDifference !== 0) return brandDifference;
+      if (priceDifference !== 0) return priceDifference;
+      if (modelDifference !== 0) return modelDifference;
+    }
+
+    if (sortMode === "brand_desc") {
+      if (brandDifference !== 0) return -brandDifference;
+      if (priceDifference !== 0) return priceDifference;
+      if (modelDifference !== 0) return modelDifference;
+    }
+
+    if (sortMode === "price_asc") {
+      if (priceDifference !== 0) return priceDifference;
+      if (brandDifference !== 0) return brandDifference;
+      if (modelDifference !== 0) return modelDifference;
+    }
+
+    if (sortMode === "price_desc") {
+      if (priceDifference !== 0) return -priceDifference;
+      if (brandDifference !== 0) return brandDifference;
+      if (modelDifference !== 0) return modelDifference;
+    }
+
+    const orderDifference = a.sort_order - b.sort_order;
+    if (orderDifference !== 0) return orderDifference;
 
     return a.id - b.id;
   });
@@ -266,7 +302,7 @@ export default async function DashboardCataloguePage({
                   ? styles.activeAdminTab
                   : styles.adminTab
               }
-              href="/dashboard/catalogue?type=all"
+              href={buildCatalogueHref("all")}
             >
               Tous · {managedVehicles.length}
             </Link>
@@ -278,7 +314,7 @@ export default async function DashboardCataloguePage({
                     ? styles.activeAdminTab
                     : styles.adminTab
                 }
-                href={`/dashboard/catalogue?type=${type}`}
+                href={buildCatalogueHref(type)}
                 key={type}
               >
                 {CATALOG_LABELS[type]} ·{" "}
@@ -296,6 +332,43 @@ export default async function DashboardCataloguePage({
               Véhicules d’occasion →
             </Link>
           </nav>
+
+          <section className="backoffice-panel" style={{ marginTop: 14, marginBottom: 18 }}>
+            <div className="panel-heading" style={{ marginBottom: 12 }}>
+              <span className="panel-icon">↕</span>
+              <div>
+                <h2 style={{ marginBottom: 2 }}>Trier les véhicules</h2>
+                <p>Le tri s’applique immédiatement à la grille du Dashboard.</p>
+              </div>
+            </div>
+
+            <nav className={styles.adminTabs} aria-label="Tri des véhicules du catalogue">
+              <Link
+                className={sortMode === "brand_asc" ? styles.activeAdminTab : styles.adminTab}
+                href={buildCatalogueHref(selectedType, "brand_asc")}
+              >
+                Marque A → Z
+              </Link>
+              <Link
+                className={sortMode === "brand_desc" ? styles.activeAdminTab : styles.adminTab}
+                href={buildCatalogueHref(selectedType, "brand_desc")}
+              >
+                Marque Z → A
+              </Link>
+              <Link
+                className={sortMode === "price_asc" ? styles.activeAdminTab : styles.adminTab}
+                href={buildCatalogueHref(selectedType, "price_asc")}
+              >
+                Prix croissant
+              </Link>
+              <Link
+                className={sortMode === "price_desc" ? styles.activeAdminTab : styles.adminTab}
+                href={buildCatalogueHref(selectedType, "price_desc")}
+              >
+                Prix décroissant
+              </Link>
+            </nav>
+          </section>
 
           <article className="backoffice-panel catalog-admin-create">
             <div className="panel-heading">
