@@ -1412,28 +1412,44 @@ select:focus { outline: 2px solid rgba(212,175,55,.32); outline-offset: 1px; }
 .catalogue-brand-heading .eyebrow { margin-right: 2px; }
 .catalogue-brand-heading h2 { margin: 0; font-size: clamp(2rem,4vw,3.5rem); }
 .catalogue-brand-heading span { margin-left: auto; color: var(--muted); }
-.catalogue-vehicle-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 20px; }
+/* V155.5 — cartes catalogue compactes : 4 / 3 / 2 / 1 colonnes */
+.catalogue-vehicle-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
 .catalogue-vehicle-card {
+  min-width: 0;
   overflow: hidden;
   border: 1px solid rgba(212,175,55,.26);
-  border-radius: 24px;
+  border-radius: 17px;
   background: linear-gradient(145deg, rgba(212,175,55,.05), rgba(8,8,8,.94) 42%);
-  box-shadow: 0 22px 55px rgba(0,0,0,.22);
+  box-shadow: 0 14px 34px rgba(0,0,0,.2);
 }
-.catalogue-vehicle-media { aspect-ratio: 16/9; background: #050505; overflow: hidden; }
+.catalogue-vehicle-media { aspect-ratio: 16/10; background: #050505; overflow: hidden; }
 .catalogue-vehicle-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.catalogue-photo-placeholder { width: 100%; height: 100%; display: grid; place-items: center; color: #756625; letter-spacing: .16em; font-weight: 900; background: radial-gradient(circle at center, rgba(212,175,55,.08), transparent 65%); }
-.catalogue-photo-strip { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 5px; padding: 5px; background: #050505; }
-.catalogue-photo-strip img { width: 100%; aspect-ratio: 1.35; object-fit: cover; border-radius: 7px; }
-.catalogue-vehicle-copy { padding: 24px; }
-.catalogue-vehicle-copy h3 { margin: 7px 0 12px; font-size: clamp(1.6rem,3vw,2.35rem); }
-.catalogue-description { color: var(--muted); white-space: pre-wrap; line-height: 1.6; }
-.catalogue-spec-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; margin: 22px 0 0; }
-.catalogue-spec-grid div { padding: 13px 14px; border: 1px solid rgba(255,255,255,.08); border-radius: 13px; background: rgba(255,255,255,.025); }
-.catalogue-spec-grid dt { color: var(--muted); font-size: .74rem; text-transform: uppercase; letter-spacing: .08em; }
-.catalogue-spec-grid dd { margin: 7px 0 0; font-weight: 850; }
+.catalogue-photo-placeholder { width: 100%; height: 100%; display: grid; place-items: center; color: #756625; letter-spacing: .12em; font-size: .74rem; font-weight: 900; background: radial-gradient(circle at center, rgba(212,175,55,.08), transparent 65%); }
+.catalogue-photo-strip { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 3px; padding: 3px; background: #050505; }
+.catalogue-photo-strip img { width: 100%; aspect-ratio: 1.35; object-fit: cover; border-radius: 5px; }
+.catalogue-vehicle-copy { padding: 15px; }
+.catalogue-vehicle-copy .eyebrow { font-size: .66rem; }
+.catalogue-vehicle-copy h3 { margin: 5px 0 8px; font-size: clamp(1.12rem,1.5vw,1.45rem); line-height: 1.12; }
+.catalogue-description {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--muted);
+  white-space: normal;
+  line-height: 1.45;
+  font-size: .82rem;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+.catalogue-spec-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 7px; margin: 13px 0 0; }
+.catalogue-spec-grid div { min-width: 0; padding: 9px 10px; border: 1px solid rgba(255,255,255,.08); border-radius: 10px; background: rgba(255,255,255,.025); }
+.catalogue-spec-grid dt { color: var(--muted); font-size: .64rem; text-transform: uppercase; letter-spacing: .06em; }
+.catalogue-spec-grid dd { margin: 4px 0 0; overflow-wrap: anywhere; font-size: .84rem; font-weight: 850; }
 .catalogue-spec-grid .catalogue-price { border-color: rgba(212,175,55,.35); background: rgba(212,175,55,.06); }
-.catalogue-price dd { color: var(--gold-light); font-size: 1.15rem; }
+.catalogue-price dd { color: var(--gold-light); font-size: .98rem; }
 
 .catalog-admin-create { margin-top: 26px; }
 .catalog-admin-list { display: grid; gap: 20px; margin-top: 22px; }
@@ -1451,9 +1467,15 @@ select:focus { outline: 2px solid rgba(212,175,55,.32); outline-offset: 1px; }
 .backoffice-form input[type="file"] { padding: 10px; color: #cfcfcf; }
 .backoffice-form input[type="file"]::file-selector-button { margin-right: 12px; padding: 9px 12px; border: 1px solid rgba(212,175,55,.35); border-radius: 9px; color: var(--gold-light); background: #090909; cursor: pointer; }
 
-@media (max-width: 900px) {
-  .catalogue-vehicle-grid { grid-template-columns: 1fr; }
+@media (max-width: 1450px) {
+  .catalogue-vehicle-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 1050px) {
+  .catalogue-vehicle-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .catalog-admin-images { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+@media (max-width: 680px) {
+  .catalogue-vehicle-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 620px) {
   .catalogue-brand-nav { position: static; }
@@ -1573,8 +1595,8 @@ select:focus { outline: 2px solid rgba(212,175,55,.32); outline-offset: 1px; }
 .catalogue-feedback a { color: #e6bd61; font-weight: 800; text-decoration: underline; }
 .catalogue-feedback-success { border-color: rgba(92, 202, 126, .38); }
 .catalogue-feedback-error { border-color: rgba(225, 99, 99, .42); color: #ffc2c2; }
-.catalogue-cart-form { margin-top: 18px; }
-.catalogue-cart-button { width: 100%; justify-content: center; }
+.catalogue-cart-form { display: grid; gap: 9px; margin-top: 12px; }
+.catalogue-cart-button { width: 100%; min-height: 40px; justify-content: center; padding: 0 11px; font-size: .82rem; }
 .homologation-delete-form { margin-top: 18px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,.08); }
 .homologation-delete-form button { color: #ff9d9d; font-weight: 800; }
 
@@ -1614,15 +1636,15 @@ select:focus { outline: 2px solid rgba(212,175,55,.32); outline-offset: 1px; }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 14px;
-  margin-top: 18px;
-  padding: 12px 14px;
+  gap: 9px;
+  margin-top: 11px;
+  padding: 9px 10px;
   border: 1px solid rgba(84,196,124,.3);
-  border-radius: 13px;
+  border-radius: 10px;
   background: rgba(84,196,124,.06);
 }
-.catalogue-stock-status span { color: #a9edbf; font-size: .78rem; font-weight: 900; text-transform: uppercase; letter-spacing: .06em; }
-.catalogue-stock-status strong { color: #fff; }
+.catalogue-stock-status span { color: #a9edbf; font-size: .64rem; font-weight: 900; text-transform: uppercase; letter-spacing: .05em; }
+.catalogue-stock-status strong { color: #fff; font-size: .78rem; text-align: right; }
 .catalogue-stock-status-empty { border-color: rgba(226,93,93,.32); background: rgba(226,93,93,.06); }
 .catalogue-stock-status-empty span { color: #ffb3b3; }
 .catalog-admin-badges { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
@@ -3844,8 +3866,8 @@ select:focus { outline: 2px solid rgba(212,175,55,.32); outline-offset: 1px; }
 .catalogue-commerce-status-v99 {
   display: flex;
   flex-wrap: wrap;
-  gap: 7px;
-  margin: 12px 0 2px;
+  gap: 5px;
+  margin: 8px 0 0;
 }
 
 .catalogue-commerce-status-v99:empty {
@@ -3855,8 +3877,8 @@ select:focus { outline: 2px solid rgba(212,175,55,.32); outline-offset: 1px; }
 .catalogue-commerce-status-v99 span {
   display: inline-flex;
   align-items: center;
-  min-height: 28px;
-  padding: 5px 9px;
+  min-height: 24px;
+  padding: 4px 7px;
   border: 1px solid rgba(239, 92, 92, 0.34);
   border-radius: 999px;
   color: #ffaaaa;
@@ -5100,5 +5122,127 @@ select:focus { outline: 2px solid rgba(212,175,55,.32); outline-offset: 1px; }
   .catalog-admin-showroom-v152 form .btn,
   .catalog-admin-showroom-v152 form button {
     width: 100%;
+  }
+}
+
+/* ========================================================================== */
+/* V155.6 — grille catalogue réellement compacte                             */
+/* 4 colonnes desktop / 3 petit desktop / 2 tablette / 1 mobile             */
+/* ========================================================================== */
+
+.catalogue-vehicle-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 11px !important;
+}
+
+.catalogue-vehicle-card {
+  border-radius: 14px !important;
+  box-shadow: 0 10px 24px rgba(0,0,0,.18) !important;
+}
+
+.catalogue-vehicle-media {
+  aspect-ratio: 16 / 8.6 !important;
+}
+
+.catalogue-vehicle-copy {
+  padding: 11px !important;
+}
+
+.catalogue-vehicle-copy .eyebrow {
+  font-size: .6rem !important;
+}
+
+.catalogue-vehicle-copy h3 {
+  margin: 4px 0 6px !important;
+  font-size: clamp(.98rem, 1.12vw, 1.18rem) !important;
+  line-height: 1.08 !important;
+}
+
+.catalogue-description {
+  font-size: .74rem !important;
+  line-height: 1.32 !important;
+  -webkit-line-clamp: 2 !important;
+}
+
+.catalogue-spec-grid {
+  gap: 5px !important;
+  margin-top: 9px !important;
+}
+
+.catalogue-spec-grid div {
+  padding: 7px 8px !important;
+  border-radius: 8px !important;
+}
+
+.catalogue-spec-grid dt {
+  font-size: .56rem !important;
+}
+
+.catalogue-spec-grid dd {
+  margin-top: 3px !important;
+  font-size: .75rem !important;
+}
+
+.catalogue-price dd {
+  font-size: .86rem !important;
+}
+
+.catalogue-stock-status {
+  margin-top: 8px !important;
+  padding: 7px 8px !important;
+  border-radius: 8px !important;
+}
+
+.catalogue-stock-status span {
+  font-size: .56rem !important;
+}
+
+.catalogue-stock-status strong {
+  font-size: .69rem !important;
+}
+
+.catalogue-commerce-status-v99 {
+  gap: 4px !important;
+  margin-top: 6px !important;
+}
+
+.catalogue-commerce-status-v99 span {
+  min-height: 20px !important;
+  padding: 3px 6px !important;
+  font-size: .61rem !important;
+}
+
+.catalogue-cart-form {
+  gap: 6px !important;
+  margin-top: 8px !important;
+}
+
+.catalogue-cart-button {
+  min-height: 34px !important;
+  padding: 0 8px !important;
+  font-size: .72rem !important;
+}
+
+@media (min-width: 1101px) {
+  .catalogue-vehicle-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (min-width: 761px) and (max-width: 1100px) {
+  .catalogue-vehicle-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (min-width: 521px) and (max-width: 760px) {
+  .catalogue-vehicle-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .catalogue-vehicle-grid {
+    grid-template-columns: 1fr !important;
   }
 }
