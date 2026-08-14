@@ -132,6 +132,13 @@ export default async function DashboardCataloguePage({
             selectedType,
         )
   ).slice().sort((a, b) => {
+    // Dashboard : classement strict par prix croissant.
+    // Avec la grille CSS, le navigateur remplit les cartes de gauche à droite
+    // puis passe à la ligne suivante : le moins cher est donc en haut à gauche.
+    const priceDifference = a.price - b.price;
+    if (priceDifference !== 0) return priceDifference;
+
+    // En cas de prix identique, garder un ordre stable et prévisible.
     const orderDifference = a.sort_order - b.sort_order;
     if (orderDifference !== 0) return orderDifference;
 
@@ -477,9 +484,6 @@ export default async function DashboardCataloguePage({
                     </div>
 
                     <div className="catalog-admin-badges">
-                      <span className="catalog-order-pill-v1574">
-                        Ordre : {vehicle.sort_order}
-                      </span>
                       {isInShowroom && (
                         <span className="catalog-showroom-pill-v152">
                           Présent au showroom
