@@ -4,6 +4,7 @@ import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { getUserRoleKeys } from "@/lib/auth/access";
 import { getMotorDeliveries } from "@/lib/nostra-motors/v41-data";
 import { createClient } from "@/lib/supabase/server";
+import { calculateDeliveryTransportPlanV160, formatDeliveryTransportPlanV160 } from "@/lib/nostra-motors/delivery-v160";
 import styles from "@/components/motors/v41.module.css";
 
 type DashboardDeliveriesPageProps = {
@@ -14,6 +15,9 @@ type OrderItem = Record<string, unknown> & {
   item_type?: unknown;
   name?: unknown;
   quantity?: unknown;
+  unit_price?: unknown;
+  delivery_address?: unknown;
+  delivery_phone?: unknown;
 };
 
 function text(order: Record<string, unknown>, ...keys: string[]): string {
@@ -64,6 +68,44 @@ function deliveryVehicleLabel(order: Record<string, unknown>): string {
     .filter(Boolean);
 
   return labels.join(" · ") || "Livraison à domicile";
+}
+
+function deliveryVehicleCount(order: Record<string, unknown>): number {
+  return orderItems(order)
+    .filter((item) => item.item_type === "delivery")
+    .reduce((sum, item) => sum + Math.max(1, Number(item.quantity ?? 1) || 1), 0);
+}
+
+function deliveryFeeTotal(order: Record<string, unknown>): number {
+  return orderItems(order)
+    .filter((item) => item.item_type === "delivery")
+    .reduce(
+      (sum, item) =>
+        sum +
+        Math.max(1, Number(item.quantity ?? 1) || 1) *
+          Math.max(0, Number(item.unit_price ?? 0) || 0),
+      0,
+    );
+}
+
+function deliveryItemText(
+  order: Record<string, unknown>,
+  key: "delivery_address" | "delivery_phone",
+): string {
+  for (const item of orderItems(order)) {
+    if (item.item_type !== "delivery") continue;
+    const value = item[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return "";
+}
+
+function money(value: number): string {
+  return Number(value).toLocaleString("fr-FR", {
+    style: "currency",
+    currency: "EUR",
+    maximumFractionDigits: 0,
+  });
 }
 
 function statusLabel(value: unknown): string {
@@ -144,9 +186,19 @@ export default async function DashboardDeliveriesPage({
           )}
 
           {deliveries.map((order) => {
-            const address = text(order, "delivery_address", "address");
-            const phone = text(order, "delivery_phone", "customer_phone", "phone");
+            const address =
+              deliveryItemText(order, "delivery_address") ||
+              text(order, "delivery_address", "address");
+            const phone =
+              deliveryItemText(order, "delivery_phone") ||
+              text(order, "delivery_phone", "customer_phone", "phone");
             const customerNote = text(order, "customer_note");
+            const deliveredVehicleCount = deliveryVehicleCount(order);
+            const transportPlan = calculateDeliveryTransportPlanV160(
+              deliveredVehicleCount,
+            );
+            const transportLabel = formatDeliveryTransportPlanV160(transportPlan);
+            const deliveryTotal = deliveryFeeTotal(order);
 
             return (
               <article className={styles.card} key={String(order.id)}>
@@ -170,6 +222,8 @@ export default async function DashboardDeliveriesPage({
                     📍 {address === "—" ? "Adresse non renseignée" : address}
                   </span>
                   <span>☎ {phone === "—" ? "Téléphone non renseigné" : phone}</span>
+                  <span>🚛 Transport conseillé : {transportLabel}</span>
+                  <span>💶 Frais de livraison : {money(deliveryTotal)}</span>
                   {customerNote !== "—" && <span>📝 {customerNote}</span>}
                 </div>
 

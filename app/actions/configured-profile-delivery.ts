@@ -41,6 +41,7 @@ function configuredCartErrorCode(
     value.includes("pgrst202") ||
     value.includes("add_vehicle_purchase_to_cart_v93") ||
     value.includes("submit_vehicle_financing_v125") ||
+    value.includes("submit_vehicle_financing_v160") ||
     value.includes("reservation_id") ||
     value.includes("original_unit_price") ||
     value.includes("delivery_phone")
@@ -206,7 +207,7 @@ export async function addConfiguredVehicleWithProfileDelivery(
       getDiscordName(authData.user) ||
       "Client Nostra Motors";
     const { data: result, error } = await (supabase as any).rpc(
-      "submit_vehicle_financing_v125",
+      "submit_vehicle_financing_v160",
       {
         p_vehicle_id: vehicleId,
         p_term_count: financingTerm,
@@ -259,13 +260,22 @@ export async function addConfiguredVehicleWithProfileDelivery(
     if (regularSale) candidates.push(regularSale.salePrice);
     if (Number.isFinite(Number(flashPrice)) && Number(flashPrice) >= 0) candidates.push(Number(flashPrice));
     const effectivePrice = Math.min(...candidates);
-    if (effectivePrice < regularPrice) {
+    const deliveryFee = Math.round(effectivePrice * 0.05 * 100) / 100;
+
+    await (supabase as any)
+      .from("cart_items")
+      .update({ unit_price: effectivePrice, original_unit_price: regularPrice })
+      .eq("user_id", authData.user.id)
+      .eq("vehicle_id", vehicleId)
+      .eq("item_type", "vehicle");
+
+    if (deliveryMode === "home") {
       await (supabase as any)
         .from("cart_items")
-        .update({ unit_price: effectivePrice, original_unit_price: regularPrice })
+        .update({ unit_price: deliveryFee, original_unit_price: deliveryFee })
         .eq("user_id", authData.user.id)
-        .eq("vehicle_id", vehicleId)
-        .eq("item_type", "vehicle");
+        .eq("related_vehicle_id", vehicleId)
+        .eq("item_type", "delivery");
     }
   }
 

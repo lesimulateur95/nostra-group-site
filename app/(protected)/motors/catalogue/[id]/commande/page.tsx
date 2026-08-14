@@ -10,6 +10,7 @@ import { isVehicleReservationEnabled } from "@/lib/vehicle-reservation-settings/
 import { getVehicleCommerceAvailability } from "@/lib/vehicle-commerce-settings/data";
 import { getVehicleFinancingSettings } from "@/lib/vehicle-financing/data";
 import { createClient } from "@/lib/supabase/server";
+import { calculateHomeDeliveryFeeV160 } from "@/lib/nostra-motors/delivery-v160";
 import { getActiveFlashSaleForVehicleV156 } from "@/lib/v156/data";
 import {
   canCitizenAccessVehicleTierV157,
@@ -22,7 +23,6 @@ import {
 
 import styles from "./page.module.css";
 
-const HOME_DELIVERY_PRICE = 75_000;
 
 function formatPrice(value: number): string {
   return Number(value).toLocaleString("fr-FR", {
@@ -117,6 +117,7 @@ export default async function VehicleConfigurationPage({
     flashSale?.flashPrice ?? regularVehiclePrice,
     regularSale?.salePrice ?? regularVehiclePrice,
   );
+  const homeDeliveryPrice = calculateHomeDeliveryFeeV160(vehiclePrice);
   const requiredTier = vehicle.catalog_type === "concession" ? "all" : merchandising.requiredTier;
   const tierAllowed = canCitizenAccessVehicleTierV157(requiredTier, citizenTier);
   const requiredTierLabel = vehicleAccessTierLabelV157(requiredTier);
@@ -608,11 +609,12 @@ export default async function VehicleConfigurationPage({
                 <span className={styles.optionText}>
                   <strong>Livraison à domicile</strong>
                   <small>
-                    Un camion transporte le véhicule jusqu’à l’adresse indiquée.
+                    Frais calculés automatiquement à 5 % du prix du véhicule.
+                    Pour un seul véhicule, le transport prévu est le plateau 1 place.
                   </small>
                 </span>
                 <span className={styles.optionPrice}>
-                  {formatPrice(HOME_DELIVERY_PRICE)}
+                  {formatPrice(homeDeliveryPrice)}
                 </span>
               </label>
 
@@ -687,9 +689,9 @@ export default async function VehicleConfigurationPage({
             </div>
             {!isRentalCatalog && !isHeavyVehicle && (
               <div>
-                <span>Option domicile</span>
+                <span>Option domicile · 5 % du prix</span>
                 <strong>
-                  + {formatPrice(HOME_DELIVERY_PRICE)} par camion
+                  + {formatPrice(homeDeliveryPrice)}
                 </strong>
               </div>
             )}
@@ -713,7 +715,7 @@ export default async function VehicleConfigurationPage({
               (isHeavyVehicle
                 ? " La livraison à domicile reste désactivée pour l’intégralité du catalogue poids lourd."
                 : canPurchase
-                  ? " Une éventuelle livraison à domicile sera ajoutée au paiement concerné."
+                  ? " La livraison à domicile représente 5 % de la valeur des véhicules livrés. Pour plusieurs véhicules commandés ensemble, le site regroupe automatiquement le transport avec les capacités 1, 2 et 5 places."
                   : "")}
           </p>
 

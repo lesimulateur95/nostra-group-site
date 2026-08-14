@@ -28,6 +28,8 @@ function isMissingStockOrderSetup(
   return (
     value.includes("pgrst202") ||
     value.includes("place_nostra_order_v157") ||
+    value.includes("nostra_prepare_cart_delivery_v160") ||
+    value.includes("checkout_vehicle_reservation_deposits_v160") ||
     value.includes("place_nostra_order_v93") ||
     value.includes("checkout_vehicle_reservation") ||
     value.includes("review_vehicle_reservation_v93") ||
@@ -58,6 +60,9 @@ function orderErrorCode(
   if (value.includes("promo_minimum")) return "promo-minimum";
   if (value.includes("promo_limit") || value.includes("promo_user_limit")) return "promo-limit";
   if (value.includes("loyalty_tier_required")) return "tier-required";
+  if (value.includes("invalid_delivery_mode")) return "delivery";
+  if (value.includes("invalid_delivery_address")) return "address";
+  if (value.includes("invalid_delivery_phone")) return "phone";
   if (
     value.includes("cart_needs_refresh") ||
     value.includes("invalid_delivery_cart")
@@ -149,9 +154,35 @@ export async function placeCartOrder(formData: FormData) {
   const customerNote = text(formData.get("customer_note"), 1500) || null;
   const rawPromoCode = text(formData.get("promo_code"), 80);
   const promoCode = rawPromoCode ? rawPromoCode.toUpperCase().replace(/[^A-Z0-9_-]/g, "").slice(0, 32) || null : null;
+  const deliveryMode = text(formData.get("delivery_mode"), 30) || "showroom";
+  const deliveryAddress = text(formData.get("delivery_address"), 500);
+  const deliveryPhone = text(formData.get("delivery_phone"), 40);
+
+  if (!["showroom", "home"].includes(deliveryMode)) {
+    redirect("/profil?order_error=delivery");
+  }
+  if (deliveryMode === "home" && deliveryAddress.length < 5) {
+    redirect("/profil?order_error=address");
+  }
+  if (deliveryMode === "home" && deliveryPhone.length < 3) {
+    redirect("/profil?order_error=phone");
+  }
+
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
   if (!data.user) redirect("/");
+
+  const { error: deliveryError } = await (supabase as any).rpc(
+    "nostra_prepare_cart_delivery_v160",
+    {
+      p_delivery_mode: deliveryMode,
+      p_delivery_address: deliveryMode === "home" ? deliveryAddress : null,
+      p_delivery_phone: deliveryMode === "home" ? deliveryPhone : null,
+    },
+  );
+  if (deliveryError) {
+    redirect(`/profil?order_error=${orderErrorCode(deliveryError)}`);
+  }
 
   const orderNumber = createOrderNumber();
   const customerName =
@@ -187,7 +218,7 @@ export async function checkoutVehicleReservationDeposits() {
   const customerName =
     getRpName(data.user) || getDiscordName(data.user) || "Client Nostra Motors";
   const { data: result, error } = await supabase.rpc(
-    "checkout_vehicle_reservation_deposits_v93",
+    "checkout_vehicle_reservation_deposits_v160",
     { p_customer_name: customerName },
   );
 

@@ -5761,3 +5761,125 @@ select:focus { outline: 2px solid rgba(212,175,55,.32); outline-offset: 1px; }
   .catalogue-badge-icon-v158 { width:21px;height:21px;flex-basis:21px; }
   .catalogue-tier-badge-v157.is-black { min-width: 150px; }
 }
+
+/* V160 — livraison Nostra Motors calculée à 5 % + plan de transport */
+.profile-order-form-v160 input[type="text"],
+.profile-order-form-v160 input[type="tel"] {
+  width: 100%;
+  padding: 12px 13px;
+  border: 1px solid rgba(212,175,55,.28);
+  border-radius: 12px;
+  background: #080808;
+  color: #fff;
+  font: inherit;
+}
+.profile-order-form-v160 input[type="text"]:focus,
+.profile-order-form-v160 input[type="tel"]:focus {
+  outline: none;
+  border-color: rgba(212,175,55,.75);
+  box-shadow: 0 0 0 3px rgba(212,175,55,.09);
+}
+.profile-delivery-v160 {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 16px;
+  border: 1px solid rgba(212,175,55,.22);
+  border-radius: 16px;
+  background: rgba(255,255,255,.018);
+}
+.profile-delivery-v160 legend {
+  padding: 0 8px;
+  color: var(--gold-light);
+  font-size: .82rem;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.profile-delivery-options-v160 {
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 10px;
+}
+.profile-order-form .profile-delivery-option-v160 {
+  display: grid;
+  grid-template-columns: auto minmax(0,1fr) auto;
+  align-items: center;
+  gap: 11px;
+  padding: 13px;
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 13px;
+  background: rgba(255,255,255,.025);
+  cursor: pointer;
+}
+.profile-delivery-option-v160:has(input:checked) {
+  border-color: rgba(212,175,55,.62);
+  background: rgba(212,175,55,.08);
+}
+.profile-delivery-option-v160 input {
+  width: 17px;
+  height: 17px;
+  accent-color: #d4af37;
+}
+.profile-delivery-option-v160 span {
+  display: grid;
+  gap: 3px;
+}
+.profile-delivery-option-v160 span strong {
+  color: #fff;
+}
+.profile-delivery-option-v160 b {
+  color: var(--gold-light);
+  white-space: nowrap;
+}
+.profile-delivery-home-v160 {
+  display: none;
+  gap: 12px;
+  padding-top: 4px;
+}
+.profile-delivery-v160:has(input[name="delivery_mode"][value="home"]:checked) .profile-delivery-home-v160 {
+  display: grid;
+}
+.profile-delivery-summary-v160 {
+  display: grid;
+  grid-template-columns: repeat(3,minmax(0,1fr));
+  gap: 8px;
+}
+.profile-delivery-summary-v160 > span {
+  display: grid;
+  gap: 4px;
+  padding: 11px 12px;
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 11px;
+  background: rgba(0,0,0,.22);
+}
+.profile-delivery-summary-v160 small {
+  color: var(--muted);
+  font-size: .72rem;
+  font-weight: 700;
+}
+.profile-delivery-summary-v160 strong {
+  color: #fff;
+  font-size: .95rem;
+}
+.profile-delivery-home-v160 > p {
+  margin: 0;
+  color: #d8d8d8;
+  font-size: .82rem;
+  line-height: 1.5;
+}
+.profile-delivery-home-v160 .profile-delivery-warning-v160 {
+  color: #ffce8f;
+}
+@media (max-width: 760px) {
+  .profile-delivery-options-v160,
+  .profile-delivery-summary-v160 {
+    grid-template-columns: 1fr;
+  }
+  .profile-order-form .profile-delivery-option-v160 {
+    grid-template-columns: auto minmax(0,1fr);
+  }
+  .profile-delivery-option-v160 b {
+    grid-column: 2;
+  }
+}

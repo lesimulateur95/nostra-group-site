@@ -47,6 +47,7 @@ import { getMyMailboxOverview } from "@/lib/mail/data";
 import { getUserRoleLabel } from "@/lib/auth/access";
 
 import { createClient } from "@/lib/supabase/server";
+import { calculateDeliveryTransportPlanV160, calculateHomeDeliveryFeeV160, formatDeliveryTransportPlanV160 } from "@/lib/nostra-motors/delivery-v160";
 import { getOwnVehicleReservations } from "@/lib/vehicle-reservations/data";
 import { getOwnVehicleTradeInRequests } from "@/lib/vehicle-trade-ins/data";
 import { getOwnSearchMandatesV134 } from "@/lib/vehicle-search-mandates/data";
@@ -143,6 +144,33 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
  ]);
 
  const normalVehicleCart = commerce.cart.filter((item) => ["vehicle", "delivery"].includes(String(item.item_type)));
+ const vehicleCartLines = commerce.cart.filter((item) => item.item_type === "vehicle" && Number(item.vehicle_id) > 0);
+ const cartVehicleIds = [...new Set(vehicleCartLines.map((item) => Number(item.vehicle_id)).filter((id) => Number.isFinite(id) && id > 0))];
+ const { data: cartVehicleCatalogRows } = cartVehicleIds.length > 0
+  ? await supabase.from("catalog_vehicles").select("id,catalog_type").in("id", cartVehicleIds)
+  : { data: [] as Array<{ id: number; catalog_type: string | null }> };
+ const cartCatalogTypeByVehicleId = new Map<number, string>(
+  ((cartVehicleCatalogRows ?? []) as Array<{ id: number; catalog_type: string | null }>).map((row) => [
+   Number(row.id),
+   String(row.catalog_type ?? "standard"),
+  ]),
+ );
+ const eligibleDeliveryVehicleLines = vehicleCartLines.filter((item) => {
+  const catalogType = cartCatalogTypeByVehicleId.get(Number(item.vehicle_id)) ?? "standard";
+  return !["concession", "heavy"].includes(catalogType);
+ });
+ const eligibleDeliveryVehicleCount = eligibleDeliveryVehicleLines.reduce((sum, item) => sum + Math.max(1, Number(item.quantity) || 1), 0);
+ const eligibleDeliveryVehicleValue = eligibleDeliveryVehicleLines.reduce((sum, item) => sum + Math.max(0, Number(item.unit_price) || 0) * Math.max(1, Number(item.quantity) || 1), 0);
+ const estimatedHomeDeliveryFee = calculateHomeDeliveryFeeV160(eligibleDeliveryVehicleValue);
+ const deliveryTransportPlan = calculateDeliveryTransportPlanV160(eligibleDeliveryVehicleCount);
+ const deliveryTransportLabel = formatDeliveryTransportPlanV160(deliveryTransportPlan);
+ const hasHomeDeliveryInCart = commerce.cart.some((item) => item.item_type === "delivery");
+ const excludedDeliveryVehicleCount = vehicleCartLines.reduce((sum, item) => {
+  const catalogType = cartCatalogTypeByVehicleId.get(Number(item.vehicle_id)) ?? "standard";
+  return ["concession", "heavy"].includes(catalogType) ? sum + Math.max(1, Number(item.quantity) || 1) : sum;
+ }, 0);
+ const profileDeliveryPhone = typeof metadata.phone === "string" ? metadata.phone : "";
+ const profileDeliveryAddress = typeof metadata.address === "string" ? metadata.address : "";
  const reservationDepositCart = commerce.cart.filter((item) => item.item_type === "reservation_deposit");
  const reservationBalanceCart = commerce.cart.filter((item) => item.item_type === "reservation_balance");
  const financingPaymentCart = commerce.cart.filter((item) => ["financing_deposit", "financing_installment"].includes(String(item.item_type)));
@@ -184,6 +212,9 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
  : params.order_error === "promo-scope" ? "Ce code promotionnel ne s’applique pas aux commandes Nostra Motors."
  : params.order_error === "promo-minimum" ? "Le montant minimum demandé par ce code promotionnel n’est pas atteint."
  : params.order_error === "promo-limit" ? "La limite d’utilisation de ce code promotionnel est atteinte."
+ : params.order_error === "delivery" ? "Choisis un mode de récupération valide pour la commande."
+ : params.order_error === "address" ? "Renseigne une adresse complète pour la livraison à domicile."
+ : params.order_error === "phone" ? "Renseigne un numéro de téléphone pour la livraison."
  : params.order_error ? "La commande n’a pas pu être envoyée. Réessaie dans un instant." : null;
 
  const errorMessage =
@@ -408,7 +439,35 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
 
  {normalVehicleCart.length > 0 && (
 
- <form action={placeCartOrder} className="profile-order-form">
+ <form action={placeCartOrder} className="profile-order-form profile-order-form-v160">
+ {eligibleDeliveryVehicleCount > 0 ? (
+ <fieldset className="profile-delivery-v160">
+ <legend>Récupération de la commande</legend>
+ <div className="profile-delivery-options-v160">
+ <label className="profile-delivery-option-v160">
+ <input type="radio" name="delivery_mode" value="showroom" defaultChecked={!hasHomeDeliveryInCart} />
+ <span><strong>Retrait au showroom</strong><small>Gratuit · tous les véhicules sont récupérés chez Nostra Motors.</small></span>
+ <b>0 €</b>
+ </label>
+ <label className="profile-delivery-option-v160">
+ <input type="radio" name="delivery_mode" value="home" defaultChecked={hasHomeDeliveryInCart} />
+ <span><strong>Livraison à domicile</strong><small>5 % de la valeur globale des véhicules livrés, calculés automatiquement.</small></span>
+ <b>+ {money(estimatedHomeDeliveryFee)}</b>
+ </label>
+ </div>
+ <div className="profile-delivery-home-v160">
+ <div className="profile-delivery-summary-v160">
+ <span><small>Véhicules livrés</small><strong>{eligibleDeliveryVehicleCount}</strong></span>
+ <span><small>Valeur livrée</small><strong>{money(eligibleDeliveryVehicleValue)}</strong></span>
+ <span><small>Frais à 5 %</small><strong>{money(estimatedHomeDeliveryFee)}</strong></span>
+ </div>
+ <p><strong>Transport prévu :</strong> {deliveryTransportLabel} · capacité totale {deliveryTransportPlan.totalCapacity} véhicule{deliveryTransportPlan.totalCapacity > 1 ? "s" : ""}.</p>
+ {excludedDeliveryVehicleCount > 0 && <p className="profile-delivery-warning-v160">{excludedDeliveryVehicleCount} véhicule{excludedDeliveryVehicleCount > 1 ? "s" : ""} du catalogue Location/Poids lourd reste{excludedDeliveryVehicleCount > 1 ? "nt" : ""} en retrait showroom.</p>}
+ <label><span>Téléphone de livraison</span><input name="delivery_phone" type="tel" maxLength={40} defaultValue={profileDeliveryPhone} placeholder="06 12 34 56 78" /></label>
+ <label><span>Adresse complète de livraison</span><textarea name="delivery_address" rows={3} maxLength={500} defaultValue={profileDeliveryAddress} placeholder="Adresse, résidence, bâtiment…" /></label>
+ </div>
+ </fieldset>
+ ) : <input type="hidden" name="delivery_mode" value="showroom" />}
  <label><span>Code promotionnel <small>(facultatif)</small></span><input name="promo_code" maxLength={40} placeholder="Exemple : NOSTRA10" /></label>
  <label><span>Message pour Nostra Motors <small>(facultatif)</small></span><textarea name="customer_note" rows={3} maxLength={1500} placeholder="Exemple : couleur souhaitée, disponibilité pour le retrait…" /></label>
 
