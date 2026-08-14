@@ -110,7 +110,7 @@ export async function getMyWarrantiesV163(userId: string, customerVehicleId?: nu
 export async function getCrmAfterSalesOverviewV163(userId: string) {
   const supabase = await createClient();
   const [warranties, workshop] = await Promise.all([
-    (supabase as any).from("motors_warranty_contracts_v163").select("id,status,amount,ends_at,customer_vehicle_id,plan_name").eq("user_id", userId),
+    (supabase as any).from("motors_warranty_contracts_v163").select("id,status,amount,ends_at,paid_at,customer_vehicle_id,plan_name").eq("user_id", userId),
     (supabase as any).from("motors_workshop_cases_v162").select("id,status,quote_total,created_at").eq("user_id", userId).limit(250),
   ]);
   const warrantyRows: any[] = Array.isArray(warranties.data) ? warranties.data : [];
@@ -118,8 +118,49 @@ export async function getCrmAfterSalesOverviewV163(userId: string) {
   return {
     configured: !warranties.error,
     activeWarranties: warrantyRows.filter((x: any) => x.status === "active" && new Date(String(x.ends_at)).getTime() > Date.now()).length,
-    warrantySpent: warrantyRows.reduce((sum: number, x: any) => sum + n(x.amount), 0),
+    warrantySpent: warrantyRows.filter((x: any) => Boolean(x.paid_at) || ["active","expired"].includes(String(x.status))).reduce((sum: number, x: any) => sum + n(x.amount), 0),
     workshopCases: workshopRows.length,
     workshopOpen: workshopRows.filter((x: any) => !["returned", "closed", "cancelled"].includes(String(x.status))).length,
+  };
+}
+
+export async function getMyWarrantyCartV1631(userId: string) {
+  const supabase = await createClient();
+  const [contracts, vehicles] = await Promise.all([
+    (supabase as any)
+      .from("motors_warranty_contracts_v163")
+      .select("id,contract_number,user_id,customer_vehicle_id,plan_name,duration_days,rate_percent,reference_vehicle_price,amount,deductible,status,created_at")
+      .eq("user_id", userId)
+      .eq("status", "pending_payment")
+      .order("created_at", { ascending: true }),
+    (supabase as any)
+      .from("customer_vehicles")
+      .select("id,vehicle_name,brand,model,purchase_price")
+      .eq("user_id", userId)
+      .limit(3000),
+  ]);
+
+  const vehicleRows: any[] = Array.isArray(vehicles.data) ? vehicles.data : [];
+  const vehicleMap = new Map<number, any>(
+    vehicleRows.map((row: any) => [Number(row.id), row]),
+  );
+  const rows: any[] = Array.isArray(contracts.data) ? contracts.data : [];
+
+  return {
+    configured: !contracts.error,
+    items: rows.map((row: any) => {
+      const vehicle = vehicleMap.get(Number(row.customer_vehicle_id));
+      const vehicleLabel = vehicle
+        ? `${s(vehicle.brand)} ${s(vehicle.model)}`.trim() || s(vehicle.vehicle_name) || `VL #${row.customer_vehicle_id}`
+        : `VL #${row.customer_vehicle_id}`;
+      return {
+        ...row,
+        vehicle_label: vehicleLabel,
+        item_name: `${s(row.plan_name)} — ${vehicleLabel}`,
+        amount: n(row.amount),
+        rate_percent: n(row.rate_percent),
+        reference_vehicle_price: n(row.reference_vehicle_price),
+      };
+    }),
   };
 }

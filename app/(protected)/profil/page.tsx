@@ -13,6 +13,7 @@ import { checkoutTombolaCart, removeTombolaCart } from "@/app/actions/tombola";
 import { checkoutBingoCart, removeBingoCart } from "@/app/actions/bingo";
 import { checkoutPilotLicenseCart, removePilotLicenseCart } from "@/app/actions/licenses";
 import { checkoutContractRenewals } from "@/app/actions/contracts";
+import { checkoutWarrantyCartV1631, removeWarrantyFromCartV1631 } from "@/app/actions/v163";
 
 import { ProfileNavigation } from "@/components/profile/profile-navigation";
 import { LoyaltyCard } from "@/components/loyalty/loyalty-card";
@@ -60,11 +61,12 @@ import { getActiveLoyaltyCard, getLoyaltyDiscountPercent } from "@/lib/loyalty-c
 import { getOwnMemberRoles, MEMBER_ROLE_LABELS, type MemberRoleKey } from "@/lib/member-roles/data";
 import { getOwnContractCart } from "@/lib/contracts/data";
 import { getOwnVehicleFinancingApplications } from "@/lib/vehicle-financing/data";
+import { getMyWarrantyCartV1631 } from "@/lib/v163/data";
 import styles from "./profile-top-layout.module.css";
 
 type ProfilePageProps = {
 
- searchParams: Promise<{ setup?: string; error?: string; profile_saved?: string; vehicle_added?: string; selection_added?: string; reservation_added?: string; reservation_paid?: string; reservation_error?: string; balance_paid?: string; balance_error?: string; order_sent?: string; order_error?: string; cart_removed?: string; cart_error?: string; tombola_added?: string; tombola_removed?: string; tombola_cart_error?: string; tombola_order_error?: string; bingo_added?: string; bingo_removed?: string; bingo_cart_error?: string; bingo_order_error?: string; license_added?: string; license_removed?: string; license_paid?: string; license_order_error?: string; contract_paid?: string; contract_error?: string }>;
+ searchParams: Promise<{ setup?: string; error?: string; profile_saved?: string; vehicle_added?: string; selection_added?: string; reservation_added?: string; reservation_paid?: string; reservation_error?: string; balance_paid?: string; balance_error?: string; order_sent?: string; order_error?: string; cart_removed?: string; cart_error?: string; tombola_added?: string; tombola_removed?: string; tombola_cart_error?: string; tombola_order_error?: string; bingo_added?: string; bingo_removed?: string; bingo_cart_error?: string; bingo_order_error?: string; license_added?: string; license_removed?: string; license_paid?: string; license_order_error?: string; contract_paid?: string; contract_error?: string; warranty_added?: string; warranty_removed?: string; warranty_paid?: string; warranty_error?: string }>;
 
 };
 
@@ -105,7 +107,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
  const rpName = getRpName(data.user);
 
  const complete = hasRpProfile(data.user);
- const [role, commerce, homologations, teamRegistrations, wheelSpins, tombolaCart, tombolaTickets, bingoCart, bingoCards, licenseCart, unreadNotifications, mailboxOverview, vehicleReservations, vehicleTradeIns, activeLoyaltyCard, memberRoles, contractCart, vehicleFinancing, searchMandates, vehicleConsignments] = await Promise.all([
+ const [role, commerce, homologations, teamRegistrations, wheelSpins, tombolaCart, tombolaTickets, bingoCart, bingoCards, licenseCart, unreadNotifications, mailboxOverview, vehicleReservations, vehicleTradeIns, activeLoyaltyCard, memberRoles, contractCart, vehicleFinancing, searchMandates, vehicleConsignments, warrantyCart] = await Promise.all([
 
  getUserRoleLabel(data.user),
 
@@ -146,6 +148,8 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
  getOwnSearchMandatesV134(data.user.id),
 
  getOwnVehicleConsignmentsV134(data.user.id),
+
+ getMyWarrantyCartV1631(data.user.id),
 
  ]);
 
@@ -206,6 +210,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
  );
 
  const contractCartTotal = contractCart.items.reduce((sum, item) => sum + Number(item.amount), 0);
+ const warrantyCartTotal = warrantyCart.items.reduce((sum: number, item: any) => sum + Number(item.amount || 0), 0);
 
  const orderErrorMessage =
  params.order_error === "empty" ? "Ton panier est vide."
@@ -362,6 +367,10 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
  {params.license_order_error && <div className="dashboard-feedback dashboard-feedback-error">{params.license_order_error === "academy" ? "Paiement bloqué : une qualification Nostra Racing Academy valide est obligatoire." : params.license_order_error === "academy-specific" ? "Paiement bloqué : tu dois réussir la formation Academy prévue pour cette licence." : params.license_order_error === "academy-expired" ? "Paiement bloqué : ta qualification Academy nécessaire a expiré." : params.license_order_error === "prerequisite" ? "Paiement bloqué : la licence de niveau inférieur exigée est absente, expirée ou suspendue." : params.license_order_error === "license-suspended" ? "Paiement bloqué : cette licence est actuellement suspendue." : params.license_order_error === "license-revoked" ? "Paiement bloqué : cette licence a été retirée par la Direction." : params.license_order_error === "closed" ? "Paiement bloqué : l’achat de cette licence est actuellement clôturé par la Direction." : params.license_order_error === "setup" ? "Paiement bloqué : le contrôle Academy V140 doit être activé par la Direction." : "La demande de licence n’a pas pu être payée. Vérifie que le dossier est toujours présent dans ton panier."}</div>}
 
  {params.contract_paid && <div className="dashboard-feedback dashboard-feedback-success">Paiement enregistré pour {params.contract_paid} reconduction(s) de contrat.</div>}
+ {params.warranty_added && <div className="dashboard-feedback dashboard-feedback-success">Garantie <strong>{params.warranty_added}</strong> ajoutée au panier.</div>}
+ {params.warranty_removed && <div className="dashboard-feedback dashboard-feedback-success">La garantie a été retirée du panier.</div>}
+ {params.warranty_paid && <div className="dashboard-feedback dashboard-feedback-success">Paiement enregistré : {params.warranty_paid} garantie(s) Nostra Care activée(s).</div>}
+ {params.warranty_error && <div className="dashboard-feedback dashboard-feedback-error">La garantie n’a pas pu être traitée : {decodeURIComponent(params.warranty_error)}.</div>}
  {params.contract_error && <div className="dashboard-feedback dashboard-feedback-error">{params.contract_error === "empty" ? "Aucune reconduction de contrat n’est actuellement à payer." : params.contract_error === "setup" ? "Le module Contrats doit être activé avec le SQL V114." : "Le paiement du contrat n’a pas pu être enregistré."}</div>}
 
  {orderErrorMessage && <div className="dashboard-feedback dashboard-feedback-error">{orderErrorMessage}</div>}
@@ -374,10 +383,10 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
 
  <article className="profile-commerce-card">
 
- <div className="profile-commerce-head"><span></span><div><p>MON PANIER</p><h2>{commerce.cart.length + (tombolaCart ? 1 : 0) + (bingoCart ? 1 : 0) + (licenseCart ? 1 : 0) + contractCart.items.length} article(s)</h2></div></div>
+ <div className="profile-commerce-head"><span></span><div><p>MON PANIER</p><h2>{commerce.cart.length + (tombolaCart ? 1 : 0) + (bingoCart ? 1 : 0) + (licenseCart ? 1 : 0) + contractCart.items.length + warrantyCart.items.length} article(s)</h2></div></div>
 
  <div className="profile-mini-list">
- {commerce.cart.length === 0 && !tombolaCart && !bingoCart && !licenseCart && contractCart.items.length === 0 && <p className="empty-state">Ton panier est vide.</p>}
+ {commerce.cart.length === 0 && !tombolaCart && !bingoCart && !licenseCart && contractCart.items.length === 0 && warrantyCart.items.length === 0 && <p className="empty-state">Ton panier est vide.</p>}
 
  {commerce.cart.map((item) => {
  const isDeposit = item.item_type === "reservation_deposit";
@@ -450,10 +459,28 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
  </div>
  ))}
 
+ {warrantyCart.items.map((item: any) => (
+ <div className="profile-cart-row profile-cart-row-contract-v114" key={`warranty-${item.id}`}>
+ <span>
+ 1 × {item.item_name}
+ <small className="order-client-note">Nostra Care · {Number(item.rate_percent)} % du prix payé · {item.duration_days} jours</small>
+ </span>
+ <strong>{money(item.amount)}</strong>
+ <form action={removeWarrantyFromCartV1631}><input type="hidden" name="id" value={item.id} /><button type="submit">Supprimer</button></form>
+ </div>
+ ))}
+
 
  </div>
 
- <footer><span>Total du panier</span><strong>{money(cartTotal + tombolaCartTotal + bingoCartTotal + licenseCartTotal + contractCartTotal)}</strong></footer>
+ <footer><span>Total du panier</span><strong>{money(cartTotal + tombolaCartTotal + bingoCartTotal + licenseCartTotal + contractCartTotal + warrantyCartTotal)}</strong></footer>
+
+ {warrantyCart.items.length > 0 && (
+ <form action={checkoutWarrantyCartV1631} className="profile-order-form">
+ <p className="commerce-hint">Le paiement active immédiatement la garantie. Sa date de début est la date du paiement et sa fin est calculée selon la durée de la formule.</p>
+ <button type="submit" className="btn">Payer mes garanties Nostra Care · {money(warrantyCartTotal)}</button>
+ </form>
+ )}
 
  {normalVehicleCart.length > 0 && (
 
