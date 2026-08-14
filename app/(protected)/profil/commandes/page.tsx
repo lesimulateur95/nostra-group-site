@@ -66,11 +66,12 @@ export default async function ProfileOrdersPage() {
         const history = historyMap.get(Number(order.id)) ?? [];
         const delivery = hasHomeDelivery(order as unknown as Record<string, unknown>);
         const deliveryStage = String((order as unknown as Record<string, unknown>).delivery_stage ?? "awaiting_planning");
-        const deliveryDate = (order as unknown as Record<string, unknown>).delivery_date;
-        const deliveryWindowEnd = (order as unknown as Record<string, unknown>).delivery_window_end;
-        const deliveryDriver = (order as unknown as Record<string, unknown>).delivery_driver;
-        const deliveryAddress = (order as unknown as Record<string, unknown>).delivery_address;
-        const deliveryLabel = (order as unknown as Record<string, unknown>).delivery_address_label;
+        const rawOrder = order as unknown as Record<string, unknown>;
+        const deliveryDate = rawOrder.delivery_date ? String(rawOrder.delivery_date) : "";
+        const deliveryWindowEnd = rawOrder.delivery_window_end ? String(rawOrder.delivery_window_end) : "";
+        const deliveryDriver = rawOrder.delivery_driver ? String(rawOrder.delivery_driver) : "";
+        const deliveryAddress = rawOrder.delivery_address ? String(rawOrder.delivery_address) : "";
+        const deliveryLabel = rawOrder.delivery_address_label ? String(rawOrder.delivery_address_label) : "";
 
         return <article className={styles.card} key={order.id}>
           <div className={styles.row}>
@@ -83,9 +84,9 @@ export default async function ProfileOrdersPage() {
           {delivery && <div style={{ marginTop: 16, padding: 14, border: "1px solid rgba(212,175,55,.28)", borderRadius: 14, background: "rgba(212,175,55,.05)" }}>
             <p className={styles.eyebrow}>LIVRAISON NOSTRA MOTORS</p>
             <h3 style={{ margin: "5px 0 8px" }}>{deliveryLabels[deliveryStage] ?? deliveryStage}</h3>
-            {deliveryDate && <p style={{ margin: "4px 0" }}>Créneau : <strong>{new Date(String(deliveryDate)).toLocaleString("fr-FR")}{deliveryWindowEnd ? ` → ${new Date(String(deliveryWindowEnd)).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}` : ""}</strong></p>}
-            {deliveryLabel && <p style={{ margin: "4px 0" }}>Destination : <strong>{String(deliveryLabel)}</strong>{deliveryAddress ? ` · ${String(deliveryAddress)}` : ""}</p>}
-            {deliveryDriver && <p style={{ margin: "4px 0" }}>Chauffeur assigné : <strong>{String(deliveryDriver)}</strong></p>}
+            {deliveryDate && <p style={{ margin: "4px 0" }}>Créneau : <strong>{new Date(deliveryDate).toLocaleString("fr-FR")}{deliveryWindowEnd ? ` → ${new Date(deliveryWindowEnd).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}` : ""}</strong></p>}
+            {deliveryLabel && <p style={{ margin: "4px 0" }}>Destination : <strong>{deliveryLabel}</strong>{deliveryAddress ? ` · ${deliveryAddress}` : ""}</p>}
+            {deliveryDriver && <p style={{ margin: "4px 0" }}>Chauffeur assigné : <strong>{deliveryDriver}</strong></p>}
           </div>}
 
           {order.admin_note && <p><strong>Message Nostra Motors :</strong> {order.admin_note}</p>}
