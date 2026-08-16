@@ -107,6 +107,31 @@ export async function getMyWarrantiesV163(userId: string, customerVehicleId?: nu
   };
 }
 
+export async function getMyGarageWarrantyContractsV163(
+  userId: string,
+  customerVehicleId?: number,
+) {
+  const supabase = await createClient();
+  let query = (supabase as any)
+    .from("motors_warranty_contracts_v163")
+    .select(
+      "id,contract_number,user_id,customer_vehicle_id,plan_name,duration_days,rate_percent,reference_vehicle_price,amount,deductible,starts_at,ends_at,paid_at,status,coverage_snapshot,created_at",
+    )
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (customerVehicleId) {
+    query = query.eq("customer_vehicle_id", customerVehicleId);
+  }
+
+  const result = await query;
+  return {
+    configured: !result.error,
+    contracts: Array.isArray(result.data) ? result.data : [],
+    error: result.error?.message ?? null,
+  };
+}
+
 export async function getCrmAfterSalesOverviewV163(userId: string) {
   const supabase = await createClient();
   const [warranties, workshop] = await Promise.all([

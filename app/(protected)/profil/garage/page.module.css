@@ -268,3 +268,60 @@
     grid-template-columns: 1fr;
   }
 }
+
+.warrantyBox {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border: 1px solid rgba(218, 181, 48, 0.3);
+  border-radius: 14px;
+  padding: 14px;
+  background: rgba(218, 181, 48, 0.055);
+}
+
+.warrantyBox > div {
+  display: grid;
+  gap: 4px;
+}
+
+.warrantyBox strong {
+  color: #f2d15a;
+}
+
+.warrantyBox span {
+  color: #aeb5be;
+  font-size: 0.82rem;
+}
+
+.warrantyBox a {
+  flex: 0 0 auto;
+  border: 1px solid rgba(218, 181, 48, 0.48);
+  border-radius: 10px;
+  padding: 9px 11px;
+  color: #f2d15a;
+  font-size: 0.82rem;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.warrantyActive {
+  border-color: rgba(70, 190, 120, 0.45);
+  background: rgba(70, 190, 120, 0.08);
+}
+
+.warrantyActive strong {
+  color: #77e5a6;
+}
+
+.warrantyPending {
+  border-color: rgba(240, 206, 88, 0.48);
+  background: rgba(240, 206, 88, 0.08);
+}
+
+@media (max-width: 720px) {
+  .warrantyBox {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

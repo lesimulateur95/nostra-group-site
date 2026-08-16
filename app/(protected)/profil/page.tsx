@@ -369,7 +369,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
  {params.contract_paid && <div className="dashboard-feedback dashboard-feedback-success">Paiement enregistré pour {params.contract_paid} reconduction(s) de contrat.</div>}
  {params.warranty_added && <div className="dashboard-feedback dashboard-feedback-success">Garantie <strong>{params.warranty_added}</strong> ajoutée au panier.</div>}
  {params.warranty_removed && <div className="dashboard-feedback dashboard-feedback-success">La garantie a été retirée du panier.</div>}
- {params.warranty_paid && <div className="dashboard-feedback dashboard-feedback-success">Paiement enregistré : {params.warranty_paid} garantie(s) Nostra Care activée(s).</div>}
+ {params.warranty_paid && <div className="dashboard-feedback dashboard-feedback-success">Paiement enregistré : {params.warranty_paid} garantie(s) Nostra Care activée(s). <Link href="/profil/garage">Voir les contrats dans mon garage →</Link></div>}
  {params.warranty_error && <div className="dashboard-feedback dashboard-feedback-error">La garantie n’a pas pu être traitée : {decodeURIComponent(params.warranty_error)}.</div>}
  {params.contract_error && <div className="dashboard-feedback dashboard-feedback-error">{params.contract_error === "empty" ? "Aucune reconduction de contrat n’est actuellement à payer." : params.contract_error === "setup" ? "Le module Contrats doit être activé avec le SQL V114." : "Le paiement du contrat n’a pas pu être enregistré."}</div>}
 

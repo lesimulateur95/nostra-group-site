@@ -8,6 +8,7 @@ import {
   getMyGarageVehicle,
 } from "@/lib/garage/data";
 import { createClient } from "@/lib/supabase/server";
+import { getMyGarageWarrantyContractsV163 } from "@/lib/v163/data";
 import styles from "./page.module.css";
 
 export const dynamic = "force-dynamic";
@@ -50,13 +51,24 @@ export default async function ProfileGarageVehiclePage({
   const id = Number.parseInt(resolvedParams.id, 10);
   if (!Number.isFinite(id) || id <= 0) redirect("/profil/garage");
 
-  const result = await getMyGarageVehicle(data.user.id, id);
+  const [result, warrantyResult] = await Promise.all([
+    getMyGarageVehicle(data.user.id, id),
+    getMyGarageWarrantyContractsV163(data.user.id, id),
+  ]);
   if (!result.configured) redirect("/profil/garage");
   if (!result.vehicle) redirect("/profil/garage");
 
   const vehicle = result.vehicle;
   const title = vehicleTitle(vehicle.brand, vehicle.model, vehicle.vehicleName);
   const encodedVehicle = encodeURIComponent(title);
+  const activeWarranty = warrantyResult.contracts.find(
+    (row: any) =>
+      row.status === "active" && new Date(String(row.ends_at)).getTime() > Date.now(),
+  ) ?? null;
+  const pendingWarranty = warrantyResult.contracts.find(
+    (row: any) => row.status === "pending_payment",
+  ) ?? null;
+  const displayedWarranty = activeWarranty ?? pendingWarranty;
 
   return (
     <main className={styles.page}>
@@ -140,6 +152,73 @@ export default async function ProfileGarageVehiclePage({
             <Link href="/profil/commandes">Voir la commande</Link>
           </div>
         </div>
+      </section>
+
+      <section
+        className={`${styles.warrantyPanel} ${
+          activeWarranty
+            ? styles.warrantyActive
+            : pendingWarranty
+              ? styles.warrantyPending
+              : ""
+        }`}
+      >
+        <div className={styles.warrantyHeading}>
+          <div>
+            <p className={styles.eyebrow}>CONTRAT NOSTRA CARE</p>
+            <h2>{displayedWarranty ? displayedWarranty.plan_name : "Aucune protection active"}</h2>
+          </div>
+          <span className={styles.warrantyState}>
+            {activeWarranty ? "ACTIF" : pendingWarranty ? "DANS LE PANIER" : "NON SOUSCRIT"}
+          </span>
+        </div>
+
+        {displayedWarranty ? (
+          <>
+            <dl className={styles.warrantyGrid}>
+              <div>
+                <dt>Contrat</dt>
+                <dd>{displayedWarranty.contract_number}</dd>
+              </div>
+              <div>
+                <dt>Montant</dt>
+                <dd>{money(Number(displayedWarranty.amount ?? 0))}</dd>
+              </div>
+              <div>
+                <dt>Calcul</dt>
+                <dd>{Number(displayedWarranty.rate_percent ?? 0)} % de {money(Number(displayedWarranty.reference_vehicle_price ?? vehicle.purchasePrice))}</dd>
+              </div>
+              <div>
+                <dt>Durée</dt>
+                <dd>{Number(displayedWarranty.duration_days ?? 0)} jours</dd>
+              </div>
+              <div>
+                <dt>Début</dt>
+                <dd>{activeWarranty ? date(displayedWarranty.starts_at) : "Après paiement"}</dd>
+              </div>
+              <div>
+                <dt>Fin</dt>
+                <dd>{activeWarranty ? date(displayedWarranty.ends_at) : "Calculée au paiement"}</dd>
+              </div>
+            </dl>
+            <div className={styles.warrantyActions}>
+              <Link href={`/profil/garanties?vehicle=${vehicle.id}`}>
+                Voir les détails du contrat
+              </Link>
+              {pendingWarranty && <Link href="/profil">Ouvrir le panier</Link>}
+            </div>
+          </>
+        ) : (
+          <div className={styles.warrantyEmpty}>
+            <p>
+              Aucun contrat Nostra Care n’est actuellement lié à ce véhicule. Le prix
+              sera calculé automatiquement à partir de son prix d’achat de {money(vehicle.purchasePrice)}.
+            </p>
+            <Link href={`/profil/garanties?vehicle=${vehicle.id}`}>
+              Choisir une garantie pour ce véhicule
+            </Link>
+          </div>
+        )}
       </section>
 
       <section className={styles.columns}>

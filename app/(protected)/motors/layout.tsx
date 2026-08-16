@@ -88,11 +88,15 @@ function addShowroom(items: SidebarNavItem[]): SidebarNavItem[] {
 }
 
 function addV134Services(items: SidebarNavItem[]): SidebarNavItem[] {
-  const keys = new Set(items.map((item) => item.key));
+  const cleanedItems = items.filter(
+    (item) => item.key !== "reserve-vehicle" && item.href !== "/motors/reserver",
+  );
+  const keys = new Set(cleanedItems.map((item) => item.key));
+
   return [
-    ...items,
-    ...(!keys.has("reserve-vehicle")
-      ? [{ key: "reserve-vehicle", href: "/motors/reserver", label: "Réserver un véhicule" }]
+    ...cleanedItems,
+    ...(!keys.has("nostra-care")
+      ? [{ key: "nostra-care", href: "/motors/nostra-care", label: "Nostra Care" }]
       : []),
     ...(!keys.has("mandat-recherche")
       ? [{ key: "mandat-recherche", href: "/motors/mandat-recherche", label: "Mandat de recherche" }]

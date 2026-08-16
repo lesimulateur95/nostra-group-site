@@ -9,6 +9,7 @@ import {
   getMyGarageVehicles,
 } from "@/lib/garage/data";
 import { createClient } from "@/lib/supabase/server";
+import { getMyGarageWarrantyContractsV163 } from "@/lib/v163/data";
 import styles from "./page.module.css";
 
 export const dynamic = "force-dynamic";
@@ -27,12 +28,34 @@ function vehicleTitle(brand: string | null, model: string | null, name: string) 
   return catalogName || name;
 }
 
+function shortDate(value: unknown): string {
+  if (!value) return "—";
+  return new Date(String(value)).toLocaleDateString("fr-FR");
+}
+
+function warrantyForVehicle(contracts: any[], vehicleId: number) {
+  const rows = contracts.filter(
+    (row: any) => Number(row.customer_vehicle_id) === Number(vehicleId),
+  );
+  const active = rows.find(
+    (row: any) =>
+      row.status === "active" && new Date(String(row.ends_at)).getTime() > Date.now(),
+  );
+  if (active) return { ...active, displayStatus: "active" };
+  const pending = rows.find((row: any) => row.status === "pending_payment");
+  if (pending) return { ...pending, displayStatus: "pending" };
+  return null;
+}
+
 export default async function ProfileGaragePage() {
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
   if (!data.user) redirect("/");
 
-  const collection = await getMyGarageVehicles(data.user.id);
+  const [collection, warrantyCollection] = await Promise.all([
+    getMyGarageVehicles(data.user.id),
+    getMyGarageWarrantyContractsV163(data.user.id),
+  ]);
   const delivered = collection.vehicles.filter(
     (vehicle) => vehicle.garageStatus === "delivered",
   ).length;
@@ -95,6 +118,11 @@ export default async function ProfileGaragePage() {
                   vehicle.vehicleName,
                 );
 
+                const warranty = warrantyForVehicle(
+                  warrantyCollection.contracts,
+                  vehicle.id,
+                );
+
                 return (
                   <article className={styles.card} key={vehicle.id}>
                     <div className={styles.media}>
@@ -144,6 +172,38 @@ export default async function ProfileGaragePage() {
                           </dd>
                         </div>
                       </dl>
+
+                      <div
+                        className={`${styles.warrantyBox} ${
+                          warranty?.displayStatus === "active"
+                            ? styles.warrantyActive
+                            : warranty?.displayStatus === "pending"
+                              ? styles.warrantyPending
+                              : ""
+                        }`}
+                      >
+                        <div>
+                          <p className={styles.eyebrow}>NOSTRA CARE</p>
+                          {warranty ? (
+                            <>
+                              <strong>{warranty.plan_name}</strong>
+                              <span>
+                                {warranty.displayStatus === "active"
+                                  ? `Actif jusqu’au ${shortDate(warranty.ends_at)}`
+                                  : `En attente de paiement · ${money(Number(warranty.amount ?? 0))}`}
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <strong>Aucun contrat actif</strong>
+                              <span>Ce véhicule peut recevoir une protection Nostra Care.</span>
+                            </>
+                          )}
+                        </div>
+                        <Link href={`/profil/garanties?vehicle=${vehicle.id}`}>
+                          {warranty ? "Voir le contrat" : "Ajouter une garantie"}
+                        </Link>
+                      </div>
 
                       <div className={styles.actions}>
                         <Link
