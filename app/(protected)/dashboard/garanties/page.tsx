@@ -105,7 +105,7 @@ export default async function WarrantyAdmin({
             .map((plan: any, index: number) => (
             <form action={saveWarrantyPlanV163} className={styles.card} key={plan.id}>
               <input type="hidden" name="id" value={plan.id} />
-              <p className={styles.eyebrow}>FORMULE #{index + 1}</p>
+              <p className={styles.eyebrow}>FORMULE #{Number(plan.display_number ?? index + 1)}</p>
               <div className={styles.form}>
                 <label>
                   Nom
