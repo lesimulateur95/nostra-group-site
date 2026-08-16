@@ -26,6 +26,8 @@ export type GarageVehicle = {
   acquiredAt: string | null;
   createdAt: string;
   updatedAt: string;
+  currentMileage: number;
+  nostraVin: string | null;
 };
 
 export type StaffGarageVehicle = GarageVehicle & {
@@ -69,6 +71,8 @@ type GarageVehicleRow = {
   acquired_at: string | null;
   created_at: string;
   updated_at: string;
+  current_mileage?: number | string | null;
+  nostra_vin?: string | null;
 };
 
 type GarageHistoryRow = {
@@ -109,6 +113,8 @@ function mapGarageVehicle(row: GarageVehicleRow): GarageVehicle {
     acquiredAt: row.acquired_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    currentMileage: Math.max(0, Number(row.current_mileage ?? 0) || 0),
+    nostraVin: row.nostra_vin ?? null,
   };
 }
 
@@ -134,7 +140,7 @@ export async function getMyGarageVehicles(userId: string): Promise<{
   const result = await supabase
     .from("customer_vehicles")
     .select(
-      "id,user_id,order_id,order_number,vehicle_id,vehicle_name,brand,model,image_url,purchase_price,delivery_mode,delivery_address,order_status,garage_status,acquired_at,created_at,updated_at",
+      "id,user_id,order_id,order_number,vehicle_id,vehicle_name,brand,model,image_url,purchase_price,delivery_mode,delivery_address,order_status,garage_status,acquired_at,created_at,updated_at,current_mileage,nostra_vin",
     )
     .eq("user_id", userId)
     .neq("garage_status", "cancelled")
@@ -169,7 +175,7 @@ export async function getMyGarageVehicle(
   const vehicleResult = await supabase
     .from("customer_vehicles")
     .select(
-      "id,user_id,order_id,order_number,vehicle_id,vehicle_name,brand,model,image_url,purchase_price,delivery_mode,delivery_address,order_status,garage_status,acquired_at,created_at,updated_at",
+      "id,user_id,order_id,order_number,vehicle_id,vehicle_name,brand,model,image_url,purchase_price,delivery_mode,delivery_address,order_status,garage_status,acquired_at,created_at,updated_at,current_mileage,nostra_vin",
     )
     .eq("id", vehicleId)
     .eq("user_id", userId)
@@ -252,7 +258,7 @@ export async function getStaffGarageVehicles(): Promise<{
   const vehicleResult = await supabase
     .from("customer_vehicles")
     .select(
-      "id,user_id,order_id,order_number,vehicle_id,vehicle_name,brand,model,image_url,purchase_price,delivery_mode,delivery_address,order_status,garage_status,acquired_at,created_at,updated_at",
+      "id,user_id,order_id,order_number,vehicle_id,vehicle_name,brand,model,image_url,purchase_price,delivery_mode,delivery_address,order_status,garage_status,acquired_at,created_at,updated_at,current_mileage,nostra_vin",
     )
     .neq("garage_status", "cancelled")
     .order("updated_at", { ascending: false })
@@ -295,5 +301,76 @@ export async function getStaffGarageVehicles(): Promise<{
       ...mapGarageVehicle(row),
       customerName: names.get(row.user_id) ?? "Citoyen Nostra Group",
     })),
+  };
+}
+
+
+export async function getStaffGarageVehicle(
+  vehicleId: number,
+): Promise<{
+  configured: boolean;
+  vehicle: StaffGarageVehicle | null;
+  history: GarageHistoryEntry[];
+  documents: GarageDocument[];
+  error?: string;
+}> {
+  const supabase = await createClient();
+  const vehicleResult = await supabase
+    .from("customer_vehicles")
+    .select(
+      "id,user_id,order_id,order_number,vehicle_id,vehicle_name,brand,model,image_url,purchase_price,delivery_mode,delivery_address,order_status,garage_status,acquired_at,created_at,updated_at,current_mileage,nostra_vin",
+    )
+    .eq("id", vehicleId)
+    .maybeSingle();
+
+  if (vehicleResult.error) {
+    return { configured: false, vehicle: null, history: [], documents: [], error: vehicleResult.error.message };
+  }
+  if (!vehicleResult.data) {
+    return { configured: true, vehicle: null, history: [], documents: [] };
+  }
+
+  const base = mapGarageVehicle(vehicleResult.data as GarageVehicleRow);
+  const [profileResult, historyResult, documentResult] = await Promise.all([
+    supabase
+      .from("member_profiles")
+      .select("rp_first_name,rp_last_name,discord_name,email")
+      .eq("user_id", base.userId)
+      .maybeSingle(),
+    supabase
+      .from("customer_vehicle_history")
+      .select("id,event_type,status,title,details,created_at")
+      .eq("customer_vehicle_id", base.id)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("invoices")
+      .select("id,invoice_number,document_type,document_title,status,issued_at,download_url")
+      .eq("user_id", base.userId)
+      .eq("order_id", base.orderId)
+      .order("issued_at", { ascending: false }),
+  ]);
+
+  const profile = profileResult.data as any;
+  const customerName = profile
+    ? `${profile.rp_first_name ?? ""} ${profile.rp_last_name ?? ""}`.trim() || profile.discord_name || profile.email || "Citoyen Nostra Group"
+    : "Citoyen Nostra Group";
+
+  const history = historyResult.error
+    ? []
+    : ((historyResult.data ?? []) as GarageHistoryRow[]).map((row) => ({
+        id: Number(row.id), eventType: row.event_type, status: row.status, title: row.title, details: row.details, createdAt: row.created_at,
+      }));
+  const documents = documentResult.error
+    ? []
+    : ((documentResult.data ?? []) as GarageDocumentRow[]).map((row) => ({
+        id: Number(row.id), invoiceNumber: row.invoice_number, documentType: row.document_type ?? "document", documentTitle: row.document_title, status: row.status, issuedAt: row.issued_at, downloadUrl: row.download_url,
+      }));
+
+  return {
+    configured: true,
+    vehicle: { ...base, customerName },
+    history,
+    documents,
+    error: historyResult.error?.message ?? documentResult.error?.message,
   };
 }

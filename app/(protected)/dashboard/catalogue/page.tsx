@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import {
   deleteCatalogVehicleV51,
@@ -48,6 +49,9 @@ import {
 } from "@/lib/v157/data";
 import { getExclusiveCollectionsV158 } from "@/lib/v158/exclusive-collections";
 import { getVehicleCollectionMapV159 } from "@/lib/v159/collection-memberships";
+import { getUserRoleKeys } from "@/lib/auth/access";
+import { createClient } from "@/lib/supabase/server";
+import { canMotorsV164, getMotorsEmployeeAccessV164 } from "@/lib/v164/data";
 
 import styles from "@/components/motors/catalogue-v51.module.css";
 
@@ -108,6 +112,21 @@ export default async function DashboardCataloguePage({
     collection?: string;
   }>;
 }) {
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getUser();
+  if (!data.user) redirect("/");
+  const roles = await getUserRoleKeys(data.user);
+  const manager = roles.includes("manager");
+  const access = await getMotorsEmployeeAccessV164(data.user.id, manager);
+  const legacy = roles.some((role) => ["employee", "commercial"].includes(role));
+  if (
+    !manager &&
+    !canMotorsV164(access, "catalogue_read", legacy) &&
+    !canMotorsV164(access, "catalogue_manage", legacy)
+  ) {
+    redirect("/dashboard");
+  }
+
   const params = await searchParams;
 
   const [
@@ -798,6 +817,26 @@ export default async function DashboardCataloguePage({
                 />
               </label>
 
+              <label className="checkbox-label">
+                <input type="checkbox" name="is_demo" />
+                Véhicule de démonstration
+              </label>
+
+              <label>
+                Kilométrage démo
+                <input type="number" name="demo_mileage" min="0" defaultValue="0" />
+              </label>
+
+              <label>
+                Prix neuf / avant remise (€)
+                <input name="demo_original_price" inputMode="decimal" placeholder="Optionnel" />
+              </label>
+
+              <label className="form-span-2">
+                Note véhicule de démonstration
+                <input name="demo_note" placeholder="Ex. véhicule d'exposition, faible kilométrage…" />
+              </label>
+
               <label>
                 Coffre
                 <input name="trunk_capacity" />
@@ -916,6 +955,11 @@ export default async function DashboardCataloguePage({
                       {isInShowroom && (
                         <span className="catalog-showroom-pill-v152">
                           Présent au showroom
+                        </span>
+                      )}
+                      {vehicle.is_demo && (
+                        <span className={styles.demoAdminBadgeV164}>
+                          DÉMONSTRATION · {vehicle.demo_mileage.toLocaleString("fr-FR")} km
                         </span>
                       )}
                       <span className="catalog-stock-pill">
@@ -1037,6 +1081,44 @@ export default async function DashboardCataloguePage({
                         defaultValue={
                           vehicle.stock_quantity
                         }
+                      />
+                    </label>
+
+                    <label className="checkbox-label">
+                      <input
+                        type="checkbox"
+                        name="is_demo"
+                        defaultChecked={vehicle.is_demo}
+                      />
+                      Véhicule de démonstration
+                    </label>
+
+                    <label>
+                      Kilométrage démo
+                      <input
+                        type="number"
+                        name="demo_mileage"
+                        min="0"
+                        defaultValue={vehicle.demo_mileage}
+                      />
+                    </label>
+
+                    <label>
+                      Prix neuf / avant remise (€)
+                      <input
+                        name="demo_original_price"
+                        inputMode="decimal"
+                        defaultValue={vehicle.demo_original_price ?? ""}
+                        placeholder="Optionnel"
+                      />
+                    </label>
+
+                    <label className="form-span-2">
+                      Note véhicule de démonstration
+                      <input
+                        name="demo_note"
+                        defaultValue={vehicle.demo_note}
+                        placeholder="Ex. véhicule d'exposition, faible kilométrage…"
                       />
                     </label>
 

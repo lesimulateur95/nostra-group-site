@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import {
+  getUserRoleKeys,
   hasDashboardAccess,
 } from "@/lib/auth/access";
 import type {
@@ -146,6 +147,19 @@ async function requireManager() {
     ))
   ) {
     redirect("/accueil");
+  }
+
+  // V164 : les employés Nostra Motors doivent avoir la permission réelle
+  // de modifier le catalogue. Si la migration V164 n'est pas encore posée,
+  // on conserve le comportement historique pour éviter de bloquer le site.
+  const roles = await getUserRoleKeys(data.user);
+  if (!roles.includes("manager")) {
+    const permission = await (supabase as any).rpc("nostra_v164_has_permission", {
+      p_permission: "catalogue_manage",
+    });
+    if (!permission.error && permission.data !== true) {
+      redirect("/dashboard");
+    }
   }
 
   return {
@@ -392,6 +406,10 @@ export async function saveCatalogVehicleV51(
     ),
     price,
     stock_quantity: stockQuantity,
+    is_demo: checkbox(formData.get("is_demo")),
+    demo_mileage: Math.max(0, integer(formData.get("demo_mileage"), 0)),
+    demo_original_price: money(formData.get("demo_original_price")) || null,
+    demo_note: text(formData.get("demo_note"), 1200) || null,
     description: text(
       formData.get("description"),
       4000,
@@ -470,6 +488,28 @@ export async function saveCatalogVehicleV51(
       .remove(obsoletePaths);
   }
 
+  // V164 : journal interne Nostra Motors. L'enregistrement du véhicule reste
+  // fonctionnel si le SQL V164 n'est pas encore appliqué.
+  try {
+    await (supabase as any).from("motors_employee_audit_v164").insert({
+      actor_user_id: user.id,
+      action_key: id > 0 ? "catalog_vehicle_updated" : "catalog_vehicle_created",
+      entity_type: "catalog_vehicle",
+      entity_id: String(savedVehicleId),
+      title: id > 0 ? "Fiche véhicule catalogue modifiée" : "Fiche véhicule catalogue créée",
+      details: {
+        brand,
+        model,
+        price,
+        stock_quantity: stockQuantity,
+        is_demo: payload.is_demo,
+        demo_mileage: payload.demo_mileage,
+      },
+    });
+  } catch {
+    // Le journal ne doit jamais bloquer la gestion du catalogue.
+  }
+
   revalidateCatalogs();
 
   redirect(
@@ -505,7 +545,7 @@ export async function deleteCatalogVehicleV51(
     );
   }
 
-  const { supabase } =
+  const { supabase, user } =
     await requireManager();
 
   const { data } = await supabase
@@ -566,6 +606,19 @@ export async function deleteCatalogVehicleV51(
           (image) => image.path,
         ),
       );
+  }
+
+  try {
+    await (supabase as any).from("motors_employee_audit_v164").insert({
+      actor_user_id: user.id,
+      action_key: "catalog_vehicle_deleted",
+      entity_type: "catalog_vehicle",
+      entity_id: String(id),
+      title: "Fiche véhicule catalogue supprimée",
+      details: { label: itemName || `Véhicule #${id}` },
+    });
+  } catch {
+    // Journal optionnel.
   }
 
   revalidateCatalogs();

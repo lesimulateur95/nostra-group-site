@@ -9,6 +9,8 @@ import {
 } from "@/lib/garage/data";
 import { createClient } from "@/lib/supabase/server";
 import { getMyGarageWarrantyContractsV163 } from "@/lib/v163/data";
+import { cancelVehicleTransferV164, createVehicleTransferV164 } from "@/app/actions/v164";
+import { getCitizenDirectoryV164, getVehicleMaintenanceV164, getVehicleTransfersV164, refreshMyVehicleNotificationsV164 } from "@/lib/v164/data";
 import styles from "./page.module.css";
 
 export const dynamic = "force-dynamic";
@@ -51,6 +53,7 @@ export default async function ProfileGarageVehiclePage({
   const id = Number.parseInt(resolvedParams.id, 10);
   if (!Number.isFinite(id) || id <= 0) redirect("/profil/garage");
 
+  await refreshMyVehicleNotificationsV164();
   const [result, warrantyResult] = await Promise.all([
     getMyGarageVehicle(data.user.id, id),
     getMyGarageWarrantyContractsV163(data.user.id, id),
@@ -69,6 +72,15 @@ export default async function ProfileGarageVehiclePage({
     (row: any) => row.status === "pending_payment",
   ) ?? null;
   const displayedWarranty = activeWarranty ?? pendingWarranty;
+  const [maintenanceResult, transferResult, citizenDirectory] = await Promise.all([
+    getVehicleMaintenanceV164(vehicle.id),
+    getVehicleTransfersV164(data.user.id, vehicle.id),
+    getCitizenDirectoryV164(),
+  ]);
+  const pendingTransfer = transferResult.requests.find((row: any) => row.status === "pending" && row.seller_user_id === data.user.id) ?? null;
+  const warrantyDaysRemaining = activeWarranty
+    ? Math.max(0, Math.ceil((new Date(String(activeWarranty.ends_at)).getTime() - Date.now()) / 86400000))
+    : null;
 
   return (
     <main className={styles.page}>
@@ -129,6 +141,14 @@ export default async function ProfileGarageVehiclePage({
               <dt>Adresse</dt>
               <dd>{vehicle.deliveryAddress || "Retrait au showroom"}</dd>
             </div>
+            <div>
+              <dt>VIN Nostra</dt>
+              <dd>{vehicle.nostraVin || "En cours de génération"}</dd>
+            </div>
+            <div>
+              <dt>Kilométrage enregistré</dt>
+              <dd>{vehicle.currentMileage.toLocaleString("fr-FR")} km</dd>
+            </div>
           </dl>
 
           <div className={styles.actions}>
@@ -169,7 +189,7 @@ export default async function ProfileGarageVehiclePage({
             <h2>{displayedWarranty ? displayedWarranty.plan_name : "Aucune protection active"}</h2>
           </div>
           <span className={styles.warrantyState}>
-            {activeWarranty ? "ACTIF" : pendingWarranty ? "DANS LE PANIER" : "NON SOUSCRIT"}
+            {activeWarranty ? `ACTIF · ${warrantyDaysRemaining} J` : pendingWarranty ? "DANS LE PANIER" : "NON SOUSCRIT"}
           </span>
         </div>
 
@@ -200,6 +220,10 @@ export default async function ProfileGarageVehiclePage({
                 <dt>Fin</dt>
                 <dd>{activeWarranty ? date(displayedWarranty.ends_at) : "Calculée au paiement"}</dd>
               </div>
+              {activeWarranty && <div>
+                <dt>Temps restant</dt>
+                <dd>{warrantyDaysRemaining} jour{warrantyDaysRemaining === 1 ? "" : "s"}</dd>
+              </div>}
             </dl>
             <div className={styles.warrantyActions}>
               <Link href={`/profil/garanties?vehicle=${vehicle.id}`}>
@@ -219,6 +243,75 @@ export default async function ProfileGarageVehiclePage({
             </Link>
           </div>
         )}
+      </section>
+
+      <section className={styles.panel}>
+        <div className={styles.panelHeading}>
+          <div>
+            <p className={styles.eyebrow}>CARNET D’ENTRETIEN NOSTRA</p>
+            <h2>Suivi officiel réalisé par les équipes Nostra Motors</h2>
+          </div>
+          <strong>{maintenanceResult.records.length}</strong>
+        </div>
+        {maintenanceResult.records.length === 0 ? (
+          <p className={styles.emptyText}>Aucun entretien officiel enregistré pour ce véhicule.</p>
+        ) : (
+          <ol className={styles.timeline}>
+            {maintenanceResult.records.map((record) => (
+              <li key={record.id}>
+                <span className={styles.timelineDot} aria-hidden="true" />
+                <div>
+                  <strong>{record.title}</strong>
+                  <p>{new Date(record.serviceDate).toLocaleDateString("fr-FR")}{record.mileage != null ? ` · ${record.mileage.toLocaleString("fr-FR")} km` : ""}{record.warrantyCovered ? " · Pris en charge Nostra Care" : ""}</p>
+                  {record.workDone && <p><b>Travaux :</b> {record.workDone}</p>}
+                  {record.partsReplaced && <p><b>Pièces :</b> {record.partsReplaced}</p>}
+                  {record.staffComment && <p><b>Commentaire Nostra :</b> {record.staffComment}</p>}
+                  {(record.nextServiceDate || record.nextServiceMileage) && <p><b>Prochain entretien :</b> {record.nextServiceDate ? new Date(record.nextServiceDate).toLocaleDateString("fr-FR") : ""}{record.nextServiceMileage ? ` · ${record.nextServiceMileage.toLocaleString("fr-FR")} km` : ""}</p>}
+                </div>
+              </li>
+            ))}
+          </ol>
+        )}
+      </section>
+
+      <section className={styles.panel}>
+        <div className={styles.panelHeading}>
+          <div>
+            <p className={styles.eyebrow}>PROPRIÉTÉ</p>
+            <h2>Transfert / revente du véhicule</h2>
+          </div>
+          <strong>{transferResult.requests.length}</strong>
+        </div>
+        {pendingTransfer ? (
+          <div className={styles.warrantyEmpty}>
+            <p>Une demande <b>{pendingTransfer.transfer_number}</b> est en attente de validation par Nostra Motors.</p>
+            <form action={cancelVehicleTransferV164}>
+              <input type="hidden" name="id" value={pendingTransfer.id} />
+              <input type="hidden" name="customer_vehicle_id" value={vehicle.id} />
+              <button type="submit">Annuler ma demande</button>
+            </form>
+          </div>
+        ) : (
+          <form action={createVehicleTransferV164} className={styles.transferFormV164}>
+            <input type="hidden" name="customer_vehicle_id" value={vehicle.id} />
+            <label>Type
+              <select name="transfer_type" defaultValue="sale"><option value="sale">Revente</option><option value="gift">Cession / don</option></select>
+            </label>
+            <label>Nouveau propriétaire
+              <select name="target_user_id" required defaultValue=""><option value="">Sélectionner un citoyen</option>{citizenDirectory.filter((row) => row.userId !== data.user.id).map((row) => <option value={row.userId} key={row.userId}>{row.name}</option>)}</select>
+            </label>
+            <label>Prix de revente (€)
+              <input type="number" min="0" step="1" name="sale_price" defaultValue="0" />
+            </label>
+            <label>Note pour Nostra Motors
+              <textarea name="seller_note" rows={3} placeholder="Informations utiles pour la validation." />
+            </label>
+            <button type="submit">Envoyer la demande de transfert</button>
+          </form>
+        )}
+        {transferResult.requests.length > 0 && <div className={styles.transferHistoryV164}>
+          {transferResult.requests.slice(0,5).map((row:any) => <div key={row.id}><strong>{row.transfer_number}</strong><span>{String(row.status).toUpperCase()} · {new Date(String(row.created_at)).toLocaleDateString("fr-FR")}</span></div>)}
+        </div>}
       </section>
 
       <section className={styles.columns}>

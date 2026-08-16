@@ -10,6 +10,7 @@ import {
 } from "@/lib/garage/data";
 import { createClient } from "@/lib/supabase/server";
 import { getMyGarageWarrantyContractsV163 } from "@/lib/v163/data";
+import { refreshMyVehicleNotificationsV164 } from "@/lib/v164/data";
 import styles from "./page.module.css";
 
 export const dynamic = "force-dynamic";
@@ -51,6 +52,8 @@ export default async function ProfileGaragePage() {
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
   if (!data.user) redirect("/");
+
+  await refreshMyVehicleNotificationsV164();
 
   const [collection, warrantyCollection] = await Promise.all([
     getMyGarageVehicles(data.user.id),
@@ -189,7 +192,7 @@ export default async function ProfileGaragePage() {
                               <strong>{warranty.plan_name}</strong>
                               <span>
                                 {warranty.displayStatus === "active"
-                                  ? `Actif jusqu’au ${shortDate(warranty.ends_at)}`
+                                  ? `Actif · ${Math.max(0, Math.ceil((new Date(String(warranty.ends_at)).getTime() - Date.now()) / 86400000))} jour(s) restant(s) · jusqu’au ${shortDate(warranty.ends_at)}`
                                   : `En attente de paiement · ${money(Number(warranty.amount ?? 0))}`}
                               </span>
                             </>

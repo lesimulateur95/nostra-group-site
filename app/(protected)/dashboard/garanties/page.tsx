@@ -1,7 +1,11 @@
 import { deleteWarrantyPlanV163, saveWarrantyPlanV163, updateWarrantyStatusV163 } from "@/app/actions/v163";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
+import { redirect } from "next/navigation";
 import styles from "@/components/v163/v163.module.css";
 import { getWarrantyAdminV163 } from "@/lib/v163/data";
+import { getUserRoleKeys } from "@/lib/auth/access";
+import { createClient } from "@/lib/supabase/server";
+import { getMotorsEmployeeAccessV164 } from "@/lib/v164/data";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +31,15 @@ export default async function WarrantyAdmin({
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
   const params = await searchParams;
+  const supabase = await createClient();
+  const { data: authData } = await supabase.auth.getUser();
+  if (!authData.user) redirect("/");
+  const roles = await getUserRoleKeys(authData.user);
+  const manager = roles.includes("manager");
+  const access = await getMotorsEmployeeAccessV164(authData.user.id, manager);
+  const canRead = manager || !access.configured || (access.active && (access.permissions.has("warranty_read") || access.permissions.has("warranty_manage")));
+  const canManage = manager || !access.configured || (access.active && access.permissions.has("warranty_manage"));
+  if (!canRead) redirect("/dashboard");
   const data = await getWarrantyAdminV163();
   const vehicles = new Map(data.vehicles.map((row: any) => [Number(row.id), row]));
 
@@ -49,6 +62,7 @@ export default async function WarrantyAdmin({
         {params.contract_saved && <div className={styles.success}>Contrat mis à jour.</div>}
         {params.error && <div className={styles.error}>Une modification n’a pas pu être enregistrée.</div>}
 
+        {canManage && (
         <section className={styles.card}>
           <p className={styles.eyebrow}>NOUVELLE GARANTIE</p>
           <form action={saveWarrantyPlanV163} className={styles.form}>
@@ -58,7 +72,7 @@ export default async function WarrantyAdmin({
             </label>
             <label>
               Durée en jours
-              <input name="duration_days" type="number" min="1" required defaultValue="180" />
+              <input name="duration_days" type="number" min="1" required defaultValue="30" />
             </label>
             <label>
               Taux sur le prix du VL (%)
@@ -97,6 +111,8 @@ export default async function WarrantyAdmin({
           </form>
         </section>
 
+        )}
+
         <section className={styles.grid}>
           {[...data.plans]
             .sort((a: any, b: any) =>
@@ -105,6 +121,7 @@ export default async function WarrantyAdmin({
             .map((plan: any, index: number) => (
             <form action={saveWarrantyPlanV163} className={styles.card} key={plan.id}>
               <input type="hidden" name="id" value={plan.id} />
+              <fieldset disabled={!canManage} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
               <p className={styles.eyebrow}>FORMULE #{Number(plan.display_number ?? index + 1)}</p>
               <div className={styles.form}>
                 <label>
@@ -149,10 +166,11 @@ export default async function WarrantyAdmin({
                 <strong>{Number(plan.rate_percent ?? 0)} % du prix payé</strong>
                 <span className={styles.pill}>{plan.duration_days} jours</span>
               </div>
-              <div className={styles.row}>
+              {canManage && <div className={styles.row}>
                 <button className={styles.button}>Enregistrer la formule</button>
                 <button formAction={deleteWarrantyPlanV163} className={styles.danger}>Supprimer la formule</button>
-              </div>
+              </div>}
+              </fieldset>
             </form>
           ))}
         </section>
@@ -196,14 +214,14 @@ export default async function WarrantyAdmin({
                       <td colSpan={2}>
                         <form action={updateWarrantyStatusV163} className={styles.row}>
                           <input type="hidden" name="id" value={contract.id} />
-                          <input type="date" name="ends_at" defaultValue={dateInput(contract.ends_at)} />
-                          <select name="status" defaultValue={contract.status}>
+                          <input type="date" name="ends_at" defaultValue={dateInput(contract.ends_at)} disabled={!canManage} />
+                          <select name="status" defaultValue={contract.status} disabled={!canManage}>
                             <option value="pending_payment">Paiement attendu</option>
                             <option value="active">Actif</option>
                             <option value="expired">Expiré</option>
                             <option value="cancelled">Annulé</option>
                           </select>
-                          <button className={styles.buttonAlt}>Enregistrer</button>
+                          {canManage && <button className={styles.buttonAlt}>Enregistrer</button>}
                         </form>
                       </td>
                     </tr>

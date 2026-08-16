@@ -61,6 +61,11 @@ async function refreshLicenceExpiryNotifications(
   } catch {
     // Le centre de notifications reste utilisable avant l'installation du SQL V59.
   }
+  try {
+    await (supabase as any).rpc("nostra_v164_refresh_my_vehicle_notifications");
+  } catch {
+    // Compatibilité avant l'installation de la V164.
+  }
 }
 
 export async function getUnreadNotificationCount(

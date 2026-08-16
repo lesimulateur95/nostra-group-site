@@ -11,6 +11,7 @@ export const STAFF_NOTIFICATION_TYPES = [
   "staff_plate_order",
   "staff_auction",
   "staff_delivery",
+  "staff_motors_transfer",
 ] as const;
 
 export type StaffNotificationType =

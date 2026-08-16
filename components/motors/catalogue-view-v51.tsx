@@ -512,6 +512,9 @@ export async function CatalogueViewV51({
                                 {(collectionMap.get(Number(vehicle.id)) ?? []).map((item) => item.name).join(" · ")}
                               </span>
                             )}
+                            {vehicle.is_demo && (
+                              <span className={styles.demoVehicleBadgeV164}>VÉHICULE DE DÉMONSTRATION</span>
+                            )}
                             {vehicle.images[0] ? (
                               <img
                                 src={vehicle.images[0].url}
@@ -541,6 +544,21 @@ export async function CatalogueViewV51({
                           <div className="catalogue-vehicle-copy">
                             <p className="eyebrow">{vehicle.brand}</p>
                             <h3>{vehicle.model}</h3>
+                            {vehicle.is_demo && (
+                              <div className={styles.demoInfoV164}>
+                                <div>
+                                  <strong>Démonstration Nostra</strong>
+                                  <span>{vehicle.demo_mileage.toLocaleString("fr-FR")} km</span>
+                                </div>
+                                {vehicle.demo_original_price != null && vehicle.demo_original_price > vehicle.price && (
+                                  <div>
+                                    <span>Prix neuf</span>
+                                    <strong className={styles.demoOldPriceV164}>{formatPrice(vehicle.demo_original_price)}</strong>
+                                  </div>
+                                )}
+                                {vehicle.demo_note && <p>{vehicle.demo_note}</p>}
+                              </div>
+                            )}
                             {campaignBadge && (
                               <div className={v162Styles.campaignBanner}>
                                 <div>

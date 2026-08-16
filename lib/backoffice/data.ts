@@ -46,6 +46,10 @@ export type CatalogVehicle = {
   published: boolean;
   stock_quantity: number;
   sort_order: number;
+  is_demo: boolean;
+  demo_mileage: number;
+  demo_original_price: number | null;
+  demo_note: string;
   created_at?: string | null;
   updated_at?: string | null;
 };
@@ -201,7 +205,7 @@ export async function getCatalogVehicles(includeUnpublished = false): Promise<Ca
   const supabase = await createClient();
   let query = supabase
     .from("catalog_vehicles")
-    .select("id,brand,model,trunk_capacity,top_speed,power,price,description,images,published,stock_quantity,sort_order,created_at,updated_at")
+    .select("id,brand,model,trunk_capacity,top_speed,power,price,description,images,published,stock_quantity,sort_order,is_demo,demo_mileage,demo_original_price,demo_note,created_at,updated_at")
     .order("brand")
     .order("sort_order")
     .order("model");
@@ -212,6 +216,10 @@ export async function getCatalogVehicles(includeUnpublished = false): Promise<Ca
     return (data ?? []).map((row) => ({
       ...row,
       stock_quantity: Math.max(0, Number(row.stock_quantity) || 0),
+      is_demo: row.is_demo === true,
+      demo_mileage: Math.max(0, Number(row.demo_mileage) || 0),
+      demo_original_price: row.demo_original_price == null ? null : Math.max(0, Number(row.demo_original_price) || 0),
+      demo_note: String(row.demo_note ?? ""),
       images: Array.isArray(row.images) ? row.images : [],
     })) as CatalogVehicle[];
   }
@@ -229,6 +237,10 @@ export async function getCatalogVehicles(includeUnpublished = false): Promise<Ca
   return (legacy.data ?? []).map((row) => ({
     ...row,
     stock_quantity: 0,
+    is_demo: false,
+    demo_mileage: 0,
+    demo_original_price: null,
+    demo_note: "",
     images: Array.isArray(row.images) ? row.images : [],
   })) as CatalogVehicle[];
 }

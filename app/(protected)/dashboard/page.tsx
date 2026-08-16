@@ -19,6 +19,11 @@ import { getSearchMandateSummaryV134 } from "@/lib/vehicle-search-mandates/data"
 import { getVehicleConsignmentSummaryV134 } from "@/lib/vehicle-consignments/data";
 import { getCommercialPendingCountV137 } from "@/lib/commercial-performance/data";
 import { getAcademyPendingCountV137 } from "@/lib/racing-academy/data";
+import {
+  canMotorsV164,
+  getMotorsEmployeeAccessV164,
+  type MotorsPermissionKey,
+} from "@/lib/v164/data";
 
 type DashboardModuleSubgroupProps = {
   eyebrow: string;
@@ -72,6 +77,10 @@ export default async function DashboardPage() {
   if (!operationsAccess) {
     redirect(commissionerRole ? "/commissaires" : "/accueil");
   }
+
+  const motorsAccess = await getMotorsEmployeeAccessV164(user.id, managerAccess);
+  const motorsCan = (permission: MotorsPermissionKey) =>
+    managerAccess || canMotorsV164(motorsAccess, permission, operationsAccess);
 
   const [
     overview,
@@ -195,185 +204,127 @@ export default async function DashboardPage() {
           defaultOpen={!managerAccess}
         >
           <div className="dashboard-module-subgroups">
-            <DashboardModuleSubgroup
-              eyebrow="VÉHICULES"
-              title="Catalogue et disponibilité"
-              description="Gérer les fiches, le stock et les possibilités de réservation ou de vente."
-            >
-              <DashboardCard
-                href="/dashboard/catalogue"
-                icon="🚗"
-                title="Catalogue Nostra Motors"
-                description="Ajouter ou modifier les véhicules, leurs photos, caractéristiques, prix et quantités."
-                badge={
-                  managerAccess && overview.catalogVehicles
-                    ? `${overview.catalogVehicles} véhicule(s)`
-                    : undefined
-                }
-              />
-              <DashboardCard
-                href="/dashboard/stocks"
-                icon="▦"
-                title="Gestion des stocks"
-                description="Modifier les quantités et surveiller les véhicules bientôt épuisés."
-                badge={
-                  managerAccess && overview.lowStock
-                    ? `${overview.lowStock} alerte(s)`
-                    : undefined
-                }
-              />
-              <DashboardCard href="/dashboard/stock-reel" icon="📍" title="Stock physique par exemplaire" description="Suivre chaque exemplaire Nostra, son identifiant, son état, sa réservation et sa localisation." />
-              <DashboardCard href="/dashboard/location-motors" icon="🔑" title="Gestion de la location" description="Configurer les tarifs de location, cautions, dates, départs, retours et états des lieux." />
-              <DashboardCard href="/dashboard/etat-des-lieux" icon="📋" title="États des lieux location" description="Créer les contrôles départ/retour, kilométrage, carburant, dégâts et photos." />
-              <DashboardCard href="/dashboard/ventes-flash" icon="⚡" title="Ventes flash" description="Programmer des prix promotionnels temporaires directement sur les véhicules du catalogue." />
-              {managerAccess && (
-                <>
+            {(motorsCan("catalogue_read") || motorsCan("catalogue_manage") || motorsCan("inventory_manage") || motorsCan("pricing_manage")) && (
+              <DashboardModuleSubgroup
+                eyebrow="VÉHICULES"
+                title="Catalogue et disponibilité"
+                description="Gérer les fiches, le stock, les démonstrations et la disponibilité des véhicules."
+              >
+                {(motorsCan("catalogue_read") || motorsCan("catalogue_manage")) && (
                   <DashboardCard
-                    href="/dashboard/parametres-reservations"
-                    icon="⚙️"
-                    title="Activation des réservations"
-                    description="Ouvrir ou fermer les réservations pour tous les catalogues ou seulement certains d’entre eux."
+                    href="/dashboard/catalogue"
+                    icon="🚗"
+                    title="Catalogue Nostra Motors"
+                    description="Ajouter ou modifier les véhicules, photos, prix, stock et statut véhicule de démonstration."
+                    badge={managerAccess && overview.catalogVehicles ? `${overview.catalogVehicles} véhicule(s)` : undefined}
                   />
-                  <DashboardCard
-                    href="/dashboard/controle-vehicules"
-                    icon="⛔"
-                    title="Contrôle des véhicules"
-                    description="Bloquer la réservation ou la vente d’un véhicule précis sans le retirer du catalogue."
-                  />
-                </>
-              )}
-            </DashboardModuleSubgroup>
+                )}
+                {motorsCan("inventory_manage") && (
+                  <>
+                    <DashboardCard
+                      href="/dashboard/stocks"
+                      icon="▦"
+                      title="Gestion des stocks"
+                      description="Modifier les quantités et surveiller les véhicules bientôt épuisés."
+                      badge={managerAccess && overview.lowStock ? `${overview.lowStock} alerte(s)` : undefined}
+                    />
+                    <DashboardCard href="/dashboard/stock-reel" icon="📍" title="Stock physique par exemplaire" description="Suivre chaque exemplaire Nostra, son état, sa réservation et sa localisation." />
+                    <DashboardCard href="/dashboard/location-motors" icon="🔑" title="Gestion de la location" description="Configurer les tarifs, cautions, dates, départs et retours." />
+                    <DashboardCard href="/dashboard/etat-des-lieux" icon="📋" title="États des lieux location" description="Créer les contrôles départ/retour, kilométrage, carburant, dégâts et photos." />
+                  </>
+                )}
+                {motorsCan("pricing_manage") && (
+                  <DashboardCard href="/dashboard/ventes-flash" icon="⚡" title="Ventes flash" description="Programmer des prix promotionnels temporaires sur le catalogue." />
+                )}
+                {managerAccess && (
+                  <>
+                    <DashboardCard href="/dashboard/parametres-reservations" icon="⚙️" title="Activation des réservations" description="Ouvrir ou fermer les réservations pour les catalogues." />
+                    <DashboardCard href="/dashboard/controle-vehicules" icon="⛔" title="Contrôle des véhicules" description="Bloquer la réservation ou la vente d’un véhicule précis sans le retirer du catalogue." />
+                  </>
+                )}
+              </DashboardModuleSubgroup>
+            )}
 
-            <DashboardModuleSubgroup
-              eyebrow="VENTES"
-              title="Commandes et réservations"
-              description="Traiter les achats au prix total, les acomptes et les soldes restant à payer."
-            >
-              <DashboardCard
-                href="/dashboard/commandes"
-                icon="📦"
-                title="Commandes Nostra Motors"
-                description="Recevoir les commandes, suivre leur préparation et modifier leur statut."
-                badge={
-                  !overview.ordersConfigured
-                    ? "À activer"
-                    : overview.pendingOrders
-                      ? `${overview.pendingOrders} nouvelle(s)`
-                      : undefined
-                }
-              />
-              <DashboardCard
-                href="/dashboard/reservations-vehicules"
-                icon="🔒"
-                title="Réservations véhicules"
-                description="Valider les acomptes, suivre le solde, attribuer un commercial et accompagner la livraison."
-                badge={
-                  !vehicleReservationOverview.configured
-                    ? "À activer"
-                    : vehicleReservationOverview.pending
-                      ? `${vehicleReservationOverview.pending} à valider`
-                      : vehicleReservationOverview.balanceDue
-                        ? `${vehicleReservationOverview.balanceDue} solde(s)`
-                        : undefined
-                }
-              />
-              {(managerAccess || roles.includes("commercial")) && (
+            {motorsCan("orders_manage") && (
+              <DashboardModuleSubgroup
+                eyebrow="VENTES"
+                title="Commandes et réservations"
+                description="Traiter les achats, acomptes, soldes et dossiers commerciaux."
+              >
                 <DashboardCard
-                  href="/dashboard/commerciaux"
-                  icon="📈"
-                  title="Commissions et objectifs"
-                  description="Suivre les ventes attribuées, les objectifs mensuels, les primes et les commissions commerciales."
-                  badge={commercialPending ? `${commercialPending} à payer` : undefined}
+                  href="/dashboard/commandes"
+                  icon="📦"
+                  title="Commandes Nostra Motors"
+                  description="Recevoir les commandes, suivre leur préparation et modifier leur statut."
+                  badge={!overview.ordersConfigured ? "À activer" : overview.pendingOrders ? `${overview.pendingOrders} nouvelle(s)` : undefined}
                 />
-              )}
-              {managerAccess && (
                 <DashboardCard
-                  href="/dashboard/financements-vehicules"
-                  icon="💳"
-                  title="Dossiers de financement"
-                  description="Étudier les paiements 3×/4×, consulter le solde bancaire en jeu et accepter ou refuser les dossiers."
-                  badge={
-                    !financingOverview.configured
-                      ? "À activer"
-                      : financingOverview.pending
-                        ? `${financingOverview.pending} à examiner`
-                        : financingOverview.depositDue
-                          ? `${financingOverview.depositDue} apport(s)`
-                          : financingOverview.active
-                            ? `${financingOverview.active} en cours`
-                            : undefined
-                  }
+                  href="/dashboard/reservations-vehicules"
+                  icon="🔒"
+                  title="Réservations véhicules"
+                  description="Valider les acomptes, suivre le solde et accompagner la livraison."
+                  badge={!vehicleReservationOverview.configured ? "À activer" : vehicleReservationOverview.pending ? `${vehicleReservationOverview.pending} à valider` : vehicleReservationOverview.balanceDue ? `${vehicleReservationOverview.balanceDue} solde(s)` : undefined}
                 />
-              )}
-            </DashboardModuleSubgroup>
+                {(managerAccess || roles.includes("commercial")) && (
+                  <DashboardCard href="/dashboard/commerciaux" icon="📈" title="Commissions et objectifs" description="Suivre ventes attribuées, objectifs, primes et commissions." badge={commercialPending ? `${commercialPending} à payer` : undefined} />
+                )}
+                {managerAccess && (
+                  <DashboardCard href="/dashboard/financements-vehicules" icon="💳" title="Dossiers de financement" description="Étudier les paiements 3×/4× et accepter ou refuser les dossiers." badge={!financingOverview.configured ? "À activer" : financingOverview.pending ? `${financingOverview.pending} à examiner` : financingOverview.depositDue ? `${financingOverview.depositDue} apport(s)` : financingOverview.active ? `${financingOverview.active} en cours` : undefined} />
+                )}
+              </DashboardModuleSubgroup>
+            )}
 
-            <DashboardModuleSubgroup
-              eyebrow="CLIENTS"
-              title="Livraisons et rendez-vous"
-              description="Organiser la remise des véhicules et répondre aux demandes des citoyens."
-            >
-              <DashboardCard
-                href="/dashboard/livraisons"
-                icon="🚚"
-                title="Centre logistique"
-                description="Planning, flotte 1/2/5 places, réservations temporaires, chargement et suivi des livraisons."
-                badge={
-                  !overview.motorsV41Configured
-                    ? "À activer"
-                    : overview.pendingDeliveries
-                      ? `${overview.pendingDeliveries} à traiter`
-                      : undefined
-                }
-              />
-              <DashboardCard
-                href="/dashboard/rendez-vous-motors"
-                icon="◷"
-                title="Demandes de rendez-vous"
-                description="Consulter, traiter ou supprimer les demandes envoyées par les citoyens."
-                badge={
-                  !overview.motorsV41Configured
-                    ? "À activer"
-                    : overview.pendingAppointments
-                      ? `${overview.pendingAppointments} en attente`
-                      : undefined
-                }
-              />
-            </DashboardModuleSubgroup>
+            {(motorsCan("deliveries_manage") || motorsCan("crm_manage")) && (
+              <DashboardModuleSubgroup
+                eyebrow="CLIENTS"
+                title="Livraisons et rendez-vous"
+                description="Organiser la remise des véhicules et répondre aux citoyens."
+              >
+                {motorsCan("deliveries_manage") && (
+                  <DashboardCard href="/dashboard/livraisons" icon="🚚" title="Centre logistique" description="Planning, flotte, chargement et suivi des livraisons." badge={!overview.motorsV41Configured ? "À activer" : overview.pendingDeliveries ? `${overview.pendingDeliveries} à traiter` : undefined} />
+                )}
+                {motorsCan("crm_manage") && (
+                  <DashboardCard href="/dashboard/rendez-vous-motors" icon="◷" title="Demandes de rendez-vous" description="Consulter et traiter les demandes envoyées par les citoyens." badge={!overview.motorsV41Configured ? "À activer" : overview.pendingAppointments ? `${overview.pendingAppointments} en attente` : undefined} />
+                )}
+              </DashboardModuleSubgroup>
+            )}
 
-            <DashboardModuleSubgroup
-              eyebrow="SERVICES COMMERCIAUX"
-              title="Mandats et dépôts-vente"
-              description="Traiter les recherches de véhicules et les véhicules confiés à la vente par les citoyens."
-            >
-              <DashboardCard
-                href="/dashboard/occasion/mandats-recherche"
-                icon="🔎"
-                title="Mandats de recherche"
-                description="Consulter les demandes des citoyens, rechercher un véhicule et envoyer plusieurs propositions."
-                badge={
-                  !searchMandateOverview.configured
-                    ? "À activer"
-                    : searchMandateOverview.pending
-                      ? `${searchMandateOverview.pending} à traiter`
-                      : undefined
-                }
-              />
-              <DashboardCard
-                href="/dashboard/occasion/depots-vente"
-                icon="🤝"
-                title="Dossiers de dépôt-vente"
-                description="Étudier les véhicules confiés à Nostra, fixer la commission et suivre leur vente."
-                badge={
-                  !consignmentOverview.configured
-                    ? "À activer"
-                    : consignmentOverview.pending
-                      ? `${consignmentOverview.pending} à traiter`
-                      : consignmentOverview.published
-                        ? `${consignmentOverview.published} en vente`
-                        : undefined
-                }
-              />
-            </DashboardModuleSubgroup>
+            {(motorsCan("garage_read") || motorsCan("maintenance_manage") || motorsCan("workshop_manage") || motorsCan("transfer_manage") || motorsCan("warranty_read") || motorsCan("warranty_manage")) && (
+              <DashboardModuleSubgroup
+                eyebrow="DOSSIERS VÉHICULES"
+                title="Garages, entretien et Nostra Care"
+                description="Accéder aux dossiers des véhicules clients et aux services liés à leur vie après achat."
+              >
+                {(motorsCan("garage_read") || motorsCan("maintenance_manage")) && (
+                  <DashboardCard href="/dashboard/garage-vehicules" icon="🏠" title="Garages citoyens" description="Ouvrir les dossiers véhicules, consulter l’historique et remplir le carnet d’entretien Nostra." />
+                )}
+                {motorsCan("workshop_manage") && (
+                  <>
+                    <DashboardCard href="/dashboard/atelier" icon="🔧" title="Atelier Nostra Motors" description="Planning, diagnostic, devis, interventions et restitution." />
+                    <DashboardCard href="/dashboard/sav" icon="🛠️" title="SAV Nostra Motors" description="Consulter et traiter les demandes de service après-vente." />
+                  </>
+                )}
+                {motorsCan("transfer_manage") && (
+                  <DashboardCard href="/dashboard/transferts-vehicules" icon="🔁" title="Transferts & reventes" description="Valider les changements de propriétaire et appliquer la règle Nostra Care." />
+                )}
+                {(motorsCan("warranty_read") || motorsCan("warranty_manage")) && (
+                  <DashboardCard href="/dashboard/garanties" icon="🛡️" title="Garanties Nostra Care" description="Consulter les contrats et, si autorisé, gérer les formules Nostra Care." />
+                )}
+              </DashboardModuleSubgroup>
+            )}
+
+            {(motorsCan("crm_manage") || motorsCan("suppliers_manage") || motorsCan("margins_read") || motorsCan("stats_read")) && (
+              <DashboardModuleSubgroup
+                eyebrow="PILOTAGE"
+                title="CRM, fournisseurs et statistiques"
+                description="Piloter l’activité Nostra Motors avec les outils autorisés pour ton rôle."
+              >
+                {motorsCan("crm_manage") && <DashboardCard href="/dashboard/crm-motors" icon="🧠" title="CRM clients Motors" description="Centraliser achats, véhicules, rendez-vous, statuts et notes commerciales." />}
+                {motorsCan("suppliers_manage") && <DashboardCard href="/dashboard/fournisseurs" icon="🚚" title="Fournisseurs & arrivages" description="Piloter achats fournisseurs, arrivages, coûts et réception du stock." />}
+                {motorsCan("margins_read") && <DashboardCard href="/dashboard/marges" icon="📈" title="Marges réelles Motors" description="Comparer prix de vente, coûts réels et marge réalisée." />}
+                {motorsCan("stats_read") && <DashboardCard href="/dashboard/statistiques-motors" icon="📊" title="Statistiques Nostra Motors" description="CA, ventes, stock, marges, Nostra Care, atelier et meilleures marques." />}
+              </DashboardModuleSubgroup>
+            )}
           </div>
         </DashboardModuleGroup>
 
@@ -874,6 +825,24 @@ export default async function DashboardPage() {
                   icon="🔧"
                   title="Garanties Nostra Care"
                   description="Gérer les formules de garantie et les contrats liés aux véhicules clients."
+                />
+                <DashboardCard
+                  href="/dashboard/transferts-vehicules"
+                  icon="🔁"
+                  title="Transferts & reventes"
+                  description="Valider les changements de propriétaire et choisir le sort du contrat Nostra Care."
+                />
+                <DashboardCard
+                  href="/dashboard/statistiques-motors"
+                  icon="📊"
+                  title="Statistiques Nostra Motors"
+                  description="Analyser ventes, stock, marges, Nostra Care et activité atelier."
+                />
+                <DashboardCard
+                  href="/dashboard/employes-motors"
+                  icon="🪪"
+                  title="Employés Nostra Motors"
+                  description="Attribuer les métiers, permissions et consulter le journal d’activité des équipes."
                 />
               </DashboardModuleSubgroup>
 

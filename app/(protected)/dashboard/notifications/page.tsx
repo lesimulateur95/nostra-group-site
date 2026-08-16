@@ -32,6 +32,7 @@ const typeIcons: Record<string, string> = {
   staff_plate_order: "🔶",
   staff_auction: "🔨",
   staff_delivery: "🚚",
+  staff_motors_transfer: "🔁",
 };
 
 function formatDate(value: string): string {

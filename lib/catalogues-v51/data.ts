@@ -102,7 +102,7 @@ export async function getCatalogVehiclesV51({
   let query = supabase
     .from("catalog_vehicles")
     .select(
-      "id,brand,model,trunk_capacity,top_speed,power,price,description,images,published,stock_quantity,sort_order,catalog_type,used_vehicle_status,used_condition,created_at,updated_at",
+      "id,brand,model,trunk_capacity,top_speed,power,price,description,images,published,stock_quantity,sort_order,catalog_type,used_vehicle_status,used_condition,is_demo,demo_mileage,demo_original_price,demo_note,created_at,updated_at",
     )
     .order("brand")
     .order("sort_order")
@@ -158,6 +158,10 @@ export async function getCatalogVehiclesV51({
         ? row.used_vehicle_status
         : "available",
     used_condition: String(row.used_condition ?? ""),
+    is_demo: row.is_demo === true,
+    demo_mileage: Math.max(0, Number(row.demo_mileage) || 0),
+    demo_original_price: row.demo_original_price == null ? null : Math.max(0, Number(row.demo_original_price) || 0),
+    demo_note: String(row.demo_note ?? ""),
     created_at:
       typeof row.created_at === "string"
         ? row.created_at

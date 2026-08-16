@@ -10,6 +10,7 @@ import {
   type GarageVehicleStatus,
 } from "@/lib/garage/data";
 import { createClient } from "@/lib/supabase/server";
+import { getMotorsEmployeeAccessV164 } from "@/lib/v164/data";
 import styles from "./page.module.css";
 
 export const dynamic = "force-dynamic";
@@ -43,6 +44,9 @@ export default async function StaffGarageVehiclesPage() {
 
   const roles = await getUserRoleKeys(data.user);
   if (!roles.some((role) => STAFF_ROLES.has(role))) redirect("/dashboard");
+  const manager = roles.includes("manager");
+  const access = await getMotorsEmployeeAccessV164(data.user.id, manager);
+  if (!manager && access.configured && (!access.active || (!access.permissions.has("garage_read") && !access.permissions.has("maintenance_manage")))) redirect("/dashboard");
 
   const collection = await getStaffGarageVehicles();
   const statuses = collection.vehicles.map((vehicle) => vehicle.garageStatus);
@@ -160,6 +164,9 @@ export default async function StaffGarageVehiclesPage() {
                       </dl>
 
                       <div className={styles.actions}>
+                        <Link href={`/dashboard/garage-vehicules/${vehicle.id}`}>
+                          Ouvrir le dossier / carnet d’entretien
+                        </Link>
                         <Link href="/dashboard/commandes">
                           Ouvrir les commandes
                         </Link>

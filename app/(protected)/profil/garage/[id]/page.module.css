@@ -474,3 +474,50 @@
     grid-template-columns: 1fr;
   }
 }
+
+.transferFormV164 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.transferFormV164 label {
+  display: grid;
+  gap: 6px;
+  color: #d6d9de;
+  font-weight: 800;
+}
+
+.transferFormV164 input,
+.transferFormV164 select,
+.transferFormV164 textarea {
+  width: 100%;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 11px;
+  padding: 11px 12px;
+  background: #090909;
+  color: #fff;
+}
+
+.transferFormV164 label:last-of-type { grid-column: 1 / -1; }
+.transferFormV164 button,
+.warrantyEmpty button {
+  width: fit-content;
+  border: 1px solid rgba(218,181,48,.52);
+  border-radius: 11px;
+  padding: 10px 14px;
+  background: linear-gradient(135deg,#f6d967,#c99e18);
+  color: #090909;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.transferHistoryV164 { display: grid; gap: 8px; margin-top: 12px; }
+.transferHistoryV164 > div { display: flex; justify-content: space-between; gap: 12px; border-top: 1px solid rgba(255,255,255,.08); padding-top: 10px; }
+.transferHistoryV164 span { color: #9da4ae; font-size: .82rem; }
+
+@media (max-width: 700px) {
+  .transferFormV164 { grid-template-columns: 1fr; }
+  .transferFormV164 label:last-of-type { grid-column: auto; }
+  .transferHistoryV164 > div { display: grid; }
+}
