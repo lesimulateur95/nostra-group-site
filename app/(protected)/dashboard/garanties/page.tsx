@@ -98,10 +98,14 @@ export default async function WarrantyAdmin({
         </section>
 
         <section className={styles.grid}>
-          {data.plans.map((plan: any) => (
+          {[...data.plans]
+            .sort((a: any, b: any) =>
+              new Date(a.created_at ?? 0).getTime() - new Date(b.created_at ?? 0).getTime(),
+            )
+            .map((plan: any, index: number) => (
             <form action={saveWarrantyPlanV163} className={styles.card} key={plan.id}>
               <input type="hidden" name="id" value={plan.id} />
-              <p className={styles.eyebrow}>FORMULE #{plan.id}</p>
+              <p className={styles.eyebrow}>FORMULE #{index + 1}</p>
               <div className={styles.form}>
                 <label>
                   Nom
