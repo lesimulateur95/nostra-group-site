@@ -1,4 +1,4 @@
-import { saveWarrantyPlanV163, updateWarrantyStatusV163 } from "@/app/actions/v163";
+import { deleteWarrantyPlanV163, saveWarrantyPlanV163, updateWarrantyStatusV163 } from "@/app/actions/v163";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import styles from "@/components/v163/v163.module.css";
 import { getWarrantyAdminV163 } from "@/lib/v163/data";
@@ -45,6 +45,7 @@ export default async function WarrantyAdmin({
 
         {!data.configured && <div className={styles.error}>Exécute le SQL V163 puis V163.1.</div>}
         {params.saved && <div className={styles.success}>Formule enregistrée.</div>}
+        {params.deleted && <div className={styles.success}>Formule supprimée. Les anciens contrats clients sont conservés.</div>}
         {params.contract_saved && <div className={styles.success}>Contrat mis à jour.</div>}
         {params.error && <div className={styles.error}>Une modification n’a pas pu être enregistrée.</div>}
 
@@ -144,7 +145,10 @@ export default async function WarrantyAdmin({
                 <strong>{Number(plan.rate_percent ?? 0)} % du prix payé</strong>
                 <span className={styles.pill}>{plan.duration_days} jours</span>
               </div>
-              <button className={styles.button}>Enregistrer la formule</button>
+              <div className={styles.row}>
+                <button className={styles.button}>Enregistrer la formule</button>
+                <button formAction={deleteWarrantyPlanV163} className={styles.danger}>Supprimer la formule</button>
+              </div>
             </form>
           ))}
         </section>
