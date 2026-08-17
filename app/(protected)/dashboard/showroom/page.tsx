@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 
 import {
   saveDemoUnitV1643,
-  setShowroomQuantityV1643,
+  setShowroomAndDemoQuantitiesV1645,
 } from "@/app/actions/showroom-v1643";
 import styles from "@/components/v164/v164.module.css";
 import { getUserRoleKeys } from "@/lib/auth/access";
@@ -77,7 +77,8 @@ export default async function ShowroomManagementPage({
   const errorMessages: Record<string, string> = {
     invalid: "Vérifie le véhicule ou la quantité demandée.",
     quantity: "Il n’y a pas assez d’exemplaires physiques disponibles pour envoyer cette quantité au showroom.",
-    demo: "Impossible de retirer autant d’exemplaires : certains sont encore marqués comme véhicules de démonstration. Retire d’abord leur statut démo.",
+    demo: "Impossible de retirer autant d’exemplaires : certains sont encore marqués comme véhicules de démonstration.",
+    "demo-quantity": "Le nombre de véhicules de démonstration ne peut pas dépasser le nombre d’exemplaires présents au showroom.",
     showroom: "Cet exemplaire n’est plus au showroom.",
     "not-found": "Le véhicule ou l’exemplaire n’existe plus.",
     forbidden: "Tu n’as pas la permission de gérer le showroom.",
@@ -103,7 +104,9 @@ export default async function ShowroomManagementPage({
         <div className={styles.success}>
           {params.saved === "demo"
             ? "L’exemplaire de démonstration a été mis à jour."
-            : "Le nombre d’exemplaires présents au showroom a été mis à jour."}
+            : params.saved === "quantities"
+              ? "Les quantités showroom et démonstration ont été mises à jour."
+              : "Le nombre d’exemplaires présents au showroom a été mis à jour."}
         </div>
       )}
       {params.error && <div className={styles.error}>{errorMessages[params.error] ?? errorMessages.save}</div>}
@@ -193,9 +196,9 @@ export default async function ShowroomManagementPage({
                     </div>
 
                     <div className={styles.item}>
-                      <span className={styles.eyebrow}>ENVOYER AU SHOWROOM</span>
-                      <h3>Nombre d’exemplaires</h3>
-                      <form className={styles.form} action={setShowroomQuantityV1643}>
+                      <span className={styles.eyebrow}>RÉPARTITION SHOWROOM</span>
+                      <h3>Showroom et démonstration</h3>
+                      <form className={styles.form} action={setShowroomAndDemoQuantitiesV1645}>
                         <input type="hidden" name="vehicle_id" value={vehicle.id} />
                         <label>
                           Exemplaires au showroom
@@ -208,10 +211,21 @@ export default async function ShowroomManagementPage({
                             required
                           />
                         </label>
+                        <label>
+                          Dont véhicules de démonstration
+                          <input
+                            type="number"
+                            name="demo_quantity"
+                            min="0"
+                            max={entry.allocatableCount}
+                            defaultValue={entry.demoCount}
+                            required
+                          />
+                        </label>
                         <p className={styles.muted}>
-                          Exemple : avec 6 exemplaires disponibles, mets <strong>1</strong> ici pour n’envoyer qu’un seul véhicule au showroom.
+                          Exemple : sur 6 exemplaires, mets <strong>2</strong> au showroom et <strong>1</strong> en démonstration. Les 4 autres restent en stock normal.
                         </p>
-                        <button className={styles.button}>Appliquer la quantité</button>
+                        <button className={styles.button}>Appliquer les quantités</button>
                       </form>
                     </div>
                   </div>
@@ -219,9 +233,9 @@ export default async function ShowroomManagementPage({
                   {entry.showroomUnits.length > 0 && (
                     <section style={{ marginTop: 18 }}>
                       <span className={styles.eyebrow}>EXEMPLAIRES PRÉSENTS AU SHOWROOM</span>
-                      <h3>Choisir précisément les véhicules de démonstration</h3>
+                      <h3>Détail des exemplaires du showroom</h3>
                       <p className={styles.muted}>
-                        Chaque ligne correspond à un exemplaire physique. Activer « Démonstration » ici ne transforme pas les autres exemplaires du même modèle.
+                        La quantité de démonstration se règle au-dessus. Ici, tu peux ensuite choisir précisément quel exemplaire est la démo et renseigner son kilométrage, sa valeur de référence et une note.
                       </p>
                       <div className={styles.grid2}>
                         {entry.showroomUnits.map((unit) => (

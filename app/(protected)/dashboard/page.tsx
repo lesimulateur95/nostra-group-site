@@ -229,6 +229,12 @@ export default async function DashboardPage() {
                       badge={managerAccess && overview.lowStock ? `${overview.lowStock} alerte(s)` : undefined}
                     />
                     <DashboardCard href="/dashboard/stock-reel" icon="📍" title="Stock physique par exemplaire" description="Suivre chaque exemplaire Nostra, son état, sa réservation et sa localisation." />
+                    <DashboardCard
+                      href="/dashboard/showroom"
+                      icon="🏁"
+                      title="Gestion Showroom"
+                      description="Choisir combien d’exemplaires physiques sont au showroom et combien sont utilisés comme véhicules de démonstration."
+                    />
                     <DashboardCard href="/dashboard/location-motors" icon="🔑" title="Gestion de la location" description="Configurer les tarifs, cautions, dates, départs et retours." />
                     <DashboardCard href="/dashboard/etat-des-lieux" icon="📋" title="États des lieux location" description="Créer les contrôles départ/retour, kilométrage, carburant, dégâts et photos." />
                   </>
@@ -819,12 +825,6 @@ export default async function DashboardPage() {
                   icon="📈"
                   title="Marges réelles Motors"
                   description="Comparer prix de vente, coûts réels et marge réalisée véhicule par véhicule."
-                />
-                <DashboardCard
-                  href="/dashboard/showroom"
-                  icon="🏁"
-                  title="Gestion Showroom"
-                  description="Choisir combien d’exemplaires physiques sont exposés et lesquels sont réellement des véhicules de démonstration."
                 />
                 <DashboardCard
                   href="/dashboard/garanties"

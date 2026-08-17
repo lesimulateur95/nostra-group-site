@@ -63,6 +63,7 @@ function revalidateShowroom() {
 
 function errorCode(message: string | undefined): string {
   const value = String(message ?? "").toLowerCase();
+  if (value.includes("demo_exceeds_showroom")) return "demo-quantity";
   if (value.includes("exceeds_available")) return "quantity";
   if (value.includes("below_demo")) return "demo";
   if (value.includes("not_in_showroom")) return "showroom";
@@ -100,6 +101,46 @@ export async function setShowroomQuantityV1643(formData: FormData) {
 
   revalidateShowroom();
   redirect(`/dashboard/showroom?saved=showroom#vehicule-${vehicleId}`);
+}
+
+
+export async function setShowroomAndDemoQuantitiesV1645(formData: FormData) {
+  const { supabase, user } = await requireShowroomAccess();
+  const vehicleId = integer(formData.get("vehicle_id"));
+  const showroomQuantity = Math.max(0, integer(formData.get("showroom_quantity")));
+  const demoQuantity = Math.max(0, integer(formData.get("demo_quantity")));
+
+  if (vehicleId <= 0) redirect("/dashboard/showroom?error=invalid");
+  if (demoQuantity > showroomQuantity) {
+    redirect(`/dashboard/showroom?error=demo-quantity#vehicule-${vehicleId}`);
+  }
+
+  const { error } = await (supabase as any).rpc("nostra_set_showroom_demo_quantities_v1645", {
+    p_vehicle_id: vehicleId,
+    p_showroom_quantity: showroomQuantity,
+    p_demo_quantity: demoQuantity,
+  });
+
+  if (error) {
+    redirect(`/dashboard/showroom?error=${errorCode(error.message)}#vehicule-${vehicleId}`);
+  }
+
+  try {
+    await (supabase as any).from("motors_employee_audit_v164").insert({
+      actor_user_id: user.id,
+      action_key: "showroom_demo_quantities_updated",
+      entity_type: "catalog_vehicle",
+      entity_id: String(vehicleId),
+      title: "Répartition showroom / démonstration modifiée",
+      details: {
+        showroom_quantity: showroomQuantity,
+        demo_quantity: demoQuantity,
+      },
+    });
+  } catch {}
+
+  revalidateShowroom();
+  redirect(`/dashboard/showroom?saved=quantities#vehicule-${vehicleId}`);
 }
 
 export async function saveDemoUnitV1643(formData: FormData) {
