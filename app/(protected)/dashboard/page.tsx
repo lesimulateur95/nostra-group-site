@@ -829,6 +829,12 @@ export default async function DashboardPage() {
                   description="Comparer prix de vente, coûts réels et marge réalisée véhicule par véhicule."
                 />
                 <DashboardCard
+                  href="/dashboard/vehicules-demo"
+                  icon="🏁"
+                  title="Véhicules de démonstration"
+                  description="Retrouver tous les véhicules démo, modifier leur kilométrage et attribuer ou retirer le statut démonstration."
+                />
+                <DashboardCard
                   href="/dashboard/garanties"
                   icon="🔧"
                   title="Garanties Nostra Care"
