@@ -328,3 +328,117 @@ export async function deleteMotorsEmployeeV164(formData: FormData) {
   revalidatePath("/dashboard/employes-motors");
   redirect("/dashboard/employes-motors?deleted=1");
 }
+
+function revalidateDemoVehiclesV164() {
+  revalidatePath("/dashboard/vehicules-demo");
+  revalidatePath("/dashboard/catalogue");
+  revalidatePath("/dashboard/statistiques-motors");
+  revalidatePath("/motors/catalogue");
+  revalidatePath("/motors/catalogue/location");
+  revalidatePath("/motors/catalogue/poids-lourds");
+  revalidatePath("/motors/catalogue/vehicules-exclusifs");
+}
+
+export async function saveDemoVehicleV164(formData: FormData) {
+  const { supabase, user } = await permission("catalogue_manage");
+  const vehicleId = integer(formData.get("vehicle_id"));
+  if (vehicleId <= 0) redirect("/dashboard/vehicules-demo?error=vehicle");
+
+  const vehicle = await (supabase as any)
+    .from("catalog_vehicles")
+    .select("id,brand,model,is_demo")
+    .eq("id", vehicleId)
+    .maybeSingle();
+
+  if (vehicle.error || !vehicle.data) {
+    redirect("/dashboard/vehicules-demo?error=vehicle");
+  }
+
+  const rawOriginalPrice = text(formData.get("demo_original_price"), 80);
+  const originalPrice = rawOriginalPrice ? money(formData.get("demo_original_price")) : null;
+  const mileage = Math.max(0, integer(formData.get("demo_mileage")));
+  const note = text(formData.get("demo_note"), 1200) || null;
+
+  const result = await (supabase as any)
+    .from("catalog_vehicles")
+    .update({
+      is_demo: true,
+      demo_mileage: mileage,
+      demo_original_price: originalPrice,
+      demo_note: note,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", vehicleId);
+
+  if (result.error) {
+    redirect(`/dashboard/vehicules-demo?error=${encodeURIComponent(String(result.error.message || "save"))}`);
+  }
+
+  await audit(
+    supabase,
+    user.id,
+    vehicle.data.is_demo ? "demo_vehicle_updated" : "demo_vehicle_enabled",
+    "catalog_vehicle",
+    vehicleId,
+    vehicle.data.is_demo
+      ? "Véhicule de démonstration modifié"
+      : "Véhicule passé en démonstration",
+    {
+      brand: vehicle.data.brand,
+      model: vehicle.data.model,
+      demo_mileage: mileage,
+      demo_original_price: originalPrice,
+      demo_note: note,
+    },
+  );
+
+  revalidateDemoVehiclesV164();
+  redirect("/dashboard/vehicules-demo?saved=1");
+}
+
+export async function removeDemoVehicleV164(formData: FormData) {
+  const { supabase, user } = await permission("catalogue_manage");
+  const vehicleId = integer(formData.get("vehicle_id"));
+  if (vehicleId <= 0) redirect("/dashboard/vehicules-demo?error=vehicle");
+
+  const vehicle = await (supabase as any)
+    .from("catalog_vehicles")
+    .select("id,brand,model,is_demo")
+    .eq("id", vehicleId)
+    .maybeSingle();
+
+  if (vehicle.error || !vehicle.data) {
+    redirect("/dashboard/vehicules-demo?error=vehicle");
+  }
+
+  const result = await (supabase as any)
+    .from("catalog_vehicles")
+    .update({
+      is_demo: false,
+      demo_mileage: 0,
+      demo_original_price: null,
+      demo_note: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", vehicleId);
+
+  if (result.error) {
+    redirect(`/dashboard/vehicules-demo?error=${encodeURIComponent(String(result.error.message || "remove"))}`);
+  }
+
+  await audit(
+    supabase,
+    user.id,
+    "demo_vehicle_disabled",
+    "catalog_vehicle",
+    vehicleId,
+    "Statut véhicule de démonstration retiré",
+    {
+      brand: vehicle.data.brand,
+      model: vehicle.data.model,
+    },
+  );
+
+  revalidateDemoVehiclesV164();
+  redirect("/dashboard/vehicules-demo?removed=1");
+}

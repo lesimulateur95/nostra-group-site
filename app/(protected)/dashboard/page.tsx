@@ -219,6 +219,14 @@ export default async function DashboardPage() {
                     badge={managerAccess && overview.catalogVehicles ? `${overview.catalogVehicles} véhicule(s)` : undefined}
                   />
                 )}
+                {(motorsCan("catalogue_read") || motorsCan("catalogue_manage")) && (
+                  <DashboardCard
+                    href="/dashboard/vehicules-demo"
+                    icon="🏁"
+                    title="Véhicules de démonstration"
+                    description="Retrouver tous les véhicules démo, modifier leur kilométrage et attribuer ou retirer le statut démonstration."
+                  />
+                )}
                 {motorsCan("inventory_manage") && (
                   <>
                     <DashboardCard
