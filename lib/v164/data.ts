@@ -316,14 +316,15 @@ export async function getMotorsDirectionStatsV164(days = 30) {
   const supabase = await createClient();
   const since = days > 0 ? new Date(Date.now() - days * 86_400_000).toISOString() : null;
 
-  const [orders, vehicles, warranties, workshop, maintenance, profiles, costs] = await Promise.all([
+  const [orders, vehicles, warranties, workshop, maintenance, profiles, costs, showroomUnits] = await Promise.all([
     (supabase as any).from("orders").select("id,user_id,status,total,items,created_at").order("created_at", { ascending: false }).limit(10000),
-    (supabase as any).from("catalog_vehicles").select("id,brand,model,stock_quantity,price,is_demo,catalog_type").limit(5000),
+    (supabase as any).from("catalog_vehicles").select("id,brand,model,stock_quantity,price,catalog_type").limit(5000),
     (supabase as any).from("motors_warranty_contracts_v163").select("id,plan_name,status,amount,created_at,paid_at,ends_at").limit(10000),
     (supabase as any).from("motors_workshop_cases_v162").select("id,status,quote_total,created_at,completed_at").limit(10000),
     (supabase as any).from("motors_vehicle_maintenance_v164").select("id,status,cost,warranty_covered,created_at,deleted_at").limit(10000),
     (supabase as any).from("member_profiles").select("user_id,created_at").limit(10000),
     (supabase as any).from("motors_vehicle_costs_v163").select("catalog_vehicle_id,purchase_cost,inbound_transport_per_unit,preparation_cost,other_cost").limit(5000),
+    (supabase as any).from("motors_physical_vehicle_units_v162").select("catalog_vehicle_id,status,is_demo").eq("status","showroom").limit(10000),
   ]);
 
   const inPeriod = (value: unknown) => !since || (value && new Date(String(value)).getTime() >= new Date(since).getTime());
@@ -378,7 +379,7 @@ export async function getMotorsDirectionStatsV164(days = 30) {
   const maintenanceRevenue = maintenanceRows.reduce((sum: number, row: any) => sum + num(row.cost), 0);
   const lowStock = vehicleRows.filter((row: any) => num(row.stock_quantity) <= 2).length;
   const outOfStock = vehicleRows.filter((row: any) => num(row.stock_quantity) <= 0).length;
-  const demoCount = vehicleRows.filter((row: any) => row.is_demo === true).length;
+  const demoCount = (Array.isArray(showroomUnits.data) ? showroomUnits.data : []).filter((row: any) => row.is_demo === true).length;
   const newCitizens = (Array.isArray(profiles.data) ? profiles.data : []).filter((row: any) => inPeriod(row.created_at)).length;
 
   const topBrand = [...brandSales.entries()].sort((a, b) => b[1].units - a[1].units)[0] ?? null;

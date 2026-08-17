@@ -88,11 +88,12 @@ export async function getRentalBookingsV155(userId?: string) {
 
 export async function getStockOverviewV155() {
   const supabase = await createClient();
-  const [vehicles, states, reservations, rentals] = await Promise.all([
-    (supabase as any).from("catalog_vehicles").select("id,brand,model,stock_quantity,catalog_type,published,showroom_visible").order("brand"),
+  const [vehicles, states, reservations, rentals, showroomUnits] = await Promise.all([
+    (supabase as any).from("catalog_vehicles").select("id,brand,model,stock_quantity,catalog_type,published").order("brand"),
     (supabase as any).from("motors_vehicle_stock_v155").select("*"),
     (supabase as any).from("vehicle_reservations").select("vehicle_id,quantity,status,stock_reserved"),
-    (supabase as any).from("motors_rental_bookings_v155").select("vehicle_id,status,start_date,end_date")
+    (supabase as any).from("motors_rental_bookings_v155").select("vehicle_id,status,start_date,end_date"),
+    (supabase as any).from("motors_physical_vehicle_units_v162").select("catalog_vehicle_id").eq("status","showroom")
   ]);
   if (vehicles.error) return [];
   const stateMap = new Map<string,any>((states.data??[]).map((r:any)=>[String(r.vehicle_id),r]));
@@ -100,9 +101,11 @@ export async function getStockOverviewV155() {
   for (const r of reservations.data??[]) if (r.stock_reserved && !["rejected","cancelled","completed"].includes(s(r.status))) reserved.set(String(r.vehicle_id),(reserved.get(String(r.vehicle_id))??0)+Math.max(1,n(r.quantity,1)));
   const rented = new Map<string,number>();
   for (const r of rentals.data??[]) if (["confirmed","ready","active"].includes(s(r.status))) rented.set(String(r.vehicle_id),(rented.get(String(r.vehicle_id))??0)+1);
+  const showroomCounts=new Map<string,number>();
+  for(const u of showroomUnits.data??[]) showroomCounts.set(String(u.catalog_vehicle_id),(showroomCounts.get(String(u.catalog_vehicle_id))??0)+1);
   return (vehicles.data??[]).map((r:any)=>{
-    const state=stateMap.get(String(r.id)); const total=n(r.stock_quantity); const res=reserved.get(String(r.id))??0; const rent=rented.get(String(r.id))??0;
-    return {vehicleId:n(r.id),brand:s(r.brand),model:s(r.model),catalogType:s(r.catalog_type),totalStock:total,reserved:res,rented:rent,available:Math.max(0,total-res-rent),status:s(state?.operational_status,"available"),location:s(state?.physical_location,"Concession Nostra Motors"),minimumStock:n(state?.minimum_stock,1),notes:state?.notes?s(state.notes):null,published:r.published===true,showroom:r.showroom_visible===true};
+    const state=stateMap.get(String(r.id)); const total=n(r.stock_quantity); const res=reserved.get(String(r.id))??0; const rent=rented.get(String(r.id))??0; const showroomCount=showroomCounts.get(String(r.id))??0;
+    return {vehicleId:n(r.id),brand:s(r.brand),model:s(r.model),catalogType:s(r.catalog_type),totalStock:total,reserved:res,rented:rent,available:Math.max(0,total-res-rent),status:s(state?.operational_status,"available"),location:s(state?.physical_location,"Concession Nostra Motors"),minimumStock:n(state?.minimum_stock,1),notes:state?.notes?s(state.notes):null,published:r.published===true,showroom:showroomCount>0,showroomCount};
   });
 }
 
@@ -181,12 +184,16 @@ export async function getAnnouncementsV155(includeHidden=false) {
 
 export async function getTodayV155() {
   const supabase=await createClient(); const today=new Date(); const start=new Date(today); start.setHours(0,0,0,0); const end=new Date(today); end.setHours(23,59,59,999);
-  const [events,tickets,showroom,news,banners]=await Promise.all([
+  const [events,tickets,showroomUnits,news,banners]=await Promise.all([
     (supabase as any).from("events").select("id,title,location,starts_at,status").gte("starts_at",start.toISOString()).lte("starts_at",end.toISOString()).order("starts_at"),
     (supabase as any).from("nostra_ticket_events_v153").select("id,title,location,starts_at,sales_open").gte("starts_at",start.toISOString()).lte("starts_at",end.toISOString()).order("starts_at"),
-    (supabase as any).from("catalog_vehicles").select("id,brand,model,images,price").eq("showroom_visible",true).eq("published",true).limit(8),
+    (supabase as any).rpc("nostra_get_showroom_summary_v1643",{p_vehicle_ids:null}),
     getNewsV155(false), getBannersV155(false)
   ]);
+  const showroomIds=[...new Set((showroomUnits.data??[]).map((r:any)=>n(r.catalog_vehicle_id)).filter((id:number)=>id>0))].slice(0,8);
+  const showroom=showroomIds.length
+    ? await (supabase as any).from("catalog_vehicles").select("id,brand,model,images,price").in("id",showroomIds).eq("published",true)
+    : {data:[]};
   return {events:events.data??[],ticketEvents:tickets.data??[],showroom:(showroom.data??[]).map((r:any)=>({...r,imageUrl:firstImage(r.images)})),news:news.slice(0,4),banners:banners.slice(0,3)};
 }
 

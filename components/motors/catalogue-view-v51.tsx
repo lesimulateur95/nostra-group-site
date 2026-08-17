@@ -513,7 +513,9 @@ export async function CatalogueViewV51({
                               </span>
                             )}
                             {vehicle.is_demo && (
-                              <span className={styles.demoVehicleBadgeV164}>VÉHICULE DE DÉMONSTRATION</span>
+                              <span className={styles.demoVehicleBadgeV164}>
+                                {vehicle.demo_count} EXEMPLAIRE{vehicle.demo_count > 1 ? "S" : ""} DÉMO
+                              </span>
                             )}
                             {vehicle.images[0] ? (
                               <img
@@ -547,8 +549,11 @@ export async function CatalogueViewV51({
                             {vehicle.is_demo && (
                               <div className={styles.demoInfoV164}>
                                 <div>
-                                  <strong>Démonstration Nostra</strong>
-                                  <span>{vehicle.demo_mileage.toLocaleString("fr-FR")} km</span>
+                                  <strong>Exemplaire de démonstration Nostra</strong>
+                                  <span>
+                                    {vehicle.demo_count > 1 ? `${vehicle.demo_count} exemplaires démo · ` : ""}
+                                    {vehicle.demo_mileage.toLocaleString("fr-FR")} km{vehicle.demo_count > 1 ? " pour le premier exemplaire" : ""}
+                                  </span>
                                 </div>
                                 {vehicle.demo_original_price != null && vehicle.demo_original_price > vehicle.price && (
                                   <div>

@@ -3,6 +3,7 @@ import type {
   CatalogVehicleImage,
 } from "@/lib/backoffice/data";
 import { createClient } from "@/lib/supabase/server";
+import { getShowroomConfigured, getShowroomDetailsMap } from "@/lib/nostra-motors/showroom";
 
 export const CATALOG_TYPES = [
   "standard",
@@ -22,6 +23,8 @@ export type CatalogVehicleV51 =
     catalog_type: CatalogType;
     used_vehicle_status: UsedVehicleStatus;
     used_condition: string;
+    showroom_count: number;
+    demo_count: number;
   };
 
 export const CATALOG_LABELS: Record<
@@ -123,7 +126,15 @@ export async function getCatalogVehiclesV51({
 
   if (error || !data) return [];
 
-  return data.map((row) => ({
+  const physicalShowroomConfigured = await getShowroomConfigured();
+  const showroomDetails = physicalShowroomConfigured
+    ? await getShowroomDetailsMap(data.map((row) => Number(row.id)))
+    : new Map();
+
+  return data.map((row) => {
+    const showroom = showroomDetails.get(Number(row.id));
+    const usePhysicalDemo = physicalShowroomConfigured && showroom != null;
+    return ({
     id: Number(row.id),
     brand: String(row.brand ?? ""),
     model: String(row.model ?? ""),
@@ -158,10 +169,14 @@ export async function getCatalogVehiclesV51({
         ? row.used_vehicle_status
         : "available",
     used_condition: String(row.used_condition ?? ""),
-    is_demo: row.is_demo === true,
-    demo_mileage: Math.max(0, Number(row.demo_mileage) || 0),
-    demo_original_price: row.demo_original_price == null ? null : Math.max(0, Number(row.demo_original_price) || 0),
-    demo_note: String(row.demo_note ?? ""),
+    is_demo: usePhysicalDemo ? (showroom?.demoCount ?? 0) > 0 : row.is_demo === true,
+    demo_mileage: usePhysicalDemo ? (showroom?.demoMileage ?? 0) : Math.max(0, Number(row.demo_mileage) || 0),
+    demo_original_price: usePhysicalDemo
+      ? (showroom?.demoOriginalPrice ?? null)
+      : row.demo_original_price == null ? null : Math.max(0, Number(row.demo_original_price) || 0),
+    demo_note: usePhysicalDemo ? (showroom?.demoNote ?? "") : String(row.demo_note ?? ""),
+    showroom_count: usePhysicalDemo ? (showroom?.showroomCount ?? 0) : 0,
+    demo_count: usePhysicalDemo ? (showroom?.demoCount ?? 0) : (row.is_demo === true ? 1 : 0),
     created_at:
       typeof row.created_at === "string"
         ? row.created_at
@@ -170,5 +185,6 @@ export async function getCatalogVehiclesV51({
       typeof row.updated_at === "string"
         ? row.updated_at
         : null,
-  }));
+    });
+  });
 }

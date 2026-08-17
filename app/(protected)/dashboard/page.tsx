@@ -208,23 +208,15 @@ export default async function DashboardPage() {
               <DashboardModuleSubgroup
                 eyebrow="VÉHICULES"
                 title="Catalogue et disponibilité"
-                description="Gérer les fiches, le stock, les démonstrations et la disponibilité des véhicules."
+                description="Gérer les fiches catalogue, le stock physique et la disponibilité commerciale."
               >
                 {(motorsCan("catalogue_read") || motorsCan("catalogue_manage")) && (
                   <DashboardCard
                     href="/dashboard/catalogue"
                     icon="🚗"
                     title="Catalogue Nostra Motors"
-                    description="Ajouter ou modifier les véhicules, photos, prix, stock et statut véhicule de démonstration."
+                    description="Ajouter ou modifier les véhicules, photos, prix, stock et informations catalogue."
                     badge={managerAccess && overview.catalogVehicles ? `${overview.catalogVehicles} véhicule(s)` : undefined}
-                  />
-                )}
-                {(motorsCan("catalogue_read") || motorsCan("catalogue_manage")) && (
-                  <DashboardCard
-                    href="/dashboard/vehicules-demo"
-                    icon="🏁"
-                    title="Véhicules de démonstration"
-                    description="Retrouver tous les véhicules démo, modifier leur kilométrage et attribuer ou retirer le statut démonstration."
                   />
                 )}
                 {motorsCan("inventory_manage") && (
@@ -829,10 +821,10 @@ export default async function DashboardPage() {
                   description="Comparer prix de vente, coûts réels et marge réalisée véhicule par véhicule."
                 />
                 <DashboardCard
-                  href="/dashboard/vehicules-demo"
+                  href="/dashboard/showroom"
                   icon="🏁"
-                  title="Véhicules de démonstration"
-                  description="Retrouver tous les véhicules démo, modifier leur kilométrage et attribuer ou retirer le statut démonstration."
+                  title="Gestion Showroom"
+                  description="Choisir combien d’exemplaires physiques sont exposés et lesquels sont réellement des véhicules de démonstration."
                 />
                 <DashboardCard
                   href="/dashboard/garanties"

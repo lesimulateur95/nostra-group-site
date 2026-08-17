@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { CATALOG_LABELS, getCatalogVehiclesV51 } from "@/lib/catalogues-v51/data";
-import { getShowroomConfigured, getShowroomVehicleIds } from "@/lib/nostra-motors/showroom";
+import { getShowroomConfigured } from "@/lib/nostra-motors/showroom";
 
 import styles from "./page.module.css";
 
@@ -17,16 +17,16 @@ function formatPrice(value: number): string {
 }
 
 export default async function MotorsShowroomPage() {
-  const [configured, showroomIds, vehicles] = await Promise.all([
+  const [configured, vehicles] = await Promise.all([
     getShowroomConfigured(),
-    getShowroomVehicleIds(),
     getCatalogVehiclesV51(),
   ]);
 
-  const selected = new Set(showroomIds);
   const showroomVehicles = vehicles.filter(
-    (vehicle) => vehicle.catalog_type !== "used" && selected.has(Number(vehicle.id)),
+    (vehicle) => vehicle.catalog_type !== "used" && vehicle.showroom_count > 0,
   );
+  const showroomUnits = showroomVehicles.reduce((sum, vehicle) => sum + vehicle.showroom_count, 0);
+  const demoUnits = showroomVehicles.reduce((sum, vehicle) => sum + vehicle.demo_count, 0);
 
   return (
     <main className={styles.page}>
@@ -34,30 +34,33 @@ export default async function MotorsShowroomPage() {
         <p className={styles.eyebrow}>NOSTRA MOTORS · CONCESSION</p>
         <h1>Le showroom</h1>
         <p>
-          Découvre les véhicules actuellement exposés dans notre concession. Cette sélection
-          correspond aux modèles physiquement présents au showroom et peut évoluer à tout moment.
+          Découvre les véhicules réellement présents dans notre concession. Le nombre affiché correspond
+          aux exemplaires physiques actuellement affectés au showroom, indépendamment du reste du stock.
         </p>
       </header>
 
       {!configured ? (
         <section className={styles.setup}>
           <h2>Activation du showroom nécessaire</h2>
-          <p>La Direction doit exécuter le SQL V152 avant d’utiliser cette page.</p>
+          <p>La Direction doit exécuter le SQL V164.3 avant d’utiliser cette page.</p>
         </section>
       ) : (
         <>
           <section className={styles.summary}>
             <div>
-              <strong>{showroomVehicles.length} véhicule{showroomVehicles.length > 1 ? "s" : ""} exposé{showroomVehicles.length > 1 ? "s" : ""}</strong>
+              <strong>
+                {showroomUnits} exemplaire{showroomUnits > 1 ? "s" : ""} exposé{showroomUnits > 1 ? "s" : ""}
+                {demoUnits > 0 ? ` · ${demoUnits} démonstration${demoUnits > 1 ? "s" : ""}` : ""}
+              </strong>
               <br />
-              <span>Sélection mise à jour directement depuis le Dashboard Nostra Motors.</span>
+              <span>{showroomVehicles.length} modèle{showroomVehicles.length > 1 ? "s" : ""} actuellement représenté{showroomVehicles.length > 1 ? "s" : ""} au showroom.</span>
             </div>
           </section>
 
           {showroomVehicles.length === 0 ? (
             <section className={styles.empty}>
               <h2>Le showroom est en préparation</h2>
-              <p>Aucun véhicule n’est actuellement indiqué comme présent dans la concession.</p>
+              <p>Aucun exemplaire physique n’est actuellement indiqué comme présent dans la concession.</p>
             </section>
           ) : (
             <section className={styles.grid} aria-label="Véhicules présents au showroom">
@@ -73,30 +76,33 @@ export default async function MotorsShowroomPage() {
                     ) : (
                       <div className={styles.placeholder}>PHOTO À VENIR</div>
                     )}
-                    <span className={styles.liveBadge}>PRÉSENT AU SHOWROOM</span>
+                    <span className={styles.liveBadge}>
+                      {vehicle.showroom_count} EXEMPLAIRE{vehicle.showroom_count > 1 ? "S" : ""} AU SHOWROOM
+                    </span>
                   </div>
 
                   <div className={styles.body}>
                     <p className={styles.catalogue}>{CATALOG_LABELS[vehicle.catalog_type]}</p>
                     <h2><span>{vehicle.brand}</span> {vehicle.model}</h2>
 
+                    {vehicle.demo_count > 0 && (
+                      <p className={styles.description}>
+                        <strong>
+                          {vehicle.demo_count} exemplaire{vehicle.demo_count > 1 ? "s" : ""} de démonstration
+                        </strong>
+                        {vehicle.demo_mileage > 0 ? ` · ${vehicle.demo_mileage.toLocaleString("fr-FR")} km` : ""}
+                        {vehicle.demo_note ? ` · ${vehicle.demo_note}` : ""}
+                      </p>
+                    )}
+
                     {vehicle.description && (
                       <p className={styles.description}>{vehicle.description}</p>
                     )}
 
                     <dl className={styles.specs}>
-                      <div>
-                        <dt>Puissance</dt>
-                        <dd>{vehicle.power || "Non renseignée"}</dd>
-                      </div>
-                      <div>
-                        <dt>Vitesse</dt>
-                        <dd>{vehicle.top_speed || "Non renseignée"}</dd>
-                      </div>
-                      <div>
-                        <dt>Coffre</dt>
-                        <dd>{vehicle.trunk_capacity || "Non renseigné"}</dd>
-                      </div>
+                      <div><dt>Puissance</dt><dd>{vehicle.power || "Non renseignée"}</dd></div>
+                      <div><dt>Vitesse</dt><dd>{vehicle.top_speed || "Non renseignée"}</dd></div>
+                      <div><dt>Coffre</dt><dd>{vehicle.trunk_capacity || "Non renseigné"}</dd></div>
                     </dl>
 
                     <div className={styles.priceRow}>

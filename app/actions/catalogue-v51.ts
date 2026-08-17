@@ -406,10 +406,6 @@ export async function saveCatalogVehicleV51(
     ),
     price,
     stock_quantity: stockQuantity,
-    is_demo: checkbox(formData.get("is_demo")),
-    demo_mileage: Math.max(0, integer(formData.get("demo_mileage"), 0)),
-    demo_original_price: money(formData.get("demo_original_price")) || null,
-    demo_note: text(formData.get("demo_note"), 1200) || null,
     description: text(
       formData.get("description"),
       4000,
@@ -502,8 +498,6 @@ export async function saveCatalogVehicleV51(
         model,
         price,
         stock_quantity: stockQuantity,
-        is_demo: payload.is_demo,
-        demo_mileage: payload.demo_mileage,
       },
     });
   } catch {

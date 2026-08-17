@@ -8,7 +8,6 @@ import {
   saveCatalogVehicleV51,
 } from "@/app/actions/catalogue-v51";
 import { setVehicleCommerceAvailability } from "@/app/actions/vehicle-reservation-settings";
-import { setVehicleShowroomVisibility } from "@/app/actions/showroom";
 import { saveVehicleMerchandisingV157 } from "@/app/actions/v157";
 import {
   createExclusiveCollectionV158,
@@ -40,7 +39,6 @@ import {
   getStockCommerceConfigured,
 } from "@/lib/backoffice/data";
 import { getVehicleCommerceAvailabilityMap } from "@/lib/vehicle-commerce-settings/data";
-import { getShowroomConfigured, getShowroomStateMap } from "@/lib/nostra-motors/showroom";
 import {
   getActiveVehicleSaleV157,
   getVehicleMerchandisingMapV157,
@@ -98,8 +96,6 @@ export default async function DashboardCataloguePage({
     error?: string;
     commerce_saved?: string;
     commerce_error?: string;
-    showroom_saved?: string;
-    showroom_error?: string;
     v157_saved?: string;
     v157_error?: string;
     sort?: string;
@@ -148,12 +144,10 @@ export default async function DashboardCataloguePage({
 
   const managedTypes = CATALOG_TYPES.filter((type) => type !== "used");
   const managedVehicles = allVehicles.filter((vehicle) => vehicle.catalog_type !== "used");
-  const [commerceAvailability, showroomConfigured, showroomState, merchandising, exclusiveCollections, exclusiveCollectionMap] = await Promise.all([
+  const [commerceAvailability, merchandising, exclusiveCollections, exclusiveCollectionMap] = await Promise.all([
     getVehicleCommerceAvailabilityMap(
       managedVehicles.map((vehicle) => Number(vehicle.id)),
     ),
-    getShowroomConfigured(),
-    getShowroomStateMap(managedVehicles.map((vehicle) => Number(vehicle.id))),
     getVehicleMerchandisingMapV157(managedVehicles.map((vehicle) => Number(vehicle.id))),
     getExclusiveCollectionsV158({ includeInactive: true }),
     getVehicleCollectionMapV159(managedVehicles.map((vehicle) => Number(vehicle.id)), { includeInactive: true }),
@@ -321,26 +315,6 @@ export default async function DashboardCataloguePage({
             : params.commerce_error === "forbidden"
               ? "Seule la Direction peut modifier la vente d’un véhicule."
               : "Impossible de modifier la disponibilité commerciale de ce véhicule."}
-        </div>
-      )}
-
-      {params.showroom_saved && (
-        <div className="dashboard-feedback dashboard-feedback-success">
-          {params.showroom_saved === "removed"
-            ? "Le véhicule a été retiré du showroom."
-            : "Le véhicule est maintenant affiché dans le showroom Nostra Motors."}
-        </div>
-      )}
-
-      {params.showroom_error && (
-        <div className="dashboard-feedback dashboard-feedback-error">
-          {params.showroom_error === "setup"
-            ? "Exécute le SQL V152 dans Supabase avant d’utiliser le showroom."
-            : params.showroom_error === "forbidden"
-              ? "Seule la Direction peut modifier le showroom."
-              : params.showroom_error === "not-found"
-                ? "Ce véhicule n’existe plus dans le catalogue."
-                : "Impossible de modifier la présence de ce véhicule au showroom."}
         </div>
       )}
 
@@ -817,26 +791,6 @@ export default async function DashboardCataloguePage({
                 />
               </label>
 
-              <label className="checkbox-label">
-                <input type="checkbox" name="is_demo" />
-                Véhicule de démonstration
-              </label>
-
-              <label>
-                Kilométrage démo
-                <input type="number" name="demo_mileage" min="0" defaultValue="0" />
-              </label>
-
-              <label>
-                Prix neuf / avant remise (€)
-                <input name="demo_original_price" inputMode="decimal" placeholder="Optionnel" />
-              </label>
-
-              <label className="form-span-2">
-                Note véhicule de démonstration
-                <input name="demo_note" placeholder="Ex. véhicule d'exposition, faible kilométrage…" />
-              </label>
-
               <label>
                 Coffre
                 <input name="trunk_capacity" />
@@ -907,7 +861,6 @@ export default async function DashboardCataloguePage({
                   reservation_enabled: true,
                   sale_enabled: true,
                 };
-                const isInShowroom = showroomState.get(Number(vehicle.id)) === true;
                 const merchandisingState = merchandising.get(Number(vehicle.id)) ?? {
                   vehicleId: Number(vehicle.id),
                   saleEnabled: false,
@@ -952,16 +905,6 @@ export default async function DashboardCataloguePage({
                     </div>
 
                     <div className="catalog-admin-badges">
-                      {isInShowroom && (
-                        <span className="catalog-showroom-pill-v152">
-                          Présent au showroom
-                        </span>
-                      )}
-                      {vehicle.is_demo && (
-                        <span className={styles.demoAdminBadgeV164}>
-                          DÉMONSTRATION · {vehicle.demo_mileage.toLocaleString("fr-FR")} km
-                        </span>
-                      )}
                       <span className="catalog-stock-pill">
                         Stock :{" "}
                         {vehicle.stock_quantity}
@@ -1084,44 +1027,6 @@ export default async function DashboardCataloguePage({
                       />
                     </label>
 
-                    <label className="checkbox-label">
-                      <input
-                        type="checkbox"
-                        name="is_demo"
-                        defaultChecked={vehicle.is_demo}
-                      />
-                      Véhicule de démonstration
-                    </label>
-
-                    <label>
-                      Kilométrage démo
-                      <input
-                        type="number"
-                        name="demo_mileage"
-                        min="0"
-                        defaultValue={vehicle.demo_mileage}
-                      />
-                    </label>
-
-                    <label>
-                      Prix neuf / avant remise (€)
-                      <input
-                        name="demo_original_price"
-                        inputMode="decimal"
-                        defaultValue={vehicle.demo_original_price ?? ""}
-                        placeholder="Optionnel"
-                      />
-                    </label>
-
-                    <label className="form-span-2">
-                      Note véhicule de démonstration
-                      <input
-                        name="demo_note"
-                        defaultValue={vehicle.demo_note}
-                        placeholder="Ex. véhicule d'exposition, faible kilométrage…"
-                      />
-                    </label>
-
                     <label>
                       Coffre
                       <input
@@ -1198,37 +1103,6 @@ export default async function DashboardCataloguePage({
                       Enregistrer et déplacer si nécessaire
                     </button>
                   </form>
-
-                  <section className={`catalog-admin-showroom-v152${isInShowroom ? " is-active" : ""}`}>
-                    <div className="catalog-admin-showroom-copy-v152">
-                      <span className="eyebrow">SHOWROOM NOSTRA MOTORS</span>
-                      <h3>{isInShowroom ? "Véhicule actuellement exposé" : "Véhicule non exposé"}</h3>
-                      <p>
-                        Ce réglage ne déplace pas le véhicule et ne le duplique pas : il contrôle uniquement sa présence sur la page publique Showroom.
-                      </p>
-                    </div>
-
-                    <form action={setVehicleShowroomVisibility}>
-                      <input type="hidden" name="vehicle_id" value={vehicle.id} />
-                      <input type="hidden" name="visible" value={isInShowroom ? "false" : "true"} />
-                      <input
-                        type="hidden"
-                        name="return_to"
-                        value={`/dashboard/catalogue?type=${selectedType}#vehicule-${vehicle.id}`}
-                      />
-                      <button
-                        className={isInShowroom ? "btn btn-danger-v98" : "btn"}
-                        type="submit"
-                        disabled={!showroomConfigured}
-                      >
-                        {isInShowroom ? "Retirer du showroom" : "Ajouter au showroom"}
-                      </button>
-                    </form>
-
-                    {!showroomConfigured && (
-                      <small>Exécute le SQL V152 pour activer ce bouton.</small>
-                    )}
-                  </section>
 
                   <section className="catalog-admin-commerce-v127">
                     <div className="catalog-admin-commerce-heading-v127">
