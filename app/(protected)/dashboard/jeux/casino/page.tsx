@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { adjustCasinoWallet, deleteCasinoCashierPackage, resetCasinoBeforeOpening, resetCasinoPlayer, saveCasinoCashierPackage, saveCasinoGameSettings, saveCasinoSettings } from "@/app/actions/casino";
+import { adjustCasinoWallet, deleteCasinoCashierPackage, resetCasinoBeforeOpening, resetCasinoPlayer, saveCasinoCashierPackage, saveCasinoGameSettings, saveCasinoSettings, saveCasinoVisibility } from "@/app/actions/casino";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { getCasinoAdminData, getCasinoCashierPackages, getCasinoSettings } from "@/lib/casino/data";
@@ -151,8 +151,13 @@ export default async function CasinoDashboardPage({ searchParams }: { searchPara
       <section className="tombola-dashboard-controls">
         <article className="backoffice-panel">
           <div className="panel-heading"><span className="panel-icon">♠</span><div><h2>Accès discret</h2><p>Masqué retire le bouton de l’accueil et bloque l’adresse aux citoyens. La Direction conserve l’accès de préparation.</p></div></div>
+          <form action={saveCasinoVisibility} className="tombola-settings-form">
+            <label><span>Visibilité publique</span><select name="public_enabled" defaultValue={settings.publicEnabled ? "true" : "false"}><option value="false">Masqué — privé Direction</option><option value="true">Visible — ouvert aux citoyens</option></select></label>
+            <button className="btn" type="submit">Appliquer la visibilité</button>
+          </form>
+
           <form action={saveCasinoSettings} className="tombola-settings-form">
-            <label><span>Visibilité</span><select name="public_enabled" defaultValue={settings.publicEnabled ? "true" : "false"}><option value="false">Masqué — privé Direction</option><option value="true">Visible — ouvert aux citoyens</option></select></label>
+            <input type="hidden" name="public_enabled" value={settings.publicEnabled ? "true" : "false"} />
             <label><span>Nom du casino</span><input name="name" defaultValue={settings.name} maxLength={80} required /></label>
             <label><span>Sous-titre</span><input name="subtitle" defaultValue={settings.subtitle} maxLength={120} /></label>
             <label><span>Valeur RP d’un jeton ($RP)</span><input name="rp_per_chip" type="number" min="1" defaultValue={settings.rpPerChip} required /></label>

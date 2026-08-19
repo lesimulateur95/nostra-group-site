@@ -35,6 +35,23 @@ function refresh() {
   revalidatePath("/dashboard/jeux/casino");
 }
 
+export async function saveCasinoVisibility(formData: FormData) {
+  const supabase = await manager();
+  const publicEnabled = text(formData.get("public_enabled"), 10) === "true";
+
+  const { error } = await (supabase as any).rpc("casino_set_public_visibility_v1649", {
+    p_public_enabled: publicEnabled,
+  });
+
+  if (error) {
+    console.error("[casino] Impossible de modifier la visibilité publique:", error);
+    redirect("/dashboard/jeux/casino?error=visibility-v1649");
+  }
+
+  refresh();
+  redirect(`/dashboard/jeux/casino?saved=${publicEnabled ? "visible" : "hidden"}`);
+}
+
 export async function saveCasinoSettings(formData: FormData) {
   const supabase = await manager();
   const publicEnabled = text(formData.get("public_enabled"), 10) === "true";
