@@ -81,7 +81,15 @@ export default async function ProfileFinancingPage({
             ? "Le module de financement doit être activé avec le SQL V125."
             : params.error === "payment-missing"
               ? "La ligne de paiement n’est plus dans ton panier. Recharge la page."
-              : "Le paiement n’a pas pu être enregistré. Recharge la page ou contacte Nostra Motors."}
+              : params.error === "payment-funds"
+                ? "Paiement refusé : ton solde bancaire en jeu est insuffisant."
+                : params.error === "payment-steam"
+                  ? "Paiement impossible : aucun PID Steam n’est lié à ton profil."
+                  : params.error === "payment-processing"
+                    ? "Ce paiement est déjà en cours. Recharge la page dans quelques secondes."
+                    : params.error === "payment-bank"
+                      ? "La BDD bancaire du serveur ne répond pas. Aucun financement n’a été débité."
+                      : "Le paiement n’a pas pu être enregistré. Recharge la page ou contacte Nostra Motors."}
         </div>
       )}
 
@@ -170,6 +178,7 @@ function FinancingCard({ application }: { application: VehicleFinancingApplicati
       {payable && (
         <form action={checkoutVehicleFinancingPayment} className={styles.payment}>
           <input type="hidden" name="application_id" value={application.id} />
+          <input type="hidden" name="checkout_token" value={crypto.randomUUID()} />
           <div>
             <span>{application.status === "deposit_due" ? "Apport à payer maintenant" : `Échéance ${pendingInstallment?.installment_number} à payer`}</span>
             <strong>{money(application.status === "deposit_due" ? initialPayment : pendingInstallment?.amount ?? 0)}</strong>

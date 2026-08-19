@@ -60,6 +60,26 @@ export type GameMoneyDebitResult =
       available: number | null;
     };
 
+
+export type GameMoneyTransferResult =
+  | {
+      status: "transferred";
+      amount: number;
+      payerBalanceBefore: number;
+      payerBalanceAfter: number;
+      receiverBalanceBefore: number;
+      receiverBalanceAfter: number;
+      accountLabel: string;
+    }
+  | {
+      status:
+        | "not_configured"
+        | "not_found"
+        | "receiver_not_found"
+        | "insufficient_funds"
+        | "unavailable";
+      available: number | null;
+    };
 export type GameMoneyCreditResult =
   | {
       status: "credited";
@@ -482,6 +502,106 @@ export async function creditCitizenGameMoney(
     if (connection) await connection.rollback().catch(() => undefined);
     console.error("[game-bank] Crédit de la revente Casino impossible.", error);
     return { status: "unavailable" };
+  } finally {
+    if (connection) await connection.end().catch(() => undefined);
+  }
+}
+
+
+/**
+ * Transfert bancaire atomique utilisé par Nostra Motors.
+ * Le débit du client et le crédit du compte destinataire sont réalisés
+ * dans UNE seule transaction MySQL. Si une étape échoue, rien ne bouge.
+ */
+export async function transferCitizenGameMoney(
+  payerSteamId: string,
+  receiverSteamId: string,
+  requestedAmount: number,
+): Promise<GameMoneyTransferResult> {
+  if (!requiredDatabaseConfiguration()) {
+    return { status: "not_configured", available: null };
+  }
+  if (
+    !payerSteamId ||
+    !receiverSteamId ||
+    payerSteamId === receiverSteamId ||
+    !Number.isSafeInteger(requestedAmount) ||
+    requestedAmount <= 0
+  ) {
+    return { status: "unavailable", available: null };
+  }
+
+  const { table, uidColumn } = databaseIdentifiers();
+  const target = parseAccountColumns()[0];
+  if (!target || !SAFE_IDENTIFIER.test(target.column)) {
+    return { status: "not_configured", available: null };
+  }
+
+  let connection: Connection | null = null;
+  try {
+    connection = await openGameDatabaseConnection();
+    if (!connection) return { status: "not_configured", available: null };
+    await connection.beginTransaction();
+
+    // Verrouille les deux comptes dans un ordre stable pour limiter les deadlocks.
+    const ids = [payerSteamId, receiverSteamId].sort();
+    const [rows] = await connection.execute<
+      (RowDataPacket & { player_uid: unknown; bank_balance: unknown })[]
+    >(
+      `select \`${uidColumn}\` as \`player_uid\`, \`${target.column}\` as \`bank_balance\` from \`${table}\` where \`${uidColumn}\` in (?, ?) order by \`${uidColumn}\` for update`,
+      ids,
+    );
+
+    const balances = new Map(
+      rows.map((row) => [String(row.player_uid), Math.max(0, Math.trunc(amount(row.bank_balance)))]),
+    );
+    const payerBalanceBefore = balances.get(payerSteamId);
+    const receiverBalanceBefore = balances.get(receiverSteamId);
+
+    if (payerBalanceBefore === undefined) {
+      await connection.rollback();
+      return { status: "not_found", available: 0 };
+    }
+    if (receiverBalanceBefore === undefined) {
+      await connection.rollback();
+      return { status: "receiver_not_found", available: payerBalanceBefore };
+    }
+    if (payerBalanceBefore < requestedAmount) {
+      await connection.rollback();
+      return { status: "insufficient_funds", available: payerBalanceBefore };
+    }
+
+    const [debitResult] = await connection.execute(
+      `update \`${table}\` set \`${target.column}\` = \`${target.column}\` - ? where \`${uidColumn}\` = ? and \`${target.column}\` >= ?`,
+      [requestedAmount, payerSteamId, requestedAmount],
+    );
+    if (Number((debitResult as { affectedRows?: number }).affectedRows ?? 0) !== 1) {
+      await connection.rollback();
+      return { status: "insufficient_funds", available: payerBalanceBefore };
+    }
+
+    const [creditResult] = await connection.execute(
+      `update \`${table}\` set \`${target.column}\` = \`${target.column}\` + ? where \`${uidColumn}\` = ?`,
+      [requestedAmount, receiverSteamId],
+    );
+    if (Number((creditResult as { affectedRows?: number }).affectedRows ?? 0) !== 1) {
+      throw new Error("nostra_receiver_credit_failed");
+    }
+
+    await connection.commit();
+    return {
+      status: "transferred",
+      amount: requestedAmount,
+      payerBalanceBefore,
+      payerBalanceAfter: payerBalanceBefore - requestedAmount,
+      receiverBalanceBefore,
+      receiverBalanceAfter: receiverBalanceBefore + requestedAmount,
+      accountLabel: target.label,
+    };
+  } catch (error) {
+    if (connection) await connection.rollback().catch(() => undefined);
+    console.error("[game-bank] Paiement Nostra Motors impossible.", error);
+    return { status: "unavailable", available: null };
   } finally {
     if (connection) await connection.end().catch(() => undefined);
   }

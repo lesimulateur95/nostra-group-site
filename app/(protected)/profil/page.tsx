@@ -233,6 +233,12 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
  : params.order_error === "phone" ? "Renseigne un numéro de téléphone pour la livraison."
  : params.order_error === "hold-expired" ? "La réservation temporaire du stock a expiré. Les véhicules concernés ont été libérés : refais ta sélection si tu veux les commander."
  : params.order_error === "hold-reserved" ? "Un véhicule de ton panier vient d’être temporairement réservé par un autre citoyen."
+ : params.order_error === "payment-funds" ? "Paiement refusé : ton compte bancaire en jeu ne contient pas assez d’argent."
+ : params.order_error === "payment-steam" ? "Paiement impossible : aucun PID Steam n’est lié à ton profil."
+ : params.order_error === "payment-receiver" ? "Paiement temporairement indisponible : le compte Nostra Motors de réception n’est pas configuré."
+ : params.order_error === "payment-player" ? "Paiement impossible : ton compte joueur est introuvable dans la BDD du serveur."
+ : params.order_error === "payment-processing" ? "Ce paiement est déjà en cours de traitement. Ne reclique pas : recharge la page dans quelques secondes."
+ : params.order_error === "payment-bank" ? "La BDD bancaire du serveur ne répond pas correctement. Aucun achat Nostra Motors n’a été validé."
  : params.order_error ? "La commande n’a pas pu être envoyée. Réessaie dans un instant." : null;
 
  const errorMessage =
@@ -246,6 +252,13 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
  : params.error === "profile_setup" ? "Exécute le SQL V42.5 pour activer le téléphone et l’adresse dans le profil."
 
  : params.error === "save_failed" ? "Le profil n’a pas pu être sauvegardé. Réessaie dans un instant." : null;
+
+ const paymentTokens = {
+  vehicleOrder: crypto.randomUUID(),
+  reservationDeposit: crypto.randomUUID(),
+  reservationBalance: crypto.randomUUID(),
+  warranty: crypto.randomUUID(),
+ };
 
  return (
   <>
@@ -336,9 +349,9 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
 
  {params.balance_paid && <div className="dashboard-feedback dashboard-feedback-success">Solde payé. La réservation est devenue une commande Nostra Motors.</div>}
 
- {params.reservation_error && <div className="dashboard-feedback dashboard-feedback-error">La réservation n’a pas pu être enregistrée. Vérifie le stock ou une éventuelle réservation déjà active.</div>}
+ {params.reservation_error && <div className="dashboard-feedback dashboard-feedback-error">{params.reservation_error === "payment-funds" ? "Paiement de l’acompte refusé : solde bancaire insuffisant." : params.reservation_error === "payment-steam" ? "Paiement impossible : aucun PID Steam n’est lié à ton profil." : params.reservation_error === "payment-processing" ? "Cet acompte est déjà en cours de paiement." : params.reservation_error === "payment-receiver" ? "Le compte Nostra Motors de réception n’est pas configuré." : params.reservation_error === "payment-bank" ? "La BDD bancaire du serveur ne répond pas. Aucun acompte n’a été validé." : "La réservation n’a pas pu être enregistrée. Vérifie le stock ou une éventuelle réservation déjà active."}</div>}
 
- {params.balance_error && <div className="dashboard-feedback dashboard-feedback-error">Le solde n’a pas pu être payé. Recharge la page ou contacte Nostra Motors.</div>}
+ {params.balance_error && <div className="dashboard-feedback dashboard-feedback-error">{params.balance_error === "payment-funds" ? "Paiement du solde refusé : solde bancaire insuffisant." : params.balance_error === "payment-steam" ? "Paiement impossible : aucun PID Steam n’est lié à ton profil." : params.balance_error === "payment-processing" ? "Ce solde est déjà en cours de paiement." : params.balance_error === "payment-receiver" ? "Le compte Nostra Motors de réception n’est pas configuré." : params.balance_error === "payment-bank" ? "La BDD bancaire du serveur ne répond pas. Aucun solde n’a été validé." : "Le solde n’a pas pu être payé. Recharge la page ou contacte Nostra Motors."}</div>}
 
  {params.order_sent && <div className="dashboard-feedback dashboard-feedback-success">Commande <strong>{params.order_sent}</strong> envoyée à Nostra Motors. Le stock a été réservé automatiquement.</div>}
 
@@ -370,7 +383,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
  {params.warranty_added && <div className="dashboard-feedback dashboard-feedback-success">Garantie <strong>{params.warranty_added}</strong> ajoutée au panier.</div>}
  {params.warranty_removed && <div className="dashboard-feedback dashboard-feedback-success">La garantie a été retirée du panier.</div>}
  {params.warranty_paid && <div className="dashboard-feedback dashboard-feedback-success">Paiement enregistré : {params.warranty_paid} garantie(s) Nostra Care activée(s). <Link href="/profil/garage">Voir les contrats dans mon garage →</Link></div>}
- {params.warranty_error && <div className="dashboard-feedback dashboard-feedback-error">La garantie n’a pas pu être traitée : {decodeURIComponent(params.warranty_error)}.</div>}
+ {params.warranty_error && <div className="dashboard-feedback dashboard-feedback-error">{decodeURIComponent(params.warranty_error) === "payment-funds" ? "Paiement Nostra Care refusé : solde bancaire insuffisant." : decodeURIComponent(params.warranty_error) === "payment-steam" ? "Paiement Nostra Care impossible : aucun PID Steam n’est lié à ton profil." : decodeURIComponent(params.warranty_error) === "payment-processing" ? "Ce paiement Nostra Care est déjà en cours." : decodeURIComponent(params.warranty_error) === "payment-bank" ? "La BDD bancaire du serveur ne répond pas. La garantie n’a pas été activée." : `La garantie n’a pas pu être traitée : ${decodeURIComponent(params.warranty_error)}.`}</div>}
  {params.contract_error && <div className="dashboard-feedback dashboard-feedback-error">{params.contract_error === "empty" ? "Aucune reconduction de contrat n’est actuellement à payer." : params.contract_error === "setup" ? "Le module Contrats doit être activé avec le SQL V114." : "Le paiement du contrat n’a pas pu être enregistré."}</div>}
 
  {orderErrorMessage && <div className="dashboard-feedback dashboard-feedback-error">{orderErrorMessage}</div>}
@@ -477,6 +490,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
 
  {warrantyCart.items.length > 0 && (
  <form action={checkoutWarrantyCartV1631} className="profile-order-form">
+ <input type="hidden" name="checkout_token" value={paymentTokens.warranty} />
  <p className="commerce-hint">Le paiement active immédiatement la garantie. Sa date de début est la date du paiement et sa fin est calculée selon la durée de la formule.</p>
  <button type="submit" className="btn">Payer mes garanties Nostra Care · {money(warrantyCartTotal)}</button>
  </form>
@@ -485,6 +499,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
  {normalVehicleCart.length > 0 && (
 
  <form action={placeCartOrder} className="profile-order-form profile-order-form-v160">
+ <input type="hidden" name="checkout_token" value={paymentTokens.vehicleOrder} />
  {eligibleDeliveryVehicleCount > 0 ? (
  <fieldset className="profile-delivery-v160">
  <legend>Récupération de la commande</legend>
@@ -530,6 +545,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
 
  {reservationDepositCart.length > 0 && (
  <form action={checkoutVehicleReservationDeposits} className="profile-order-form">
+ <input type="hidden" name="checkout_token" value={paymentTokens.reservationDeposit} />
  <p className="commerce-hint">Le paiement de l’acompte bloque le stock et envoie la réservation au Dashboard. Après validation, le solde de 85 % sera ajouté automatiquement ici.</p>
  <button className="btn" type="submit">Payer les acomptes de réservation</button>
  </form>
@@ -537,6 +553,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
 
  {reservationBalanceCart.length > 0 && (
  <form action={checkoutVehicleReservationBalances} className="profile-order-form">
+ <input type="hidden" name="checkout_token" value={paymentTokens.reservationBalance} />
  <p className="commerce-hint">Nostra Motors a validé la réservation. Le montant ci-dessus correspond aux 85 % restants, avec la livraison à domicile si elle a été choisie.</p>
  <button className="btn" type="submit">Payer les soldes de réservation</button>
  </form>

@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { getUserRoleKeys } from "@/lib/auth/access";
 import { getCitizenBankInformation } from "@/lib/game-bank/data";
 import { createClient } from "@/lib/supabase/server";
+import { chargeNostraMotors, refundNostraMotors } from "@/lib/nostra-motors/game-payment";
 
 function text(value: FormDataEntryValue | null, max = 2000): string {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
@@ -196,11 +197,63 @@ export async function checkoutVehicleFinancingPayment(formData: FormData) {
   const { data } = await supabase.auth.getUser();
   if (!data.user) redirect("/");
 
+  const { data: application } = await (supabase as any)
+    .from("vehicle_financing_applications")
+    .select("id,status,down_payment_amount,delivery_fee")
+    .eq("id", applicationId)
+    .eq("user_id", data.user.id)
+    .maybeSingle();
+  if (!application) redirect("/profil/financements?error=payment-missing");
+
+  let payable = 0;
+  if (application.status === "deposit_due") {
+    payable = Math.round(
+      Math.max(0, Number(application.down_payment_amount) || 0) +
+        Math.max(0, Number(application.delivery_fee) || 0),
+    );
+  } else if (application.status === "active") {
+    const { data: installment } = await (supabase as any)
+      .from("vehicle_financing_installments")
+      .select("id,amount")
+      .eq("application_id", applicationId)
+      .eq("status", "pending")
+      .order("installment_number", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    payable = Math.round(Math.max(0, Number(installment?.amount) || 0));
+  }
+  if (payable <= 0) redirect("/profil/financements?error=payment-missing");
+
+  const checkoutToken = text(formData.get("checkout_token"), 120) || crypto.randomUUID();
+  const payment = await chargeNostraMotors({
+    supabase: supabase as any,
+    user: data.user,
+    amount: payable,
+    idempotencyKey: `motors-financing:${data.user.id}:${applicationId}:${checkoutToken}`,
+    description: application.status === "deposit_due"
+      ? "Apport financement Nostra Motors"
+      : "Échéance financement Nostra Motors",
+  });
+  if (!payment.ok) {
+    const reason = payment.reason === "funds" ? "payment-funds"
+      : payment.reason === "steam" ? "payment-steam"
+      : payment.reason === "duplicate" ? "payment-processing"
+      : "payment-bank";
+    redirect(`/profil/financements?error=${reason}`);
+  }
+
   const { data: result, error } = await (supabase as any).rpc(
     "checkout_vehicle_financing_payment_v125",
     { p_application_id: applicationId },
   );
   if (error) {
+    await refundNostraMotors({
+      payerPid: payment.payerPid,
+      receiverPid: payment.receiverPid,
+      amount: payment.amount,
+      paymentId: payment.paymentId,
+      reason: `financing:${errorCode(error)}`,
+    });
     redirect(`/profil/financements?error=${errorCode(error)}`);
   }
 

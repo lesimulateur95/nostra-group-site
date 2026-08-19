@@ -5,6 +5,11 @@ import { redirect } from "next/navigation";
 import { getUserRoleKeys } from "@/lib/auth/access";
 import { getDiscordName, getRpName } from "@/lib/auth/user-profile";
 import { createClient } from "@/lib/supabase/server";
+import {
+  attachNostraPaymentOrder,
+  chargeNostraMotors,
+  refundNostraMotors,
+} from "@/lib/nostra-motors/game-payment";
 
 function text(value: FormDataEntryValue | null, max = 2000): string {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
@@ -71,6 +76,91 @@ function orderErrorCode(
   )
     return "cart-refresh";
   return "save";
+}
+
+function paymentErrorCode(reason: string): string {
+  if (reason === "steam") return "payment-steam";
+  if (reason === "receiver" || reason === "receiver_missing") return "payment-receiver";
+  if (reason === "funds") return "payment-funds";
+  if (reason === "duplicate") return "payment-processing";
+  if (reason === "payer") return "payment-player";
+  return "payment-bank";
+}
+
+async function cartAmountForTypes(
+  supabase: any,
+  userId: string,
+  itemTypes: string[],
+): Promise<number> {
+  const { data, error } = await supabase
+    .from("cart_items")
+    .select("unit_price,quantity,item_type")
+    .eq("user_id", userId)
+    .in("item_type", itemTypes);
+  if (error) throw error;
+  return Math.max(
+    0,
+    Math.round(
+      (data ?? []).reduce(
+        (sum: number, row: any) =>
+          sum + Math.max(0, Number(row.unit_price) || 0) * Math.max(1, Number(row.quantity) || 1),
+        0,
+      ),
+    ),
+  );
+}
+
+async function motorsVehicleCartAmount(
+  supabase: any,
+  userId: string,
+  promoCode: string | null,
+): Promise<number> {
+  const base = await cartAmountForTypes(supabase, userId, ["vehicle", "delivery"]);
+  if (!promoCode || base <= 0) return base;
+  const { data, error } = await supabase.rpc("nostra_promo_quote_v153", {
+    p_code: promoCode,
+    p_scope: "motors",
+    p_amount: base,
+  });
+  if (error) throw error;
+  const quote = data && typeof data === "object" ? (data as Record<string, unknown>) : {};
+  if (quote.valid !== true) {
+    throw new Error(`promo_${String(quote.reason ?? "invalid")}`);
+  }
+  const discount = Math.max(0, Number(quote.discount_amount) || 0);
+  return Math.max(0, Math.round(base - discount));
+}
+
+async function chargeCartPayment(args: {
+  supabase: any;
+  user: any;
+  amount: number;
+  token: string;
+  description: string;
+}) {
+  if (args.amount <= 0) return null;
+  const payment = await chargeNostraMotors({
+    supabase: args.supabase,
+    user: args.user,
+    amount: args.amount,
+    idempotencyKey: args.token,
+    description: args.description,
+  });
+  return payment;
+}
+
+async function refundIfNeeded(
+  payment: Awaited<ReturnType<typeof chargeCartPayment>>,
+  reason: string,
+) {
+  if (!payment || !payment.ok) return;
+  await refundNostraMotors({
+    payerPid: payment.payerPid,
+    receiverPid: payment.receiverPid,
+    amount: payment.amount,
+    paymentId: payment.paymentId,
+    reason,
+  });
 }
 
 async function requireMotorsStaff() {
@@ -159,6 +249,7 @@ export async function removeCartItem(formData: FormData) {
 
 export async function placeCartOrder(formData: FormData) {
   const customerNote = text(formData.get("customer_note"), 1500) || null;
+  const checkoutToken = text(formData.get("checkout_token"), 120) || `motors-${crypto.randomUUID()}`;
   const rawPromoCode = text(formData.get("promo_code"), 80);
   const promoCode = rawPromoCode ? rawPromoCode.toUpperCase().replace(/[^A-Z0-9_-]/g, "").slice(0, 32) || null : null;
   const deliveryMode = text(formData.get("delivery_mode"), 30) || "showroom";
@@ -219,6 +310,25 @@ export async function placeCartOrder(formData: FormData) {
   // on réapplique donc les campagnes juste avant le paiement final.
   await (supabase as any).rpc("nostra_apply_active_campaigns_to_my_cart_v162");
 
+  let payableAmount = 0;
+  try {
+    payableAmount = await motorsVehicleCartAmount(supabase as any, data.user.id, promoCode);
+  } catch (error) {
+    redirect(`/profil?order_error=${orderErrorCode(error as any)}`);
+  }
+  if (payableAmount <= 0) redirect("/profil?order_error=empty");
+
+  const payment = await chargeCartPayment({
+    supabase: supabase as any,
+    user: data.user,
+    amount: payableAmount,
+    token: `motors-order:${data.user.id}:${checkoutToken}`,
+    description: "Commande Nostra Motors",
+  });
+  if (payment && !payment.ok) {
+    redirect(`/profil?order_error=${paymentErrorCode(payment.reason)}`);
+  }
+
   const orderNumber = createOrderNumber();
   const customerName =
     getRpName(data.user) || getDiscordName(data.user) || "Client Nostra Motors";
@@ -230,7 +340,10 @@ export async function placeCartOrder(formData: FormData) {
     p_promo_code: promoCode,
   });
 
-  if (error) redirect(`/profil?order_error=${orderErrorCode(error)}`);
+  if (error) {
+    await refundIfNeeded(payment, `order_rpc:${orderErrorCode(error)}`);
+    redirect(`/profil?order_error=${orderErrorCode(error)}`);
+  }
 
   const response =
     result && typeof result === "object"
@@ -241,6 +354,10 @@ export async function placeCartOrder(formData: FormData) {
       ? response.order_number
       : orderNumber;
   const savedOrderId = Number(response.id);
+
+  if (payment?.ok && Number.isFinite(savedOrderId) && savedOrderId > 0) {
+    await attachNostraPaymentOrder(payment.paymentId, savedOrderId);
+  }
 
   if (Number.isFinite(savedOrderId) && savedOrderId > 0) {
     await (supabase as any).rpc("nostra_convert_my_holds_v161", {
@@ -263,10 +380,22 @@ export async function placeCartOrder(formData: FormData) {
   redirect(`/profil?order_sent=${encodeURIComponent(savedNumber)}`);
 }
 
-export async function checkoutVehicleReservationDeposits() {
+export async function checkoutVehicleReservationDeposits(formData?: FormData) {
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
   if (!data.user) redirect("/");
+
+  const amount = await cartAmountForTypes(supabase as any, data.user.id, ["reservation_deposit"]);
+  if (amount <= 0) redirect("/profil?reservation_error=empty-reservation");
+  const token = formData ? text(formData.get("checkout_token"), 120) : "";
+  const payment = await chargeCartPayment({
+    supabase: supabase as any,
+    user: data.user,
+    amount,
+    token: `motors-reservation-deposit:${data.user.id}:${token || crypto.randomUUID()}`,
+    description: "Acompte de réservation Nostra Motors",
+  });
+  if (payment && !payment.ok) redirect(`/profil?reservation_error=${paymentErrorCode(payment.reason)}`);
 
   const customerName =
     getRpName(data.user) || getDiscordName(data.user) || "Client Nostra Motors";
@@ -276,6 +405,7 @@ export async function checkoutVehicleReservationDeposits() {
   );
 
   if (error) {
+    await refundIfNeeded(payment, `reservation_deposit:${orderErrorCode(error)}`);
     redirect(`/profil?reservation_error=${orderErrorCode(error)}`);
   }
 
@@ -288,15 +418,30 @@ export async function checkoutVehicleReservationDeposits() {
   redirect(`/profil?reservation_paid=${count}`);
 }
 
-export async function checkoutVehicleReservationBalances() {
+export async function checkoutVehicleReservationBalances(formData?: FormData) {
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
   if (!data.user) redirect("/");
 
+  const amount = await cartAmountForTypes(supabase as any, data.user.id, ["reservation_balance"]);
+  if (amount <= 0) redirect("/profil?balance_error=empty-balance");
+  const token = formData ? text(formData.get("checkout_token"), 120) : "";
+  const payment = await chargeCartPayment({
+    supabase: supabase as any,
+    user: data.user,
+    amount,
+    token: `motors-reservation-balance:${data.user.id}:${token || crypto.randomUUID()}`,
+    description: "Solde de réservation Nostra Motors",
+  });
+  if (payment && !payment.ok) redirect(`/profil?balance_error=${paymentErrorCode(payment.reason)}`);
+
   const { data: result, error } = await supabase.rpc(
     "checkout_vehicle_reservation_balances_v93",
   );
-  if (error) redirect(`/profil?balance_error=${orderErrorCode(error)}`);
+  if (error) {
+    await refundIfNeeded(payment, `reservation_balance:${orderErrorCode(error)}`);
+    redirect(`/profil?balance_error=${orderErrorCode(error)}`);
+  }
 
   const response =
     result && typeof result === "object"
