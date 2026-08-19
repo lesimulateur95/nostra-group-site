@@ -13,6 +13,8 @@ import { createClient } from "@/lib/supabase/server";
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+const MINIMUM_PURCHASE_RP = 10_000;
+
 export async function POST(request: Request) {
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
@@ -80,6 +82,12 @@ export async function POST(request: Request) {
   if (!Number.isSafeInteger(rpAmount) || rpAmount <= 0 || !Number.isSafeInteger(chipAmount) || chipAmount <= 0) {
     return NextResponse.json({ error: "Montant RP trop élevé." }, { status: 400 });
   }
+  if (rpAmount < MINIMUM_PURCHASE_RP) {
+    return NextResponse.json(
+      { error: `L’achat minimum à la caisse est de ${MINIMUM_PURCHASE_RP.toLocaleString("fr-FR")} $RP.` },
+      { status: 400 },
+    );
+  }
 
   let discountAmount = 0;
   if (promoCode) {
@@ -125,28 +133,39 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: existing.user_id === data.user.id && existing.status === "pending" ? "Cet achat est encore en cours de vérification. Contacte la Direction avant de réessayer." : "Cette référence d’achat est déjà utilisée." }, { status: 409 });
   }
 
-  const { error: reservationError } = await (admin as any)
-    .from("casino_conversion_requests")
-    .insert({
-      id: requestId,
-      user_id: data.user.id,
-      steam_id: steamId,
-      rp_amount: rpAmount,
-      discount_amount: discountAmount,
-      promo_code: promoCode || null,
-      chip_amount: chipAmount,
-      base_chip_amount: baseChipAmount,
-      bonus_chip_amount: bonusChipAmount,
-      package_id: resolvedPackageId,
-      rate: settings.rpPerChip,
-      payment_mode: "rp_database",
-      status: "pending",
-    });
+  const { error: reservationError } = await (admin as any).rpc(
+    "casino_reserve_purchase_v16410",
+    {
+      p_request_id: requestId,
+      p_user_id: data.user.id,
+      p_steam_id: steamId,
+      p_rp_amount: rpAmount,
+      p_discount_amount: discountAmount,
+      p_promo_code: promoCode || null,
+      p_chip_amount: chipAmount,
+      p_base_chip_amount: baseChipAmount,
+      p_bonus_chip_amount: bonusChipAmount,
+      p_rate: settings.rpPerChip,
+      p_package_id: resolvedPackageId,
+      p_discount_amount: discountAmount,
+      p_promo_code: promoCode || null,
+    },
+  );
   if (reservationError) {
-    return NextResponse.json(
-      { error: "Un achat est déjà en cours pour ce compte. Recharge la caisse avant de réessayer." },
-      { status: 409 },
+    console.error("[casino-cashier] Réservation achat impossible.", reservationError);
+    const reservationMessage = String(
+      reservationError.message ?? reservationError.code ?? "",
     );
+    const error = reservationMessage.includes("pending_purchase_exists")
+      ? "Un autre achat de jetons est réellement en cours. Attends quelques secondes puis actualise la caisse."
+      : reservationMessage.includes("minimum_purchase")
+        ? `L’achat minimum à la caisse est de ${MINIMUM_PURCHASE_RP.toLocaleString("fr-FR")} $RP.`
+        : reservationMessage.includes("purchase_reference_used")
+          ? "Cette référence d’achat a déjà été utilisée. Actualise la caisse puis réessaie."
+          : reservationMessage.includes("invalid_purchase")
+            ? "Les informations de l’achat sont invalides. Actualise la caisse puis réessaie."
+            : "La caisse n’a pas pu préparer l’achat. Actualise la page et réessaie.";
+    return NextResponse.json({ error }, { status: 409 });
   }
 
   const debit = payableRp > 0
@@ -169,7 +188,7 @@ export async function POST(request: Request) {
   }
 
   const { data: result, error } = await (admin as any).rpc(
-    "casino_complete_rp_purchase_v148",
+    "casino_complete_rp_purchase_v16410",
     {
       p_request_id: requestId,
       p_user_id: data.user.id,
@@ -179,6 +198,8 @@ export async function POST(request: Request) {
       p_bonus_chip_amount: bonusChipAmount,
       p_rate: settings.rpPerChip,
       p_package_id: resolvedPackageId,
+      p_discount_amount: discountAmount,
+      p_promo_code: promoCode || null,
     },
   );
   if (error) {

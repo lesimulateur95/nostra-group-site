@@ -73,7 +73,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: existing.user_id === data.user.id && existing.status === "pending" ? "Cette revente est encore en cours de vérification. Contacte la Direction avant de réessayer." : "Cette référence de revente est déjà utilisée." }, { status: 409 });
   }
 
-  const { error: reserveError } = await (admin as any).rpc("casino_reserve_cashout_v1648", {
+  const { error: reserveError } = await (admin as any).rpc("casino_reserve_cashout_v16410", {
     p_request_id: requestId,
     p_user_id: data.user.id,
     p_steam_id: steamId,
@@ -83,13 +83,23 @@ export async function POST(request: Request) {
     p_commission_percent: settings.cashoutCommissionPercent,
   });
   if (reserveError) {
+    console.error("[casino-cashier] Réservation revente impossible.", reserveError);
     const message = String(reserveError.message ?? reserveError.code ?? "");
-    return NextResponse.json({ error: message.includes("insufficient_balance") ? "Tu ne possèdes pas assez de jetons pour cette revente." : message.includes("pending_cashout_exists") ? "Une autre revente est déjà en cours pour ton compte." : "La revente n’a pas pu être réservée. Vérifie ton solde et réessaie." }, { status: 400 });
+    const friendly = message.includes("insufficient_balance")
+      ? "Tu ne possèdes pas assez de jetons pour cette revente."
+      : message.includes("pending_cashout_exists")
+        ? "Une autre revente est réellement en cours. Actualise la caisse dans quelques secondes."
+        : message.includes("invalid_cashout")
+          ? "La revente demandée est invalide. Actualise la caisse puis réessaie."
+          : message.includes("cashout_reference_used")
+            ? "Cette référence de revente a déjà été utilisée. Actualise la caisse puis réessaie."
+            : "La caisse n’a pas pu préparer la revente. Actualise la page et réessaie.";
+    return NextResponse.json({ error: friendly }, { status: 400 });
   }
 
   const credit = await creditCitizenGameMoney(steamId, rpAmount);
   if (credit.status !== "credited") {
-    const { error: refundError } = await (admin as any).rpc("casino_reject_cashout_v120", {
+    const { error: refundError } = await (admin as any).rpc("casino_reject_cashout_v16410", {
       p_request_id: requestId,
       p_reason: credit.status,
     });
@@ -101,7 +111,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: refundError ? "Incident de caisse : tes jetons sont réservés. Contacte immédiatement la Direction." : `${reason} Tes jetons ont été rendus automatiquement.` }, { status: credit.status === "unavailable" ? 503 : 400 });
   }
 
-  const { data: result, error: finalizeError } = await (admin as any).rpc("casino_complete_cashout_v120", {
+  const { data: result, error: finalizeError } = await (admin as any).rpc("casino_complete_cashout_v16410", {
     p_request_id: requestId,
   });
   if (finalizeError) {
