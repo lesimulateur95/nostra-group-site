@@ -107,7 +107,7 @@ export function CasinoCashout({
       {chipBalance < minimum && <div className={`${styles.notice} ${styles.error}`}>Il faut au moins {n(minimum)} jetons pour effectuer une revente.</div>}
       {message && <div className={`${styles.notice} ${styles[message.kind]}`}>{message.text}</div>}
       <button className={styles.cashierSellButton} disabled={pending || !canCashout} onClick={submit} type="button">
-        {pending ? "VIREMENT EN COURS…" : "REVENDRE"}
+        {pending ? "REVENTE EN COURS…" : "REVENDRE LES JETONS"}
       </button>
     </div>
   );

@@ -225,7 +225,7 @@ export default async function CasinoDashboardPage({ searchParams }: { searchPara
       </section>
 
       <section className="backoffice-panel">
-        <div className="panel-heading"><span className="panel-icon">↗</span><div><h2>Reventes vers le compte en jeu</h2><p>Les jetons retirés et les virements RP vers le compte bancaire principal sont enregistrés ici.</p></div></div>
+        <div className="panel-heading"><span className="panel-icon">↗</span><div><h2>Reventes de jetons</h2><p>Le client revend ses jetons Casino. Le site retire les jetons puis crédite automatiquement le montant RP net sur son compte en jeu.</p></div></div>
         <div className="orders-list">
           {recentCashouts.length === 0 && <p className="empty-state">Aucune revente enregistrée pour le moment.</p>}
           {recentCashouts.map((item) => (

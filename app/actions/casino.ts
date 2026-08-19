@@ -29,6 +29,7 @@ async function manager() {
 }
 function refresh() {
   revalidatePath("/accueil");
+  revalidatePath("/", "layout");
   revalidatePath("/casino", "layout");
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/jeux/casino");
@@ -47,7 +48,7 @@ export async function saveCasinoSettings(formData: FormData) {
   const minCashout = integer(formData.get("min_cashout"));
   const maxCashout = integer(formData.get("max_cashout"));
   if (!name || rpPerChip < 1 || minConversion < 1 || maxConversion < minConversion || cashoutCommissionPercent < 0 || cashoutCommissionPercent > 90 || minCashout < 1 || maxCashout < minCashout) redirect("/dashboard/jeux/casino?error=settings");
-  const { error } = await (supabase as any).rpc("casino_update_cashier_settings_v148", {
+  const { error } = await (supabase as any).rpc("casino_update_cashier_settings_v1648", {
     p_public_enabled: publicEnabled,
     p_name: name,
     p_subtitle: subtitle,

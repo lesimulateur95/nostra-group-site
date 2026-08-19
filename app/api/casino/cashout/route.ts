@@ -73,7 +73,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: existing.user_id === data.user.id && existing.status === "pending" ? "Cette revente est encore en cours de vérification. Contacte la Direction avant de réessayer." : "Cette référence de revente est déjà utilisée." }, { status: 409 });
   }
 
-  const { error: reserveError } = await (admin as any).rpc("casino_reserve_cashout_v148", {
+  const { error: reserveError } = await (admin as any).rpc("casino_reserve_cashout_v1648", {
     p_request_id: requestId,
     p_user_id: data.user.id,
     p_steam_id: steamId,

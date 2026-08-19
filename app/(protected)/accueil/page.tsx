@@ -121,7 +121,7 @@ export default async function HomePage({
             <PortalCard
               portal={{
                 href: "/casino",
-                kicker: "CERCLE PRIVÉ",
+                kicker: "CASINO NOSTRA",
                 title: casinoSettings.name.toUpperCase(),
                 description:
                   "Poker, jeux de table, machines et espace joueur dans un univers entièrement séparé.",
