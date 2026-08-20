@@ -93,6 +93,13 @@ export type GameMoneyCreditResult =
 
 const SAFE_IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
+// La page Informations bancaires ne doit jamais attendre longtemps une BDD lente.
+// Ces délais ne s'appliquent qu'à la lecture du profil bancaire.
+// Les paiements / crédits / transferts conservent le timeout normal de 5 secondes.
+const BANK_READ_CONNECT_TIMEOUT_MS = 1_500;
+const BANK_READ_QUERY_TIMEOUT_MS = 1_000;
+const DEFAULT_DB_CONNECT_TIMEOUT_MS = 5_000;
+
 function optionalEnv(name: string): string | null {
   const value = process.env[name]?.trim();
   return value || null;
@@ -218,7 +225,9 @@ function parsePaymentColumns(): PaymentColumn[] {
   }));
 }
 
-async function openGameDatabaseConnection(): Promise<Connection | null> {
+async function openGameDatabaseConnection(
+  connectTimeout = DEFAULT_DB_CONNECT_TIMEOUT_MS,
+): Promise<Connection | null> {
   const configuration = requiredDatabaseConfiguration();
   if (!configuration) return null;
 
@@ -229,13 +238,38 @@ async function openGameDatabaseConnection(): Promise<Connection | null> {
     user: configuration.user,
     password: configuration.password,
     database: configuration.database,
-    connectTimeout: 5_000,
+    connectTimeout,
     enableKeepAlive: false,
     ssl:
       optionalEnv("GAME_DB_SSL") === "true"
         ? { rejectUnauthorized: true }
         : undefined,
   });
+}
+
+async function executeBankReadWithTimeout<T>(
+  connection: Connection,
+  operation: Promise<T>,
+): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+
+  try {
+    return await Promise.race([
+      operation,
+      new Promise<T>((_, reject) => {
+        timer = setTimeout(() => {
+          try {
+            connection.destroy();
+          } catch {
+            // La connexion peut déjà être fermée.
+          }
+          reject(new Error("game_bank_read_timeout"));
+        }, BANK_READ_QUERY_TIMEOUT_MS);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
 }
 
 export function isGameBankConfigured(): boolean {
@@ -285,11 +319,14 @@ export async function getCitizenBankInformation(
   > | null = null;
 
   try {
-    connection = await openGameDatabaseConnection();
+    connection = await openGameDatabaseConnection(BANK_READ_CONNECT_TIMEOUT_MS);
     if (!connection) throw new Error("game_database_not_configured");
 
     const query = `select \`${nameColumn}\` as \`citizen_name\`, \`${cashColumn}\` as \`cash_balance\`, ${accountSelect} from \`${table}\` where \`${uidColumn}\` = ? limit 1`;
-    const [rows] = await connection.execute<BankRow[]>(query, [steamId]);
+    const [rows] = await executeBankReadWithTimeout(
+      connection,
+      connection.execute<BankRow[]>(query, [steamId]),
+    );
     const row = rows[0];
 
     if (!row) {
@@ -332,7 +369,13 @@ export async function getCitizenBankInformation(
       checkedAt: null,
     };
   } finally {
-    if (connection) await connection.end().catch(() => undefined);
+    if (connection) {
+      try {
+        connection.destroy();
+      } catch {
+        // Rien à faire : la connexion de lecture est déjà fermée.
+      }
+    }
   }
 }
 
