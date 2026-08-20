@@ -6,8 +6,6 @@ import { useRouter } from "next/navigation";
 import type { CasinoCashierPackage } from "@/lib/casino/types";
 import styles from "./casino.module.css";
 
-const MINIMUM_PURCHASE_RP = 10_000;
-
 function n(value: number): string {
   return Math.trunc(value).toLocaleString("fr-FR");
 }
@@ -36,8 +34,7 @@ export function CasinoCashier({
   paymentStatus: "connected" | "not_configured" | "identity_missing" | "not_found" | "unavailable";
   packages: CasinoCashierPackage[];
 }) {
-  const minRp = Math.max(MINIMUM_PURCHASE_RP, minimum * rpPerChip);
-  const maxRp = maximum * rpPerChip;
+  const minRp = Math.max(1, rpPerChip);
   const [customRp, setCustomRp] = useState(minRp);
   const [message, setMessage] = useState<{ kind: "success" | "error"; text: string } | null>(null);
   const [pendingKey, setPendingKey] = useState<string | null>(null);
@@ -50,7 +47,7 @@ export function CasinoCashier({
     return Math.floor(customRp / rpPerChip);
   }, [customRp, rpPerChip]);
 
-  const customValid = customRp >= minRp && customRp <= maxRp && customRp % rpPerChip === 0;
+  const customValid = customRp >= minRp && customRp % rpPerChip === 0;
 
   function buy(payload: { packageId?: string; rpAmount?: number }, key: string) {
     setMessage(null);
@@ -99,9 +96,8 @@ export function CasinoCashier({
       <div className={styles.cashierPackageGrid}>
         {packages.map((item) => {
           const totals = packageTotals(item, rpPerChip);
-          const belowMinimum = totals.rpAmount < MINIMUM_PURCHASE_RP;
           const insufficient = rpBalance !== null && totals.rpAmount > rpBalance;
-          const disabled = pending || paymentStatus !== "connected" || insufficient || belowMinimum;
+          const disabled = pending || paymentStatus !== "connected" || insufficient;
           return (
             <article className={styles.cashierPackCard} key={item.id}>
               <div className={styles.cashierCoin} aria-hidden="true">
@@ -124,11 +120,9 @@ export function CasinoCashier({
               >
                 {pendingKey === `pack-${item.id}`
                   ? "PAIEMENT…"
-                  : belowMinimum
-                    ? `MINIMUM ${n(MINIMUM_PURCHASE_RP)} $RP`
-                    : insufficient
-                      ? "FONDS RP INSUFFISANTS"
-                      : `ACHETER · ${n(totals.rpAmount)} $RP`}
+                  : insufficient
+                    ? "FONDS RP INSUFFISANTS"
+                    : `ACHETER · ${n(totals.rpAmount)} $RP`}
               </button>
             </article>
           );
@@ -144,14 +138,13 @@ export function CasinoCashier({
               id="cashier-custom-rp"
               type="number"
               min={minRp}
-              max={maxRp}
               step={rpPerChip}
               value={customRp}
               onChange={(event) => setCustomRp(Math.max(0, Math.trunc(Number(event.target.value))))}
             />
           </label>
           <div className={styles.cashierEquation}>{n(customRp)} $RP <b>⇄</b> <strong>{n(customChips)} JT</strong></div>
-          {!customValid && <p className={styles.cashierInlineError}>Le montant minimum est de {n(MINIMUM_PURCHASE_RP)} $RP, doit être un multiple de {n(rpPerChip)} $RP et rester dans les limites de la caisse.</p>}
+          {!customValid && <p className={styles.cashierInlineError}>Minimum : 1 jeton, soit {n(rpPerChip)} $RP au taux actuel. Le montant doit être un multiple exact de {n(rpPerChip)} $RP.</p>}
           <button
             className={styles.cashierCustomButton}
             disabled={pending || paymentStatus !== "connected" || !customValid || (rpBalance !== null && customRp > rpBalance)}

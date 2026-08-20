@@ -13,8 +13,6 @@ import { createClient } from "@/lib/supabase/server";
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-const MINIMUM_PURCHASE_RP = 10_000;
-
 export async function POST(request: Request) {
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
@@ -73,20 +71,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: `Le montant doit être un multiple exact de ${settings.rpPerChip.toLocaleString("fr-FR")} $RP.` }, { status: 400 });
     }
     baseChipAmount = Math.trunc(rpAmount / settings.rpPerChip);
-    if (baseChipAmount < settings.minConversion || baseChipAmount > settings.maxConversion) {
-      return NextResponse.json({ error: `L’achat personnalisé doit représenter entre ${settings.minConversion.toLocaleString("fr-FR")} et ${settings.maxConversion.toLocaleString("fr-FR")} jetons.` }, { status: 400 });
+    if (baseChipAmount < 1) {
+      return NextResponse.json({ error: "L’achat minimum est de 1 jeton." }, { status: 400 });
     }
   }
 
   const chipAmount = baseChipAmount + bonusChipAmount;
   if (!Number.isSafeInteger(rpAmount) || rpAmount <= 0 || !Number.isSafeInteger(chipAmount) || chipAmount <= 0) {
     return NextResponse.json({ error: "Montant RP trop élevé." }, { status: 400 });
-  }
-  if (rpAmount < MINIMUM_PURCHASE_RP) {
-    return NextResponse.json(
-      { error: `L’achat minimum à la caisse est de ${MINIMUM_PURCHASE_RP.toLocaleString("fr-FR")} $RP.` },
-      { status: 400 },
-    );
   }
 
   let discountAmount = 0;
@@ -147,8 +139,6 @@ export async function POST(request: Request) {
       p_bonus_chip_amount: bonusChipAmount,
       p_rate: settings.rpPerChip,
       p_package_id: resolvedPackageId,
-      p_discount_amount: discountAmount,
-      p_promo_code: promoCode || null,
     },
   );
   if (reservationError) {
@@ -159,7 +149,7 @@ export async function POST(request: Request) {
     const error = reservationMessage.includes("pending_purchase_exists")
       ? "Un autre achat de jetons est réellement en cours. Attends quelques secondes puis actualise la caisse."
       : reservationMessage.includes("minimum_purchase")
-        ? `L’achat minimum à la caisse est de ${MINIMUM_PURCHASE_RP.toLocaleString("fr-FR")} $RP.`
+        ? `L’achat minimum est de 1 jeton (${settings.rpPerChip.toLocaleString("fr-FR")} $RP au taux actuel).`
         : reservationMessage.includes("purchase_reference_used")
           ? "Cette référence d’achat a déjà été utilisée. Actualise la caisse puis réessaie."
           : reservationMessage.includes("invalid_purchase")
