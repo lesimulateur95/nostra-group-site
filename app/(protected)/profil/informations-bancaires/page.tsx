@@ -1,13 +1,41 @@
-import { redirect } from "next/navigation";
+"use client";
 
-import { BankRefreshButton } from "@/components/profile/bank-refresh-button";
+import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+
 import { ProfileSectionHeader } from "@/components/profile/profile-section-header";
-import { getCitizenBankInformation } from "@/lib/game-bank/data";
-import { createClient } from "@/lib/supabase/server";
 import styles from "./page.module.css";
 
 export const dynamic = "force-dynamic";
-export const revalidate = 0;
+
+type BankAccount = {
+  key: string;
+  label: string;
+  balance: number;
+};
+
+type BankingInformation = {
+  status:
+    | "connected"
+    | "not_configured"
+    | "identity_missing"
+    | "not_found"
+    | "unavailable";
+  citizenName: string | null;
+  steamId: string | null;
+  cash: number | null;
+  accounts: BankAccount[];
+  total: number | null;
+  checkedAt: string | null;
+};
+
+type BankApiResponse = {
+  banking: BankingInformation;
+  profileName: string;
+  steamId: string | null;
+};
+
+const CLIENT_TIMEOUT_MS = 3000;
 
 function money(value: number | null): string {
   if (value === null) return "—";
@@ -32,54 +60,106 @@ function formatCheckedAt(value: string | null): string {
   }).format(new Date(value));
 }
 
-export default async function BankingInformationPage() {
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getUser();
-  if (!data.user) redirect("/");
+export default function BankingInformationPage() {
+  const router = useRouter();
 
-  const { data: profile } = await supabase
-    .from("member_profiles")
-    .select("steam_id,rp_first_name,rp_last_name")
-    .eq("user_id", data.user.id)
-    .maybeSingle();
+  const [banking, setBanking] = useState<BankingInformation | null>(null);
+  const [profileName, setProfileName] = useState("Citoyen Nostra");
+  const [steamId, setSteamId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [timedOut, setTimedOut] = useState(false);
 
-  const steamId =
-    typeof profile?.steam_id === "string" && profile.steam_id.trim()
-      ? profile.steam_id.trim()
-      : typeof data.user.user_metadata?.steam_id === "string" &&
-          data.user.user_metadata.steam_id.trim()
-        ? data.user.user_metadata.steam_id.trim()
-        : null;
-  const banking = await getCitizenBankInformation(steamId);
-  const profileName = [profile?.rp_first_name, profile?.rp_last_name]
-    .filter((value): value is string => typeof value === "string" && Boolean(value.trim()))
-    .join(" ");
-  const citizenName = banking.citizenName || profileName || "Citoyen Nostra";
+  const loadBanking = useCallback(async () => {
+    setLoading(true);
+    setTimedOut(false);
+
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), CLIENT_TIMEOUT_MS);
+
+    try {
+      const response = await fetch("/api/profile/bank-information", {
+        method: "GET",
+        cache: "no-store",
+        signal: controller.signal,
+        headers: {
+          Accept: "application/json",
+        },
+      });
+
+      if (response.status === 401) {
+        router.replace("/");
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(`bank_api_${response.status}`);
+      }
+
+      const payload = (await response.json()) as BankApiResponse;
+
+      setBanking(payload.banking);
+      setProfileName(payload.profileName || "Citoyen Nostra");
+      setSteamId(payload.steamId ?? payload.banking.steamId ?? null);
+    } catch (error) {
+      const aborted =
+        error instanceof DOMException && error.name === "AbortError";
+
+      setTimedOut(aborted);
+
+      setBanking({
+        status: "unavailable",
+        citizenName: null,
+        steamId,
+        cash: null,
+        accounts: [],
+        total: null,
+        checkedAt: null,
+      });
+    } finally {
+      window.clearTimeout(timer);
+      setLoading(false);
+    }
+  }, [router, steamId]);
+
+  useEffect(() => {
+    void loadBanking();
+    // Un seul chargement automatique à l'ouverture.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const citizenName =
+    banking?.citizenName || profileName || "Citoyen Nostra";
 
   const unavailableCopy =
-    banking.status === "identity_missing"
+    banking?.status === "identity_missing"
       ? {
           eyebrow: "COMPTE NON LIÉ",
           title: "Ajoute ton identifiant Steam",
           text: "Ton compte du site doit être lié au même identifiant Steam que celui utilisé en jeu pour retrouver tes finances.",
         }
-      : banking.status === "not_found"
+      : banking?.status === "not_found"
         ? {
             eyebrow: "COMPTE EN JEU INTROUVABLE",
             title: "Aucune donnée bancaire pour le moment",
             text: "Ton profil est bien lié, mais aucun personnage correspondant n’a encore été trouvé dans la base du serveur.",
           }
-        : banking.status === "unavailable"
+        : banking?.status === "not_configured"
           ? {
-              eyebrow: "SERVICE TEMPORAIREMENT INDISPONIBLE",
-              title: "La banque du serveur ne répond pas",
-              text: "Tes données restent intactes. Réessaie dans un instant ou attends le rétablissement de la connexion au serveur.",
+              eyebrow: "CONNEXION NON CONFIGURÉE",
+              title: "La banque du serveur n’est pas configurée",
+              text: "La page fonctionne normalement, mais la connexion bancaire serveur n’est pas disponible.",
             }
-          : {
-              eyebrow: "BIENTÔT DISPONIBLE",
-              title: "Connexion prévue à l’ouverture du serveur",
-              text: "Cette page est prête. Les comptes et l’argent en jeu apparaîtront automatiquement dès que la base du serveur sera reliée au site.",
-            };
+          : timedOut
+            ? {
+                eyebrow: "DÉLAI DE CONNEXION DÉPASSÉ",
+                title: "La banque du serveur met trop de temps à répondre",
+                text: "La page reste disponible. Tu peux relancer uniquement la consultation des soldes.",
+              }
+            : {
+                eyebrow: "SERVICE TEMPORAIREMENT INDISPONIBLE",
+                title: "La banque du serveur ne répond pas",
+                text: "Tes données restent intactes. Tu peux réessayer sans recharger toute la page.",
+              };
 
   return (
     <main className={styles.page}>
@@ -97,6 +177,7 @@ export default async function BankingInformationPage() {
             <strong>{citizenName}</strong>
           </p>
         </div>
+
         <dl>
           <div>
             <dt>Identifiant Steam lié</dt>
@@ -104,13 +185,36 @@ export default async function BankingInformationPage() {
           </div>
           <div>
             <dt>Dernière consultation</dt>
-            <dd>{formatCheckedAt(banking.checkedAt)}</dd>
+            <dd>
+              {loading
+                ? "Connexion en cours…"
+                : formatCheckedAt(banking?.checkedAt ?? null)}
+            </dd>
           </div>
         </dl>
-        {banking.status === "connected" && <BankRefreshButton />}
+
+        {!loading && (
+          <button
+            className={styles.refreshButton}
+            type="button"
+            onClick={() => void loadBanking()}
+          >
+            <span aria-hidden="true">↻</span>
+            Actualiser les soldes
+          </button>
+        )}
       </section>
 
-      {banking.status === "connected" ? (
+      {loading ? (
+        <section className={styles.unavailable}>
+          <span className={styles.lockIcon} aria-hidden="true">🏦</span>
+          <p className={styles.eyebrow}>CONNEXION À LA BANQUE</p>
+          <h2>Récupération de tes soldes…</h2>
+          <p>
+            La page est ouverte. Seules les informations bancaires sont en cours de récupération.
+          </p>
+        </section>
+      ) : banking?.status === "connected" ? (
         <>
           <section className={styles.heroBalance}>
             <div>
@@ -164,7 +268,14 @@ export default async function BankingInformationPage() {
           <p className={styles.eyebrow}>{unavailableCopy.eyebrow}</p>
           <h2>{unavailableCopy.title}</h2>
           <p>{unavailableCopy.text}</p>
-          {banking.status === "unavailable" && <BankRefreshButton />}
+          <button
+            className={styles.refreshButton}
+            type="button"
+            onClick={() => void loadBanking()}
+          >
+            <span aria-hidden="true">↻</span>
+            Réessayer
+          </button>
         </section>
       )}
 
